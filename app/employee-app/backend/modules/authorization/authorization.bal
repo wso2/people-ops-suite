@@ -1,6 +1,5 @@
-import ballerina/http;
 //
-// Copyright (c) 2005-2024, WSO2 LLC. (http://www.wso2.org) All Rights Reserved.
+// Copyright (c) 2005-2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -16,6 +15,7 @@ import ballerina/http;
 // specific language governing permissions and limitations
 // under the License.
 // 
+import ballerina/http;
 import ballerina/jwt;
 import ballerina/log;
 
@@ -55,7 +55,7 @@ public isolated function decodeJwt(string key) returns http:Forbidden|http:Unaut
     CustomJwtPayload|error userInfo = payload.cloneWithType(CustomJwtPayload);
 
     if userInfo is error {
-        log:printError(payload.toString());
+        log:printError("JWT payload type mismatch or validation error during token decoding.", userInfo);
         return <http:Unauthorized>{body: {message: userInfo.message()}};
     }
     foreach anydata role in authorizedRoles.toArray() {
@@ -66,9 +66,10 @@ public isolated function decodeJwt(string key) returns http:Forbidden|http:Unaut
             };
         }
     }
-    log:printError(
-                string `${userInfo.email} is missing group ${authorizedRoles.toBalString()}, 
-                only has ${userInfo.groups.toBalString()}`);
-
+    log:printError("Authorization failed due to insufficient privileges.",
+        email = userInfo.email,
+        authorizedRoles = authorizedRoles,
+        userRoles = userInfo.groups
+    );
     return <http:Forbidden>{body: {message: "Insufficient privileges!"}};
 }

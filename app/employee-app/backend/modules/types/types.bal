@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2005-2024, WSO2 LLC. (http://www.wso2.org) All Rights Reserved.
+// Copyright (c) 2005-2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -212,16 +212,6 @@ public type EmployeeFilter record {|
     boolean? lead = ();
 |};
 
-# Filter record.
-public type Filter record {|
-    # Field name to apply the filter on
-    EmployeeField 'field;
-    # Filter function to apply
-    FilterFunction 'function;
-    # Value to be used in the filter function
-    string value;
-|};
-
 # Hiring details payload.
 public type HiringDetailsPayload record {|
     # Documents for the hiring details email
@@ -332,14 +322,6 @@ public type Recruit record {
     string updatedBy;
     # Updated on
     string updatedOn;
-};
-
-# Sort option record.
-public type SortOption record {
-    # Field name to sort by
-    EmployeeField 'field;
-    # Sorting direction
-    SortDirection direction;
 };
 
 # SubTeam.

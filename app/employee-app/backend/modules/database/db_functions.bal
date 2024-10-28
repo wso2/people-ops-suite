@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2005-2024, WSO2 LLC. (http://www.wso2.org) All Rights Reserved.
+// Copyright (c) 2005-2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -50,13 +50,8 @@ public isolated function getCareerFunctions(CareerFunctionFilter filter, int 'li
         filter = filter, 'limit = 'limit, offset = offset));
     error? iterateError = from DBCareerFunction careerFunction in resultStream
         do {
-            Designation[]|error designations;
-            string resDesignations = careerFunction.designations ?: "";
-            if resDesignations == "" {
-                designations = [];
-            } else {
-                designations = check resDesignations.fromJsonStringWithType();
-            }
+            string resDesignations = careerFunction.designations ?: "[]";
+            Designation[]|error designations = resDesignations.fromJsonStringWithType();
 
             if designations is error {
                 string errorMsg = string `An error occurred when retrieving designations data of ${
@@ -87,7 +82,7 @@ public isolated function getCompensation(string filter) returns types:Compensati
 
     CompensationEmail|error compensationRecord = databaseClient->queryRow(getCompensationQuery(filter));
     if compensationRecord is error {
-        if compensationRecord is sql:Error && compensationRecord is sql:NoRowsError {
+        if compensationRecord is sql:NoRowsError {
             return error(string `No matching compensation data found for ${filter}!`);
         }
         string customError = string `Error occurred while retrieving the compensation data for ${filter}!`;

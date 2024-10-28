@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2005-2024, WSO2 LLC. (http://www.wso2.org) All Rights Reserved.
+// Copyright (c) 2005-2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -26,5 +26,5 @@ public function checkRoles(string[] requiredRoles, string[] userRoles) returns b
     if userRoles.length() == 0 && requiredRoles.length() > 0 {
         return false;
     }
-    return requiredRoles.some(role => userRoles.indexOf(role) !is ());
+    return requiredRoles.some(role => userRoles.indexOf(role) is int);
 }

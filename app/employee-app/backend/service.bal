@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2005-2024, WSO2 LLC. (http://www.wso2.org) All Rights Reserved.
+// Copyright (c) 2005-2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -39,7 +39,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     # Request interceptor.
     # + return - authorization:JwtInterceptor
-    public function createInterceptors() returns [authorization:JwtInterceptor] {
+    public function createInterceptors() returns http:Interceptor[] {
         return [new authorization:JwtInterceptor()];
     }
 
@@ -111,8 +111,8 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + return - Internal Server Error or Organization structure data
     resource function get org\-structure() returns types:OrgStructure|error {
 
-        if orgStructureCache.hasKey("orgStructure") {
-            return <types:OrgStructure>check orgStructureCache.get("orgStructure");
+        if orgStructureCache.hasKey(types:ORG_STRUCTURE_CACHE_KEY) {
+            return <types:OrgStructure>check orgStructureCache.get(types:ORG_STRUCTURE_CACHE_KEY);
         }
 
         types:OrgStructure orgStructure = {
@@ -121,7 +121,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             careerPaths: check database:getCareerFunctions(filter = {}, 'limit = types:DEFAULT_LIMIT, offset = 0),
             employmentTypes: [types:PERMANENT, types:INTERNSHIP, types:CONSULTANCY]
         };
-        check orgStructureCache.put("orgStructure", orgStructure);
+        check orgStructureCache.put(types:ORG_STRUCTURE_CACHE_KEY, orgStructure);
         return orgStructure;
     }
 
