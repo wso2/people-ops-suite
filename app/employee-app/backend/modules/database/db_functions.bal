@@ -33,7 +33,7 @@ public isolated function addRecruit(AddRecruitPayload recruit, string createdBy)
         log:printError(customError, executionResults);
         return error(customError);
     }
-    return <int>executionResults.lastInsertId;
+    return executionResults.lastInsertId.ensureType();
 }
 
 # Retrieve career function data from HRIS.
@@ -101,7 +101,7 @@ public isolated function getCompensation(string filter) returns types:Compensati
         log:printError(customError, compensation);
         return error(customError);
     }
-    if (compensation.length() == 0) {
+    if compensation.length() == 0 {
         error customError = error(string `No matching compensation data found for ${filter}`);
         return customError;
     }
@@ -154,7 +154,9 @@ public isolated function getEmployee(string email) returns Employee|error? {
 
     DBEmployee|error result = databaseClient->queryRow(getEmployeeQuery(email));
     if result is error {
-        return ();
+        string errorMsg = string `An error occurred when retrieving employee data of ${email} !`;
+        log:printError(errorMsg);
+        return error(errorMsg);
     }
     if result is DBEmployee {
         Employee employee = {
@@ -256,7 +258,7 @@ public isolated function getRecruit(int recruitId) returns types:Recruit|error {
 
     Recruit|error result = databaseClient->queryRow(getRecruitQuery(recruitId));
     if result is error {
-        if (result is sql:Error && result is sql:NoRowsError) {
+        if result is sql:Error && result is sql:NoRowsError {
             return error(string `No matching recruit found : ${recruitId}!`);
         }
         string customError = string `Error occurred while retrieving the recruit data for ${recruitId}!`;
@@ -435,9 +437,9 @@ public isolated function updateRecruit(UpdateRecruitPayload recruit, string upda
         log:printError(customError, executionResult);
         return error(customError);
     }
-    if (executionResult.affectedRowCount == 0) {
+    if executionResult.affectedRowCount == 0 {
         return error(string `No recruit were to update from id : ${recruit.recruitId} !`);
     }
-    
+
     return executionResult;
 }

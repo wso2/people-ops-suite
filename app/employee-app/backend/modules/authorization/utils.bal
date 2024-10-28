@@ -26,6 +26,5 @@ public function checkRoles(string[] requiredRoles, string[] userRoles) returns b
     if userRoles.length() == 0 && requiredRoles.length() > 0 {
         return false;
     }
-    boolean allow = requiredRoles.some(role => userRoles.indexOf(role) !is ());
-    return allow;
+    return requiredRoles.some(role => userRoles.indexOf(role) !is ());
 }

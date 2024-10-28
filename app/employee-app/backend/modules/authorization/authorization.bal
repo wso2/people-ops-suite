@@ -1,3 +1,4 @@
+import ballerina/http;
 //
 // Copyright (c) 2005-2024, WSO2 LLC. (http://www.wso2.org) All Rights Reserved.
 //
@@ -17,7 +18,6 @@
 // 
 import ballerina/jwt;
 import ballerina/log;
-import ballerina/http;
 
 public configurable AppRoles authorizedRoles = ?;
 
