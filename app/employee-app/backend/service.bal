@@ -23,7 +23,6 @@ import employee_app.types;
 import ballerina/cache;
 import ballerina/http;
 import ballerina/log;
-import ballerina/regex;
 import ballerina/time;
 
 configurable email:EmailAlertConfig offerEmailConfig = ?;
@@ -154,7 +153,8 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         types:Recruit {employmentType, companyLocation} = check database:getRecruit(recruitId);
-        companyLocation = regex:replaceAll(companyLocation, " ", "");
+        string:RegExp r = re `" "`;
+        companyLocation = r.replaceAll(companyLocation, "");
         string compensationFilter = string `${types:OFFER_TEMPLATE_PREFIX}${employmentType}`;
         if employmentType == types:PERMANENT {
             compensationFilter = compensationFilter + string `${companyLocation}`;
@@ -317,7 +317,8 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         string compensationFilter = string `${types:OFFER_TEMPLATE_PREFIX}${recruit.employmentType}`;
         if recruit.employmentType == types:PERMANENT {
-            string companyLocation = regex:replaceAll(recruit.companyLocation, " ", "");
+            string:RegExp r = re `" "`;
+            string companyLocation = r.replaceAll(recruit.companyLocation, "");
             compensationFilter = compensationFilter + string `${companyLocation}`;
         }
         if recruit.employmentType == types:INTERNSHIP || recruit.employmentType == types:CONSULTANCY {
@@ -490,7 +491,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
         _ = check database:updateRecruit(
-                {recruitId: recruitId, status: recruitStatus, additionalComments: rejectionReason},
+                {recruitId, status: recruitStatus, additionalComments: rejectionReason},
                 updatedBy = userInfo.email
             );
         return <http:Ok>{
@@ -557,7 +558,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             attachments: hiringDetails.documents
         });
         _ = check database:updateRecruit(
-            {recruitId: recruitId, status: database:REQUEST_HIRING_DETAILS},
+            {recruitId, status: database:REQUEST_HIRING_DETAILS},
             userInfo.email
         );
 
@@ -592,7 +593,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         _ = check database:updateRecruit(
-            {recruitId: recruitId, status: database:HIRING_DETAILS_RECEIVED},
+            {recruitId, status: database:HIRING_DETAILS_RECEIVED},
             userInfo.email
         );
         return <http:Ok>{
@@ -675,7 +676,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         _ = check database:updateRecruit(
-                {recruitId: recruitId, status: recruitStatus, additionalComments: rejectionReason},
+                {recruitId, status: recruitStatus, additionalComments: rejectionReason},
                 updatedBy = userInfo.email
             );
         return <http:Ok>{
@@ -709,7 +710,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         _ = check database:updateRecruit(
-            {recruitId: recruitId, status: database:HIRING_MANAGER_ACKNOWLEDGED},
+            {recruitId, status: database:HIRING_MANAGER_ACKNOWLEDGED},
             userInfo.email
         );
         return <http:Ok>{
