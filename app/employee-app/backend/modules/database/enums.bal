@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2005-2024, WSO2 LLC.
+// Copyright (c) 2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -29,19 +29,6 @@ public enum EmployeeStatus {
     ACTIVE = "Active",
     LEFT = "Left",
     MARKED\ LEAVER = "Marked leaver"
-}
-
-# [Enum] Filter Function.
-public enum FilterFunction {
-    NONE = "",
-    EQUALS = "Equals",
-    CONTAINS = "Contains",
-    STARTS_WITH = "Starts With",
-    ENDS_WITH = "Ends With",
-    GREATER_THAN = "Greater Than",
-    LESS_THAN = "Less Than",
-    BEFORE = "Before",
-    AFTER = "After"
 }
 
 # [Enum] Gender

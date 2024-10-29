@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2005-2024, WSO2 LLC.
+// Copyright (c) 2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -47,7 +47,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + email - Email of the employee
     # + return - Basic information of the employee or an error
     resource function get employees/[string email]()
-        returns types:Employee|http:BadRequest|http:InternalServerError|http:NotFound|error {
+        returns types:Employee|http:BadRequest|http:InternalServerError|http:NotFound {
 
         if !email.matches(types:WSO2_EMAIL) {
             return <http:BadRequest>{
@@ -58,12 +58,17 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         types:Employee|error? employee;
         if userInfoCache.hasKey(email) {
-            return userInfoCache.get(email).ensureType();
+            any|error cachedEmployee = userInfoCache.get(email);
+            if cachedEmployee is types:Employee {
+                return cachedEmployee;
+            } else if cachedEmployee is cache:Error {
+                log:printError("Error getting employee information", cachedEmployee);
+            }
         }
 
         employee = database:getEmployee(email);
         if employee is error {
-            string customError = string `Error getting employee basic information for ${email}`;
+            string customError = string `Error getting employee basic information for ${email}!`;
             log:printError(customError, employee);
             return <http:InternalServerError>{
                 body: {
@@ -79,6 +84,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
+
         return employee;
     }
 
@@ -94,7 +100,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         types:Employee[]|error employees =
             database:getEmployees(filters ?: {}, 'limit ?: types:DEFAULT_LIMIT, offset ?: 0);
         if employees is error {
-            string customError = "Error getting employee basic information for employees";
+            string customError = "Error getting employee information!";
             log:printError(customError, employees);
             return <http:InternalServerError>{
                 body: {
@@ -108,19 +114,73 @@ service http:InterceptableService / on new http:Listener(9090) {
     # Organization structure data retrieval.
     #
     # + return - Internal Server Error or Organization structure data
-    resource function get org\-structure() returns types:OrgStructure|error {
+    resource function get org\-structure() returns types:OrgStructure|http:InternalServerError {
 
         if orgStructureCache.hasKey(types:ORG_STRUCTURE_CACHE_KEY) {
-            return <types:OrgStructure>check orgStructureCache.get(types:ORG_STRUCTURE_CACHE_KEY);
+            any|error cacheOrg = orgStructureCache.get(types:ORG_STRUCTURE_CACHE_KEY);
+            if cacheOrg is types:OrgStructure {
+                return cacheOrg;
+            }
+            if cacheOrg is cache:Error {
+                string customError = "Error retrieving employee from cache";
+                log:printError(customError, cacheOrg);
+            }
+        }
+        types:BusinessUnit[]|error businessUnits = database:getOrgDetails(
+                filter = {},
+                'limit = types:DEFAULT_LIMIT,
+                offset = 0
+            );
+        if businessUnits is error {
+            string customError = "Error getting business units";
+            log:printError(customError, businessUnits);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        types:Company[]|error companies = database:getCompanies(
+                filter = {},
+                'limit = types:DEFAULT_LIMIT,
+                offset = 0
+            );
+        if companies is error {
+            string customError = "Error getting companies";
+            log:printError(customError, companies);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        types:CareerFunction[]|error careerFunctions = database:getCareerFunctions(
+                filter = {},
+                'limit = types:DEFAULT_LIMIT,
+                offset = 0
+            );
+        if careerFunctions is error {
+            string customError = "Error getting career functions";
+            log:printError(customError, careerFunctions);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
         }
 
         types:OrgStructure orgStructure = {
-            businessUnits: check database:getOrgDetails(filter = {}, 'limit = types:DEFAULT_LIMIT, offset = 0),
-            companies: check database:getCompanies(filter = {}, 'limit = types:DEFAULT_LIMIT, offset = 0),
-            careerPaths: check database:getCareerFunctions(filter = {}, 'limit = types:DEFAULT_LIMIT, offset = 0),
+            businessUnits: businessUnits,
+            companies: companies,
+            careerPaths: careerFunctions,
             employmentTypes: [types:PERMANENT, types:INTERNSHIP, types:CONSULTANCY]
         };
-        check orgStructureCache.put(types:ORG_STRUCTURE_CACHE_KEY, orgStructure);
+        var putResult = orgStructureCache.put(types:ORG_STRUCTURE_CACHE_KEY, orgStructure);
+        if putResult is cache:Error {
+            log:printError("Failed to put org structure in cache", putResult);
+        }
         return orgStructure;
     }
 
@@ -128,7 +188,20 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + return - recruit data or error response
     resource function get recruits/[int recruitId](http:RequestContext ctx)
-        returns types:Recruit|http:Forbidden|error => check database:getRecruit(recruitId);
+        returns types:Recruit|http:InternalServerError {
+
+        types:Recruit|error recruit = database:getRecruit(recruitId);
+        if recruit is error {
+            string customError = "Error getting recruit information";
+            log:printError(customError, 'error = recruit, recruitId = recruitId);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        return recruit;
+    }
 
     # Retrieve all recruits data from the database.
     #
@@ -137,34 +210,72 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + offset - Offset of the data
     # + return - All Selected recruits data or error response
     resource function get recruits(database:RecruitStatus[]? statusArray, int? 'limit, int? offset)
-        returns types:Recruit[]|error => check database:getRecruits(statusArray, 'limit, offset);
+        returns types:Recruit[]|http:InternalServerError {
+
+        types:Recruit[]|error recruits = database:getRecruits(statusArray, 'limit, offset);
+        if recruits is error {
+            string customError = "Error getting recruit information";
+            log:printError(customError, 'error = recruits);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        return recruits;
+    }
 
     # Retrieve compensations for a specific recruit's employment type and the company location.
     #
     # + recruitId - ID of the recruit  
     # + return - Compensation or error response
     resource function get recruits/[int recruitId]/compensation(http:RequestContext ctx)
-        returns types:Compensation[]|http:Forbidden|error {
+        returns types:Compensation[]|http:Forbidden|http:InternalServerError {
 
-        authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
-        if !authorization:checkRoles([authorization:authorizedRoles.recruitmentTeamRole],
-                userInfo.groups) {
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            string customError = "Error getting token from the header";
+            log:printError(customError, 'error = userInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        if !authorization:checkRoles([authorization:authorizedRoles.recruitmentTeamRole], userInfo.groups) {
             return <http:Forbidden>{body: {message: "Insufficient privileges!"}};
         }
-
-        types:Recruit {employmentType, companyLocation} = check database:getRecruit(recruitId);
-        string:RegExp r = re `" "`;
-        companyLocation = r.replaceAll(companyLocation, "");
-        string compensationFilter = string `${types:OFFER_TEMPLATE_PREFIX}${employmentType}`;
-        if employmentType == types:PERMANENT {
-            compensationFilter = compensationFilter + string `${companyLocation}`;
+        types:Recruit|error recruit = database:getRecruit(recruitId);
+        if recruit is error {
+            string customError = "Error getting data for recruit";
+            log:printError(customError, 'error = recruit, id = recruitId);
+            return <http:InternalServerError>{
+                body: {
+                    message: string `${customError} ${recruitId}`
+                }
+            };
         }
-        if employmentType == types:INTERNSHIP || employmentType == types:CONSULTANCY {
+
+        string:RegExp r = re `" "`;
+        recruit.companyLocation = r.replaceAll(recruit.companyLocation, "");
+        string compensationFilter = string `${types:OFFER_TEMPLATE_PREFIX}${recruit.employmentType}`;
+        if recruit.employmentType == types:PERMANENT {
+            compensationFilter = compensationFilter + string `${recruit.companyLocation}`;
+        }
+        if recruit.employmentType == types:INTERNSHIP || recruit.employmentType == types:CONSULTANCY {
             compensationFilter = compensationFilter + string `${types:OFFER_TEMPLATE_POSTFIX}`;
         }
-        types:CompensationEmail {compensation} = check database:getCompensation(compensationFilter);
-
-        return compensation;
+        types:CompensationEmail|error compensationEmail = database:getCompensation(compensationFilter);
+        if compensationEmail is error {
+            string customError = "Error getting compensation email data";
+            log:printError(customError, 'error = compensationEmail);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        return compensationEmail.compensation;
     }
 
     # Add recruits data to the database.
@@ -172,9 +283,18 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + recruit - Recruits to be added
     # + return - Recruits data insertion successful or error response
     resource function post recruits(http:RequestContext ctx, database:AddRecruitPayload recruit)
-        returns http:Created|http:Forbidden|http:BadRequest|error {
+        returns http:Created|http:Forbidden|http:BadRequest|http:InternalServerError {
 
-        authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            string customError = "Error getting token from the header";
+            log:printError(customError, 'error = userInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         if !authorization:checkRoles([authorization:authorizedRoles.recruitmentTeamRole],
                 userInfo.groups) {
             return <http:Forbidden>{body: {message: "Insufficient privileges!"}};
@@ -238,7 +358,16 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
         }
 
-        int employeeId = check database:addRecruit(recruit, userInfo.email);
+        int|error employeeId = database:addRecruit(recruit, userInfo.email);
+        if employeeId is error {
+            string customError = "Error getting employee ID";
+            log:printError(customError, 'error = employeeId, email = userInfo.email);
+            return <http:InternalServerError>{
+                body: {
+                    message: string `${customError} for ${userInfo.email}`
+                }
+            };
+        }
         return <http:Created>{
             body: {
                 message: string `Successfully added the recruit data. Id : ${employeeId.toString()}!`
@@ -252,15 +381,34 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + recruit - Recruit data to be updated
     # + return - Recruit update successful or error response
     resource function patch recruits/[int recruitId](http:RequestContext ctx, types:UpdateRecruitPayload recruit)
-        returns http:Ok|http:Forbidden|error {
+        returns http:Ok|http:Forbidden|http:InternalServerError {
 
-        authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            string customError = "Error getting token from the header";
+            log:printError(customError, 'error = userInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         if !authorization:checkRoles([authorization:authorizedRoles.recruitmentTeamRole],
                 userInfo.groups) {
             return <http:Forbidden>{body: {message: "Insufficient privileges!"}};
         }
 
-        _ = check database:updateRecruit({...recruit, recruitId}, userInfo.email);
+        any|error result = database:updateRecruit({...recruit, recruitId}, userInfo.email);
+        if result is error {
+            string customError = "Error updating recruit in the database";
+            log:printError(customError, 'error = result);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
         return <http:Ok>{
             body: {
                 message: string `Successfully updated the recruits data. Id : ${recruitId}`
@@ -273,19 +421,52 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + recruitId - ID of the recruit to skip the offer
     # + return - Skip offer letter successful or error response
     resource function post recruits/[int recruitId]/offer/skip(http:RequestContext ctx)
-        returns http:Ok|http:Forbidden|error {
+        returns http:Ok|http:Forbidden|http:InternalServerError {
 
-        authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            string customError = "Error getting token from the header";
+            log:printError(customError, 'error = userInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         if !authorization:checkRoles([authorization:authorizedRoles.recruitmentTeamRole],
                 userInfo.groups) {
             return <http:Forbidden>{body: {message: "Insufficient privileges!"}};
         }
 
-        types:Recruit recruit = check database:getRecruit(recruitId);
-        if recruit.status != database:SELECTED {
-            return error("The recruit is not in the selected status to skip the offer letter!");
+        types:Recruit|error recruit = database:getRecruit(recruitId);
+        if recruit is error {
+            string customError = "Error getting recruit data";
+            log:printError(customError, 'error = recruit, id = recruitId);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
         }
-        _ = check database:updateRecruit({status: database:OFFER_SENT, recruitId}, userInfo.email);
+        if recruit.status != database:SELECTED {
+            return <http:InternalServerError>{
+                body: {
+                    message: "The recruit is not in the selected status to skip the offer letter!"
+                }
+            };
+        }
+
+        any|error result = database:updateRecruit({status: database:OFFER_SENT, recruitId}, userInfo.email);
+        if result is error {
+            string customError = "Error updating recruit in the database";
+            log:printError(customError, 'error = result);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
         return <http:Ok>{
             body: {
                 message: string `Successfully skipped the offer letter for the recruit. Id : ${recruitId}`
@@ -298,15 +479,33 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + recruitId - ID of the recruit to send the offer
     # + return - Offer sent successfully or error response
     resource function post recruits/[int recruitId]/offer/send(http:RequestContext ctx)
-        returns http:BadRequest|http:Forbidden|http:Ok|http:InternalServerError|http:NotFound|error {
+        returns http:BadRequest|http:Forbidden|http:Ok|http:InternalServerError|http:NotFound {
 
-        authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            string customError = "Error getting token from the header";
+            log:printError(customError, 'error = userInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         if !authorization:checkRoles([authorization:authorizedRoles.recruitmentTeamRole],
                 userInfo.groups) {
             return <http:Forbidden>{body: {message: "Insufficient privileges!"}};
         }
 
-        types:Recruit recruit = check database:getRecruit(recruitId);
+        types:Recruit|error recruit = database:getRecruit(recruitId);
+        if recruit is error {
+            string customError = "Error getting data for recruit";
+            log:printError(customError, 'error = recruit, id = recruitId);
+            return <http:InternalServerError>{
+                body: {
+                    message: string `${customError} ${recruitId}`
+                }
+            };
+        }
         if recruit.status != database:SELECTED {
             return <http:BadRequest>{
                 body: {
@@ -325,7 +524,16 @@ service http:InterceptableService / on new http:Listener(9090) {
             compensationFilter = compensationFilter + string `${types:OFFER_TEMPLATE_POSTFIX}`;
         }
 
-        types:CompensationEmail compensationEmail = check database:getCompensation(compensationFilter);
+        types:CompensationEmail|error compensationEmail = database:getCompensation(compensationFilter);
+        if compensationEmail is error {
+            string customError = "Error getting compensation email data";
+            log:printError(customError, 'error = compensationEmail);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         string[] compensationKeys = from types:Compensation compensation in compensationEmail.compensation
             select compensation.key;
         string[] recruitCompensationKeys = from types:Compensation recruitCompensation in recruit.compensation
@@ -340,7 +548,13 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         types:Employee|error? senderInfo;
         if userInfoCache.hasKey(userInfo.email) {
-            senderInfo = check userInfoCache.get(userInfo.email).ensureType();
+            any|error cachedEmployee = userInfoCache.get(userInfo.email);
+            if cachedEmployee is types:Employee {
+                senderInfo = cachedEmployee;
+            } else if cachedEmployee is cache:Error {
+                string customError = "Error getting employee information";
+                log:printError(customError, cachedEmployee);
+            }
         }
         senderInfo = database:getEmployee(userInfo.email);
         if senderInfo is error {
@@ -357,13 +571,21 @@ service http:InterceptableService / on new http:Listener(9090) {
             return http:NOT_FOUND;
         }
 
-        check userInfoCache.put(userInfo.email, senderInfo);
+        any|error resultUpdatedCache = userInfoCache.put(userInfo.email, senderInfo);
+        if resultUpdatedCache is error {
+            string customError = "Error updating employee in user cache";
+            log:printError(customError, 'error = resultUpdatedCache);
+        }
+
         if recruit.employmentType is types:PERMANENT {
             types:Recruit {probationEndDate} = recruit;
             if probationEndDate !is string {
-                return error(
-                    "Probation end date is required for recruits in permanent employment type to send the offer!"
-                );
+                return <http:BadRequest>{
+                    body: {
+                        message: "Pr obation end date is required for recruits in permanent employment type to send the offer!"
+
+                    }
+                };
             }
             map<string> keyValPairs = {
                 RECEIVER_NAME: recruit.firstName,
@@ -378,7 +600,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             foreach types:Compensation compensationRecord in compensation {
                 keyValPairs[compensationRecord.key] = compensationRecord.value;
             }
-            _ = check email:processEmailNotification({
+
+            any|error resultEmailNotification = email:processEmailNotification({
                 frm: offerEmailConfig.'from,
                 subject: offerEmailConfig.subject,
                 to: [recruit.personalEmail],
@@ -386,10 +609,23 @@ service http:InterceptableService / on new http:Listener(9090) {
                 contentKeyValPairs: keyValPairs,
                 attachments: recruit.offerDocuments ?: []
             });
+            if resultEmailNotification is error {
+                string customError = "Error processing email notification";
+                log:printError(customError, 'error = resultEmailNotification);
+                return <http:InternalServerError>{
+                    body: {
+                        message: customError
+                    }
+                };
+            }
         } else if recruit.employmentType is types:INTERNSHIP {
             types:Recruit {agreementEndDate} = recruit;
             if agreementEndDate !is string {
-                return error("Agreement end date is required for internship to send the offer!");
+                return <http:BadRequest>{
+                    body: {
+                        message: "Agreement end date is required for internship to send the offer!"
+                    }
+                };
             }
 
             map<string> keyValPairs = {
@@ -403,7 +639,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             foreach types:Compensation compensationRecord in compensation {
                 keyValPairs[compensationRecord.key] = compensationRecord.value;
             }
-            _ = check email:processEmailNotification({
+            any|error resultEmailNotification = email:processEmailNotification({
                 frm: offerEmailConfig.'from,
                 subject: offerEmailConfig.subject,
                 to: [recruit.personalEmail],
@@ -411,10 +647,23 @@ service http:InterceptableService / on new http:Listener(9090) {
                 contentKeyValPairs: keyValPairs,
                 attachments: recruit.offerDocuments ?: []
             });
+            if resultEmailNotification is error {
+                string customError = "Error processing email notification";
+                log:printError(customError, 'error = resultEmailNotification);
+                return <http:InternalServerError>{
+                    body: {
+                        message: customError
+                    }
+                };
+            }
         } else if recruit.employmentType is types:CONSULTANCY {
             types:Recruit {agreementEndDate} = recruit;
             if agreementEndDate !is string {
-                return error("Agreement end date is required for consultancy to send the offer!");
+                return <http:BadRequest>{
+                    body: {
+                        message: "Agreement end date is required for consultancy to send the offer!"
+                    }
+                };
             }
             map<string> keyValPairs = {
                 RECEIVER_NAME: recruit.firstName,
@@ -429,7 +678,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             foreach types:Compensation compensationRecord in compensation {
                 keyValPairs[compensationRecord.key] = compensationRecord.value;
             }
-            _ = check email:processEmailNotification({
+            any|error resultEmailNotification = email:processEmailNotification({
                 frm: offerEmailConfig.'from,
                 subject: offerEmailConfig.subject,
                 to: [recruit.personalEmail],
@@ -437,11 +686,37 @@ service http:InterceptableService / on new http:Listener(9090) {
                 contentKeyValPairs: keyValPairs,
                 attachments: recruit.offerDocuments ?: []
             });
+
+            if resultEmailNotification is error {
+                string customError = "Error processing email notification";
+                log:printError(customError, 'error = resultEmailNotification);
+                return <http:InternalServerError>{
+                    body: {
+                        message: customError
+                    }
+                };
+            }
         } else {
-            return error("Invalid employment type!");
+            return <http:BadRequest>{
+                body: {
+                    message: "Invalid employment type!"
+                }
+            };
         }
 
-        _ = check database:updateRecruit({recruitId, status: database:OFFER_SENT}, userInfo.email);
+        any|error resultEmailNotification = database:updateRecruit(
+            {recruitId, status: database:OFFER_SENT},
+            userInfo.email
+        );
+        if resultEmailNotification is error {
+            string customError = "Error processing email notification";
+            log:printError(customError, 'error = resultEmailNotification);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         return <http:Ok>{
             body: {
                 message: string `Successfully sent the offer letter for the recruit Id : ${recruitId}`
@@ -456,9 +731,18 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + reason - Reason for the rejection if so
     # + return - Offer Letter action results or error response
     resource function post recruits/[int recruitId]/offer/[types:Action action](http:RequestContext ctx,
-            types:ActionReason? reason) returns http:Ok|http:BadRequest|http:Forbidden|error {
+            types:ActionReason? reason) returns http:Ok|http:BadRequest|http:Forbidden|http:InternalServerError {
 
-        authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            string customError = "Error getting invoker details!";
+            log:printError(customError, 'error = userInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         if !authorization:checkRoles([authorization:authorizedRoles.recruitmentTeamRole],
                 userInfo.groups) {
 
@@ -480,20 +764,43 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
             rejectionReason = reason.rejectionReason;
         } else {
-            return error(string `Invalid action!`);
+            return <http:BadRequest>{
+                body: {
+                    message: "Invalid action!"
+                }
+            };
         }
-        types:Recruit {status} = check database:getRecruit(recruitId);
-        if status != database:OFFER_SENT {
+        types:Recruit|error recruit = database:getRecruit(recruitId);
+        if recruit is error {
+            string customError = "Error getting data for recruit!";
+            log:printError(customError, 'error = recruit, id = recruitId);
+            return <http:InternalServerError>{
+                body: {
+                    message: string `${customError} ${recruitId}`
+                }
+            };
+        }
+        if recruit.status != database:OFFER_SENT {
             return <http:BadRequest>{
                 body: {
                     message: string `Recruit is not in the state to ${action} the offer!`
                 }
             };
         }
-        _ = check database:updateRecruit(
+
+        any|error result = database:updateRecruit(
                 {recruitId, status: recruitStatus, additionalComments: rejectionReason},
                 updatedBy = userInfo.email
             );
+        if result is error {
+            string customError = "Error updating recruit in the database!";
+            log:printError(customError, 'error = result);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         return <http:Ok>{
             body: {
                 message: string `Successfully ${action}ed the offer for the recruit.`
@@ -508,14 +815,32 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + return - Hiring details email sent successfully or error response
     resource function post recruits/[int recruitId]/hiring\-details/send(http:RequestContext ctx,
             types:HiringDetailsPayload hiringDetails)
-                returns http:BadRequest|http:Forbidden|http:Ok|http:InternalServerError|http:NotFound|error {
+                returns http:BadRequest|http:Forbidden|http:Ok|http:InternalServerError|http:NotFound {
 
-        authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            string customError = "Error getting invoker details!";
+            log:printError(customError, 'error = userInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         if !authorization:checkRoles([authorization:authorizedRoles.recruitmentTeamRole], userInfo.groups) {
             return <http:Forbidden>{body: {message: "Insufficient privileges!"}};
         }
 
-        types:Recruit recruit = check database:getRecruit(recruitId);
+        types:Recruit|error recruit = database:getRecruit(recruitId);
+        if recruit is error {
+            string customError = "Error getting data for recruit!";
+            log:printError(customError, 'error = recruit, id = recruitId);
+            return <http:InternalServerError>{
+                body: {
+                    message: string `${customError} ${recruitId}`
+                }
+            };
+        }
         if recruit.status != database:OFFER_ACCEPTED {
             return <http:BadRequest>{
                 body: {
@@ -526,15 +851,19 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         types:Employee|error? senderInfo;
         if userInfoCache.hasKey(userInfo.email) {
-            senderInfo = check userInfoCache.get(userInfo.email).ensureType();
+            any|error result = userInfoCache.get(userInfo.email);
+            if result is error {
+                log:printError("Error getting cached data for employee!", 'error = result, email = userInfo.email);
+            }
+            senderInfo = result.ensureType();
         }
         senderInfo = database:getEmployee(userInfo.email);
         if senderInfo is error {
-            string customError = string `Error getting employee basic information for ${userInfo.email}`;
+            string customError = string `Error getting employee information`;
             log:printError(customError, senderInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: string `${customError} for ${userInfo.email}!`
                 }
             };
         }
@@ -542,14 +871,19 @@ service http:InterceptableService / on new http:Listener(9090) {
             log:printDebug(string `No active employee found for the email: ${userInfo.email}`);
             return http:NOT_FOUND;
         }
-        check userInfoCache.put(userInfo.email, senderInfo);
+        any|error resultUpdatedCache = userInfoCache.put(userInfo.email, senderInfo);
+        if resultUpdatedCache is error {
+            string customError = "Error updating employee in user cache";
+            log:printError(customError, 'error = resultUpdatedCache);
+        }
 
         map<string> keyValPairs = {
             RECEIVER_NAME: recruit.firstName,
             SENDER_NAME: string `${senderInfo.firstName ?: types:UNKNOWN} ${senderInfo.lastName ?: types:UNKNOWN}`,
             SENDER_TITLE: senderInfo.designation ?: types:UNKNOWN
         };
-        _ = check email:processEmailNotification({
+
+        any|error resultEmailNotification = email:processEmailNotification({
             frm: offerEmailConfig.'from,
             subject: offerEmailConfig.subject,
             to: [recruit.personalEmail],
@@ -557,10 +891,29 @@ service http:InterceptableService / on new http:Listener(9090) {
             contentKeyValPairs: keyValPairs,
             attachments: hiringDetails.documents
         });
-        _ = check database:updateRecruit(
+        if resultEmailNotification is error {
+            string customError = "Error processing email notification";
+            log:printError(customError, 'error = resultEmailNotification);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        any|error resultUpdateRecruit = database:updateRecruit(
             {recruitId, status: database:REQUEST_HIRING_DETAILS},
             userInfo.email
         );
+        if resultUpdateRecruit is error {
+            string customError = "Error updating recruit in the database";
+            log:printError(customError, 'error = resultUpdateRecruit);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
 
         return <http:Ok>{
             body: {
@@ -574,16 +927,32 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + recruitId - Id of the recruit  
     # + return - Hiring details action results or error response
     resource function post recruits/[int recruitId]/hiring\-details/received(http:RequestContext ctx)
-        returns http:BadRequest|http:Forbidden|http:Ok|error {
+        returns http:BadRequest|http:Forbidden|http:Ok|http:InternalServerError {
 
-        authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
-        if !authorization:checkRoles([authorization:authorizedRoles.recruitmentTeamRole],
-                userInfo.groups) {
-
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            string customError = "Error getting token from the header";
+            log:printError(customError, 'error = userInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        if !authorization:checkRoles([authorization:authorizedRoles.recruitmentTeamRole], userInfo.groups) {
             return <http:Forbidden>{body: {message: "Insufficient privileges!"}};
         }
 
-        types:Recruit recruit = check database:getRecruit(recruitId);
+        types:Recruit|error recruit = database:getRecruit(recruitId);
+        if recruit is error {
+            string customError = "Error getting recruit from the database";
+            log:printError(customError, 'error = recruit);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         if recruit.status != database:REQUEST_HIRING_DETAILS {
             return <http:BadRequest>{
                 body: {
@@ -592,10 +961,19 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        _ = check database:updateRecruit(
+        any|error resultUpdateRecruit = database:updateRecruit(
             {recruitId, status: database:HIRING_DETAILS_RECEIVED},
             userInfo.email
         );
+        if resultUpdateRecruit is error {
+            string customError = "Error updating recruit in the database";
+            log:printError(customError, 'error = resultUpdateRecruit);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         return <http:Ok>{
             body: {
                 message: string `Successfully marked the recruit ${recruit.personalEmail} as hiring details received`
@@ -608,14 +986,32 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + recruitId - Id of the recruit  
     # + return - Contract sent successfully or error response
     resource function post recruits/[int recruitId]/contract/send(http:RequestContext ctx)
-        returns http:BadRequest|http:Forbidden|http:Ok|error {
+        returns http:BadRequest|http:Forbidden|http:Ok|http:InternalServerError {
 
-        authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            string customError = "Error getting token from the header";
+            log:printError(customError, 'error = userInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         if !authorization:checkRoles([authorization:authorizedRoles.recruitmentTeamRole], userInfo.groups) {
             return <http:Forbidden>{body: {message: "Insufficient privileges!"}};
         }
 
-        types:Recruit recruit = check database:getRecruit(recruitId);
+        types:Recruit|error recruit = database:getRecruit(recruitId);
+        if recruit is error {
+            string customError = "Error getting recruit from the database";
+            log:printError(customError, 'error = recruit);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         if recruit.status != database:HIRING_DETAILS_RECEIVED {
             return <http:BadRequest>{
                 body: {
@@ -624,7 +1020,19 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        _ = check database:updateRecruit({recruitId: recruitId, status: database:CONTRACT_SENT}, userInfo.email);
+        any|error resultUpdateRecruit = database:updateRecruit(
+            {recruitId: recruitId, status: database:CONTRACT_SENT},
+            userInfo.email
+        );
+        if resultUpdateRecruit is error {
+            string customError = "Error updating recruit in the database";
+            log:printError(customError, 'error = resultUpdateRecruit);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         return <http:Ok>{
             body: {
                 message: string `Successfully sent the contract for the recruit ${recruit.personalEmail}`
@@ -639,9 +1047,18 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + reason - Reason for the rejection if so
     # + return - Contract action results or error response
     resource function post recruits/[int recruitId]/contract/[types:Action action](http:RequestContext ctx,
-            types:ActionReason? reason) returns http:Ok|http:BadRequest|http:Forbidden|error {
+            types:ActionReason? reason) returns http:Ok|http:BadRequest|http:Forbidden|http:InternalServerError {
 
-        authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            string customError = "Error getting token from the header";
+            log:printError(customError, 'error = userInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         if !authorization:checkRoles([authorization:authorizedRoles.recruitmentTeamRole],
                 userInfo.groups) {
 
@@ -663,11 +1080,20 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
             rejectionReason = reason.rejectionReason;
         } else {
-            return error(string `Invalid action!`);
+            return <http:BadRequest>{body: {message: "Invalid action!"}};
         }
 
-        types:Recruit {status} = check database:getRecruit(recruitId);
-        if status != database:CONTRACT_SENT {
+        types:Recruit|error recruit = database:getRecruit(recruitId);
+        if recruit is error {
+            string customError = "Error getting recruit from the database";
+            log:printError(customError, 'error = recruit);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        if recruit.status != database:CONTRACT_SENT {
             return <http:BadRequest>{
                 body: {
                     message: string `The recruit is not in the state to ${action} the contract!`
@@ -675,10 +1101,19 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        _ = check database:updateRecruit(
+        any|error resultUpdateRecruit = database:updateRecruit(
                 {recruitId, status: recruitStatus, additionalComments: rejectionReason},
                 updatedBy = userInfo.email
             );
+        if resultUpdateRecruit is error {
+            string customError = "Error updating recruit in the database";
+            log:printError(customError, 'error = resultUpdateRecruit);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         return <http:Ok>{
             body: {
                 message: string `Successfully ${action}ed the contract for the recruitId.`
@@ -691,16 +1126,34 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + recruitId - Id of the recruit 
     # + return - Hiring details action results or error response
     resource function post recruits/[int recruitId]/acknowledge(http:RequestContext ctx)
-        returns http:BadRequest|http:Forbidden|http:Ok|error {
+        returns http:BadRequest|http:Forbidden|http:Ok|http:InternalServerError {
 
-        authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            string customError = "Error getting token from the header";
+            log:printError(customError, 'error = userInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         if !authorization:checkRoles([authorization:authorizedRoles.recruitmentTeamRole],
                 userInfo.groups) {
 
             return <http:Forbidden>{body: {message: "Insufficient privileges!"}};
         }
 
-        types:Recruit recruit = check database:getRecruit(recruitId);
+        types:Recruit|error recruit = database:getRecruit(recruitId);
+        if recruit is error {
+            string customError = "Error getting recruit from the database";
+            log:printError(customError, 'error = recruit);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         if recruit.status != database:CONTRACT_ACCEPTED {
             return <http:BadRequest>{
                 body: {
@@ -709,10 +1162,19 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        _ = check database:updateRecruit(
+        any|error resultUpdateRecruit = database:updateRecruit(
             {recruitId, status: database:HIRING_MANAGER_ACKNOWLEDGED},
             userInfo.email
         );
+        if resultUpdateRecruit is error {
+            string customError = "Error updating recruit in the database";
+            log:printError(customError, 'error = resultUpdateRecruit);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         return <http:Ok>{
             body: {
                 message:
@@ -726,11 +1188,28 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + ctx - Request object
     # + return - Internal Server Error or Employee Privileges object
     resource function get user\-info(http:RequestContext ctx)
-        returns types:Employee|http:BadRequest|http:InternalServerError|http:NotFound|error {
+        returns types:Employee|http:BadRequest|http:InternalServerError|http:NotFound {
 
-        authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            string customError = "Error getting token from the header";
+            log:printError(customError, 'error = userInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         if userInfoCache.hasKey(userInfo.email) {
-            return check userInfoCache.get(userInfo.email).ensureType();
+            any|error cachedEmployee = userInfoCache.get(userInfo.email);
+            if cachedEmployee is types:Employee {
+                return cachedEmployee;
+            }
+            
+            if cachedEmployee is cache:Error {
+                string customError = "Error getting employee information";
+                log:printError(customError, cachedEmployee);
+            }
         }
 
         types:Employee|error? user = database:getEmployee(userInfo.email);
@@ -747,7 +1226,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             log:printDebug(string `No active employee found for the email: ${userInfo.email}`);
             return http:NOT_FOUND;
         }
-        check userInfoCache.put(userInfo.email, user);
+        any|error resultUpdatedCache = userInfoCache.put(userInfo.email, user);
+        if resultUpdatedCache is error {
+            string customError = "Error updating employee in user cache";
+            log:printError(customError, 'error = resultUpdatedCache);
+        }
         return user;
     }
 }

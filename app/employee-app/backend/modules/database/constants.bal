@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2005-2024, WSO2 LLC.
+// Copyright (c) 2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -16,13 +16,8 @@
 // under the License.
 // 
 
-const functionMappings = {
-    [EQUALS] : "=",
-    [GREATER_THAN] : ">",
-    [LESS_THAN] : "<",
-    [CONTAINS] : "LIKE",
-    [STARTS_WITH] : "LIKE",
-    [ENDS_WITH] : "LIKE",
-    [BEFORE] : "<",
-    [AFTER] : ">"
-};
+# Email template app name.
+public const APP_NAME = "Employee App";
+
+# WSO2 domain to check in the queries.
+public const WSO2_DOMAIN = "wso2.com";

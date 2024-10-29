@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2005-2024, WSO2 LLC.
+// Copyright (c) 2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 // 
-import employee_app.types;
 
 import ballerina/sql;
 
@@ -116,8 +115,8 @@ public isolated function getCareerFunctionsQuery(CareerFunctionFilter filter, in
     int[]? idArray = filter.careerFunctionIds;
     string[]? careerFunctionTitlesArray = filter.careerFunctions;
     sql:ParameterizedQuery[] filterQueries = [];
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`cf.career_function_id`, idArray);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`cf.career_function`, careerFunctionTitlesArray);
+    addFilterCondition(filterQueries, `cf.career_function_id`, idArray);
+    addFilterCondition(filterQueries, `cf.career_function`, careerFunctionTitlesArray);
     sqlQuery = buildSqlSelectQuery(sqlQuery, filterQueries);
     sqlQuery = sql:queryConcat(sqlQuery, ` LIMIT ${'limit} OFFSET ${offset}`);
 
@@ -278,9 +277,9 @@ public isolated function getCompaniesQuery(CompanyFilter filter, int 'limit, int
     `;
     CompanyFilter {ids, companies, locations} = filter;
     sql:ParameterizedQuery[] filterQueries = [];
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`c.company_id`, ids);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`c.company_name`, companies);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`c.company_location`, locations);
+    addFilterCondition(filterQueries, `c.company_id`, ids);
+    addFilterCondition(filterQueries, `c.company_name`, companies);
+    addFilterCondition(filterQueries, `c.company_location`, locations);
     sqlQuery = buildSqlSelectQuery(sqlQuery, filterQueries);
     sqlQuery = sql:queryConcat(sqlQuery, ` LIMIT ${'limit} OFFSET ${offset}`);
 
@@ -301,7 +300,7 @@ isolated function getCompensationQuery(string filter) returns sql:ParameterizedQ
     WHERE
         email_template_name = ${filter}
         AND
-        email_template_app_name = ${types:APP_NAME};
+        email_template_app_name = ${APP_NAME};
 `;
 
 # Build query to retrieve the employee from the active or marked leaver status and email.
@@ -332,21 +331,19 @@ isolated function getEmployeesQuery(EmployeeFilter filters, int 'limit, int offs
         status,
         employmentType
     } = filters;
-    sql:ParameterizedQuery[] filterQueries = [];
-    filterQueries.push(<sql:ParameterizedQuery>`SUBSTRING_INDEX(e.employee_work_email, '@', -1) = 
-        ${types:WSO2_DOMAIN}`);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`e.employee_status`, status);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`e.employee_location`, filters.location);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`hbu.business_unit_name`, filters.businessUnit);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`ht.team_name`, filters.team);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`hu.unit_name`, filters.unit);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`e.employee_lead`, filters.leadEmail);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`hd.designation`, filters.designation);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`het.employment_type_name`, employmentType);
+    sql:ParameterizedQuery[] filterQueries = [`SUBSTRING_INDEX(e.employee_work_email, '@', -1) = ${WSO2_DOMAIN}`];
+    addFilterCondition(filterQueries, `e.employee_status`, status);
+    addFilterCondition(filterQueries, `e.employee_location`, filters.location);
+    addFilterCondition(filterQueries, `hbu.business_unit_name`, filters.businessUnit);
+    addFilterCondition(filterQueries, `ht.team_name`, filters.team);
+    addFilterCondition(filterQueries, `hu.unit_name`, filters.unit);
+    addFilterCondition(filterQueries, `e.employee_lead`, filters.leadEmail);
+    addFilterCondition(filterQueries, `hd.designation`, filters.designation);
+    addFilterCondition(filterQueries, `het.employment_type_name`, employmentType);
     if filters.lead is boolean {
         sql:ParameterizedQuery leadQuery = <boolean>filters.lead ?
             `hd.designation_job_band >= 7` : `hd.designation_job_band < 7`;
-        filterQueries.push(<sql:ParameterizedQuery>leadQuery);
+        filterQueries.push(leadQuery);
     }
     sql:ParameterizedQuery finalQuery = buildSqlSelectQuery(mainQuery, filterQueries);
 
@@ -418,8 +415,8 @@ public isolated function getOrgDetailsQuery(OrgDetailsFilter filter, int 'limit,
         businessUnits
     } = filter;
     sql:ParameterizedQuery[] filterQueries = [];
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`bu.business_unit_id`, businessUnitIds);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`bu.business_unit_name`, businessUnits);
+    addFilterCondition(filterQueries, `bu.business_unit_id`, businessUnitIds);
+    addFilterCondition(filterQueries, `bu.business_unit_name`, businessUnits);
     sqlQuery = buildSqlSelectQuery(sqlQuery, filterQueries);
     sqlQuery = sql:queryConcat(sqlQuery, ` LIMIT ${'limit} OFFSET ${offset}`);
 
@@ -451,7 +448,7 @@ isolated function getRecruitsQuery(HiringStatus[]? statusArray, int? 'limit, int
 
     sql:ParameterizedQuery mainQuery = getCommonRecruitQuery();
     sql:ParameterizedQuery[] filterQueries = [];
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`e.recruit_status`, statusArray);
+    addFilterCondition(filterQueries, `e.recruit_status`, statusArray);
     sql:ParameterizedQuery finalQuery = buildSqlSelectQuery(mainQuery, filterQueries);
     if 'limit is int {
         finalQuery = sql:queryConcat(finalQuery, ` LIMIT ${'limit}`);
@@ -482,35 +479,35 @@ isolated function updateRecruitQuery(UpdateRecruitPayload recruit, string update
     `;
 
     sql:ParameterizedQuery[] filterQueries = [];
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_first_name`, recruit.firstName);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_last_name`, recruit.lastName);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_gender`, recruit.gender);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_personal_email`, recruit.personalEmail);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_wso2_email`, recruit.wso2Email);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_contact_number`, recruit.contactNumber);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_employment_type`, recruit.employmentType);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_career_function`, recruit.careerFunction);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_business_unit`, recruit.businessUnit);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_department`, recruit.department);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_team`, recruit.team);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_sub_team`, recruit.subTeam);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_job_band`, recruit.jobBand);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_date_of_join`, recruit.dateOfJoin);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_date_of_join`, recruit.dateOfJoin);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_agreement_end_date`, recruit.agreementEndDate);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_probation_end_date`, recruit.agreementEndDate);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_company`, recruit.company);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_office`, recruit.office);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_work_location`, recruit.workLocation);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_manager_email`, recruit.managerEmail);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_compensation`, recruit.compensation);
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_offer_documents`, recruit.offerDocuments);
+    addFilterCondition(filterQueries, `recruit_first_name`, recruit.firstName);
+    addFilterCondition(filterQueries, `recruit_last_name`, recruit.lastName);
+    addFilterCondition(filterQueries, `recruit_gender`, recruit.gender);
+    addFilterCondition(filterQueries, `recruit_personal_email`, recruit.personalEmail);
+    addFilterCondition(filterQueries, `recruit_wso2_email`, recruit.wso2Email);
+    addFilterCondition(filterQueries, `recruit_contact_number`, recruit.contactNumber);
+    addFilterCondition(filterQueries, `recruit_employment_type`, recruit.employmentType);
+    addFilterCondition(filterQueries, `recruit_career_function`, recruit.careerFunction);
+    addFilterCondition(filterQueries, `recruit_business_unit`, recruit.businessUnit);
+    addFilterCondition(filterQueries, `recruit_department`, recruit.department);
+    addFilterCondition(filterQueries, `recruit_team`, recruit.team);
+    addFilterCondition(filterQueries, `recruit_sub_team`, recruit.subTeam);
+    addFilterCondition(filterQueries, `recruit_job_band`, recruit.jobBand);
+    addFilterCondition(filterQueries, `recruit_date_of_join`, recruit.dateOfJoin);
+    addFilterCondition(filterQueries, `recruit_date_of_join`, recruit.dateOfJoin);
+    addFilterCondition(filterQueries, `recruit_agreement_end_date`, recruit.agreementEndDate);
+    addFilterCondition(filterQueries, `recruit_probation_end_date`, recruit.agreementEndDate);
+    addFilterCondition(filterQueries, `recruit_company`, recruit.company);
+    addFilterCondition(filterQueries, `recruit_office`, recruit.office);
+    addFilterCondition(filterQueries, `recruit_work_location`, recruit.workLocation);
+    addFilterCondition(filterQueries, `recruit_manager_email`, recruit.managerEmail);
+    addFilterCondition(filterQueries, `recruit_compensation`, recruit.compensation);
+    addFilterCondition(filterQueries, `recruit_offer_documents`, recruit.offerDocuments);
     addFilterCondition(
         filterQueries,
-        <sql:ParameterizedQuery>`recruit_additional_comments`,
+        `recruit_additional_comments`,
         recruit.additionalComments
     );
-    addFilterCondition(filterQueries, <sql:ParameterizedQuery>`recruit_status`, recruit.status);
+    addFilterCondition(filterQueries, `recruit_status`, recruit.status);
     filterQueries.push(`recruit_updated_by = ${updatedBy}`);
     mainQuery = buildSqlUpdateQuery(mainQuery, filterQueries);
 

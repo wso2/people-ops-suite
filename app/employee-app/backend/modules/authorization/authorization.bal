@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2005-2024, WSO2 LLC.
+// Copyright (c) 2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -52,14 +52,14 @@ public isolated service class JwtInterceptor {
 public isolated function decodeJwt(string key) returns http:Forbidden|http:Unauthorized|CustomJwtPayload|error {
 
     [jwt:Header, jwt:Payload] [_, payload] = check jwt:decode(key);
-    CustomJwtPayload|error userInfo = payload.cloneWithType(CustomJwtPayload);
+    CustomJwtPayload|error userInfo = payload.cloneWithType();
 
     if userInfo is error {
         log:printError("JWT payload type mismatch or validation error during token decoding.", userInfo);
         return <http:Unauthorized>{body: {message: userInfo.message()}};
     }
     foreach anydata role in authorizedRoles.toArray() {
-        if userInfo.groups.some(r => r === role) {
+        if userInfo.groups.some(r => r == role) {
             return {
                 email: userInfo.email,
                 groups: userInfo.groups

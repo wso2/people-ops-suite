@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2005-2024, WSO2 LLC.
+// Copyright (c) 2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -16,16 +16,20 @@
 // under the License.
 // 
 
-public const APP_NAME = "Employee App";
+# Default limit.
 public const DEFAULT_LIMIT = 1000;
+
+# Recruit related constants.
 public const OFFER_TEMPLATE_POSTFIX = "All";
 public const OFFER_TEMPLATE_PREFIX = "employeeOffer";
 public const UTC_POSTFIX = "T00:00:00Z";
-public const WSO2_DOMAIN = "wso2.com";
 public const UNKNOWN = "Unknown";
 
+# Organization structure cache key.
 public const ORG_STRUCTURE_CACHE_KEY = "orgStructure";
 
+# Common not found error message.
 public const NOT_FOUND_CUSTOM_ERROR = "No active/marked leaver employee found for the email";
 
+# RegeExp to check the wso2 email.
 public final string:RegExp WSO2_EMAIL = re `^[a-zA-Z0-9._%+-]+@wso2\.com$`;

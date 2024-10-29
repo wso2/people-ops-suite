@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2005-2024, WSO2 LLC.
+// Copyright (c) 2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -63,7 +63,7 @@ public isolated function getCareerFunctions(CareerFunctionFilter filter, int 'li
             careerFunctions.push({
                 id: careerFunction.id,
                 careerFunction: careerFunction.careerFunction,
-                designations: designations
+                designations
             });
         };
     if iterateError is sql:Error {
@@ -97,8 +97,7 @@ public isolated function getCompensation(string filter) returns types:Compensati
         return error(customError);
     }
     if compensation.length() == 0 {
-        error customError = error(string `No matching compensation data found for ${filter}`);
-        return customError;
+        return error(string `No matching compensation data found for ${filter}`);
     }
 
     return {emailTemplate: compensationRecord.emailTemplate, compensation};

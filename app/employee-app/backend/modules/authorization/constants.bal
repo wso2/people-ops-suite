@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2005-2024, WSO2 LLC.
+// Copyright (c) 2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -16,5 +16,8 @@
 // under the License.
 // 
 
+# The header used to set/get user information in requests.
 public const HEADER_USER_INFO = "user-info";
+
+# The header used to transmit the JWT assertion token.
 public const JWT_ASSERTION_HEADER = "x-jwt-assertion";
