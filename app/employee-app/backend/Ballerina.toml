@@ -2,7 +2,7 @@
 org = "wso2"
 name = "employee_app"
 version = "1.0.0"
-distribution = "2201.8.6"
+distribution = "2201.8.8"
 
 [build-options]
 observabilityIncluded = true
