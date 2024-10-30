@@ -1,4 +1,3 @@
-//
 // Copyright (c) 2024, WSO2 LLC.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
@@ -14,7 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-// 
 
 # Application specific role mapping.
 public type AppRoles record {
