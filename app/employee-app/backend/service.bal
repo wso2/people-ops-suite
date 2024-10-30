@@ -47,7 +47,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     resource function get employees/[string email]()
         returns types:Employee|http:BadRequest|http:InternalServerError|http:NotFound {
 
-        if !email.matches(types:WSO2_EMAIL) {
+        if !email.matches(types:WSO2_EMAIL_PATTERN) {
             return <http:BadRequest>{
                 body: {
                     message: string `Input email is not a valid WSO2 email address: ${email}`

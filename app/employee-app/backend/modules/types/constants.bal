@@ -30,7 +30,7 @@ public const ORG_STRUCTURE_CACHE_KEY = "orgStructure";
 public const NOT_FOUND_CUSTOM_ERROR = "No active/marked leaver employee found for the email";
 
 # RegeExp to check the wso2 email.
-public final string:RegExp WSO2_EMAIL = re `^[a-zA-Z0-9._%+-]+@wso2\.com$`;
+public final string:RegExp WSO2_EMAIL_PATTERN = re `^[a-zA-Z0-9._%+-]+@wso2\.com$`;
 
 # Cache parameters related constants.
 public const CAPACITY = 100;
