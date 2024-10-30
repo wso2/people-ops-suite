@@ -15,12 +15,12 @@
 // under the License.
 
 # Application specific role mapping.
-public type AppRoles record {
+public type AppRoles record {|
     # Role for the recruitment team
     string recruitmentTeamRole;
     # Role for the head of people operations 
     string headPeopleOperationsRole;
-};
+|};
 
 # User info custom type for Asgardeo token.
 public type CustomJwtPayload record {
