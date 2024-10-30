@@ -26,8 +26,8 @@ import ballerina/time;
 
 configurable email:EmailAlertConfig offerEmailConfig = ?;
 
-final cache:Cache userInfoCache = new (capacity = 100, evictionFactor = 0.2);
-final cache:Cache orgStructureCache = new (capacity = 100, evictionFactor = 0.2);
+final cache:Cache userInfoCache = new ('capacity = types:CAPACITY, 'evictionFactor = types:EVICTION_FACTOR);
+final cache:Cache orgStructureCache = new ('capacity = types:CAPACITY, 'evictionFactor = types:EVICTION_FACTOR);
 
 @display {
     label: "Employee Application",
