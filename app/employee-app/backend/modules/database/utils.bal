@@ -13,7 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
 import ballerina/sql;
 
 # Helper function to add a filter condition if the filter is not null or empty.

@@ -13,7 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
 import employee_app.types;
 
 import ballerina/log;
@@ -49,8 +48,9 @@ public isolated function getCareerFunctions(CareerFunctionFilter filter, int 'li
         filter = filter, 'limit = 'limit, offset = offset));
     error? iterateError = from DBCareerFunction careerFunction in resultStream
         do {
-            string resDesignations = careerFunction.designations ?: "[]";
-            Designation[]|error designations = resDesignations.fromJsonStringWithType();
+            string? resDesignations = careerFunction.designations;
+            Designation[]|error designations =
+                (resDesignations is ()) ? [] : resDesignations.fromJsonStringWithType();
 
             if designations is error {
                 string errorMsg = string `An error occurred when retrieving designations data of ${

@@ -13,7 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
 import employee_app.authorization;
 import employee_app.database;
 import employee_app.email;
@@ -1204,7 +1203,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             if cachedEmployee is types:Employee {
                 return cachedEmployee;
             }
-            
+
             if cachedEmployee is cache:Error {
                 string customError = "Error getting employee information";
                 log:printError(customError, cachedEmployee);

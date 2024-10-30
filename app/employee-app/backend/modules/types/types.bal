@@ -100,7 +100,7 @@ public type Designation record {
     int jobBand;
 };
 
-#  Document record.
+# Document record.
 public type Document record {
     # Name of the document
     string contentName;
