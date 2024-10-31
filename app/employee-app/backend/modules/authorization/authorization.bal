@@ -23,7 +23,7 @@ public configurable AppRoles authorizedRoles = ?;
 public isolated service class JwtInterceptor {
 
     *http:RequestInterceptor;
-    isolated resource function default [string...](http:RequestContext ctx, http:Request req)
+    isolated resource function default [string... path](http:RequestContext ctx, http:Request req)
         returns http:NextService|http:Unauthorized|http:BadRequest|http:Forbidden|error? {
         string|error idToken = req.getHeader(JWT_ASSERTION_HEADER);
         if idToken is error {
@@ -66,8 +66,7 @@ public isolated function decodeJwt(string key) returns http:Forbidden|http:Unaut
     }
     log:printError("Authorization failed due to insufficient privileges.",
         email = userInfo.email,
-        authorizedRoles = authorizedRoles,
-        userRoles = userInfo.groups
+        authorizedRoles = authorizedRoles
     );
     return <http:Forbidden>{body: {message: "Insufficient privileges!"}};
 }
