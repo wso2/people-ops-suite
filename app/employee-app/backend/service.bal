@@ -30,7 +30,7 @@ final cache:Cache orgStructureCache = new ('capacity = types:CAPACITY, 'eviction
 
 @display {
     label: "Employee Application",
-    id: "hris/employee-application"
+    id: "people-ops/employee-application"
 }
 service http:InterceptableService / on new http:Listener(9090) {
 
