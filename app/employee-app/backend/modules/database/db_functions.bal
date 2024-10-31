@@ -15,7 +15,6 @@
 // under the License.
 import employee_app.types;
 
-import ballerina/log;
 import ballerina/sql;
 
 # Insert a new recruit.
@@ -27,9 +26,7 @@ public isolated function addRecruit(AddRecruitPayload recruit, string createdBy)
 
     sql:ExecutionResult|sql:Error executionResults = databaseClient->execute(addRecruitQuery(recruit, createdBy));
     if executionResults is sql:Error {
-        string customError = string `An error occurred while adding the recruit!`;
-        log:printError(customError, executionResults);
-        return error(customError);
+        return error("An error occurred while adding the recruit!", executionResults);
     }
     return executionResults.lastInsertId.ensureType();
 }
@@ -56,8 +53,7 @@ public isolated function getCareerFunctions(CareerFunctionFilter filter, int 'li
                 string errorMsg = string `An error occurred when retrieving designations data of ${
                     careerFunction.careerFunction
                 } !`;
-                log:printError(errorMsg, designations);
-                return error(errorMsg);
+                return error(errorMsg, designations);
             }
             careerFunctions.push({
                 id: careerFunction.id,
@@ -66,9 +62,7 @@ public isolated function getCareerFunctions(CareerFunctionFilter filter, int 'li
             });
         };
     if iterateError is sql:Error {
-        string errorMsg = string `An error occurred when retrieving career function data!`;
-        log:printError(errorMsg, iterateError);
-        return error(errorMsg);
+        return error("An error occurred when retrieving career function data!", iterateError);
     }
     return careerFunctions;
 }
@@ -85,15 +79,13 @@ public isolated function getCompensation(string filter) returns types:Compensati
             return error(string `No matching compensation data found for ${filter}!`);
         }
         string customError = string `Error occurred while retrieving the compensation data for ${filter}!`;
-        log:printError(customError, compensationRecord);
-        return error(customError);
+        return error(customError, compensationRecord);
     }
 
     types:Compensation[]|error compensation = compensationRecord.keyValuePairs.fromJsonStringWithType();
     if compensation is error {
         string customError = string `Error occurred while converting compensation data for ${filter}!`;
-        log:printError(customError, compensation);
-        return error(customError);
+        return error(customError, compensation);
     }
     if compensation.length() == 0 {
         return error(string `No matching compensation data found for ${filter}`);
@@ -118,8 +110,7 @@ public isolated function getCompanies(CompanyFilter filter, int 'limit, int offs
             Office[]|error offices = company.offices.fromJsonStringWithType();
             if offices is error {
                 string errorMsg = string `An error occurred when retrieving offices data of ${company.company} !`;
-                log:printError(errorMsg, offices);
-                return error(errorMsg);
+                return error(errorMsg, offices);
             }
             companies.push({
                 id: company.id,
@@ -132,9 +123,7 @@ public isolated function getCompanies(CompanyFilter filter, int 'limit, int offs
         if iterateError is sql:NoRowsError {
             return [];
         }
-        string errorMsg = string `An error occurred when retrieving companies!`;
-        log:printError(errorMsg, iterateError);
-        return error(errorMsg);
+        return error("An error occurred when retrieving companies!", iterateError);
     }
     return companies;
 }
@@ -148,8 +137,7 @@ public isolated function getEmployee(string email) returns Employee|error? {
     DBEmployee|error result = databaseClient->queryRow(getEmployeeQuery(email));
     if result is error {
         string errorMsg = string `An error occurred when retrieving employee data of ${email} !`;
-        log:printError(errorMsg);
-        return error(errorMsg);
+        return error(errorMsg, result);
     }
     if result is DBEmployee {
         Employee employee = {
@@ -225,8 +213,7 @@ public isolated function getOrgDetails(OrgDetailsFilter filter, int 'limit, int 
             if departments is error {
                 string errorMsg = string `An error occurred when retrieving departments data of ${
                     bu.businessUnit} !`;
-                log:printError(errorMsg, departments);
-                return error(errorMsg);
+                return error(errorMsg, departments);
             }
             businessUnits.push({
                 id: bu.id,
@@ -236,9 +223,7 @@ public isolated function getOrgDetails(OrgDetailsFilter filter, int 'limit, int 
 
         };
     if iterateError is sql:Error {
-        string errorMsg = string `An error occurred when retrieving organization details!`;
-        log:printError(errorMsg, iterateError);
-        return error(errorMsg);
+        return error("An error occurred when retrieving organization details!", iterateError);
     }
     return businessUnits;
 }
@@ -255,8 +240,7 @@ public isolated function getRecruit(int recruitId) returns types:Recruit|error {
             return error(string `No matching recruit found : ${recruitId}!`);
         }
         string customError = string `Error occurred while retrieving the recruit data for ${recruitId}!`;
-        log:printError(customError, result);
-        return error(customError);
+        return error(customError, result);
     }
 
     Recruit {compensation, offerDocuments} = result;
@@ -266,8 +250,7 @@ public isolated function getRecruit(int recruitId) returns types:Recruit|error {
     }
     if compensations is error {
         string customError = string `Error occurred while retrieving the compensation data for ${recruitId}!`;
-        log:printError(customError, compensations);
-        return error(customError);
+        return error(customError, compensations);
     }
 
     types:Document[]|error convertedOfferDocuments = [];
@@ -276,8 +259,7 @@ public isolated function getRecruit(int recruitId) returns types:Recruit|error {
     }
     if convertedOfferDocuments is error {
         string customError = string `Error occurred while retrieving the offer documents data for ${recruitId} !`;
-        log:printError(customError, convertedOfferDocuments);
-        return error(customError);
+        return error(customError, convertedOfferDocuments);
     }
 
     return {
@@ -345,9 +327,7 @@ public isolated function getRecruits(RecruitStatus[]? statusArray, int? 'limit, 
             if compensations is error {
                 string customError = string `Error occurred while retrieving the compensation data for 
                         ${recruit.personalEmail} !`;
-
-                log:printError(customError, compensations);
-                return error(customError);
+                return error(customError, compensations);
             }
 
             types:Document[]|error convertedOfferDocuments = [];
@@ -358,8 +338,7 @@ public isolated function getRecruits(RecruitStatus[]? statusArray, int? 'limit, 
             if convertedOfferDocuments is error {
                 string customError = string `Error occurred while retrieving the offer documents data for 
                         ${recruit.personalEmail} !`;
-                log:printError(customError, convertedOfferDocuments);
-                return error(customError);
+                return error(customError, convertedOfferDocuments);
             }
 
             recruits.push({
@@ -406,9 +385,7 @@ public isolated function getRecruits(RecruitStatus[]? statusArray, int? 'limit, 
             });
         };
     if e is error {
-        string customError = string `Error occurred while retrieving the recruit data !`;
-        log:printError(customError, e);
-        return error(customError);
+        return error("Error occurred while retrieving the recruit data!", e);
     }
     return recruits;
 }
@@ -427,8 +404,7 @@ public isolated function updateRecruit(UpdateRecruitPayload recruit, string upda
     sql:ExecutionResult|sql:Error executionResult = databaseClient->execute(updateRecruitQuery(recruit, updatedBy));
     if executionResult is sql:Error {
         string customError = string `Error occurred while updating the recruit data  of ${recruit.recruitId} !`;
-        log:printError(customError, executionResult);
-        return error(customError);
+        return error(customError, executionResult);
     }
     if executionResult.affectedRowCount == 0 {
         return error(string `No recruit were to update from id : ${recruit.recruitId} !`);
