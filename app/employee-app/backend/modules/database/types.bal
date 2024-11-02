@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 import ballerina/sql;
+import ballerinax/mysql;
 
 # Add employee payload.
 public type AddRecruitPayload record {|
@@ -127,6 +128,23 @@ public type CompanyFilter record {|
     string[]? companies = ();
     # Locations of the companies
     string[]? locations = ();
+|};
+
+# [Database] connection pool.
+type ConnectionPool record {|
+    # Maximum number of open connections
+    int maxOpenConnections;
+    # Maximum lifetime of a connection
+    decimal maxConnectionLifeTime;
+    # Minimum number of open connections
+    int minIdleConnections;
+|};
+
+# Database config record.
+type HRISDatabaseConfig record {|
+    *DatabaseConfig;
+    # Additional configurations related to the MySQL database connection
+    mysql:Options? options;
 |};
 
 # [Database] Business Unit.
@@ -398,22 +416,20 @@ public type Office record {|
     string location;
 |};
 
-# [Configurable] HRIS database configs.
-type HRISDatabaseConfig record {|
+# [Configurable] database configs.
+type DatabaseConfig record {|
     # Database User 
-    string dbUser;
+    string user;
     # Database Password
-    string dbPassword;
+    string password;
     # Database Name
-    string dbName;
+    string database;
     # Database Host
-    string dbHost;
-    # Maximum number of open connections
-    int maxOpenConnections;
-    # Maximum lifetime of a connection
-    decimal maxConnectionLifeTime;
-    # Minimum number of open connections
-    int minIdleConnections;
+    string host;
+    # Database port
+    int port;
+    # Database connection pool
+    ConnectionPool connectionPool;
 |};
 
 # Main update employee payload.

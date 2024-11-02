@@ -139,28 +139,26 @@ public isolated function getEmployee(string email) returns Employee|error? {
         string errorMsg = string `An error occurred when retrieving employee data of ${email} !`;
         return error(errorMsg, result);
     }
-    if result is DBEmployee {
-        Employee employee = {
-            employeeId: result.employeeId,
-            workEmail: result.workEmail,
-            firstName: result.firstName,
-            lastName: result.lastName,
-            employeeThumbnail: result.employeeThumbnail,
-            location: result.location,
-            startDate: result.startDate,
-            leadEmail: result.leadEmail,
-            finalDayOfEmployment: result.finalDayOfEmployment,
-            employeeStatus: result.employeeStatus,
-            designation: result.designation,
-            employmentType: result.employmentType,
-            team: result.team,
-            businessUnit: result.businessUnit,
-            unit: result.unit,
-            jobBand: result.jobBand,
-            lead: result.lead == 1
-        };
-        return employee;
-    }
+    Employee employee = {
+        employeeId: result.employeeId,
+        workEmail: result.workEmail,
+        firstName: result.firstName,
+        lastName: result.lastName,
+        employeeThumbnail: result.employeeThumbnail,
+        location: result.location,
+        startDate: result.startDate,
+        leadEmail: result.leadEmail,
+        finalDayOfEmployment: result.finalDayOfEmployment,
+        employeeStatus: result.employeeStatus,
+        designation: result.designation,
+        employmentType: result.employmentType,
+        team: result.team,
+        businessUnit: result.businessUnit,
+        unit: result.unit,
+        jobBand: result.jobBand,
+        lead: result.lead == 1
+    };
+    return employee;
 }
 
 # Get basic information about given employees.

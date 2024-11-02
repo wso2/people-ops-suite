@@ -16,23 +16,16 @@
 import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
-configurable HRISDatabaseConfig hrisDbConfig = ?;
+configurable DatabaseConfig databaseConfig = ?;
 
-# HRIS Database Client.
-final mysql:Client databaseClient = check new (
-    user = hrisDbConfig.dbUser,
-    password = hrisDbConfig.dbPassword,
-    database = hrisDbConfig.dbName,
-    host = hrisDbConfig.dbHost,
-    options = {
+HRISDatabaseConfig hris = {
+    ...databaseConfig,
+    options: {
         ssl: {
             mode: mysql:SSL_PREFERRED
         },
         connectTimeout: 10
-    },
-    connectionPool = {
-        maxOpenConnections: hrisDbConfig.maxOpenConnections,
-        maxConnectionLifeTime: hrisDbConfig.maxConnectionLifeTime,
-        minIdleConnections: hrisDbConfig.minIdleConnections
     }
-);
+};
+
+final mysql:Client databaseClient = check new (...hris);
