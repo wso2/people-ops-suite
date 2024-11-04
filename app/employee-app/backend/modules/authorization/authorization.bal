@@ -24,7 +24,7 @@ public isolated service class JwtInterceptor {
 
     *http:RequestInterceptor;
     isolated resource function default [string... path](http:RequestContext ctx, http:Request req)
-        returns http:NextService|http:Unauthorized|http:BadRequest|http:Forbidden|error? {
+        returns http:NextService|http:Unauthorized|http:BadRequest|http:Forbidden|http:InternalServerError|error? {
         string|error idToken = req.getHeader(JWT_ASSERTION_HEADER);
         if idToken is error {
             return <http:BadRequest>{
@@ -34,10 +34,28 @@ public isolated service class JwtInterceptor {
             };
         }
 
-        CustomJwtPayload|http:Unauthorized|http:Forbidden userInfo = check decodeJwt(idToken);
-        if userInfo is http:Unauthorized|http:Forbidden {
-            return userInfo;
+        CustomJwtPayload|error decodeUserInfo = decodeJwt(idToken);
+        if decodeUserInfo is error {
+            string errorMsg = "Error in decoding JWT!";
+            log:printError(errorMsg, decodeUserInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: errorMsg
+                }
+            };
         }
+
+        CustomJwtPayload|error userInfo = checkGroups(<CustomJwtPayload>decodeUserInfo);
+        if userInfo is error {
+            string errorMsg = "Insufficient privileges!";
+            log:printError(errorMsg, userInfo);
+            return <http:Forbidden>{
+                body: {
+                    message: errorMsg
+                }
+            };
+        }
+
         ctx.set(HEADER_USER_INFO, userInfo);
         return ctx.next();
     }
@@ -47,15 +65,17 @@ public isolated service class JwtInterceptor {
 #
 # + key - Asgardeo ID token
 # + return - User email OR Error OR HTTP Response
-public isolated function decodeJwt(string key) returns http:Forbidden|http:Unauthorized|CustomJwtPayload|error {
+public isolated function decodeJwt(string key) returns CustomJwtPayload|error {
 
-    [jwt:Header, jwt:Payload] [_, payload] = check jwt:decode(key);
-    CustomJwtPayload|error userInfo = payload.cloneWithType();
-
-    if userInfo is error {
-        log:printError("JWT payload type mismatch or validation error during token decoding.", userInfo);
-        return <http:Unauthorized>{body: {message: userInfo.message()}};
+    [jwt:Header, jwt:Payload]|jwt:Error result = jwt:decode(key);
+    if result is jwt:Error {
+        return result;
     }
+    CustomJwtPayload|error userInfo = result[1].cloneWithType();
+    return userInfo;
+}
+
+public isolated function checkGroups(CustomJwtPayload userInfo) returns CustomJwtPayload|error {
     foreach anydata role in authorizedRoles.toArray() {
         if userInfo.groups.some(r => r == role) {
             return {
@@ -64,9 +84,5 @@ public isolated function decodeJwt(string key) returns http:Forbidden|http:Unaut
             };
         }
     }
-    log:printError("Authorization failed due to insufficient privileges.",
-        email = userInfo.email,
-        authorizedRoles = authorizedRoles
-    );
-    return <http:Forbidden>{body: {message: "Insufficient privileges!"}};
+    return userInfo;
 }
