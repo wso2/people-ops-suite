@@ -15,26 +15,6 @@
 // under the License.
 import ballerina/sql;
 
-# Helper function to add a filter condition if the filter is not null or empty.
-#
-# + filterQueries - Filter qyery array
-# + condition - Condition to be applied to the query
-# + filterValue - Value of the filter
-isolated function addFilterCondition(
-        sql:ParameterizedQuery[] filterQueries,
-        sql:ParameterizedQuery condition,
-        FilterValue? filterValue
-) {
-
-    if filterValue is string[]|int[]|HiringStatus[] && filterValue.length() > 0 {
-        filterQueries.push(sql:queryConcat(condition, ` IN (`, sql:arrayFlattenQuery(filterValue), `)`));
-    } else if filterValue is string|int {
-        filterQueries.push(sql:queryConcat(condition, ` = ${filterValue}`));
-    } else if filterValue is Compensation[]|Document[] {
-        filterQueries.push(sql:queryConcat(condition, ` = ${filterValue.toJsonString()}`));
-    }
-}
-
 # Build the database select query with dynamic filter attributes.
 #
 # + mainQuery - Main query without the new sub query
@@ -75,10 +55,4 @@ isolated function buildSqlUpdateQuery(sql:ParameterizedQuery mainQuery, sql:Para
         updatedQuery = sql:queryConcat(updatedQuery, ` , `, filter);
     }
     return updatedQuery;
-}
-
-isolated function stringToParameterizedQueryConversion(string queryStr) returns sql:ParameterizedQuery {
-    sql:ParameterizedQuery query = `""`;
-    query.strings = [queryStr];
-    return query;
 }

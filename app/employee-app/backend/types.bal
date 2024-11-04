@@ -13,17 +13,15 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import ballerina/http;
+import employee_app.database;
 
-configurable string emailServiceBaseUrl = ?;
-configurable http:OAuth2ClientCredentialsGrantConfig oauthConfig = ?;
+# Employee type.
+public type Employee record {|
+    *database:Employee;
+|};
 
-@display {
-    label: "Email Notifications Service",
-    id: "infra/email-notifications-service"
-}
-final http:Client emailClient = check new (emailServiceBaseUrl, {
-    auth: {
-        ...oauthConfig
-    }
-});
+
+# Employee filter record.
+public type EmployeeFilter record {|
+    *database:EmployeeFilter;
+|};

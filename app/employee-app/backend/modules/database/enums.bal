@@ -29,45 +29,6 @@ public enum EmployeeStatus {
     MARKED\ LEAVER = "Marked leaver"
 }
 
-# [Enum] Gender
-public enum Gender {
-    FEMALE,
-    MALE,
-    OTHER
-}
-
-# [Enum] Employee Hiring Status.
-public enum HiringStatus {
-    SELECTED,
-    OFFER_SENT,
-    OFFER_ACCEPTED,
-    OFFER_REJECTED,
-    REQUEST_HIRING_DETAILS,
-    HIRING_DETAILS_RECEIVED,
-    CONTRACT_SENT,
-    CONTRACT_REJECTED,
-    CONTRACT_ACCEPTED,
-    HIRING_MANAGER_ACKNOWLEDGED,
-    GSHEET_ADDED,
-    ONBOARDING_COMPLETED
-}
-
-# [Enum] Process Status.
-public enum RecruitStatus {
-    SELECTED,
-    OFFER_SENT,
-    OFFER_ACCEPTED,
-    OFFER_REJECTED,
-    REQUEST_HIRING_DETAILS,
-    HIRING_DETAILS_RECEIVED,
-    CONTRACT_SENT,
-    CONTRACT_REJECTED,
-    CONTRACT_ACCEPTED,
-    HIRING_MANAGER_ACKNOWLEDGED,
-    GSHEET_ADDED,
-    ONBOARDING_COMPLETED
-}
-
 # [Enum] Role.
 public enum Role {
     EMPLOYEE_APP_HIRING_MANAGER
