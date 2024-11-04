@@ -54,7 +54,6 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-        types:Employee|error? employee;
         if userInfoCache.hasKey(email) {
             any|error cachedEmployee = userInfoCache.get(email);
             if cachedEmployee is types:Employee {
@@ -64,7 +63,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
         }
 
-        employee = database:getEmployee(email);
+        types:Employee|error? employee = database:getEmployee(email);
         if employee is error {
             string customError = string `Error getting employee basic information for ${email}!`;
             log:printError(customError, employee);
@@ -93,7 +92,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + offset - The number of employees to skip before starting to collect the result set
     # + return - Basic information of the employees or an error
     resource function post employees(types:EmployeeFilter? filters, int? 'limit, int? offset)
-        returns types:Employee[]|http:BadRequest|http:InternalServerError|http:NotFound {
+        returns types:Employee[]|http:InternalServerError{
 
         types:Employee[]|error employees =
             database:getEmployees(filters ?: {}, 'limit ?: types:DEFAULT_LIMIT, offset ?: 0);
