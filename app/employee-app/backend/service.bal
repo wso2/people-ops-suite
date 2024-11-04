@@ -54,14 +54,6 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-        if userInfoCache.hasKey(email) {
-            any|error cachedEmployee = userInfoCache.get(email);
-            if cachedEmployee is types:Employee {
-                return cachedEmployee;
-            } else if cachedEmployee is cache:Error {
-                log:printError("Error getting employee information", cachedEmployee);
-            }
-        }
 
         types:Employee|error? employee = database:getEmployee(email);
         if employee is error {
@@ -114,11 +106,11 @@ service http:InterceptableService / on new http:Listener(9090) {
     resource function get org\-structure() returns types:OrgStructure|http:InternalServerError {
 
         if orgStructureCache.hasKey(types:ORG_STRUCTURE_CACHE_KEY) {
-            any|error cacheOrg = orgStructureCache.get(types:ORG_STRUCTURE_CACHE_KEY);
+            types:OrgStructure|error cacheOrg = orgStructureCache.get(types:ORG_STRUCTURE_CACHE_KEY).ensureType();
             if cacheOrg is types:OrgStructure {
                 return cacheOrg;
             }
-            if cacheOrg is cache:Error {
+            if cacheOrg is error {
                 string errorMsg = "Error retrieving employee from cache";
                 log:printError(errorMsg, cacheOrg);
             }
@@ -545,10 +537,10 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         types:Employee|error? senderInfo;
         if userInfoCache.hasKey(userInfo.email) {
-            any|error cachedEmployee = userInfoCache.get(userInfo.email);
+            types:Employee|error cachedEmployee = userInfoCache.get(userInfo.email).ensureType();
             if cachedEmployee is types:Employee {
                 senderInfo = cachedEmployee;
-            } else if cachedEmployee is cache:Error {
+            } else if cachedEmployee is error {
                 string errorMsg = "Error getting employee information";
                 log:printError(errorMsg, cachedEmployee);
             }
@@ -848,11 +840,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         types:Employee|error? senderInfo;
         if userInfoCache.hasKey(userInfo.email) {
-            any|error result = userInfoCache.get(userInfo.email);
+            types:Employee|error result = userInfoCache.get(userInfo.email).ensureType();
             if result is error {
                 log:printError("Error getting cached data for employee!", 'error = result, email = userInfo.email);
             }
-            senderInfo = result.ensureType();
+            senderInfo = result;
         }
         senderInfo = database:getEmployee(userInfo.email);
         if senderInfo is error {
@@ -1198,12 +1190,12 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
         if userInfoCache.hasKey(userInfo.email) {
-            any|error cachedEmployee = userInfoCache.get(userInfo.email);
+            types:Employee|error cachedEmployee = userInfoCache.get(userInfo.email).ensureType();
             if cachedEmployee is types:Employee {
                 return cachedEmployee;
             }
 
-            if cachedEmployee is cache:Error {
+            if cachedEmployee is error {
                 string errorMsg = "Error getting employee information";
                 log:printError(errorMsg, cachedEmployee);
             }
