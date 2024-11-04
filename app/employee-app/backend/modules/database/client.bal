@@ -22,7 +22,7 @@ HRISDatabaseConfig hris = {
     ...databaseConfig,
     options: {
         ssl: {
-            mode: mysql:SSL_PREFERRED
+            mode: mysql:SSL_REQUIRED
         },
         connectTimeout: 10
     }
