@@ -65,11 +65,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         types:Employee|error? employee = database:getEmployee(email);
         if employee is error {
-            string customError = string `Error getting employee basic information for ${email}!`;
-            log:printError(customError, employee);
+            string errorMsg = string `Error getting employee basic information for ${email}!`;
+            log:printError(errorMsg, employee);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -97,11 +97,11 @@ service http:InterceptableService / on new http:Listener(9090) {
         types:Employee[]|error employees =
             database:getEmployees(filters ?: {}, 'limit ?: types:DEFAULT_LIMIT, offset ?: 0);
         if employees is error {
-            string customError = "Error getting employee information!";
-            log:printError(customError, employees);
+            string errorMsg = "Error getting employee information!";
+            log:printError(errorMsg, employees);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -119,8 +119,8 @@ service http:InterceptableService / on new http:Listener(9090) {
                 return cacheOrg;
             }
             if cacheOrg is cache:Error {
-                string customError = "Error retrieving employee from cache";
-                log:printError(customError, cacheOrg);
+                string errorMsg = "Error retrieving employee from cache";
+                log:printError(errorMsg, cacheOrg);
             }
         }
         types:BusinessUnit[]|error businessUnits = database:getOrgDetails(
@@ -129,11 +129,11 @@ service http:InterceptableService / on new http:Listener(9090) {
                 offset = 0
             );
         if businessUnits is error {
-            string customError = "Error getting business units";
-            log:printError(customError, businessUnits);
+            string errorMsg = "Error getting business units";
+            log:printError(errorMsg, businessUnits);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -144,11 +144,11 @@ service http:InterceptableService / on new http:Listener(9090) {
                 offset = 0
             );
         if companies is error {
-            string customError = "Error getting companies";
-            log:printError(customError, companies);
+            string errorMsg = "Error getting companies";
+            log:printError(errorMsg, companies);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -159,11 +159,11 @@ service http:InterceptableService / on new http:Listener(9090) {
                 offset = 0
             );
         if careerFunctions is error {
-            string customError = "Error getting career functions";
-            log:printError(customError, careerFunctions);
+            string errorMsg = "Error getting career functions";
+            log:printError(errorMsg, careerFunctions);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -189,11 +189,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         types:Recruit|error recruit = database:getRecruit(recruitId);
         if recruit is error {
-            string customError = "Error getting recruit information";
-            log:printError(customError, 'error = recruit, recruitId = recruitId);
+            string errorMsg = "Error getting recruit information";
+            log:printError(errorMsg, 'error = recruit, recruitId = recruitId);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -211,11 +211,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         types:Recruit[]|error recruits = database:getRecruits(statusArray, 'limit, offset);
         if recruits is error {
-            string customError = "Error getting recruit information";
-            log:printError(customError, 'error = recruits);
+            string errorMsg = "Error getting recruit information";
+            log:printError(errorMsg, 'error = recruits);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -231,11 +231,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            string customError = "Error getting token from the header";
-            log:printError(customError, 'error = userInfo);
+            string errorMsg = "Error getting token from the header";
+            log:printError(errorMsg, 'error = userInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -244,11 +244,11 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         types:Recruit|error recruit = database:getRecruit(recruitId);
         if recruit is error {
-            string customError = "Error getting data for recruit";
-            log:printError(customError, 'error = recruit, id = recruitId);
+            string errorMsg = "Error getting data for recruit";
+            log:printError(errorMsg, 'error = recruit, id = recruitId);
             return <http:InternalServerError>{
                 body: {
-                    message: string `${customError} ${recruitId}`
+                    message: string `${errorMsg} ${recruitId}`
                 }
             };
         }
@@ -264,11 +264,11 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         types:CompensationEmail|error compensationEmail = database:getCompensation(compensationFilter);
         if compensationEmail is error {
-            string customError = "Error getting compensation email data";
-            log:printError(customError, 'error = compensationEmail);
+            string errorMsg = "Error getting compensation email data";
+            log:printError(errorMsg, 'error = compensationEmail);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -284,11 +284,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            string customError = "Error getting token from the header";
-            log:printError(customError, 'error = userInfo);
+            string errorMsg = "Error getting token from the header";
+            log:printError(errorMsg, 'error = userInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -357,11 +357,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         int|error employeeId = database:addRecruit(recruit, userInfo.email);
         if employeeId is error {
-            string customError = "Error getting employee ID";
-            log:printError(customError, 'error = employeeId, email = userInfo.email);
+            string errorMsg = "Error getting employee ID";
+            log:printError(errorMsg, 'error = employeeId, email = userInfo.email);
             return <http:InternalServerError>{
                 body: {
-                    message: string `${customError} for ${userInfo.email}`
+                    message: string `${errorMsg} for ${userInfo.email}`
                 }
             };
         }
@@ -382,11 +382,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            string customError = "Error getting token from the header";
-            log:printError(customError, 'error = userInfo);
+            string errorMsg = "Error getting token from the header";
+            log:printError(errorMsg, 'error = userInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -397,11 +397,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         any|error result = database:updateRecruit({...recruit, recruitId}, userInfo.email);
         if result is error {
-            string customError = "Error updating recruit in the database";
-            log:printError(customError, 'error = result);
+            string errorMsg = "Error updating recruit in the database";
+            log:printError(errorMsg, 'error = result);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -422,11 +422,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            string customError = "Error getting token from the header";
-            log:printError(customError, 'error = userInfo);
+            string errorMsg = "Error getting token from the header";
+            log:printError(errorMsg, 'error = userInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -437,11 +437,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         types:Recruit|error recruit = database:getRecruit(recruitId);
         if recruit is error {
-            string customError = "Error getting recruit data";
-            log:printError(customError, 'error = recruit, id = recruitId);
+            string errorMsg = "Error getting recruit data";
+            log:printError(errorMsg, 'error = recruit, id = recruitId);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -455,11 +455,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         any|error result = database:updateRecruit({status: database:OFFER_SENT, recruitId}, userInfo.email);
         if result is error {
-            string customError = "Error updating recruit in the database";
-            log:printError(customError, 'error = result);
+            string errorMsg = "Error updating recruit in the database";
+            log:printError(errorMsg, 'error = result);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -480,11 +480,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            string customError = "Error getting token from the header";
-            log:printError(customError, 'error = userInfo);
+            string errorMsg = "Error getting token from the header";
+            log:printError(errorMsg, 'error = userInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -495,11 +495,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         types:Recruit|error recruit = database:getRecruit(recruitId);
         if recruit is error {
-            string customError = "Error getting data for recruit";
-            log:printError(customError, 'error = recruit, id = recruitId);
+            string errorMsg = "Error getting data for recruit";
+            log:printError(errorMsg, 'error = recruit, id = recruitId);
             return <http:InternalServerError>{
                 body: {
-                    message: string `${customError} ${recruitId}`
+                    message: string `${errorMsg} ${recruitId}`
                 }
             };
         }
@@ -523,11 +523,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         types:CompensationEmail|error compensationEmail = database:getCompensation(compensationFilter);
         if compensationEmail is error {
-            string customError = "Error getting compensation email data";
-            log:printError(customError, 'error = compensationEmail);
+            string errorMsg = "Error getting compensation email data";
+            log:printError(errorMsg, 'error = compensationEmail);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -549,17 +549,17 @@ service http:InterceptableService / on new http:Listener(9090) {
             if cachedEmployee is types:Employee {
                 senderInfo = cachedEmployee;
             } else if cachedEmployee is cache:Error {
-                string customError = "Error getting employee information";
-                log:printError(customError, cachedEmployee);
+                string errorMsg = "Error getting employee information";
+                log:printError(errorMsg, cachedEmployee);
             }
         }
         senderInfo = database:getEmployee(userInfo.email);
         if senderInfo is error {
-            string customError = string `Error getting employee basic information for ${userInfo.email}`;
-            log:printError(customError, senderInfo);
+            string errorMsg = string `Error getting employee basic information for ${userInfo.email}`;
+            log:printError(errorMsg, senderInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -570,8 +570,8 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         any|error resultUpdatedCache = userInfoCache.put(userInfo.email, senderInfo);
         if resultUpdatedCache is error {
-            string customError = "Error updating employee in user cache";
-            log:printError(customError, 'error = resultUpdatedCache);
+            string errorMsg = "Error updating employee in user cache";
+            log:printError(errorMsg, 'error = resultUpdatedCache);
         }
 
         if recruit.employmentType is types:PERMANENT {
@@ -607,11 +607,11 @@ service http:InterceptableService / on new http:Listener(9090) {
                 attachments: recruit.offerDocuments ?: []
             });
             if resultEmailNotification is error {
-                string customError = "Error processing email notification";
-                log:printError(customError, 'error = resultEmailNotification);
+                string errorMsg = "Error processing email notification";
+                log:printError(errorMsg, 'error = resultEmailNotification);
                 return <http:InternalServerError>{
                     body: {
-                        message: customError
+                        message: errorMsg
                     }
                 };
             }
@@ -645,11 +645,11 @@ service http:InterceptableService / on new http:Listener(9090) {
                 attachments: recruit.offerDocuments ?: []
             });
             if resultEmailNotification is error {
-                string customError = "Error processing email notification";
-                log:printError(customError, 'error = resultEmailNotification);
+                string errorMsg = "Error processing email notification";
+                log:printError(errorMsg, 'error = resultEmailNotification);
                 return <http:InternalServerError>{
                     body: {
-                        message: customError
+                        message: errorMsg
                     }
                 };
             }
@@ -685,11 +685,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             });
 
             if resultEmailNotification is error {
-                string customError = "Error processing email notification";
-                log:printError(customError, 'error = resultEmailNotification);
+                string errorMsg = "Error processing email notification";
+                log:printError(errorMsg, 'error = resultEmailNotification);
                 return <http:InternalServerError>{
                     body: {
-                        message: customError
+                        message: errorMsg
                     }
                 };
             }
@@ -706,11 +706,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             userInfo.email
         );
         if resultEmailNotification is error {
-            string customError = "Error processing email notification";
-            log:printError(customError, 'error = resultEmailNotification);
+            string errorMsg = "Error processing email notification";
+            log:printError(errorMsg, 'error = resultEmailNotification);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -732,11 +732,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            string customError = "Error getting invoker details!";
-            log:printError(customError, 'error = userInfo);
+            string errorMsg = "Error getting invoker details!";
+            log:printError(errorMsg, 'error = userInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -769,11 +769,11 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         types:Recruit|error recruit = database:getRecruit(recruitId);
         if recruit is error {
-            string customError = "Error getting data for recruit!";
-            log:printError(customError, 'error = recruit, id = recruitId);
+            string errorMsg = "Error getting data for recruit!";
+            log:printError(errorMsg, 'error = recruit, id = recruitId);
             return <http:InternalServerError>{
                 body: {
-                    message: string `${customError} ${recruitId}`
+                    message: string `${errorMsg} ${recruitId}`
                 }
             };
         }
@@ -790,11 +790,11 @@ service http:InterceptableService / on new http:Listener(9090) {
                 updatedBy = userInfo.email
             );
         if result is error {
-            string customError = "Error updating recruit in the database!";
-            log:printError(customError, 'error = result);
+            string errorMsg = "Error updating recruit in the database!";
+            log:printError(errorMsg, 'error = result);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -816,11 +816,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            string customError = "Error getting invoker details!";
-            log:printError(customError, 'error = userInfo);
+            string errorMsg = "Error getting invoker details!";
+            log:printError(errorMsg, 'error = userInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -830,11 +830,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         types:Recruit|error recruit = database:getRecruit(recruitId);
         if recruit is error {
-            string customError = "Error getting data for recruit!";
-            log:printError(customError, 'error = recruit, id = recruitId);
+            string errorMsg = "Error getting data for recruit!";
+            log:printError(errorMsg, 'error = recruit, id = recruitId);
             return <http:InternalServerError>{
                 body: {
-                    message: string `${customError} ${recruitId}`
+                    message: string `${errorMsg} ${recruitId}`
                 }
             };
         }
@@ -856,11 +856,11 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         senderInfo = database:getEmployee(userInfo.email);
         if senderInfo is error {
-            string customError = string `Error getting employee information`;
-            log:printError(customError, senderInfo);
+            string errorMsg = string `Error getting employee information`;
+            log:printError(errorMsg, senderInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: string `${customError} for ${userInfo.email}!`
+                    message: string `${errorMsg} for ${userInfo.email}!`
                 }
             };
         }
@@ -870,8 +870,8 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         any|error resultUpdatedCache = userInfoCache.put(userInfo.email, senderInfo);
         if resultUpdatedCache is error {
-            string customError = "Error updating employee in user cache";
-            log:printError(customError, 'error = resultUpdatedCache);
+            string errorMsg = "Error updating employee in user cache";
+            log:printError(errorMsg, 'error = resultUpdatedCache);
         }
 
         map<string> keyValPairs = {
@@ -889,11 +889,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             attachments: hiringDetails.documents
         });
         if resultEmailNotification is error {
-            string customError = "Error processing email notification";
-            log:printError(customError, 'error = resultEmailNotification);
+            string errorMsg = "Error processing email notification";
+            log:printError(errorMsg, 'error = resultEmailNotification);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -903,11 +903,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             userInfo.email
         );
         if resultUpdateRecruit is error {
-            string customError = "Error updating recruit in the database";
-            log:printError(customError, 'error = resultUpdateRecruit);
+            string errorMsg = "Error updating recruit in the database";
+            log:printError(errorMsg, 'error = resultUpdateRecruit);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -928,11 +928,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            string customError = "Error getting token from the header";
-            log:printError(customError, 'error = userInfo);
+            string errorMsg = "Error getting token from the header";
+            log:printError(errorMsg, 'error = userInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -942,11 +942,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         types:Recruit|error recruit = database:getRecruit(recruitId);
         if recruit is error {
-            string customError = "Error getting recruit from the database";
-            log:printError(customError, 'error = recruit);
+            string errorMsg = "Error getting recruit from the database";
+            log:printError(errorMsg, 'error = recruit);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -963,11 +963,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             userInfo.email
         );
         if resultUpdateRecruit is error {
-            string customError = "Error updating recruit in the database";
-            log:printError(customError, 'error = resultUpdateRecruit);
+            string errorMsg = "Error updating recruit in the database";
+            log:printError(errorMsg, 'error = resultUpdateRecruit);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -987,11 +987,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            string customError = "Error getting token from the header";
-            log:printError(customError, 'error = userInfo);
+            string errorMsg = "Error getting token from the header";
+            log:printError(errorMsg, 'error = userInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -1001,11 +1001,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         types:Recruit|error recruit = database:getRecruit(recruitId);
         if recruit is error {
-            string customError = "Error getting recruit from the database";
-            log:printError(customError, 'error = recruit);
+            string errorMsg = "Error getting recruit from the database";
+            log:printError(errorMsg, 'error = recruit);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -1022,11 +1022,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             userInfo.email
         );
         if resultUpdateRecruit is error {
-            string customError = "Error updating recruit in the database";
-            log:printError(customError, 'error = resultUpdateRecruit);
+            string errorMsg = "Error updating recruit in the database";
+            log:printError(errorMsg, 'error = resultUpdateRecruit);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -1048,11 +1048,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            string customError = "Error getting token from the header";
-            log:printError(customError, 'error = userInfo);
+            string errorMsg = "Error getting token from the header";
+            log:printError(errorMsg, 'error = userInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -1082,11 +1082,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         types:Recruit|error recruit = database:getRecruit(recruitId);
         if recruit is error {
-            string customError = "Error getting recruit from the database";
-            log:printError(customError, 'error = recruit);
+            string errorMsg = "Error getting recruit from the database";
+            log:printError(errorMsg, 'error = recruit);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -1103,11 +1103,11 @@ service http:InterceptableService / on new http:Listener(9090) {
                 updatedBy = userInfo.email
             );
         if resultUpdateRecruit is error {
-            string customError = "Error updating recruit in the database";
-            log:printError(customError, 'error = resultUpdateRecruit);
+            string errorMsg = "Error updating recruit in the database";
+            log:printError(errorMsg, 'error = resultUpdateRecruit);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -1127,11 +1127,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            string customError = "Error getting token from the header";
-            log:printError(customError, 'error = userInfo);
+            string errorMsg = "Error getting token from the header";
+            log:printError(errorMsg, 'error = userInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -1143,11 +1143,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         types:Recruit|error recruit = database:getRecruit(recruitId);
         if recruit is error {
-            string customError = "Error getting recruit from the database";
-            log:printError(customError, 'error = recruit);
+            string errorMsg = "Error getting recruit from the database";
+            log:printError(errorMsg, 'error = recruit);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -1164,11 +1164,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             userInfo.email
         );
         if resultUpdateRecruit is error {
-            string customError = "Error updating recruit in the database";
-            log:printError(customError, 'error = resultUpdateRecruit);
+            string errorMsg = "Error updating recruit in the database";
+            log:printError(errorMsg, 'error = resultUpdateRecruit);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -1189,11 +1189,11 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            string customError = "Error getting token from the header";
-            log:printError(customError, 'error = userInfo);
+            string errorMsg = "Error getting token from the header";
+            log:printError(errorMsg, 'error = userInfo);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -1204,18 +1204,18 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
 
             if cachedEmployee is cache:Error {
-                string customError = "Error getting employee information";
-                log:printError(customError, cachedEmployee);
+                string errorMsg = "Error getting employee information";
+                log:printError(errorMsg, cachedEmployee);
             }
         }
 
         types:Employee|error? user = database:getEmployee(userInfo.email);
         if user is error {
-            string customError = string `Error getting employee basic information for ${userInfo.email}`;
-            log:printError(customError, user);
+            string errorMsg = string `Error getting employee basic information for ${userInfo.email}`;
+            log:printError(errorMsg, user);
             return <http:InternalServerError>{
                 body: {
-                    message: customError
+                    message: errorMsg
                 }
             };
         }
@@ -1225,8 +1225,8 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         any|error resultUpdatedCache = userInfoCache.put(userInfo.email, user);
         if resultUpdatedCache is error {
-            string customError = "Error updating employee in user cache";
-            log:printError(customError, 'error = resultUpdatedCache);
+            string errorMsg = "Error updating employee in user cache";
+            log:printError(errorMsg, 'error = resultUpdatedCache);
         }
         return user;
     }
