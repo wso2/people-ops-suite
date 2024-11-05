@@ -79,7 +79,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + 'limit - The maximum number of employees to return
     # + offset - The number of employees to skip before starting to collect the result set
     # + return - Basic information of the employees or an error
-    resource function post employees(EmployeeFilter? filters, int? 'limit, int? offset)
+    resource function post employees/search(EmployeeFilter? filters, int? 'limit, int? offset)
         returns Employee[]|http:InternalServerError {
 
         Employee[]|error employees =
