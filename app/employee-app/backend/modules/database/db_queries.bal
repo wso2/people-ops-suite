@@ -18,8 +18,7 @@ import ballerina/sql;
 # Common build query to retrieve the employee/employees.
 #
 # + return - sql:ParameterizedQuery - Select query for the employee table
-isolated function getCommonEmployeeQuery() returns sql:ParameterizedQuery =>
-`
+isolated function getCommonEmployeeQuery() returns sql:ParameterizedQuery => `
     SELECT
         e.employee_id,
         e.employee_first_name,

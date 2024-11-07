@@ -33,7 +33,7 @@ type HRISDatabaseConfig record {|
     mysql:Options? options;
 |};
 
-# [Database]Employee basic information record to get lead type as int.
+# [Database] Employee basic information record to get lead type as int.
 # Duplicated record with one field change(int? lead) had created due to below issue in ballerina 2201.8.6. 
 # Issue: https://github.com/ballerina-platform/ballerina-library/issues/7297
 public type DBEmployee record {|
