@@ -45,7 +45,7 @@ public isolated service class JwtInterceptor {
             };
         }
 
-        CustomJwtPayload|error userInfo = checkGroups(<CustomJwtPayload>decodeUserInfo);
+        CustomJwtPayload|error userInfo = checkGroups(decodeUserInfo);
         if userInfo is error {
             string errorMsg = "Insufficient privileges!";
             log:printError(errorMsg, userInfo);
