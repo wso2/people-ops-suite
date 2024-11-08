@@ -1,0 +1,286 @@
+// Copyright (c) 2024 WSO2 LLC. (http://www.wso2.org).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+import leave_service.calendar_events;
+import leave_service.database;
+import leave_service.employee;
+
+import ballerina/http;
+import ballerina/lang.regexp;
+import ballerina/log;
+import ballerina/time;
+
+# Function to check if a given date is a weekday (Monday to Friday).
+#
+# + date - Date to check
+# + return - Returns true if the date is a weekday, false otherwise
+public isolated function checkIfWeekday(time:Civil|time:Utc date) returns boolean {
+
+    time:Civil civil = date is time:Utc ? time:utcToCivil(date) : date;
+    return !(civil.dayOfWeek == time:SATURDAY || civil.dayOfWeek == time:SUNDAY);
+}
+
+# Get Civil date from a string in ISO 8601 format. This date will be timezone independent.
+#
+# + date - String date in ISO 8601 format
+# + return - Return Civil date or error for validation failure
+public isolated function getCivilDateFromString(string date) returns time:Civil|ValidationError {
+
+    time:Civil|time:Error civilDate = time:civilFromString(getTimestampFromDateString(date));
+    if civilDate is error {
+        return error(
+            civilDate.message(),
+            externalMessage = ERR_MSG_INVALID_DATE_FORMAT,
+            code = http:STATUS_BAD_REQUEST
+        );
+    }
+    return civilDate;
+}
+
+# Get the effective leave days for a given leave input, factoring in holidays and working days.
+#
+# + leaveInput - Leave input record
+# + token - JWT token
+# + return - An array of `LeaveDay` records with calculated effective leave days or an error if the calculation fails
+public isolated function getEffectiveLeaveDaysFromLeave(database:LeaveInput leaveInput, string token)
+    returns LeaveDay[]|error {
+
+    string|error location = employee:getEmployeeLocation(leaveInput.email, token);
+    if location is error {
+        return location;
+    }
+
+    [time:Utc, time:Utc] [startDateUtc, endDateUtc] = check validateDateRange(leaveInput.startDate, leaveInput.endDate);
+    database:Day[] weekdaysFromRange = check getWeekdaysFromRange(startDateUtc, endDateUtc);
+    database:Holiday[] holidaysInRange = check calendar_events:getHolidaysForCountry(
+            location,
+            leaveInput.startDate,
+            leaveInput.endDate
+    );
+    database:Day[] workingDaysAfterHolidays = getWorkingDaysAfterHolidays(weekdaysFromRange, holidaysInRange);
+    LeaveDay[] leaveDays = [];
+    foreach database:Day {date} in workingDaysAfterHolidays {
+        LeaveDay leaveDay = {
+            date,
+            'type: <database:LeaveType>leaveInput.leaveType,
+            isMorningLeave: leaveInput.isMorningLeave,
+            periodType: <database:LeavePeriodType>leaveInput.periodType
+        };
+        leaveDays.push(leaveDay);
+    }
+
+    return leaveDays;
+}
+
+# Get end date of a given year or current year.
+#
+# + date - Date to consider
+# + year - Year to consider when date is not passed
+# + return - End date of year
+public isolated function getEndDateOfYear(time:Utc? date = (), int? year = ()) returns string =>
+    string `${year ?: time:utcToCivil(date ?: time:utcNow()).year}-12-31T00:00:00Z`;
+
+# Get start date of a given year or current year.
+#
+# + date - Date to consider
+# + year - Year to consider when date is not passed
+# + return - Start date of year
+public isolated function getStartDateOfYear(time:Utc? date = (), int? year = ()) returns string =>
+    string `${year ?: time:utcToCivil(date ?: time:utcNow()).year}-01-01T00:00:00Z`;
+
+# Get timestamp from a string in ISO 8601 format. This date will be timezone independent.
+#
+# + date - String date in ISO 8601 format
+# + return - Return timestamp
+public isolated function getTimestampFromDateString(string date) returns string {
+
+    string timestamp = date;
+    if regexp:find(REGEX_DATE_YYYY_MM_DD, date) is regexp:Span {
+        timestamp = date.substring(0, 10) + "T00:00:00Z";
+    }
+    return timestamp;
+}
+
+# Get UTC date from a string in ISO 8601 format. This date will be timezone independent.
+#
+# + date - String date in ISO 8601 format
+# + return - Return UTC date or error for validation failure
+public isolated function getUtcDateFromString(string date) returns time:Utc|ValidationError {
+
+    string timestamp = getTimestampFromDateString(date);
+    time:Utc|time:Error utcDate = time:utcFromString(timestamp);
+    if utcDate is time:Error {
+        log:printError(string `${ERR_MSG_INVALID_DATE_FORMAT} Date: ${date} Timestamp: ${timestamp}`);
+        return error(utcDate.message(), externalMessage = ERR_MSG_INVALID_DATE_FORMAT);
+    }
+
+    return utcDate;
+}
+
+# Function to get the weekdays within a date range.
+#
+# + startDate - Start date 
+# + endDate - End date
+# + return - Return Utc array of weekdays
+public isolated function getWeekdaysFromRange(time:Utc startDate, time:Utc endDate) returns database:Day[]|error {
+
+    database:Day[] weekdays = [];
+    time:Utc utcToCheck = startDate;
+    while utcToCheck <= endDate {
+        if checkIfWeekday(utcToCheck) {
+            weekdays.push({date: time:utcToString(utcToCheck)});
+        }
+        utcToCheck = time:utcAddSeconds(utcToCheck, 86400);
+    }
+
+    return weekdays;
+}
+
+# Function to get the workdays after holidays.
+#
+# + weekdays - Weekdays
+# + holidays - holidays
+# + return - Return Utc array of weekdays
+public isolated function getWorkingDaysAfterHolidays(database:Day[] weekdays, database:Holiday[] holidays)
+    returns database:Day[] {
+
+    map<database:Day> workingDaysMap = {};
+    foreach database:Day weekday in weekdays {
+        string weekdayDate = getTimestampFromDateString(weekday.date);
+        workingDaysMap[weekdayDate] = weekday;
+    }
+    foreach database:Holiday holiday in holidays {
+        string holidayDate = getTimestampFromDateString(holiday.date);
+        if workingDaysMap.hasKey(holidayDate) {
+            _ = workingDaysMap.remove(holidayDate);
+        }
+    }
+
+    return workingDaysMap.toArray();
+}
+
+# Get Leave entity from the given DB record.
+#
+# + leave - DB leave record 
+# + token - JWT token
+# + fetchEffectiveDays - Should affected days be fetched
+# + return - LeaveResponse object containing the processed leave details or an error if processing fails
+public isolated function toLeaveEntity(database:Leave leave, string token, boolean fetchEffectiveDays = true)
+    returns LeaveResponse|error {
+
+    database:Leave {
+        id,
+        email,
+        startDate,
+        endDate,
+        isActive,
+        leaveType,
+        periodType,
+        createdDate,
+        copyEmailList,
+        calendarEventId,
+        numberOfDays,
+        location,
+        emailId,
+        emailSubject
+    } = leave;
+    database:LeaveType entityLeaveType;
+    database:LeavePeriodType entityLeavePeriodType;
+    database:LeaveType|error clonedLeaveType = leaveType.ensureType();
+    if clonedLeaveType is error {
+        log:printWarn(
+                string `Detected unsupported leave type: ${leaveType.toString()}. Leave ID: ${id.toString()}.`,
+                clonedLeaveType
+        );
+        entityLeaveType = database:CASUAL_LEAVE;
+    } else {
+        entityLeaveType = clonedLeaveType;
+    }
+
+    database:LeavePeriodType|error clonedLeavePeriodType = periodType.ensureType();
+    if clonedLeavePeriodType is error {
+        log:printWarn(
+                string `Detected unsupported leave period type: ${periodType.toString()}. Leave ID: ${id.toString()}.`,
+                clonedLeavePeriodType
+        );
+        entityLeavePeriodType = database:MULTIPLE_DAYS_LEAVE;
+    } else {
+        entityLeavePeriodType = clonedLeavePeriodType;
+    }
+    string:RegExp regPattern = re `,`;
+    string[] emailRecipients = copyEmailList == () || copyEmailList.length() == 0
+        ? []
+        : regPattern.split(copyEmailList);
+    readonly & string[] readonlyEmailRecipients = emailRecipients.cloneReadOnly();
+
+    boolean? isMorningLeave = (leave.startHalf == 0) ? true : (leave.startHalf == 1 ? false : ());
+    database:LeaveDay[] effectiveLeaveDaysFromLeave = [];
+    if fetchEffectiveDays {
+        database:LeaveDay[]|error effectiveDays = getEffectiveLeaveDaysFromLeave(
+                {
+                    email,
+                    startDate: startDate,
+                    endDate: endDate,
+                    leaveType: entityLeaveType,
+                    periodType: entityLeavePeriodType,
+                    isMorningLeave: isMorningLeave
+                }, token);
+
+        if effectiveDays is error {
+            return error(ERR_MSG_EFFECTIVE_DAYS_FAILED, effectiveDays);
+        }
+
+        effectiveLeaveDaysFromLeave = <database:LeaveDay[]>effectiveDays;
+    }
+    database:LeaveDay[] & readonly readonlyEffectiveLeaveDaysFromLeave = effectiveLeaveDaysFromLeave.cloneReadOnly();
+
+    return {
+        id,
+        startDate,
+        endDate,
+        isActive: isActive ?: false,
+        leaveType: entityLeaveType,
+        periodType: entityLeavePeriodType,
+        isMorningLeave,
+        email,
+        createdDate: createdDate is string ? getTimestampFromDateString(createdDate) : "",
+        emailRecipients: readonlyEmailRecipients,
+        effectiveDays: readonlyEffectiveLeaveDaysFromLeave,
+        calendarEventId,
+        numberOfDays: numberOfDays ?: 0.0,
+        location,
+        emailId,
+        emailSubject
+    };
+}
+
+# Date range validation function.
+#
+# + startDate - Start date of the range
+# + endDate - End date of the range
+# + return - Returns UTC start and end dates or error for validation failure
+public isolated function validateDateRange(string startDate, string endDate) returns [time:Utc, time:Utc]|error {
+    do {
+        time:Utc startUtc = check getUtcDateFromString(startDate);
+        time:Utc endUtc = check getUtcDateFromString(endDate);
+        if startUtc > endUtc {
+            return error(ERR_MSG_END_DATE_BEFORE_START_DATE);
+        }
+        return [startUtc, endUtc];
+    } on fail error err {
+        return error(err.message());
+    }
+}
