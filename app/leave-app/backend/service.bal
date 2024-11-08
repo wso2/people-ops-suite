@@ -24,7 +24,7 @@ import ballerina/log;
     label: "Leave Backend Service",
     id: "people-ops/leave-application"
 }
-service http:InterceptableService / on new http:Listener(9091) {
+service http:InterceptableService / on new http:Listener(9090) {
 
     # Request interceptor.
     # + return - authorization:JwtInterceptor
