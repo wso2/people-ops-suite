@@ -24,7 +24,7 @@ final cache:Cache userInfoCache = new ('capacity = CACHE_CAPACITY, 'evictionFact
 final cache:Cache orgStructureCache = new ('capacity = CACHE_CAPACITY, 'evictionFactor = CACHE_EVICTION_FACTOR);
 
 @display {
-    label: "Employee Application",
+    label: "Employee Backend Service",
     id: "people-ops/employee-application"
 }
 service http:InterceptableService / on new http:Listener(9090) {

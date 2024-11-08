@@ -76,7 +76,7 @@ public isolated function decodeJwt(string key) returns CustomJwtPayload|error {
     return userInfo;
 }
 
-#  Checks if the user belongs to any of the authorized groups
+# Checks if the user belongs to any of the authorized groups
 # + userInfo - `CustomJwtPayload` object containing the user's email and groups.
 # + return - Returns the `CustomJwtPayload` with the user's email and groups if the user is authorized. 
 # Otherwise, returns an error
