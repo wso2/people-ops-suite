@@ -25,6 +25,7 @@ public isolated service class JwtInterceptor {
     *http:RequestInterceptor;
     isolated resource function default [string... path](http:RequestContext ctx, http:Request req)
         returns http:NextService|http:Unauthorized|http:BadRequest|http:Forbidden|http:InternalServerError|error? {
+
         string|error idToken = req.getHeader(JWT_ASSERTION_HEADER);
         if idToken is error {
             return <http:BadRequest>{
@@ -75,7 +76,13 @@ public isolated function decodeJwt(string key) returns CustomJwtPayload|error {
     return userInfo;
 }
 
+# Checks if the user belongs to any of the authorized groups.
+# 
+# + userInfo - `CustomJwtPayload` object containing the user's email and groups
+# + return - Returns the `CustomJwtPayload` with the user's email and groups if the user is authorized
+# Otherwise, returns an error
 public isolated function checkGroups(CustomJwtPayload userInfo) returns CustomJwtPayload|error {
+
     foreach anydata role in authorizedRoles.toArray() {
         if userInfo.groups.some(r => r == role) {
             return {
