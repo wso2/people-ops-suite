@@ -30,3 +30,4 @@ public const ERR_MSG_END_DATE_BEFORE_START_DATE = "End date cannot be before sta
 
 // Regex
 final regexp:RegExp & readonly REGEX_DATE_YYYY_MM_DD = re `^\d{4}-\d{2}-\d{2}`;
+public final string:RegExp WSO2_EMAIL_PATTERN = re `^[a-zA-Z0-9._%+-]+@wso2\.com$`;

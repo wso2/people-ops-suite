@@ -75,7 +75,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             LeavePolicy|error legallyEntitledLeave = getLegallyEntitledLeave(employee);
             if legallyEntitledLeave is error {
                 log:printError(employee:ERR_MSG_EMPLOYEES_PROCESSING_FAILED, legallyEntitledLeave);
-                fail error(employee:ERR_MSG_EMPLOYEES_RETRIEVAL_FAILED);
+                fail error(employee:ERR_MSG_EMPLOYEES_RETRIEVAL_FAILED, legallyEntitledLeave);
             }
 
             return {
@@ -96,4 +96,115 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
     }
+
+    # Fetch all the employees.
+    #
+    # + location - Employee location  
+    # + businessUnit - Employee business unit 
+    # + department - Employee department
+    # + team - Employee team
+    # + employeeStatuses - Employee statuses to filter the employees
+    # + leadEmail - Manager email to filter the employees
+    # + return - Return list of employee records
+    resource function get employees(string? location, string? businessUnit, string? department, string? team,
+            string[]? employeeStatuses, string? leadEmail, http:Request req)
+        returns Employee[]|http:InternalServerError {
+
+        do {
+            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
+            if jwt is error {
+                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
+            }
+
+            Employee[] & readonly|error employees = employee:getEmployees(
+                    jwt,
+                    {
+                        location,
+                        businessUnit,
+                        team: department,
+                        unit: team,
+                        status: employeeStatuses,
+                        leadEmail
+                    },
+                    'limit = 1000,
+                    offset = 0
+            );
+            if employees is error {
+                log:printError(employee:ERR_MSG_EMPLOYEES_RETRIEVAL_FAILED, employees);
+                fail error(employee:ERR_MSG_EMPLOYEES_RETRIEVAL_FAILED, employees);
+            }
+
+            Employee[] employeesToReturn = from Employee employee in employees
+                select {
+                    employeeId: employee.employeeId,
+                    firstName: employee.firstName,
+                    lastName: employee.lastName,
+                    workEmail: employee.workEmail,
+                    employeeThumbnail: employee.employeeThumbnail,
+                    location: employee.location,
+                    leadEmail: employee.leadEmail,
+                    startDate: employee.startDate,
+                    finalDayOfEmployment: employee.finalDayOfEmployment,
+                    lead: employee.lead
+                };
+            return employeesToReturn;
+        }
+        on fail error internalErr {
+            log:printError(internalErr.message(), internalErr);
+            return <http:InternalServerError>{
+                body: {
+                    message: internalErr.message()
+                }
+            };
+        }
+    }
+
+    # Fetch an employee by email.
+    #
+    # + email - Employee email
+    # + return - Return the employee record
+    resource function get employees/[string email](http:Request req)
+        returns Employee|http:InternalServerError|http:BadRequest {
+
+        if !email.matches(WSO2_EMAIL_PATTERN) {
+            return <http:BadRequest>{
+                body: {
+                    message: string `Input email is not a valid WSO2 email address: ${email}`
+                }
+            };
+        }
+
+        do {
+            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
+            if jwt is error {
+                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
+            }
+            Employee & readonly|error employee = employee:getEmployee(email, jwt);
+            if employee is error {
+                log:printError(string `${employee:ERR_MSG_EMPLOYEE_RETRIEVAL_FAILED} Email: ${email}.`, employee);
+                fail error(employee:ERR_MSG_EMPLOYEE_RETRIEVAL_FAILED, employee);
+            }
+            return {
+                employeeId: employee.employeeId,
+                firstName: employee.firstName,
+                lastName: employee.lastName,
+                workEmail: employee.workEmail,
+                employeeThumbnail: employee.employeeThumbnail,
+                location: employee.location,
+                leadEmail: employee.leadEmail,
+                startDate: employee.startDate,
+                finalDayOfEmployment: employee.finalDayOfEmployment,
+                lead: employee.lead
+            };
+        }
+        on fail error internalErr {
+            log:printError(internalErr.message(), internalErr);
+            return <http:InternalServerError>{
+                body: {
+                    message: internalErr.message()
+                }
+            };
+        }
+    }
+
 }
