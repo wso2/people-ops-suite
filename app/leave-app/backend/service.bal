@@ -106,9 +106,8 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + employeeStatuses - Employee statuses to filter the employees
     # + leadEmail - Manager email to filter the employees
     # + return - Return list of employee records
-    resource function get employees(string? location, string? businessUnit, string? department, string? team,
-            string[]? employeeStatuses, string? leadEmail, http:Request req)
-        returns Employee[]|http:InternalServerError {
+    resource function get employees(http:Request req, string? location, string? businessUnit, string? department,
+            string? team, string[]? employeeStatuses, string? leadEmail) returns Employee[]|http:InternalServerError {
 
         do {
             string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
