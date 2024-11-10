@@ -130,6 +130,19 @@ public type Leave record {|
     string? location;
 |};
 
+# Payload for calculating leave details.
+public type LeaveCalculationPayload record {|
+    # Start date of the leave
+    string startDate;
+    # End date of the leave
+    string endDate;
+    # Whether the leave is a morning leave
+    boolean? isMorningLeave = ();
+    # Period type of the leave
+    LeavePeriodType periodType;
+|};
+
+
 # Database config record.
 type LeaveDatabaseConfig record {|
     *DatabaseConfig;
@@ -149,7 +162,7 @@ public type LeaveDay record {|
     LeavePeriodType periodType;
 |};
 
-# [Query Filter] Leave entity filters
+# [Query Filter] Leave entity filters.
 public type LeaveFilter record {|
     # Start date (yyyy-mm-dd)
     string? startDate?;
@@ -167,7 +180,7 @@ public type LeaveFilter record {|
     OrderBy? orderBy?;
 |};
 
-# Leave input for leave creation
+# Leave input for leave creation.
 public type LeaveInput record {|
     # Start date (yyyy-mm-dd)
     string startDate;
@@ -189,6 +202,59 @@ public type LeaveInput record {|
     string? comment?;
     # isPublicComment
     boolean? isPublicComment?;
+    # ID of email notification
+    string? emailId = ();
+    # Subject of email notification
+    string? emailSubject = ();
+|};
+
+# Payload for leave creation.
+public type LeavePayload record {|
+    *LeaveCalculationPayload;
+    # Type of the leave
+    LeaveType leaveType = CASUAL_LEAVE;
+    # List of email recipients
+    string[] emailRecipients = [];
+    # Calendar Event ID of the leave
+    string? calendarEventId = ();
+    # Comment of the leave
+    string? comment = ();
+    # Whether the leave is a public comment
+    boolean isPublicComment = false;
+    # Subject of email notification
+    string? emailSubject = ();
+|};
+
+# Leave entity record.
+public type LeaveResponse record {|
+    # Leave ID
+    readonly int id;
+    # Start date
+    string startDate;
+    # End date
+    string endDate;
+    # Is leave active
+    boolean isActive;
+    # Leave type
+    string leaveType;
+    # Leave period type
+    string periodType;
+    # Email of the employee
+    string email;
+    # Created date
+    string createdDate;
+    # Email recipients
+    readonly & string[] emailRecipients = [];
+    # Effective days
+    readonly & LeaveDay[] effectiveDays = [];
+    # Number of days
+    float numberOfDays;
+    # Is morning leave
+    boolean? isMorningLeave;
+    # Calendar event ID
+    string? calendarEventId;
+    # Employee location
+    string? location;
     # ID of email notification
     string? emailId = ();
     # Subject of email notification
