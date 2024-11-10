@@ -13,13 +13,25 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import ballerina/lang.regexp;
 
-# Maximum page size value. 
-const MAXIMUM_LIMIT_VALUE = 214;
+public const ALERT_HEADER = "Leave Submission/Cancellation";
+public const APP_NAME_DEV = "Leave Backend Service (Development)";
+public const APP_NAME = "Leave Backend Service";
 
-# Default page size value. This value will be applied if no page size value is specified.
-public const DEFAULT_LIMIT = 100;
+// Regex
+final regexp:RegExp & readonly REGEX_DATE_YYYY_MM_DD = re `^\d{4}-\d{2}-\d{2}`;
+final regexp:RegExp & readonly REGEX_EMAIL_DOMAIN = re `^[a-zA-Z][a-zA-Z0-9_\-\.]+@ws[o|0]2\.com$`;
 
-# Upper limit of the page size value. A specified page size value should be less than 1000. If a greater than
-# 1000 value is specified the limit will be set to 1000.
-public const UPPER_LIMIT = 1000;
+const JANUARY = 1;
+const FEBRUARY = 2;
+const MARCH = 3;
+const APRIL = 4;
+const MAY = 5;
+const JUNE = 6;
+const JULY = 7;
+const AUGUST = 8;
+const SEPTEMBER = 9;
+const OCTOBER = 10;
+const NOVEMBER = 11;
+const DECEMBER = 12;

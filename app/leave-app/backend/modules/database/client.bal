@@ -19,7 +19,7 @@ import ballerinax/mysql.driver as _;
 
 configurable DatabaseConfig databaseConfig = ?;
 
-# Function to create Leave DB connection 
+# Function to create Leave DB connection.
 #
 # + return - If success returns mysql DB client or error
 public isolated function initializeLeaveClient() returns mysql:Client|error {

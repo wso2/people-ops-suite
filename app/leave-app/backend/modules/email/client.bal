@@ -14,12 +14,25 @@
 // specific language governing permissions and limitations
 // under the License.
 
-# Maximum page size value. 
-const MAXIMUM_LIMIT_VALUE = 214;
+import ballerina/http;
 
-# Default page size value. This value will be applied if no page size value is specified.
-public const DEFAULT_LIMIT = 100;
+configurable string emailServiceBaseUrl = ?;
+configurable ChoreoApp choreoAppConfig = ?;
 
-# Upper limit of the page size value. A specified page size value should be less than 1000. If a greater than
-# 1000 value is specified the limit will be set to 1000.
-public const UPPER_LIMIT = 1000;
+final http:Client emailClient = check new (emailServiceBaseUrl, {
+    auth: {
+        ...choreoAppConfig
+    },
+    timeout: 10.0,
+    retryConfig: {
+        count: 3,
+        interval: 5.0,
+        statusCodes: [
+            http:STATUS_INTERNAL_SERVER_ERROR,
+            http:STATUS_REQUEST_TIMEOUT,
+            http:STATUS_BAD_GATEWAY,
+            http:STATUS_SERVICE_UNAVAILABLE,
+            http:STATUS_GATEWAY_TIMEOUT
+        ]
+    }
+});

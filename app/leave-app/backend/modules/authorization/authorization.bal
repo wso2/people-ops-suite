@@ -20,12 +20,13 @@ import ballerina/log;
 // Allowed user roles of the API
 configurable string[] userRoles = ?;
 // Allowed admin roles of the API
-configurable string[] adminRoles = ?;
+public configurable string[] adminRoles = ?;
 
 # To handle authorization for each resource function invocation.
 public isolated service class JwtInterceptor {
 
     *http:RequestInterceptor;
+
     isolated resource function default [string... path](http:RequestContext ctx, http:Request req)
         returns http:NextService|http:Unauthorized|http:BadRequest|http:Forbidden|http:InternalServerError|error? {
 
