@@ -15,10 +15,12 @@
 // under the License.
 import leave_service.authorization;
 import leave_service.database;
+import leave_service.email;
 import leave_service.employee;
 
 import ballerina/http;
 import ballerina/log;
+import ballerina/time;
 
 @display {
     label: "Leave Backend Service",
@@ -34,6 +36,341 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     function init() returns error? {
         log:printInfo("Leave application backend service started.");
+    }
+
+    # Get leaves for the given filters.
+    #
+    # + ctx - HTTP request context
+    # + req - HTTP request
+    # + email - Email of the user to filter the leaves
+    # + startDate - Start date filter
+    # + endDate - End date filter
+    # + isActive - Whether to filter active or inactive leaves
+    # + return - Return list of leaves
+    resource function get leaves(
+            http:RequestContext ctx,
+            http:Request req,
+            string? email = (),
+            string? startDate = (),
+            string? endDate = (),
+            boolean? isActive = (),
+            int? 'limit = (),
+            int? offset = 0
+    ) returns FetchedLeavesRecord|http:Forbidden|http:InternalServerError|http:BadRequest {
+
+        if email is string && !email.matches(WSO2_EMAIL_PATTERN) {
+            return <http:BadRequest>{
+                body: {
+                    message: string `${ERR_MSG_INVALID_WSO2_EMAIL} ${email}`
+                }
+            };
+        }
+
+        do {
+            readonly & authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
+            if jwt is error {
+                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
+            }
+            if email != userInfo.email {
+                boolean validateForSingleRole = authorization:validateForSingleRole(userInfo, authorization:adminRoles);
+                if !validateForSingleRole {
+                    log:printWarn(string `The user ${userInfo.email} was not privileged to access the${false ? " admin " : " "}resource /leaves with email=${email.toString()}`);
+                    return <http:Forbidden>{
+                        body: {
+                            message: ERR_MSG_UNAUTHORIZED_VIEW_LEAVE
+                        }
+                    };
+                }
+            }
+
+            string[]? emails = (email is string) ? [email] : ();
+            database:Leave[]|error leaves = database:getLeaves({emails, isActive, startDate, endDate});
+            if leaves is error {
+                fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaves);
+            }
+            LeaveResponse[] leaveResponses = from database:Leave leave in leaves
+                select check toLeaveEntity(leave, jwt.toString());
+
+            Leave[] leavesFinalResult = [];
+            map<float> statsMap = {};
+            float totalCount = 0.0;
+            foreach LeaveResponse leaveResponse in leaveResponses {
+                var {
+                id,
+                createdDate,
+                leaveType,
+                endDate: entityEndDate,
+                isActive: entityIsActive,
+                periodType,
+                startDate: entityStartDate,
+                email: entityEmail,
+                isMorningLeave,
+                numberOfDays
+                } = leaveResponse;
+
+                leavesFinalResult.push({
+                    id,
+                    createdDate,
+                    leaveType,
+                    endDate: entityEndDate,
+                    isActive: entityIsActive,
+                    periodType,
+                    startDate: entityStartDate,
+                    email: entityEmail,
+                    isMorningLeave,
+                    numberOfDays,
+                    isCancelAllowed: checkIfLeavedAllowedToCancel(leaveResponse)
+                });
+                statsMap[leaveType] = statsMap.hasKey(leaveType) ?
+                    statsMap.get(leaveType) + numberOfDays : numberOfDays;
+                if leaveType !is UncountedLeaves {
+                    totalCount += numberOfDays;
+                }
+            }
+            statsMap[TOTAL_LEAVE_TYPE] = totalCount;
+            return {
+                leaves,
+                stats: from [string, float] ['type, count] in statsMap.entries()
+                    select {
+                        'type,
+                        count
+                    }
+            };
+        } on fail error internalErr {
+            log:printError(internalErr.message(), internalErr);
+            return <http:InternalServerError>{
+                body: {
+                    message: internalErr.message()
+                }
+            };
+        }
+    }
+
+    # Create a new leave.
+    #
+    # + ctx - HTTP request context
+    # + req - HTTP request
+    # + payload - Request payload
+    # + isValidationOnlyMode - Whether to validate the leave or create the leave
+    # + return - Success response if the leave is created successfully, otherwise an error response
+    resource function post leaves(
+            http:RequestContext ctx,
+            http:Request req,
+            LeavePayload payload,
+            boolean isValidationOnlyMode = false
+    ) returns http:Ok|http:BadRequest|http:InternalServerError|CalculatedLeave {
+
+        do {
+            readonly & authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
+            if jwt is error {
+                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
+            }
+            string email = userInfo.email;
+            log:printInfo(string `Leave${isValidationOnlyMode ? " validation " : " "}request received from email: ${
+                    userInfo.email} with payload: ${payload.toString()}`);
+
+            [time:Utc, time:Utc]|error validatedDateRange = validateDateRange(payload.startDate, payload.endDate);
+            if validatedDateRange is error {
+                log:printError(ERR_MSG_INVALID_DATE_FORMAT, validatedDateRange);
+                return <http:BadRequest>{
+                    body: {
+                        message: ERR_MSG_INVALID_DATE_FORMAT
+                    }
+                };
+            }
+            // Day[] weekdaysFromRange = getWeekdaysFromRange(validatedDateRange[0], validatedDateRange[1]);
+            LeaveInput input = {
+                email: email,
+                startDate: payload.startDate,
+                endDate: payload.endDate,
+                leaveType: payload.leaveType,
+                periodType: payload.periodType,
+                isMorningLeave: payload.isMorningLeave,
+                emailRecipients: payload.emailRecipients,
+                calendarEventId: payload.calendarEventId,
+                comment: payload.comment,
+                isPublicComment: payload.isPublicComment,
+                emailSubject: payload.emailSubject
+            };
+            if isValidationOnlyMode {
+                LeaveDetails|error validatedLeave = insertLeaveToDB(input, isValidationOnlyMode, jwt.toString());
+                if validatedLeave is error {
+                    fail error(validatedLeave.message(), validatedLeave);
+                }
+
+                return {
+                    workingDays: payload.periodType is database:HALF_DAY_LEAVE ? 0.5 : <float>validatedLeave.effectiveDays.length(),
+                    hasOverlap: false,
+                    message: "Valid leave request"
+                };
+            }
+
+            final readonly & email:EmailNotificationDetails emailContentForLeave = check email:generateContentForLeave(
+                    jwt.toString(), email, payload);
+            final readonly & string calendarEventId = createUuidForCalendarEvent();
+            final readonly & string[]|error allRecipientsForUser = getAllEmailRecipientsForUser(
+                    email,
+                    payload.emailRecipients,
+                    jwt.toString()
+            );
+            if allRecipientsForUser is error {
+                fail error(allRecipientsForUser.message(), allRecipientsForUser);
+            }
+            final readonly & string? comment = payload.comment;
+
+            payload.emailSubject = emailContentForLeave.subject;
+            payload.calendarEventId = calendarEventId;
+
+            LeaveDetails|error leave = insertLeaveToDB(input, isValidationOnlyMode, jwt.toString());
+            if leave is error {
+                fail error(leave.message(), leave);
+            }
+            LeaveResponse leaveEntity = <LeaveResponse>leave;
+            log:printInfo(string `Submitted leave successfully. ID: ${leaveEntity.id}.`);
+
+            future<error?> notificationFuture = start email:sendLeaveNotification(
+                    emailContentForLeave,
+                    allRecipientsForUser
+            );
+            _ = start createLeaveEventInCalendar(email, leaveEntity, calendarEventId);
+            if comment is string && checkIfEmptyString(comment) {
+                string[] commentRecipients = allRecipientsForUser;
+                if !payload.isPublicComment {
+                    commentRecipients = check getPrivateRecipientsForUser(
+                            email,
+                            payload.emailRecipients,
+                            jwt.toString()
+                    );
+                }
+
+                error? notificationResult = wait notificationFuture;
+                if notificationResult is () {
+                    // Does not send the additional comment notification if the main notification has failed
+                    final email:EmailNotificationDetails contentForAdditionalComment = email:generateContentForAdditionalComment(
+                            emailContentForLeave.subject, comment);
+                    _ = start email:sendAdditionalComment(contentForAdditionalComment.cloneReadOnly(),
+                            commentRecipients.cloneReadOnly());
+                }
+            }
+
+            return <http:Ok>{
+                body: {
+                    message: "Leave submitted successfully"
+                }
+            };
+        }
+        on fail error internalErr {
+            log:printError(internalErr.message(), internalErr);
+            return <http:InternalServerError>{
+                body: {
+                    message: internalErr.message()
+                }
+            };
+        }
+
+    }
+
+    # Cancel a leave.
+    #
+    # + leaveId - Leave ID
+    # + ctx - Request context
+    # + return - Return cancelled leave on success, otherwise an error response
+    isolated resource function delete leaves/[int leaveId](http:RequestContext ctx, http:Request req)
+        returns http:Ok|http:Forbidden|http:BadRequest|http:InternalServerError {
+
+        do {
+            readonly & authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
+            if jwt is error {
+                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
+            }
+
+            final database:Leave|error? leave = database:getLeave(leaveId);
+            if leave is () {
+                return <http:BadRequest>{
+                    body: {
+                        message: "Invalid leave ID!"
+                    }
+                };
+            }
+            if leave is error {
+                fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leave);
+            }
+
+            LeaveResponse leaveResponse = check toLeaveEntity(leave, jwt.toString());
+            final string email = userInfo.email;
+            if leaveResponse.email != email {
+                boolean validateForSingleRole = authorization:validateForSingleRole(userInfo, authorization:adminRoles);
+                if !validateForSingleRole {
+                    return <http:Forbidden>{
+                        body: {
+                            message: "You are not authorized to cancel this leave!"
+                        }
+                    };
+                }
+            }
+            if !leaveResponse.isActive {
+                return <http:BadRequest>{
+                    body: {
+                        message: "Leave is already cancelled!"
+                    }
+                };
+            }
+
+            any|error result = database:cancelLeave(leaveId);
+            if result is error {
+                fail error(result.message(), result);
+            }
+            database:Leave|error? cancelledLeave = database:getLeave(leaveId);
+            if cancelledLeave is error? {
+                fail error(ERR_MSG_CANCEL_LEAVE, cancelledLeave);
+            }
+
+            LeaveDetails|error cancelledLeaveDetails = getLeaveEntityFromDbRecord(cancelledLeave, jwt.toString(), true);
+            if cancelledLeaveDetails is error {
+                fail error(cancelledLeaveDetails.message(), cancelledLeaveDetails);
+            }
+
+            email:EmailNotificationDetails generateContentForLeave = check email:generateContentForLeave(
+                    jwt.toString(),
+                    email,
+                    leaveResponse,
+                    isCancel = true,
+                    emailSubject = cancelledLeaveDetails.emailSubject
+            );
+            string[] allRecipientsForUser = check getAllEmailRecipientsForUser(
+                    email,
+                    cancelledLeaveDetails.emailRecipients,
+                    jwt.toString()
+            );
+            _ = start email:sendLeaveNotification(
+                    generateContentForLeave.cloneReadOnly(),
+                    allRecipientsForUser.cloneReadOnly()
+            );
+
+            if cancelledLeaveDetails.calendarEventId is () {
+                log:printError(string `Calendar event ID is not available for leave with ID: ${leaveId}.`);
+            } else {
+                _ = start deleteLeaveEventFromCalendar(email, <string>cancelledLeaveDetails.calendarEventId);
+            }
+
+            return <http:Ok>{
+                body: {
+                    message: "Leave cancelled successfully"
+                }
+            };
+        }
+            on fail error internalErr {
+            log:printError(internalErr.message(), internalErr);
+            return <http:InternalServerError>{
+                body: {
+                    message: internalErr.message()
+                }
+            };
+        }
+
     }
 
     # Get Application specific data required for initializing the leave form.
@@ -57,24 +394,17 @@ service http:InterceptableService / on new http:Listener(9090) {
                     {emails, startDate, endDate, orderBy: database:DESC}
             );
             if leaveResponse is error {
-                log:printError(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaveResponse);
-                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT);
+                fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaveResponse);
             }
             LeaveResponse[] leaves = from database:Leave leave in leaveResponse
                 select check toLeaveEntity(leave, jwt.toString());
 
-            Employee & readonly|error employee = employee:getEmployee(email, jwt);
-            if employee is error {
-                log:printError(employee:ERR_MSG_EMPLOYEE_RETRIEVAL_FAILED, employee);
-                fail error(employee:ERR_MSG_EMPLOYEE_RETRIEVAL_FAILED);
-            }
-
+            Employee & readonly employee = check employee:getEmployee(email, jwt);
             Employee {leadEmail, location} = employee;
             string[] emailRecipients = leaves.length() > 0 ? leaves[0].emailRecipients : [];
             string[] leadEmails = leadEmail == () ? [] : [leadEmail];
             LeavePolicy|error legallyEntitledLeave = getLegallyEntitledLeave(employee);
             if legallyEntitledLeave is error {
-                log:printError(employee:ERR_MSG_EMPLOYEES_PROCESSING_FAILED, legallyEntitledLeave);
                 fail error(employee:ERR_MSG_EMPLOYEES_RETRIEVAL_FAILED, legallyEntitledLeave);
             }
 
@@ -88,6 +418,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
         on fail error internalErr {
+            log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
                 body: {
                     message: internalErr.message()
@@ -99,15 +430,22 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     # Fetch all the employees.
     #
-    # + location - Employee location  
-    # + businessUnit - Employee business unit 
+    # + location - Employee location
+    # + businessUnit - Employee business unit
     # + department - Employee department
     # + team - Employee team
     # + employeeStatuses - Employee statuses to filter the employees
     # + leadEmail - Manager email to filter the employees
     # + return - Return list of employee records
-    resource function get employees(http:Request req, string? location, string? businessUnit, string? department,
-            string? team, string[]? employeeStatuses, string? leadEmail) returns Employee[]|http:InternalServerError {
+    resource function get employees(
+            http:Request req,
+            string? location,
+            string? businessUnit,
+            string? department,
+            string? team,
+            string[]? employeeStatuses,
+            string? leadEmail)
+        returns Employee[]|http:InternalServerError {
 
         do {
             string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
@@ -115,7 +453,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
             }
 
-            Employee[] & readonly|error employees = employee:getEmployees(
+            Employee[] & readonly employees = check employee:getEmployees(
                     jwt,
                     {
                         location,
@@ -128,10 +466,6 @@ service http:InterceptableService / on new http:Listener(9090) {
                     'limit = 1000,
                     offset = 0
             );
-            if employees is error {
-                log:printError(employee:ERR_MSG_EMPLOYEES_RETRIEVAL_FAILED, employees);
-                fail error(employee:ERR_MSG_EMPLOYEES_RETRIEVAL_FAILED, employees);
-            }
 
             Employee[] employeesToReturn = from Employee employee in employees
                 select {
@@ -168,7 +502,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         if !email.matches(WSO2_EMAIL_PATTERN) {
             return <http:BadRequest>{
                 body: {
-                    message: string `Input email is not a valid WSO2 email address: ${email}`
+                    message: string `${ERR_MSG_INVALID_WSO2_EMAIL} ${email}`
                 }
             };
         }
@@ -178,11 +512,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             if jwt is error {
                 fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
             }
-            Employee & readonly|error employee = employee:getEmployee(email, jwt);
-            if employee is error {
-                log:printError(string `${employee:ERR_MSG_EMPLOYEE_RETRIEVAL_FAILED} Email: ${email}.`, employee);
-                fail error(employee:ERR_MSG_EMPLOYEE_RETRIEVAL_FAILED, employee);
-            }
+            Employee & readonly employee = check employee:getEmployee(email, jwt);
             return {
                 employeeId: employee.employeeId,
                 firstName: employee.firstName,
@@ -206,4 +536,201 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
     }
 
+    # Fetch legally entitled leave for the given employee.
+    #
+    # + ctx - HTTP request context
+    # + req - HTTP request
+    # + years - Years to fetch leave entitlement. Empty array will fetch leave entitlement for current year
+    # + return - Return leave entitlement
+    resource function get employees/[string email]/leave\-entitlement(
+            http:RequestContext ctx,
+            http:Request req,
+            int[]? years = ()
+    ) returns LeaveEntitlement[]|http:BadRequest|http:Forbidden|http:InternalServerError {
+
+        if !email.matches(WSO2_EMAIL_PATTERN) {
+            return <http:BadRequest>{
+                body: {
+                    message: string `${ERR_MSG_INVALID_WSO2_EMAIL} ${email}`
+                }
+            };
+        }
+
+        do {
+            readonly & authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
+            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
+            if jwt is error {
+                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT);
+            }
+
+            if email != userInfo.email {
+                boolean validateForSingleRole = authorization:validateForSingleRole(userInfo, authorization:adminRoles);
+                if !validateForSingleRole {
+                    log:printWarn(string `The user ${userInfo.email} was not privileged to access the${false ? " admin " : " "}resource /leave-entitlement with email=${email.toString()}`);
+                    return <http:Forbidden>{
+                        body: {
+                            message: ERR_MSG_UNAUTHORIZED_VIEW_LEAVE
+                        }
+                    };
+                }
+            }
+
+            Employee & readonly employee = check employee:getEmployee(email, jwt);
+            LeaveEntitlement[]|error leaveEntitlement = getLeaveEntitlement(employee, jwt.toString(), years ?: []);
+            if leaveEntitlement is error {
+                fail error(ERR_MSG_LEAVE_ENTITLEMENT_RETRIEVAL_FAILED, leaveEntitlement);
+            }
+
+            return leaveEntitlement;
+        } on fail error internalErr {
+            log:printError(internalErr.message(), internalErr);
+            return <http:InternalServerError>{
+                body: {
+                    message: internalErr.message()
+                }
+            };
+        }
+
+    }
+
+    # Fetch user calendar.
+    #
+    # + ctx - Request context
+    # + startDate - Start date of the calendar
+    # + endDate - End date of the calendar
+    # + return - Return user calendar
+    resource function get user\-calendar(
+            http:RequestContext ctx,
+            http:Request req,
+            string startDate,
+            string endDate
+    ) returns UserCalendarInformation|http:InternalServerError {
+
+        do {
+            authorization:CustomJwtPayload {email} = check ctx.getWithType(authorization:HEADER_USER_INFO);
+            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
+            if jwt is error {
+                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT);
+            }
+
+            UserCalendarInformation|http:InternalServerError|error userCalendarInformation =
+                getUserCalendarInformation(email, startDate, endDate, jwt.toString());
+            if userCalendarInformation is error {
+                return {
+                    body: {
+                        message: userCalendarInformation.message()
+                    }
+                };
+            }
+            return userCalendarInformation;
+        }
+        on fail error internalErr {
+            log:printError(internalErr.message(), internalErr);
+            return <http:InternalServerError>{
+                body: {
+                    message: internalErr.message()
+                }
+            };
+        }
+    }
+
+    # Generate and fetch leave report.
+    #
+    # + ctx - Request context
+    # + payload - Request payload
+    # + return - Return leave report on success, otherwise an error response
+    resource function post generate\-report(
+            http:RequestContext ctx,
+            http:Request req,
+            ReportPayload payload
+    ) returns ReportContent|http:InternalServerError {
+
+        do {
+            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
+            if jwt is error {
+                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
+            }
+            var {location, businessUnit, department, team, employeeStatuses, startDate, endDate} = payload;
+            Employee[] & readonly employees = check employee:getEmployees(
+                    jwt,
+                    {location, businessUnit, team: department, unit: team, status: employeeStatuses}
+            );
+
+            string[] emails = from Employee employee in employees
+                select employee.workEmail ?: "";
+
+            final database:Leave[]|error leaveResponse = database:getLeaves({emails, isActive: true, startDate, endDate});
+            if leaveResponse is error {
+                fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaveResponse);
+            }
+
+            LeaveResponse[] leaveResponses = from database:Leave leave in leaveResponse
+                select check toLeaveEntity(leave, jwt.toString());
+
+            return getLeaveReportContent(leaveResponses);
+        }
+            on fail error internalErr {
+            log:printError(internalErr.message(), internalErr);
+            return <http:InternalServerError>{
+                body: {
+                    message: internalErr.message()
+                }
+            };
+        }
+    }
+
+    # Generate and fetch leave report for lead.
+    #
+    # + ctx - Request context
+    # + payload - Request payload
+    # + return - Return leave report on success, otherwise an error response
+    resource function post generate\-lead\-report(
+            http:RequestContext ctx,
+            http:Request req,
+            LeadReportPayload payload
+            )
+        returns ReportContent|http:Forbidden|http:InternalServerError {
+
+        do {
+            authorization:CustomJwtPayload {email} = check ctx.getWithType(authorization:HEADER_USER_INFO);
+            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
+            if jwt is error {
+                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT);
+            }
+            var {employeeStatuses, startDate, endDate} = payload;
+            Employee[] & readonly employees = check employee:getEmployees(
+                    jwt,
+                    {
+                        status: employeeStatuses,
+                        leadEmail: email
+                    }
+            );
+
+            string[] emails = from Employee employee in employees
+                select employee.workEmail ?: "";
+            if emails.length() == 0 {
+                return <http:Forbidden>{
+                    body: {
+                        message: ERR_MSG_FORBIDDEN_TO_NON_LEADS
+                    }
+                };
+            }
+            final database:Leave[]|error leaveResponse = database:getLeaves({emails, isActive: true, startDate, endDate});
+            if leaveResponse is error {
+                fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaveResponse);
+            }
+            LeaveResponse[] leaveResponses =
+            from database:Leave leave in leaveResponse
+            select check toLeaveEntity(leave, jwt.toString());
+            return getLeaveReportContent(leaveResponses);
+        }
+        on fail error internalErr {
+            log:printError(internalErr.message(), internalErr);
+            return <http:InternalServerError>{
+                body: {
+                    message: internalErr.message()
+                }
+            };
+        }
+    }
 }

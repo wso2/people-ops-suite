@@ -62,11 +62,10 @@ public type EventPayload record {
 };
 
 # Server Message.
-#
-# + message - Human readable error message
-# + id - Id of the created object
 public type CreatedMessage record {|
+    # Human readable error message
     string message?;
+    # Id of the created object
     string id?;
 |};
 
@@ -133,12 +132,6 @@ public type HolidayGroup record {
     string country;
     # List of holidays
     Event[] holidays;
-};
-
-public type Organizer record {
-    string email;
-    string displayName;
-    boolean self;
 };
 
 # Time record.

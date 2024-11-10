@@ -21,7 +21,22 @@ import leave_service.employee;
 import ballerina/http;
 import ballerina/lang.regexp;
 import ballerina/log;
+import ballerina/regex;
 import ballerina/time;
+
+configurable string[] defaultRecipients = [];
+
+# Checks if a passed string is an empty.
+#
+# + stringToCheck - String to be checked
+# + return - Whether the string is empty or not
+public isolated function checkIfEmptyString(string stringToCheck) returns boolean {
+    if stringToCheck.length() == 0 {
+        return true;
+    }
+
+    return regexp:isFullMatch(REGEX_EMPTY_STRING, stringToCheck);
+}
 
 # Function to check if a given date is a weekday (Monday to Friday).
 #
@@ -33,11 +48,89 @@ public isolated function checkIfWeekday(time:Civil|time:Utc date) returns boolea
     return !(civil.dayOfWeek == time:SATURDAY || civil.dayOfWeek == time:SUNDAY);
 }
 
+public isolated function insertLeaveToDB(database:LeaveInput input, boolean isValidationOnlyMode, string token)
+    returns LeaveDetails|error {
+
+    LeaveDetails[]|error? leaveDetails = calculateLeaveDetails(input, token);
+    if leaveDetails is LeaveDetails[] {
+        return error(ERR_MSG_LEAVE_OVERLAPS_WITH_EXISTING_LEAVE);
+    }
+    if !isValidationOnlyMode {
+        string|error location = employee:getEmployeeLocation(input.email, token);
+        if location is error {
+            return location;
+        }
+        LeaveDay[]|error effectiveLeaveDaysFromLeave = getEffectiveLeaveDaysFromLeave(input, token);
+        if effectiveLeaveDaysFromLeave is error {
+            return effectiveLeaveDaysFromLeave;
+        }
+        float numDaysForLeave = getNumberOfDaysFromLeaveDays(effectiveLeaveDaysFromLeave);
+
+        database:Leave|error createdLeave = database:insertLeave(input, numDaysForLeave, location);
+        if createdLeave is error {
+            return createdLeave;
+        }
+        LeaveDetails|error leaveDetailsNotValidationMode = getLeaveEntityFromDbRecord(createdLeave, token);
+        if leaveDetailsNotValidationMode is error {
+            return leaveDetailsNotValidationMode;
+        }
+        return leaveDetailsNotValidationMode;
+    }
+    string|error employeeLocation = employee:getEmployeeLocation(input.email, token);
+    if employeeLocation is error {
+        return employeeLocation;
+    }
+
+    LeaveDetails validatedLeave = {
+        calendarEventId: (),
+        createdDate: "",
+        leaveType: check input.leaveType.cloneWithType(),
+        endDate: input.endDate,
+        id: 0,
+        isActive: false,
+        periodType: check input.periodType.cloneWithType(),
+        startDate: input.startDate,
+        email: input.email,
+        isMorningLeave: input.isMorningLeave,
+        location: employeeLocation
+    };
+
+    LeaveDay[]|error effectiveLeaveDaysFromLeave = getEffectiveLeaveDaysFromLeave(input, token);
+    if effectiveLeaveDaysFromLeave is error {
+        return effectiveLeaveDaysFromLeave;
+    }
+    validatedLeave.effectiveDays = effectiveLeaveDaysFromLeave;
+    validatedLeave.numberOfDays = getNumberOfDaysFromLeaveDays(effectiveLeaveDaysFromLeave);
+    return validatedLeave;
+}
+
+public isolated function getAllEmailRecipientsForUser(string email, string[] userAddedRecipients, string token)
+    returns readonly & string[]|error {
+
+    map<true> recipientMap = {
+        [email]: true
+    };
+    foreach string defaultRecipient in defaultRecipients {
+        recipientMap[defaultRecipient] = true;
+    }
+
+    readonly & Employee employee = check employee:getEmployee(email, token);
+    recipientMap[<string>employee.leadEmail] = true;
+    // if employee is entity:EmployeeEntity && employee.managerEmail is string {
+    //     recipientMap[<string>employee.managerEmail] = true;
+    // }
+
+    foreach string recipient in userAddedRecipients {
+        recipientMap[recipient] = true;
+    }
+    return recipientMap.keys().cloneReadOnly();
+}
+
 # Get Civil date from a string in ISO 8601 format. This date will be timezone independent.
 #
 # + date - String date in ISO 8601 format
 # + return - Return Civil date or error for validation failure
-public isolated function getCivilDateFromString(string date) returns time:Civil|ValidationError {
+public isolated function getCivilDateFromString(string date) returns time:Civil|error {
 
     time:Civil|time:Error civilDate = time:civilFromString(getTimestampFromDateString(date));
     if civilDate is error {
@@ -48,6 +141,20 @@ public isolated function getCivilDateFromString(string date) returns time:Civil|
         );
     }
     return civilDate;
+}
+
+# Get the date string in ISO 8601 format from timestamp.
+#
+# + timestamp - Timestamp
+# + return - String date in ISO 8601 format
+public isolated function getDateStringFromTimestamp(string timestamp) returns string {
+
+    if regexp:isFullMatch(REGEX_DATE_YYYY_MM_DD_T_HH_MM_SS, timestamp) ||
+        regexp:isFullMatch(REGEX_DATE_YYYY_MM_DD_T_HH_MM_SS_SSS, timestamp) {
+        return timestamp.substring(0, 10);
+    }
+
+    return timestamp;
 }
 
 # Get the effective leave days for a given leave input, factoring in holidays and working days.
@@ -64,7 +171,7 @@ public isolated function getEffectiveLeaveDaysFromLeave(database:LeaveInput leav
     }
 
     [time:Utc, time:Utc] [startDateUtc, endDateUtc] = check validateDateRange(leaveInput.startDate, leaveInput.endDate);
-    database:Day[] weekdaysFromRange = check getWeekdaysFromRange(startDateUtc, endDateUtc);
+    database:Day[] weekdaysFromRange = getWeekdaysFromRange(startDateUtc, endDateUtc);
     database:Holiday[] holidaysInRange = check calendar_events:getHolidaysForCountry(
             location,
             leaveInput.startDate,
@@ -93,6 +200,137 @@ public isolated function getEffectiveLeaveDaysFromLeave(database:LeaveInput leav
 public isolated function getEndDateOfYear(time:Utc? date = (), int? year = ()) returns string =>
     string `${year ?: time:utcToCivil(date ?: time:utcNow()).year}-12-31T00:00:00Z`;
 
+# Get Leave entity from the given DB record.
+#
+# + dbLeave - DB leave record
+# + token - JWT token
+# + fetchEffectiveDays - Should affected days be fetched
+# + return - Return Leave entity
+public isolated function getLeaveEntityFromDbRecord(database:Leave dbLeave, string token, boolean fetchEffectiveDays = false)
+    returns LeaveDetails|error {
+
+    database:Leave {
+        id,
+        email,
+        startDate,
+        endDate,
+        isActive,
+        leaveType,
+        periodType,
+        createdDate,
+        startHalf,
+        copyEmailList,
+        calendarEventId,
+        numberOfDays,
+        location,
+        emailId,
+        emailSubject
+    } = dbLeave;
+    database:LeaveType entityLeaveType;
+    database:LeavePeriodType entityLeavePeriodType;
+    database:LeaveType|error clonedLeaveType = leaveType.ensureType();
+    if clonedLeaveType is error {
+        log:printWarn(
+                string `Detected unsupported leave type: ${leaveType.toString()}. Leave ID: ${id.toString()}.`,
+                clonedLeaveType
+        );
+        entityLeaveType = database:CASUAL_LEAVE;
+    } else {
+        entityLeaveType = clonedLeaveType;
+    }
+
+    database:LeavePeriodType|error clonedLeavePeriodType = periodType.ensureType();
+    if clonedLeavePeriodType is error {
+        log:printWarn(
+                string `Detected unsupported leave period type: ${periodType.toString()}. Leave ID: ${id.toString()}.`,
+                clonedLeavePeriodType
+        );
+        entityLeavePeriodType = database:MULTIPLE_DAYS_LEAVE;
+    } else {
+        entityLeavePeriodType = clonedLeavePeriodType;
+    }
+
+    string[] emailRecipients = copyEmailList == () || copyEmailList.length() == 0 ? [] : regex:split(copyEmailList, ",");
+
+    string|error empLocation = employee:getEmployeeLocation(email, token);
+    if empLocation is error {
+        return empLocation;
+    }
+    LeaveDetails leaveDetails = {
+        id,
+        startDate: getTimestampFromDateString(startDate),
+        endDate: getTimestampFromDateString(endDate),
+        isActive: isActive ?: false,
+        leaveType: entityLeaveType,
+        email,
+        periodType: entityLeavePeriodType,
+        isMorningLeave: startHalf is () ? () : startHalf == 0,
+        createdDate: createdDate is string ? getTimestampFromDateString(createdDate) : "",
+        emailRecipients,
+        calendarEventId,
+        emailId,
+        numberOfDays,
+        location: location is string && location.length() > 0 ? location : empLocation,
+        emailSubject
+    };
+
+    if fetchEffectiveDays {
+        database:LeaveDay[]|error effectiveLeaveDaysFromLeave =
+            getEffectiveLeaveDaysFromLeave(
+                {
+                    email,
+                    startDate: leaveDetails.startDate,
+                    endDate: leaveDetails.endDate,
+                    leaveType: leaveDetails.leaveType,
+                    periodType: leaveDetails.periodType,
+                    isMorningLeave: leaveDetails.isMorningLeave
+                },
+                token
+            );
+        if effectiveLeaveDaysFromLeave is error {
+            return effectiveLeaveDaysFromLeave;
+        }
+        leaveDetails.effectiveDays = effectiveLeaveDaysFromLeave;
+    }
+
+    return leaveDetails;
+}
+
+# Get the Leave Entity record from the given DB record.
+#
+# + dbLeaves - DB leave records
+# + token - JWT token
+# + fetchEffectiveDays - Should effective days be fetched
+# + failOnError - Should the function fail on error
+# + return - Return Leave entity
+public isolated function getLeaveEntitiesFromDbRecords(
+        database:Leave[] dbLeaves,
+        string token,
+        boolean fetchEffectiveDays = false,
+        boolean failOnError = false
+    ) returns LeaveDetails[]|error {
+
+    LeaveDetails[] leaves = [];
+    foreach database:Leave dbLeave in dbLeaves {
+        do {
+            LeaveDetails|error leave = getLeaveEntityFromDbRecord(dbLeave, token, fetchEffectiveDays);
+            if leave is error {
+                return leave;
+            }
+            leaves.push(leave);
+        } on fail error err {
+            if failOnError {
+                log:printError(string `Error occurred while getting leave entities from DB records. Record ID: ${dbLeave.id}.`, err);
+                return error(string `Error occurred while getting leave entities from DB records`);
+            }
+
+            log:printWarn(string `Skipped Error. Error occurred while getting leave entities from DB records. Record ID: ${dbLeave.id}.`, err);
+        }
+    }
+
+    return leaves;
+}
+
 # Get start date of a given year or current year.
 #
 # + date - Date to consider
@@ -114,17 +352,47 @@ public isolated function getTimestampFromDateString(string date) returns string 
     return timestamp;
 }
 
+public isolated function getNumberOfDaysFromLeaveDays(LeaveDay[] leaveDays) returns float {
+    float numberOfDays = 0.0;
+    from LeaveDay leaveDay in leaveDays
+    do {
+        numberOfDays += (leaveDay.periodType is database:HALF_DAY_LEAVE ? 0.5 : 1.0);
+    };
+
+    return numberOfDays;
+}
+
+public isolated function getPrivateRecipientsForUser(string email, string[] userAddedRecipients, string token)
+    returns readonly & string[]|error {
+
+    map<true> recipientMap = {
+        [email]: true
+    };
+    readonly & Employee employee = check employee:getEmployee(email, token);
+    recipientMap[<string>employee.leadEmail] = true;
+    foreach string recipient in userAddedRecipients {
+        recipientMap[recipient] = true;
+    }
+    foreach string defaultRecipient in defaultRecipients {
+        if recipientMap.hasKey(defaultRecipient) {
+            _ = recipientMap.remove(defaultRecipient);
+        }
+    }
+
+    return recipientMap.keys().cloneReadOnly();
+}
+
 # Get UTC date from a string in ISO 8601 format. This date will be timezone independent.
 #
 # + date - String date in ISO 8601 format
 # + return - Return UTC date or error for validation failure
-public isolated function getUtcDateFromString(string date) returns time:Utc|ValidationError {
+public isolated function getUtcDateFromString(string date) returns time:Utc|error {
 
     string timestamp = getTimestampFromDateString(date);
     time:Utc|time:Error utcDate = time:utcFromString(timestamp);
     if utcDate is time:Error {
         log:printError(string `${ERR_MSG_INVALID_DATE_FORMAT} Date: ${date} Timestamp: ${timestamp}`);
-        return error(utcDate.message(), externalMessage = ERR_MSG_INVALID_DATE_FORMAT);
+        return error(ERR_MSG_INVALID_DATE_FORMAT, utcDate);
     }
 
     return utcDate;
@@ -135,7 +403,7 @@ public isolated function getUtcDateFromString(string date) returns time:Utc|Vali
 # + startDate - Start date 
 # + endDate - End date
 # + return - Return Utc array of weekdays
-public isolated function getWeekdaysFromRange(time:Utc startDate, time:Utc endDate) returns database:Day[]|error {
+public isolated function getWeekdaysFromRange(time:Utc startDate, time:Utc endDate) returns database:Day[] {
 
     database:Day[] weekdays = [];
     time:Utc utcToCheck = startDate;

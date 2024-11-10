@@ -14,14 +14,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
-# Leave period type
+# Leave period type.
 public enum LeavePeriodType {
     MULTIPLE_DAYS_LEAVE = "multiple",
     ONE_DAY_LEAVE = "one",
     HALF_DAY_LEAVE = "half"
 }
 
-# Leave type
+# Leave type.
 public enum LeaveType {
     CASUAL_LEAVE = "casual",
     SICK_LEAVE = "sick",
@@ -31,7 +31,7 @@ public enum LeaveType {
     PATERNITY_LEAVE = "paternity"
 }
 
-# Order by
+# Order by.
 public enum OrderBy {
     ASC,
     DESC

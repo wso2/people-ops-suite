@@ -30,7 +30,13 @@ isolated function getCivilDateFromString(string date) returns time:Civil|error {
     return civilDate;
 }
 
+# Generates a list of Day records for each day within a specified date range.
+#
+# + startDate - The start date as a time:Utc timestamp
+# + endDate - The end date as a time:Utc timestamp
+# + return - An array of Day records representing each day within the date range or an error
 public isolated function getDaysFromRange(time:Utc startDate, time:Utc endDate) returns Day[]|error {
+
     Day[] days = [];
     time:Utc utcToCheck = startDate;
     while utcToCheck <= endDate {
@@ -40,10 +46,15 @@ public isolated function getDaysFromRange(time:Utc startDate, time:Utc endDate) 
     return days;
 }
 
+# Generates a list of Day records for each day within a date range specified as strings.
+#
+# + startDate - The start date as a string in a valid date format
+# + endDate - The end date as a string in a valid date format
+# + return - An array of Day records representing each day within the date range or an error
 public isolated function getDaysFromStringRange(string startDate, string endDate) returns Day[]|error {
+
     time:Utc startUtc = check getUtcDateFromString(startDate);
     time:Utc endUtc = check getUtcDateFromString(endDate);
-
     return getDaysFromRange(startUtc, endUtc);
 }
 

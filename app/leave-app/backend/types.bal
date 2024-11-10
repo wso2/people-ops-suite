@@ -14,30 +14,39 @@
 // specific language governing permissions and limitations
 // under the License.
 import leave_service.database;
-import ballerina/http;
+import leave_service.employee;
+
+# Calculated leave record.
+public type CalculatedLeave record {|
+    # Number of working days
+    float workingDays;
+    # Whether the leave has an overlap
+    boolean hasOverlap;
+    # Message of the leave
+    string message?;
+    # List of holidays
+    Holiday[] holidays?;
+|};
+
+# Day record.
+public type Day record {|
+    # string date
+    string date;
+    # List of holidays
+    Holiday[] holidays?;
+|};
 
 # Employee record.
 public type Employee record {|
-    # Id of the employee
-    string employeeId;
-    # First name
-    string? firstName;
-    # Last name
-    string? lastName;
-    # WSO2 email
-    string? workEmail;
-    # Image URL of the employee
-    string? employeeThumbnail;
-    # Employee location
-    string? location;
-    # Employee location
-    string? leadEmail;
-    # Start date of the employee
-    string? startDate;
-    # Final day of employment of the employee
-    string? finalDayOfEmployment;
-    # Employee is a lead or not
-    boolean? lead;
+    *employee:Employee;
+|};
+
+# Record for fetched leaves.
+public type FetchedLeavesRecord record {|
+    # List of leaves
+    database:Leave[] leaves;
+    # List of leave stats
+    LeaveStat[] stats;
 |};
 
 # Form data record.
@@ -67,9 +76,88 @@ public type FormData record {|
     ];
 |};
 
+# Holiday record.
+public type Holiday record {|
+    # Title of the holiday
+    string title;
+    # Date of the holiday
+    string date;
+|};
+
+# Leave record.
+public type Leave record {|
+    # Leave ID
+    int id;
+    # Start date of the leave
+    string startDate;
+    # End date of the leave
+    string endDate;
+    # Whether the leave is active
+    boolean isActive;
+    # Type of the leave
+    string leaveType;
+    # Period type of the leave
+    string periodType;
+    # Whether the leave is a morning leave
+    boolean? isMorningLeave;
+    # Email of the employee
+    string email;
+    # Created date of the leave
+    string createdDate;
+    # List of email recipients
+    string[] emailRecipients = [];
+    # Number of days of the leave
+    float numberOfDays;
+    # Employee location
+    string? location = ();
+    # Whether the leave can be cancelled by the user
+    boolean isCancelAllowed = false;
+|};
+
 # Leave day record.
 public type LeaveDay record {|
     *database:LeaveDay;
+|};
+
+# Leave Entitlement record.
+public type LeaveEntitlement record {|
+    # Year of the leave entitlement
+    int year;
+    # Employee location
+    string? location;
+    # Leave policy
+    LeavePolicy leavePolicy;
+    # Leaves taken after policy adjustment
+    LeavePolicy policyAdjustedLeave;
+|};
+
+# Leave details record.
+public type LeaveDetails record {|
+    *LeaveInput;
+    # Leave ID
+    int id;
+    # Is leave active
+    boolean isActive;
+    # Created date
+    string createdDate;
+    # Effective days
+    LeaveDay[] effectiveDays = [];
+    # Calendar event ID
+    string? calendarEventId;
+    # Number of leave days
+    float? numberOfDays = 0.0;
+    # Employee location
+    string? location;
+|};
+
+# Leave input for leave creation.
+public type LeaveInput record {|
+    *database:LeaveInput;
+|};
+
+# Payload for leave creation.
+public type LeavePayload record {|
+    *database:LeavePayload;
 |};
 
 # Leave policy record.
@@ -82,53 +170,55 @@ public type LeavePolicy record {|
 
 # Leave entity record.
 public type LeaveResponse record {|
-    # Leave ID
-    readonly int id;
-    # Start date
-    string startDate;
-    # End date
-    string endDate;
-    # Is leave active
-    boolean isActive;
+    *database:LeaveResponse;
+|};
+
+# Lead report generation payload.
+public type LeadReportPayload readonly & record {|
+    # Start date of the report
+    string? startDate = ();
+    # End date of the report
+    string? endDate = ();
+    # Employee status list
+    EmployeeStatus[]? employeeStatuses = DEFAULT_EMPLOYEE_STATUSES;
+|};
+
+# Leave stat record.
+public type LeaveStat record {|
     # Leave type
-    string leaveType;
-    # Leave period type
-    string periodType;
-    # Email of the employee
-    string email;
-    # Created date
-    string createdDate;
-    # Email recipients
-    readonly & string[] emailRecipients = [];
-    # Effective days
-    readonly & LeaveDay[] effectiveDays = [];
-    # Number of days
-    float numberOfDays;
-    # Is morning leave
-    boolean? isMorningLeave;
-    # Calendar event ID
-    string? calendarEventId;
-    # Employee location
-    string? location;
-    # ID of email notification
-    string? emailId = ();
-    # Subject of email notification
-    string? emailSubject = ();
+    string 'type;
+    # Number of leave types 
+    float count;
 |};
 
 # Leaves report content.
 public type ReportContent map<map<float>>;
 
-# Validation error code
-public type ValidationErrorCode http:STATUS_BAD_REQUEST|http:STATUS_INTERNAL_SERVER_ERROR;
+# Report generation payload.
+public type ReportPayload readonly & record {|
+    # Start date of the report
+    string? startDate = ();
+    # End date of the report
+    string? endDate = ();
+    # Location of employees
+    string? location = ();
+    # Business unit of employees
+    string? businessUnit = ();
+    # Department of employees
+    string? department = ();
+    # Team of employees
+    string? team = ();
+    # Employee status list
+    EmployeeStatus[]? employeeStatuses = DEFAULT_EMPLOYEE_STATUSES;
+|};
 
-# Validation error detail record.
-public type ValidationErrorDetail record {
-    # Error message for response
-    string externalMessage; // `message` is made a mandatory field
-    # Error code for response
-    ValidationErrorCode code = http:STATUS_INTERNAL_SERVER_ERROR;
-};
+# User calendar content.
+public type UserCalendarInformation record {|
+    # List of leaves
+    Leave[] leaves;
+    # List of holidays
+    Holiday[] holidays;
+|};
 
-# Validation error record
-public type ValidationError error<ValidationErrorDetail>;
+# Uncounted leaves
+public type UncountedLeaves database:LIEU_LEAVE;

@@ -94,7 +94,7 @@ public isolated function getEmployeeLocation(string email, string token) returns
 
     readonly & Employee|error employee = getEmployee(email, token);
     if employee is error {
-        return employee;
+        return error(employee.message(), employee);
     }
     string? location = employee.location;
     if location is () {

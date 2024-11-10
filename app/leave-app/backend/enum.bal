@@ -14,6 +14,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
+# Employee location.
 public enum EmployeeLocation {
     LK = "Sri Lanka"
+}
+
+# Employee status.
+public enum EmployeeStatus {
+    EmployeeStatusMarkedLeaver = "Marked leaver",
+    EmployeeStatusActive = "Active",
+    EmployeeStatusLeft = "Left"
 }
