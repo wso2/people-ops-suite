@@ -15,7 +15,7 @@
 // under the License.
 import ballerina/sql;
 
-# Common query to fetch leave/leaves from the database.
+# Generates a common SQL query to fetch leave records from the database.
 #
 # + return - Select query
 isolated function getCommonLeaveQuery() returns sql:ParameterizedQuery => `

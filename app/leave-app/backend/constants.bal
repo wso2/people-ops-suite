@@ -13,7 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import ballerina/lang.regexp;
 
 public const JWT_CONTEXT_KEY = "JWT_CONTEXT_KEY";
 public const TOTAL_LEAVE_TYPE = "total";
@@ -63,8 +62,8 @@ public const ERR_MSG_UNAUTHORIZED_VIEW_LEAVE = "You are not authorized to view t
 public const ERR_MSG_INVALID_WSO2_EMAIL = "Input email is not a valid WSO2 email address!";
 
 // Regex
-final regexp:RegExp & readonly REGEX_DATE_YYYY_MM_DD = re `^\d{4}-\d{2}-\d{2}`;
-final regexp:RegExp & readonly REGEX_DATE_YYYY_MM_DD_T_HH_MM_SS = re `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`;
-final regexp:RegExp & readonly REGEX_DATE_YYYY_MM_DD_T_HH_MM_SS_SSS = re `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z`;
-final regexp:RegExp & readonly REGEX_EMPTY_STRING = re `^\s*$`;
+final string:RegExp & readonly REGEX_DATE_YYYY_MM_DD = re `^\d{4}-\d{2}-\d{2}`;
+final string:RegExp & readonly REGEX_DATE_YYYY_MM_DD_T_HH_MM_SS = re `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`;
+final string:RegExp & readonly REGEX_DATE_YYYY_MM_DD_T_HH_MM_SS_SSS = re `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z`;
+final string:RegExp & readonly REGEX_EMPTY_STRING = re `^\s*$`;
 public final string:RegExp WSO2_EMAIL_PATTERN = re `^[a-zA-Z0-9._%+-]+@wso2\.com$`;

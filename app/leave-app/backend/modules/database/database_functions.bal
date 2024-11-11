@@ -75,7 +75,7 @@ public isolated function insertLeave(LeaveInput input, float numDaysForLeave, st
 # Cancel an existing active leave.
 #
 # + id - Leave ID  
-# + return - Returns nill on success, error on failure
+# + return - Returns nil on success, error on failure
 public isolated function cancelLeave(int id) returns error? {
 
     sql:ParameterizedQuery sqlQuery = `UPDATE leave_submissions SET active = 0 WHERE id = ${id}`;
