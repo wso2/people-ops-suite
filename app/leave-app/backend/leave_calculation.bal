@@ -76,7 +76,7 @@ public isolated function calculateLeaveDetails(LeaveInput input, string token)
     if overlappingLeaves is error {
         return overlappingLeaves;
     }
-    if overlappingLeaves is LeaveDetails[] && overlappingLeaves.length() > 0 {
+    if overlappingLeaves.length() > 0 {
         if periodType == database:HALF_DAY_LEAVE && isMorningLeave is boolean {
             if overlappingLeaves.length() > 2 {
                 return error(ERR_MSG_LEAVE_IN_INVALID_STATE);
