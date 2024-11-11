@@ -13,11 +13,10 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import ballerina/lang.regexp;
 
 public const GOOGLE_CALENDAR_EVENT = "calendar#event";
 public const ERR_MSG_INVALID_DATE_FORMAT = "Invalid date. Date string should be in ISO 8601 format.";
-public final regexp:RegExp REGEX_DATE_YYYY_MM_DD = re `[12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])`;
+public final string:RegExp REGEX_DATE_YYYY_MM_DD = re `[12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])`;
 
 // Cache related constants
 public const CACHE_DEFAULT_MAX_AGE = 7200.0d;
