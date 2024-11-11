@@ -21,7 +21,7 @@ public enum EmployeeLocation {
 
 # Employee status.
 public enum EmployeeStatus {
-    EmployeeStatusMarkedLeaver = "Marked leaver",
-    EmployeeStatusActive = "Active",
-    EmployeeStatusLeft = "Left"
+    EMP_STATUS_MARKED_LEAVER = "Marked leaver",
+    EMP_STATUS_ACTIVE = "Active",
+    EMP_STATUS_LEFT = "Left"
 }
