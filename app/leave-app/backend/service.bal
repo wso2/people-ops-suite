@@ -75,7 +75,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             if email != userInfo.email {
                 boolean validateForSingleRole = authorization:validateForSingleRole(userInfo, authorization:adminRoles);
                 if !validateForSingleRole {
-                    log:printWarn(string `The user ${userInfo.email} was not privileged to access the${false ? " admin " : " "}resource /leaves with email=${email.toString()}`);
+                    log:printWarn(string `The user ${userInfo.email} was not privileged to access the
+                        ${false ? " admin " : " "}resource /leaves with email=${email.toString()}`);
                     return <http:Forbidden>{
                         body: {
                             message: ERR_MSG_UNAUTHORIZED_VIEW_LEAVE
@@ -159,7 +160,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             http:Request req,
             LeavePayload payload,
             boolean isValidationOnlyMode = false
-    ) returns http:Ok|http:BadRequest|http:InternalServerError|CalculatedLeave {
+    ) returns CalculatedLeave|http:Ok|http:BadRequest|http:InternalServerError {
 
         do {
             readonly & authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
