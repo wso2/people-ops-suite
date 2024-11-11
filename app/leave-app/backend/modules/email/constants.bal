@@ -13,15 +13,14 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import ballerina/lang.regexp;
 
 public const ALERT_HEADER = "Leave Submission/Cancellation";
 public const APP_NAME_DEV = "Leave Backend Service (Development)";
 public const APP_NAME = "Leave Backend Service";
 
 // Regex
-final regexp:RegExp & readonly REGEX_DATE_YYYY_MM_DD = re `^\d{4}-\d{2}-\d{2}`;
-final regexp:RegExp & readonly REGEX_EMAIL_DOMAIN = re `^[a-zA-Z][a-zA-Z0-9_\-\.]+@ws[o|0]2\.com$`;
+final string:RegExp & readonly REGEX_DATE_YYYY_MM_DD = re `^\d{4}-\d{2}-\d{2}`;
+final string:RegExp & readonly REGEX_EMAIL_DOMAIN = re `^[a-zA-Z][a-zA-Z0-9_\-\.]+@ws[o|0]2\.com$`;
 
 const JANUARY = 1;
 const FEBRUARY = 2;
