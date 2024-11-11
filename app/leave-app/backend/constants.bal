@@ -18,7 +18,7 @@ public const JWT_CONTEXT_KEY = "JWT_CONTEXT_KEY";
 public const TOTAL_LEAVE_TYPE = "total";
 public const TOTAL_EXCLUDING_LIEU_LEAVE_TYPE = "totalExLieu";
 public const decimal DAY_IN_SECONDS = 86400;
-public final readonly & EmployeeStatus[] DEFAULT_EMPLOYEE_STATUSES = [EmployeeStatusActive, EmployeeStatusMarkedLeaver];
+public final readonly & EmployeeStatus[] DEFAULT_EMPLOYEE_STATUSES = [EMP_STATUS_ACTIVE, EMP_STATUS_MARKED_LEAVER];
 public final map<string> & readonly TIMEZONE_OFFSET_MAP = {
     "Australia": "+10:00",
     "Brazil": "-03:00",
