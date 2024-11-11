@@ -57,7 +57,7 @@ public isolated function getLeave(int id) returns Leave|error? {
 # + input - Input data for the leave
 # + numDaysForLeave - Number of days for leave
 # + location - Employee location
-# + return - Return Value Description
+# + return - Returns the inserted `Leave` record if successful; otherwise, an error
 public isolated function insertLeave(LeaveInput input, float numDaysForLeave, string location) returns Leave|error {
 
     sql:ExecutionResult|error result = leaveDbClient->execute(insertLeaveQuery(input, numDaysForLeave, location));
