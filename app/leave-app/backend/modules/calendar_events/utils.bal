@@ -1,5 +1,3 @@
-import ballerina/lang.regexp;
-import ballerina/log;
 // Copyright (c) 2024 WSO2 LLC. (http://www.wso2.org).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
@@ -15,6 +13,8 @@ import ballerina/log;
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import ballerina/lang.regexp;
+import ballerina/log;
 import ballerina/time;
 
 # Get Civil date from a string in ISO 8601 format. This date will be timezone independent.
