@@ -112,7 +112,7 @@ public isolated function getHolidaysForCountry(string country, string? startDate
     }
 
     if holidaysToReturn is () {
-        return check fetchHolidaysForCountry(country, startDateOfYear, endDateOfYear);
+        return fetchHolidaysForCountry(country, startDateOfYear, endDateOfYear);
     }
     boolean shouldFetch = false;
     lock {
