@@ -92,8 +92,9 @@ public isolated function getOrgStructure(string[]? employeeStatuses) returns Org
         do {
             Department[]|error departments = orgData.children.fromJsonStringWithType();
             if departments is error {
-                string errorMsg = string `An error occurred when retrieving departments data of ${orgData.name}!`;
-                return error(errorMsg, departments);
+                return error(
+                    string `An error occurred when retrieving departments data of ${orgData.name}!`, departments
+                );
             }
             orgDataDbResponse.push({
                 name: orgData.name,
