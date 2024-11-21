@@ -89,12 +89,12 @@ public type DBEmployee record {|
     int? jobBand;
 |};
 
-# [Entity] Department.
-public type Department record {|
-    # Name of the department
+# [Entity] Team.
+public type Team record {|
+    # Name of the team
     string name;
-    # List of teams
-    Team[]? children;
+    # List of units
+    Unit[]? children;
 |};
 
 # [Entity] Designation.
@@ -259,6 +259,16 @@ type DatabaseConfig record {|
     ConnectionPool connectionPool;
 |};
 
+# Flat list record.
+public type FlatList record {
+    # Business unit array
+    string[] buFlatList;
+    # Team array
+    string[] teamFlatList;
+    # Unit array
+    string[] unitFlatList;
+};
+
 # [LocationData] record.
 public type LocationData record {
     # Employee location
@@ -270,8 +280,8 @@ public type LocationData record {
 public type OrgData record {|
     # Name of the business unit
     string name;
-    # List of departments
-    Department[]? children;
+    # List of teams
+    Team[]? children;
 |};
 
 # [Database] Organization data.
@@ -288,7 +298,7 @@ public type OrgDataResponse record {|
     # Organizational structure
     OrgItem[] orgStructure;
     # Organizational items as separate lists for each org level
-    string[][] flatList;
+    FlatList flatList;
     # Employee distinct locations
     string[] locations;
 |};
@@ -307,8 +317,11 @@ public type OrgItem record {
     OrgItem[] children;
 };
 
-# [Entity] Team.
-public type Team record {|
-    # Name of the team
+# [OrgType] record.
+public type OrgType Team|Unit;
+
+# [Entity] Unit.
+public type Unit record {|
+    # Name of the unit
     string name;
 |};
