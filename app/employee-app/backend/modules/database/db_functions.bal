@@ -86,22 +86,22 @@ public isolated function getEmployees(EmployeeFilter filters, int 'limit, int of
 # + return - List of business units
 public isolated function getOrgStructure(string[]? employeeStatuses) returns OrgDataResponse|error {
 
-    OrgData[] orgDataDBResponse = [];
+    OrgData[] orgDataDbResponse = [];
     stream<OrgDataDB, sql:Error?> resultStream = databaseClient->query(getOrgStructureQuery(employeeStatuses));
-    error? iterateError = from OrgDataDB orgData in resultStream
+    error? orgResult = from OrgDataDB orgData in resultStream
         do {
             Department[]|error departments = orgData.children.fromJsonStringWithType();
             if departments is error {
                 string errorMsg = string `An error occurred when retrieving departments data of ${orgData.name}!`;
                 return error(errorMsg, departments);
             }
-            orgDataDBResponse.push({
+            orgDataDbResponse.push({
                 name: orgData.name,
                 children: departments
             });
 
         };
-    if iterateError is sql:Error {
+    if orgResult is sql:Error {
         return error("An error occurred when retrieving organization details!");
     }
 
@@ -113,7 +113,7 @@ public isolated function getOrgStructure(string[]? employeeStatuses) returns Org
         level -= 1;
     }
 
-    foreach OrgData orgData in orgDataDBResponse {
+    foreach OrgData orgData in orgDataDbResponse {
         orgItems.push(processOrgHierarchy(
                 orgData.name,
                 orgData.children,
