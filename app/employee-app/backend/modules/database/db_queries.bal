@@ -51,6 +51,19 @@ isolated function getCommonEmployeeQuery() returns sql:ParameterizedQuery => `
         hris_employment_type het ON e.employee_employment_type_id = het.employment_type_id
 `;
 
+# Build query to retrieve the distinct employee locations.
+#
+# + employeeStatuses - List of employee statuses to consider
+# + return - sql:ParameterizedQuery - Select query for the employee table
+isolated function getDistinctEmployeeLocationQuery(string[]? employeeStatuses) returns sql:ParameterizedQuery {
+
+    sql:ParameterizedQuery query = `SELECT DISTINCT employee_location FROM hris_employee WHERE employee_location<>''`;
+    if employeeStatuses is string[] && employeeStatuses.length() > 0 {
+        query = sql:queryConcat(query, ` AND employee_status IN (`, sql:arrayFlattenQuery(employeeStatuses), `)`);
+    }
+    return query;
+}
+
 # Build query to retrieve the employee from the active or marked leaver status and email.
 #
 # + email - Email of the employee
@@ -59,8 +72,8 @@ isolated function getEmployeeQuery(string email) returns sql:ParameterizedQuery 
 
     sql:ParameterizedQuery mainQuery = getCommonEmployeeQuery();
     sql:ParameterizedQuery finalQuery = sql:queryConcat(
-        mainQuery,
-        ` WHERE (e.employee_status = ${ACTIVE} OR e.employee_status = ${MARKED\ LEAVER}) AND e.employee_work_email = ${email}`
+            mainQuery,
+            ` WHERE (e.employee_status = ${ACTIVE} OR e.employee_status = ${MARKED\ LEAVER}) AND e.employee_work_email = ${email}`
     );
     return finalQuery;
 }
@@ -103,7 +116,7 @@ isolated function getEmployeesQuery(EmployeeFilter filters, int 'limit, int offs
     }
     if employmentType is string[] && employmentType.length() > 0 {
         filterQueries.push(sql:queryConcat(`het.employment_type_name IN (`,
-        sql:arrayFlattenQuery(employmentType), `)`));
+                sql:arrayFlattenQuery(employmentType), `)`));
     }
     if filters.lead is boolean {
         sql:ParameterizedQuery leadQuery = <boolean>filters.lead ?
@@ -116,4 +129,56 @@ isolated function getEmployeesQuery(EmployeeFilter filters, int 'limit, int offs
         LIMIT ${'limit} OFFSET ${offset}`);
 
     return finalQuery;
+}
+
+# Query to retrieve business unit, team and unit data to build organizatio structure.
+#
+# + employeeStatuses - List of employee statuses to consider
+# + return - sql:ParameterizedQuery - Get organization structure query
+public isolated function getOrgStructureQuery(string[]? employeeStatuses) returns sql:ParameterizedQuery {
+
+    sql:ParameterizedQuery query = `
+        SELECT 
+            business_unit_name, (
+                SELECT
+                    JSON_ARRAYAGG(JSON_OBJECT(
+                        'name' , d.team_name,
+                        'children', (
+                                    SELECT 
+                                        JSON_ARRAYAGG(JSON_OBJECT(
+                                            'name',t.unit_name
+                                        ))
+                                    FROM 
+                                        hris_unit t
+                                        RIGHT JOIN
+                                        (SELECT * FROM hris_business_unit_team_unit WHERE business_unit_team_unit_is_active = 1) budt
+                                        ON t.unit_id = budt.unit_id
+                                    WHERE budt.business_unit_team_id = bud.business_unit_team_id
+                        )
+                    ))
+                FROM 
+                    hris_team d
+                    RIGHT JOIN
+                    (SELECT * FROM hris_business_unit_team WHERE business_unit_team_is_active = 1) bud
+                    ON d.team_id = bud.team_id
+                WHERE bud.business_unit_id = bu.business_unit_id
+            ) AS children
+        FROM 
+            hris_business_unit bu
+        WHERE
+            bu.business_unit_id IN (SELECT distinct(business_unit_id) FROM hris_business_unit_team WHERE business_unit_team_is_active = 1)
+    `;
+
+    if employeeStatuses is string[] && employeeStatuses.length() > 0 {
+        query = sql:queryConcat(query, `
+            AND EXISTS (
+                SELECT 1
+                FROM hris_employee e
+                WHERE e.employee_business_unit_id = bu.business_unit_id
+                  AND e.employee_status IN (`, sql:arrayFlattenQuery(employeeStatuses), `)
+            )
+        `);
+    }
+
+    return query;
 }

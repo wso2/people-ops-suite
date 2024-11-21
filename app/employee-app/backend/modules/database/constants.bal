@@ -1,4 +1,4 @@
-// Copyright (c) 2024 WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2024 WSO2 LLC. (http://www.wso2.org).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -13,19 +13,7 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import employee_service.database;
 
-# Employee record.
-public type Employee record {|
-    *database:Employee;
-|};
-
-# Employee filter record.
-public type EmployeeFilter record {|
-    *database:EmployeeFilter;
-|};
-
-# Organization data response record.
-public type OrgDataResponse record {|
-    *database:OrgDataResponse;
-|};
+# Organization structure related constants.
+public const ORG_TYPES = ["bu", "department", "team"];
+public const ORG_TYPE_NAMES = ["Business Unit", "Department", "Team"];

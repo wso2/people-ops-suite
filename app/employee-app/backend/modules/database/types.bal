@@ -91,12 +91,10 @@ public type DBEmployee record {|
 
 # [Entity] Department.
 public type Department record {|
-    # Id of the department
-    int id;
-    # Title of the department
-    string department;
+    # Name of the department
+    string name;
     # List of teams
-    Team[]? teams;
+    Team[]? children;
 |};
 
 # [Entity] Designation.
@@ -261,20 +259,56 @@ type DatabaseConfig record {|
     ConnectionPool connectionPool;
 |};
 
-# [Entity] Sub Team.
-public type SubTeam record {|
-    # Id of the sub team
-    int id;
-    # Title of the sub team
-    string subTeam;
+# [LocationData] record.
+public type LocationData record {
+    # Employee location
+    @sql:Column {name: "employee_location"}
+    string location;
+};
+
+# [Entity] Organization data record to set the structure.
+public type OrgData record {|
+    # Name of the business unit
+    string name;
+    # List of departments
+    Department[]? children;
 |};
+
+# [Database] Organization data.
+public type OrgDataDB record {|
+    # Title of the business unit
+    @sql:Column {name: "business_unit_name"}
+    string name;
+    # List of departments
+    string children;
+|};
+
+# [OrgDataResponse] record.
+public type OrgDataResponse record {|
+    # Organizational structure
+    OrgItem[] orgStructure;
+    # Organizational items as separate lists for each org level
+    string[][] flatList;
+    # Employee distinct locations
+    string[] locations;
+|};
+
+# [OrgItem] record.
+public type OrgItem record {
+    # Name of the organizational item
+    string name;
+    # Level of the organizational item
+    int level;
+    # Type of the organizational item
+    string 'type;
+    # Type Name of the organizational item
+    string typeName;
+    # Children of the organizational item
+    OrgItem[] children;
+};
 
 # [Entity] Team.
 public type Team record {|
-    # Id of the team
-    int id;
-    # Title of the team
-    string team;
-    # List of sub teams
-    SubTeam[]? subTeams;
+    # Name of the team
+    string name;
 |};

@@ -95,4 +95,23 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         return employees;
     }
+
+    # Get organization structure from business units, team and units.
+    #
+    # + employeeStatuses - List of employee statuses to consider
+    # + return - Organization structure or an error
+    resource function get org\-structure(string[]? employeeStatuses) returns OrgDataResponse|http:InternalServerError {
+
+        OrgDataResponse|error orgData = database:getOrgStructure(employeeStatuses);
+        if orgData is error {
+            string errorMsg = string `Error getting organization structure!`;
+            log:printError(errorMsg, orgData);
+            return <http:InternalServerError>{
+                body: {
+                    message: errorMsg
+                }
+            };
+        }
+        return orgData;
+    }
 }
