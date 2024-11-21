@@ -144,16 +144,16 @@ public isolated function getOrgStructureQuery(string[]? employeeStatuses) return
                     JSON_ARRAYAGG(JSON_OBJECT(
                         'name' , d.team_name,
                         'children', (
-                                    SELECT 
-                                        JSON_ARRAYAGG(JSON_OBJECT(
-                                            'name',t.unit_name
-                                        ))
-                                    FROM 
-                                        hris_unit t
-                                        RIGHT JOIN
-                                        (SELECT * FROM hris_business_unit_team_unit WHERE business_unit_team_unit_is_active = 1) budt
-                                        ON t.unit_id = budt.unit_id
-                                    WHERE budt.business_unit_team_id = bud.business_unit_team_id
+                            SELECT 
+                                JSON_ARRAYAGG(JSON_OBJECT(
+                                    'name',t.unit_name
+                                ))
+                            FROM 
+                                hris_unit t
+                                RIGHT JOIN
+                                (SELECT * FROM hris_business_unit_team_unit WHERE business_unit_team_unit_is_active = 1) budt
+                                ON t.unit_id = budt.unit_id
+                            WHERE budt.business_unit_team_id = bud.business_unit_team_id
                         )
                     ))
                 FROM 
@@ -175,7 +175,7 @@ public isolated function getOrgStructureQuery(string[]? employeeStatuses) return
                 SELECT 1
                 FROM hris_employee e
                 WHERE e.employee_business_unit_id = bu.business_unit_id
-                  AND e.employee_status IN (`, sql:arrayFlattenQuery(employeeStatuses), `)
+            AND e.employee_status IN (`, sql:arrayFlattenQuery(employeeStatuses), `)
             )
         `);
     }
