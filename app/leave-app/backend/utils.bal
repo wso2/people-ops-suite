@@ -47,7 +47,7 @@ public isolated function checkIfWeekday(time:Civil|time:Utc date) returns boolea
     return !(civil.dayOfWeek == time:SATURDAY || civil.dayOfWeek == time:SUNDAY);
 }
 
-public isolated function insertLeaveToDB(database:LeaveInput input, boolean isValidationOnlyMode, string token)
+public isolated function insertLeaveToDatabase(database:LeaveInput input, boolean isValidationOnlyMode, string token)
     returns LeaveDetails|error {
 
     LeaveDetails[]|error? leaveDetails = calculateLeaveDetails(input, token);
