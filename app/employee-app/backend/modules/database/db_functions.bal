@@ -83,7 +83,7 @@ public isolated function getEmployees(EmployeeFilter filters, int 'limit, int of
 # Retrieve organizational details from HRIS.
 #
 # + employeeStatuses - List of employee statuses to consider
-# + return - List of business units
+# + return - Returns the list of business units
 public isolated function getOrgStructure(string[]? employeeStatuses) returns OrgDataResponse|error {
 
     OrgItem[] orgItems = [];
@@ -123,7 +123,7 @@ public isolated function getOrgStructure(string[]? employeeStatuses) returns Org
 # + name - Name of each business unit/team/unit
 # + level - Level number 
 # + children - Children of each business unit/team/unit
-# + return - Returns the uypdated flatlist
+# + return - Returns the updated flatlist
 public isolated function processFlatList(
         FlatList flatList,
         string name,
