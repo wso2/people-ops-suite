@@ -102,8 +102,8 @@ public isolated function getOrgStructure(string[]? employeeStatuses) returns Org
                 );
             }
 
-            orgItems.push(processOrgHierarchy(orgData.name, teams, 0));
-            flatList = generateFlatList(flatList, orgData.name, 0, teams);
+            flatList = processFlatList(flatList, orgData.name, 0, teams);
+            orgItems.push(processOrgHierarchy(orgData.name, 0, teams));
         };
 
     if orgResult is sql:Error {
@@ -117,38 +117,6 @@ public isolated function getOrgStructure(string[]? employeeStatuses) returns Org
     return {orgStructure: orgItems, flatList, locations: locationResults ?: []};
 }
 
-# Recursive method to build the organization hierarchy.
-#
-# + name - Name of the business unit/team/unit 
-# + children - Children of each business unit/team/unit
-# + level - Level number 
-# + return - Returns organization item with name, level, type, type name and its children
-public isolated function processOrgHierarchy(
-        string name,
-        OrgType[]? children,
-        int level
-) returns OrgItem {
-
-    OrgItem[] childItems = [];
-    if children is OrgType[] {
-        foreach OrgType child in children {
-            if child is Team {
-                childItems.push(processOrgHierarchy(child.name, child.children, level + 1));
-            } else {
-                childItems.push(processOrgHierarchy(child.name, [], level + 1));
-            }
-        }
-    }
-
-    return {
-        name,
-        level,
-        'type: ORG_TYPES[level],
-        typeName: ORG_TYPE_NAMES[level],
-        children: childItems
-    };
-}
-
 # Recursive method to build the flatList.
 #
 # + flatList - Initialized flatList 
@@ -156,7 +124,7 @@ public isolated function processOrgHierarchy(
 # + level - Level number 
 # + children - Children of each business unit/team/unit
 # + return - Returns the uypdated flatlist
-public isolated function generateFlatList(
+public isolated function processFlatList(
         FlatList flatList,
         string name,
         int level,
@@ -174,12 +142,44 @@ public isolated function generateFlatList(
     if children is OrgType[] {
         foreach OrgType child in children {
             if child is Team {
-                _ = generateFlatList(flatList, child.name, level + 1, child.children);
+                _ = processFlatList(flatList, child.name, level + 1, child.children);
             } else {
-                _ = generateFlatList(flatList, child.name, level + 1, []);
+                _ = processFlatList(flatList, child.name, level + 1, []);
             }
         }
     }
 
     return flatList;
+}
+
+# Recursive method to build the organization hierarchy.
+#
+# + name - Name of the business unit/team/unit 
+# + children - Children of each business unit/team/unit
+# + level - Level number 
+# + return - Returns organization item with name, level, type, type name and its children
+public isolated function processOrgHierarchy(
+        string name,
+        int level,
+        OrgType[]? children)
+returns OrgItem {
+
+    OrgItem[] childItems = [];
+    if children is OrgType[] {
+        foreach OrgType child in children {
+            if child is Team {
+                childItems.push(processOrgHierarchy(child.name, level + 1, child.children));
+            } else {
+                childItems.push(processOrgHierarchy(child.name, level + 1, []));
+            }
+        }
+    }
+
+    return {
+        name,
+        level,
+        'type: ORG_TYPES[level],
+        typeName: ORG_TYPE_NAMES[level],
+        children: childItems
+    };
 }
