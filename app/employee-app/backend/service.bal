@@ -31,9 +31,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     # Request interceptor.
     # + return - authorization:JwtInterceptor
-    public function createInterceptors() returns http:Interceptor[] {
-        return [new authorization:JwtInterceptor()];
-    }
+    public function createInterceptors() returns http:Interceptor[] => [new authorization:JwtInterceptor()];
 
     # Get basic information of a given active employee.
     #

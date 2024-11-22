@@ -104,7 +104,6 @@ public isolated function getOrgStructure(string[]? employeeStatuses) returns Org
 
             orgItems.push(processOrgHierarchy(orgData.name, teams, 0));
             flatList = generateFlatList(flatList, orgData.name, 0, teams);
-
         };
 
     if orgResult is sql:Error {
