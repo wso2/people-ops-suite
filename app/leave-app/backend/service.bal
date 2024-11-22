@@ -30,9 +30,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     # Request interceptor.
     # + return - authorization:JwtInterceptor
-    public function createInterceptors() returns http:Interceptor[] {
-        return [new authorization:JwtInterceptor()];
-    }
+    public function createInterceptors() returns http:Interceptor[] => [new authorization:JwtInterceptor()];
 
     function init() returns error? {
         log:printInfo("Leave application backend service started.");
@@ -183,7 +181,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
             // Day[] weekdaysFromRange = getWeekdaysFromRange(validatedDateRange[0], validatedDateRange[1]);
             LeaveInput input = {
-                email: email,
+                email,
                 startDate: payload.startDate,
                 endDate: payload.endDate,
                 leaveType: payload.leaveType,
@@ -196,20 +194,23 @@ service http:InterceptableService / on new http:Listener(9090) {
                 emailSubject: payload.emailSubject
             };
             if isValidationOnlyMode {
-                LeaveDetails|error validatedLeave = insertLeaveToDB(input, isValidationOnlyMode, jwt.toString());
+                LeaveDetails|error validatedLeave = insertLeaveToDatabase(input, isValidationOnlyMode, jwt.toString());
                 if validatedLeave is error {
                     fail error(validatedLeave.message(), validatedLeave);
                 }
 
                 return {
-                    workingDays: payload.periodType is database:HALF_DAY_LEAVE ? 0.5 : <float>validatedLeave.effectiveDays.length(),
+                    workingDays: payload.periodType is database:HALF_DAY_LEAVE
+                        ? 0.5
+                        : <float>validatedLeave.effectiveDays.length(),
                     hasOverlap: false,
                     message: "Valid leave request"
                 };
             }
 
             final readonly & email:EmailNotificationDetails emailContentForLeave = check email:generateContentForLeave(
-                    jwt.toString(), email, payload);
+                    jwt.toString(), email, payload
+            );
             final readonly & string calendarEventId = createUuidForCalendarEvent();
             final readonly & string[]|error allRecipientsForUser = getAllEmailRecipientsForUser(
                     email,
@@ -224,7 +225,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             payload.emailSubject = emailContentForLeave.subject;
             payload.calendarEventId = calendarEventId;
 
-            LeaveDetails|error leave = insertLeaveToDB(input, isValidationOnlyMode, jwt.toString());
+            LeaveDetails|error leave = insertLeaveToDatabase(input, isValidationOnlyMode, jwt.toString());
             if leave is error {
                 fail error(leave.message(), leave);
             }
@@ -249,8 +250,8 @@ service http:InterceptableService / on new http:Listener(9090) {
                 error? notificationResult = wait notificationFuture;
                 if notificationResult is () {
                     // Does not send the additional comment notification if the main notification has failed
-                    final email:EmailNotificationDetails contentForAdditionalComment = email:generateContentForAdditionalComment(
-                            emailContentForLeave.subject, comment);
+                    final email:EmailNotificationDetails contentForAdditionalComment =
+                        email:generateContentForAdditionalComment(emailContentForLeave.subject, comment);
                     _ = start email:sendAdditionalComment(contentForAdditionalComment.cloneReadOnly(),
                             commentRecipients.cloneReadOnly());
                 }
@@ -270,7 +271,6 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-
     }
 
     # Cancel a leave.
@@ -363,7 +363,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-            on fail error internalErr {
+        on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
                 body: {
@@ -371,7 +371,6 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-
     }
 
     # Get Application specific data required for initializing the leave form.
@@ -433,8 +432,8 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + location - Employee location
     # + businessUnit - Employee business unit
-    # + department - Employee department
     # + team - Employee team
+    # + unit - Employee unit
     # + employeeStatuses - Employee statuses to filter the employees
     # + leadEmail - Manager email to filter the employees
     # + return - Return list of employee records
@@ -442,8 +441,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             http:Request req,
             string? location,
             string? businessUnit,
-            string? department,
             string? team,
+            string? unit,
             string[]? employeeStatuses,
             string? leadEmail)
         returns Employee[]|http:InternalServerError {
@@ -459,8 +458,8 @@ service http:InterceptableService / on new http:Listener(9090) {
                     {
                         location,
                         businessUnit,
-                        team: department,
-                        unit: team,
+                        team,
+                        unit,
                         status: employeeStatuses,
                         leadEmail
                     },
@@ -591,7 +590,6 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-
     }
 
     # Fetch user calendar.
@@ -660,7 +658,9 @@ service http:InterceptableService / on new http:Listener(9090) {
             string[] emails = from Employee employee in employees
                 select employee.workEmail ?: "";
 
-            final database:Leave[]|error leaveResponse = database:getLeaves({emails, isActive: true, startDate, endDate});
+            final database:Leave[]|error leaveResponse = database:getLeaves(
+                    {emails, isActive: true, startDate, endDate}
+            );
             if leaveResponse is error {
                 fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaveResponse);
             }
@@ -670,7 +670,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
             return getLeaveReportContent(leaveResponses);
         }
-            on fail error internalErr {
+        on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
                 body: {
@@ -689,8 +689,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             http:RequestContext ctx,
             http:Request req,
             LeadReportPayload payload
-            )
-        returns ReportContent|http:Forbidden|http:InternalServerError {
+    ) returns ReportContent|http:Forbidden|http:InternalServerError {
 
         do {
             authorization:CustomJwtPayload {email} = check ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -716,13 +715,16 @@ service http:InterceptableService / on new http:Listener(9090) {
                     }
                 };
             }
-            final database:Leave[]|error leaveResponse = database:getLeaves({emails, isActive: true, startDate, endDate});
+            final database:Leave[]|error leaveResponse = database:getLeaves(
+                    {emails, isActive: true, startDate, endDate}
+            );
             if leaveResponse is error {
                 fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaveResponse);
             }
             LeaveResponse[] leaveResponses =
             from database:Leave leave in leaveResponse
             select check toLeaveEntity(leave, jwt.toString());
+
             return getLeaveReportContent(leaveResponses);
         }
         on fail error internalErr {
