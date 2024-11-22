@@ -178,8 +178,8 @@ returns OrgItem {
     return {
         name,
         level,
-        'type: ORG_TYPES[level],
-        typeName: ORG_TYPE_NAMES[level],
+        'type: ORG_TYPE_MAP.keys()[level],
+        typeName: ORG_TYPE_MAP.get(ORG_TYPE_MAP.keys()[level]),
         children: childItems
     };
 }

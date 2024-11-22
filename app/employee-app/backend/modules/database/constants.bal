@@ -15,5 +15,8 @@
 // under the License.
 
 # Organization structure related constants.
-public const ORG_TYPES = ["bu", "department", "team"];
-public const ORG_TYPE_NAMES = ["Business Unit", "Department", "Team"];
+public const ORG_TYPE_MAP = {
+    "bu": "Business Unit",
+    "department": "Department",
+    "team": "Team"
+};
