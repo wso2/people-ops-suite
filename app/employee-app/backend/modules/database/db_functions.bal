@@ -124,12 +124,8 @@ public isolated function getOrgStructure(string[]? employeeStatuses) returns Org
 # + level - Level number 
 # + children - Children of each business unit/team/unit
 # + return - Returns the updated flatlist
-public isolated function processFlatList(
-        FlatList flatList,
-        string name,
-        int level,
-        OrgType[]? children
-) returns FlatList {
+public isolated function processFlatList(FlatList flatList, string name, int level, OrgType[]? children)
+    returns FlatList {
 
     if level == 0 && flatList.buFlatList.indexOf(name) is () {
         flatList.buFlatList.push(name);
@@ -158,11 +154,8 @@ public isolated function processFlatList(
 # + children - Children of each business unit/team/unit
 # + level - Level number 
 # + return - Returns organization item with name, level, type, type name and its children
-public isolated function processOrgHierarchy(
-        string name,
-        int level,
-        OrgType[]? children)
-returns OrgItem {
+public isolated function processOrgHierarchy(string name, int level, OrgType[]? children)
+    returns OrgItem {
 
     OrgItem[] childItems = [];
     if children is OrgType[] {
