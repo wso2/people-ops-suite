@@ -47,6 +47,13 @@ public isolated function checkIfWeekday(time:Civil|time:Utc date) returns boolea
     return !(civil.dayOfWeek == time:SATURDAY || civil.dayOfWeek == time:SUNDAY);
 }
 
+# Inserts a leave record into the database or validates leave details based on the provided input.
+#
+# + input - The leave input details as a `database:LeaveInput` record
+# + isValidationOnlyMode - A flag indicating whether to only validate the leave (`true`) or 
+#   insert the leave into the database (`false`)
+# + token - The authentication token for accessing employee details
+# + return - Returns a `LeaveDetails` record if successful, or an error otherwise
 public isolated function insertLeaveToDatabase(database:LeaveInput input, boolean isValidationOnlyMode, string token)
     returns LeaveDetails|error {
 
@@ -103,6 +110,13 @@ public isolated function insertLeaveToDatabase(database:LeaveInput input, boolea
     return validatedLeave;
 }
 
+# Retrieves all unique email recipients for a user, including default recipients, their lead's email, and 
+# user-added recipients.
+#
+# + email - The user's email address
+# + userAddedRecipients - A list of additional email addresses specified by the user
+# + token - The authentication token required to access employee details
+# + return - Returns a readonly array of unique email addresses or an error if the process fails
 public isolated function getAllEmailRecipientsForUser(string email, string[] userAddedRecipients, string token)
     returns readonly & string[]|error {
 
@@ -115,13 +129,10 @@ public isolated function getAllEmailRecipientsForUser(string email, string[] use
 
     readonly & Employee employee = check employee:getEmployee(email, token);
     recipientMap[<string>employee.leadEmail] = true;
-    // if employee is entity:EmployeeEntity && employee.managerEmail is string {
-    //     recipientMap[<string>employee.managerEmail] = true;
-    // }
-
     foreach string recipient in userAddedRecipients {
         recipientMap[recipient] = true;
     }
+
     return recipientMap.keys().cloneReadOnly();
 }
 
@@ -351,6 +362,10 @@ public isolated function getTimestampFromDateString(string date) returns string 
     return timestamp;
 }
 
+# Calculates the total number of leave days based on the leave periods.
+#
+# + leaveDays - An array of `LeaveDay` records representing the leave days to be calculated
+# + return - The total number of days as a `float`
 public isolated function getNumberOfDaysFromLeaveDays(LeaveDay[] leaveDays) returns float {
     float numberOfDays = 0.0;
     from LeaveDay leaveDay in leaveDays
@@ -361,6 +376,12 @@ public isolated function getNumberOfDaysFromLeaveDays(LeaveDay[] leaveDays) retu
     return numberOfDays;
 }
 
+# Retrieves the private email recipients for a given user.
+#
+# + email - The email of the user for whom private recipients are to be determined
+# + userAddedRecipients - A list of additional recipients added by the user
+# + token - The authorization token to retrieve user details
+# + return - A readonly array of private email recipients or an error if the operation fails
 public isolated function getPrivateRecipientsForUser(string email, string[] userAddedRecipients, string token)
     returns readonly & string[]|error {
 
