@@ -73,8 +73,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             if email != userInfo.email {
                 boolean validateForSingleRole = authorization:validateForSingleRole(userInfo, authorization:adminRoles);
                 if !validateForSingleRole {
-                    log:printWarn(string `The user ${userInfo.email} was not privileged to access the
-                        ${false ? " admin " : " "}resource /leaves with email=${email.toString()}`);
+                    log:printWarn(string `The user ${userInfo.email} was not privileged to access the resource 
+                        /leaves with email=${email.toString()}`);
                     return <http:Forbidden>{
                         body: {
                             message: ERR_MSG_UNAUTHORIZED_VIEW_LEAVE
@@ -168,7 +168,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
             string email = userInfo.email;
             log:printInfo(string `Leave${isValidationOnlyMode ? " validation " : " "}request received from email: ${
-                    userInfo.email} with payload: ${payload.toString()}`);
+                    email} with payload: ${payload.toString()}`);
 
             [time:Utc, time:Utc]|error validatedDateRange = validateDateRange(payload.startDate, payload.endDate);
             if validatedDateRange is error {
@@ -229,14 +229,14 @@ service http:InterceptableService / on new http:Listener(9090) {
             if leave is error {
                 fail error(leave.message(), leave);
             }
-            LeaveResponse leaveEntity = <LeaveResponse>leave;
-            log:printInfo(string `Submitted leave successfully. ID: ${leaveEntity.id}.`);
+            LeaveResponse leaveResponse = <LeaveResponse>leave.clone();
+            log:printInfo(string `Submitted leave successfully. ID: ${leaveResponse.id}.`);
 
             future<error?> notificationFuture = start email:sendLeaveNotification(
                     emailContentForLeave,
                     allRecipientsForUser
             );
-            _ = start createLeaveEventInCalendar(email, leaveEntity, calendarEventId);
+            _ = start createLeaveEventInCalendar(email, leaveResponse, calendarEventId);
             if comment is string && checkIfEmptyString(comment) {
                 string[] commentRecipients = allRecipientsForUser;
                 if !payload.isPublicComment {
@@ -262,8 +262,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     message: "Leave submitted successfully"
                 }
             };
-        }
-        on fail error internalErr {
+        } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
                 body: {
@@ -278,7 +277,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + leaveId - Leave ID
     # + ctx - Request context
     # + return - Return cancelled leave on success, otherwise an error response
-    isolated resource function delete leaves/[int leaveId](http:RequestContext ctx, http:Request req)
+    resource function delete leaves/[int leaveId](http:RequestContext ctx, http:Request req)
         returns http:Ok|http:Forbidden|http:BadRequest|http:InternalServerError {
 
         do {
@@ -362,8 +361,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     message: "Leave cancelled successfully"
                 }
             };
-        }
-        on fail error internalErr {
+        } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
                 body: {
@@ -416,8 +414,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 legallyEntitledLeave,
                 leaveReportContent: getLeaveReportContent(leaves)
             };
-        }
-        on fail error internalErr {
+        } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
                 body: {
@@ -425,7 +422,6 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-
     }
 
     # Fetch all the employees.
@@ -481,8 +477,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     lead: employee.lead
                 };
             return employeesToReturn;
-        }
-        on fail error internalErr {
+        } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
                 body: {
@@ -525,8 +520,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 finalDayOfEmployment: employee.finalDayOfEmployment,
                 lead: employee.lead
             };
-        }
-        on fail error internalErr {
+        } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
                 body: {
@@ -621,9 +615,9 @@ service http:InterceptableService / on new http:Listener(9090) {
                     }
                 };
             }
+
             return userCalendarInformation;
-        }
-        on fail error internalErr {
+        } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
                 body: {
@@ -669,8 +663,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 select check toLeaveEntity(leave, jwt.toString());
 
             return getLeaveReportContent(leaveResponses);
-        }
-        on fail error internalErr {
+        } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
                 body: {
@@ -726,8 +719,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             select check toLeaveEntity(leave, jwt.toString());
 
             return getLeaveReportContent(leaveResponses);
-        }
-        on fail error internalErr {
+        } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
                 body: {
