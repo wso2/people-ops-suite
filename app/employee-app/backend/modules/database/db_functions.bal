@@ -18,7 +18,7 @@ import ballerina/sql;
 # Get basic information about a given active employee.
 #
 # + email - Email of the employee
-# + return - Returns the basic information of the employee or an error
+# + return - Basic information of the employee or an error
 public isolated function getEmployee(string email) returns Employee|error? {
 
     DBEmployee|error result = databaseClient->queryRow(getEmployeeQuery(email));
@@ -53,7 +53,7 @@ public isolated function getEmployee(string email) returns Employee|error? {
 # + filters - Filter objects containing the filter criteria for the query
 # + limit - Number of records to retrieve
 # + offset - Number of records to offset
-# + return - Returns the basic information of employees or an error
+# + return - Basic information of employees or an error
 public isolated function getEmployees(EmployeeFilter filters, int 'limit, int offset)
     returns Employee[]|error {
 
@@ -83,7 +83,7 @@ public isolated function getEmployees(EmployeeFilter filters, int 'limit, int of
 # Retrieve organizational details from HRIS.
 #
 # + employeeStatuses - List of employee statuses to consider
-# + return - Returns the list of business units
+# + return - List of business units
 public isolated function getOrgStructure(string[]? employeeStatuses) returns OrgDataResponse|error {
 
     OrgItem[] orgItems = [];
@@ -92,14 +92,12 @@ public isolated function getOrgStructure(string[]? employeeStatuses) returns Org
         teamFlatList: [],
         unitFlatList: []
     };
-    stream<OrgDataDB, sql:Error?> resultStream = databaseClient->query(getOrgStructureQuery(employeeStatuses));
-    error? orgResult = from OrgDataDB orgData in resultStream
+    stream<OrgDataDb, sql:Error?> resultStream = databaseClient->query(getOrgStructureQuery(employeeStatuses));
+    error? orgResult = from OrgDataDb orgData in resultStream
         do {
             Team[]|error teams = orgData.children.fromJsonStringWithType();
             if teams is error {
-                return error(
-                    string `An error occurred when retrieving teams data of ${orgData.name}!`, teams
-                );
+                return error(string `An error occurred when retrieving teams data of ${orgData.name}!`, teams);
             }
 
             flatList = processFlatList(flatList, orgData.name, 0, teams);
@@ -123,7 +121,7 @@ public isolated function getOrgStructure(string[]? employeeStatuses) returns Org
 # + name - Name of each business unit/team/unit
 # + level - Level number 
 # + children - Children of each business unit/team/unit
-# + return - Returns the updated flatlist
+# + return - Updated flatlist
 public isolated function processFlatList(FlatList flatList, string name, int level, OrgType[]? children)
     returns FlatList {
 
@@ -153,7 +151,7 @@ public isolated function processFlatList(FlatList flatList, string name, int lev
 # + name - Name of the business unit/team/unit 
 # + children - Children of each business unit/team/unit
 # + level - Level number 
-# + return - Returns organization item with name, level, type, type name and its children
+# + return - Organization item with name, level, type, type name and its children
 public isolated function processOrgHierarchy(string name, int level, OrgType[]? children)
     returns OrgItem {
 

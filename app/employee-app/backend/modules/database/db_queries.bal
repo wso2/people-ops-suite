@@ -17,7 +17,7 @@ import ballerina/sql;
 
 # Common build query to retrieve the employee/employees.
 #
-# + return - sql:ParameterizedQuery - Select query for the employee table
+# + return - Common select query for the employee table
 isolated function getCommonEmployeeQuery() returns sql:ParameterizedQuery => `
     SELECT
         e.employee_id,
@@ -54,10 +54,13 @@ isolated function getCommonEmployeeQuery() returns sql:ParameterizedQuery => `
 # Build query to retrieve the distinct employee locations.
 #
 # + employeeStatuses - List of employee statuses to consider
-# + return - sql:ParameterizedQuery - Select query for the employee table
+# + return - Select query for getting distinct locations of the employee table
 isolated function getDistinctEmployeeLocationQuery(string[]? employeeStatuses) returns sql:ParameterizedQuery {
 
-    sql:ParameterizedQuery query = `SELECT DISTINCT employee_location FROM hris_employee WHERE employee_location<>''`;
+    sql:ParameterizedQuery query = `
+        SELECT DISTINCT employee_location 
+        FROM hris_employee 
+        WHERE employee_location <> ''`;
     if employeeStatuses is string[] && employeeStatuses.length() > 0 {
         query = sql:queryConcat(query, ` AND employee_status IN (`, sql:arrayFlattenQuery(employeeStatuses), `)`);
     }
@@ -67,7 +70,7 @@ isolated function getDistinctEmployeeLocationQuery(string[]? employeeStatuses) r
 # Build query to retrieve the employee from the active or marked leaver status and email.
 #
 # + email - Email of the employee
-# + return - sql:ParameterizedQuery - Select query for the employee table
+# + return - Select query for the employee table
 isolated function getEmployeeQuery(string email) returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery mainQuery = getCommonEmployeeQuery();
@@ -83,7 +86,7 @@ isolated function getEmployeeQuery(string email) returns sql:ParameterizedQuery 
 # + filters - Filter objects containing the filter criteria for the query
 # + 'limit - The maximum number of employees to return
 # + offset - The number of employees to skip before starting to collect the result set
-# + return - sql:ParameterizedQuery - Select query for the employee table
+# + return - Select query for the employee table
 isolated function getEmployeesQuery(EmployeeFilter filters, int 'limit, int offset)
     returns sql:ParameterizedQuery {
 
@@ -131,10 +134,10 @@ isolated function getEmployeesQuery(EmployeeFilter filters, int 'limit, int offs
     return finalQuery;
 }
 
-# Query to retrieve business unit, team and unit data to build organizatio structure.
+# Query to retrieve business unit, team and unit data to build organization structure.
 #
 # + employeeStatuses - List of employee statuses to consider
-# + return - sql:ParameterizedQuery - Get organization structure query
+# + return - Get organization structure query
 public isolated function getOrgStructureQuery(string[]? employeeStatuses) returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery query = `

@@ -260,14 +260,14 @@ type DatabaseConfig record {|
 |};
 
 # Flat list record.
-public type FlatList record {
+public type FlatList record {|
     # Business unit array
     string[] buFlatList;
     # Team array
     string[] teamFlatList;
     # Unit array
     string[] unitFlatList;
-};
+|};
 
 # [LocationData] record.
 public type LocationData record {
@@ -285,7 +285,7 @@ public type OrgData record {|
 |};
 
 # [Database] Organization data.
-public type OrgDataDB record {|
+public type OrgDataDb record {|
     # Title of the business unit
     @sql:Column {name: "business_unit_name"}
     string name;
