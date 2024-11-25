@@ -134,22 +134,41 @@ isolated function getEmployeesQuery(EmployeeFilter filters, int 'limit, int offs
     return finalQuery;
 }
 
-# Query to retrieve business unit, team and unit data to build organization structure.
+# Query to retrieve business units, teams, units and sub units data to build organization structure.
 #
-# + employeeStatuses - List of employee statuses to consider
+# + filter - Filter objects containing the filter criteria for the query
+# + 'limit - The maximum number of employees to return
+# + offset - The number of employees to skip before starting to collect the result set
 # + return - Get organization structure query
-public isolated function getOrgStructureQuery(string[]? employeeStatuses) returns sql:ParameterizedQuery {
+public isolated function getOrgStructureQuery(OrgDetailsFilter filter, int 'limit, int offset) 
+    returns sql:ParameterizedQuery {
 
-    sql:ParameterizedQuery query = `
+    sql:ParameterizedQuery sqlQuery = `
         SELECT 
+            business_unit_id,
             business_unit_name, (
                 SELECT
                     JSON_ARRAYAGG(JSON_OBJECT(
-                        'name' , d.team_name,
-                        'children', (
+                        'id', d.team_id,
+                        'name', d.team_name,
+                        'units', (
                             SELECT 
                                 JSON_ARRAYAGG(JSON_OBJECT(
-                                    'name',t.unit_name
+                                    'id',t.unit_id,
+                                    'name',t.unit_name,
+                                    'subUnits',(
+                                        SELECT
+                                            COALESCE(JSON_ARRAYAGG(JSON_OBJECT(
+                                                'id' , st.sub_unit_id,
+                                                'name', st.sub_unit_name
+                                            )), JSON_ARRAY())
+                                        FROM
+                                            hris_sub_unit st
+                                            RIGHT JOIN
+                                            (SELECT * FROM hris_business_unit_team_unit_sub_unit WHERE business_unit_team_unit_sub_unit_is_active = 1) budtst
+                                            ON st.sub_unit_id = budtst.sub_unit_id
+                                        WHERE budtst.business_unit_team_unit_id = budt.business_unit_team_unit_id
+                                    )
                                 ))
                             FROM 
                                 hris_unit t
@@ -165,15 +184,21 @@ public isolated function getOrgStructureQuery(string[]? employeeStatuses) return
                     (SELECT * FROM hris_business_unit_team WHERE business_unit_team_is_active = 1) bud
                     ON d.team_id = bud.team_id
                 WHERE bud.business_unit_id = bu.business_unit_id
-            ) AS children
+            ) AS teams
         FROM 
             hris_business_unit bu
         WHERE
             bu.business_unit_id IN (SELECT distinct(business_unit_id) FROM hris_business_unit_team WHERE business_unit_team_is_active = 1)
     `;
 
+    OrgDetailsFilter {
+        businessUnitIds,
+        businessUnits,
+        employeeStatuses
+    } = filter;
+    sql:ParameterizedQuery[] filterQueries = [];
     if employeeStatuses is string[] && employeeStatuses.length() > 0 {
-        query = sql:queryConcat(query, `
+        sqlQuery = sql:queryConcat(sqlQuery, `
             AND EXISTS (
                 SELECT 1
                 FROM hris_employee e
@@ -183,5 +208,14 @@ public isolated function getOrgStructureQuery(string[]? employeeStatuses) return
         `);
     }
 
-    return query;
+    if businessUnitIds is int[] && businessUnitIds.length() > 0 {
+        filterQueries.push(sql:queryConcat(`bu.business_unit_id IN (`, sql:arrayFlattenQuery(businessUnitIds), `)`));
+    }
+    if businessUnits is string[] && businessUnits.length() > 0 {
+        filterQueries.push(sql:queryConcat(`bu.business_unit_name IN (`, sql:arrayFlattenQuery(businessUnits), `)`));
+    }    
+    sqlQuery = buildSqlSelectQuery(sqlQuery, filterQueries);
+    sqlQuery = sql:queryConcat(sqlQuery, ` LIMIT ${'limit} OFFSET ${offset}`);
+
+    return sqlQuery;
 }

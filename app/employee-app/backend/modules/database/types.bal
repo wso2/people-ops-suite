@@ -16,6 +16,28 @@
 import ballerina/sql;
 import ballerinax/mysql;
 
+# [Entity] Business Unit.
+public type BusinessUnit record {|
+    # Id of the business unit
+    int id;
+    # Title of the business unit
+    string name;
+    # List of teams
+    Team[]? teams;
+|};
+
+# [Database] Business unit data.
+public type BusinessUnitDb record {|
+    # Id of the business unit
+    @sql:Column {name: "business_unit_id"}
+    int id;
+    # Title of the business unit
+    @sql:Column {name: "business_unit_name"}
+    string name;
+    # List of teams
+    string teams;
+|};
+
 # [Database] connection pool.
 type ConnectionPool record {|
     # Maximum number of open connections
@@ -24,13 +46,6 @@ type ConnectionPool record {|
     decimal maxConnectionLifeTime;
     # Minimum number of open connections
     int minIdleConnections;
-|};
-
-# Database config record.
-type HRISDatabaseConfig record {|
-    *DatabaseConfig;
-    # Additional configurations related to the MySQL database connection
-    mysql:Options? options;
 |};
 
 # [Database] Employee basic information record to get lead type as int.
@@ -89,14 +104,6 @@ public type DBEmployee record {|
     int? jobBand;
 |};
 
-# [Entity] Team.
-public type Team record {|
-    # Name of the team
-    string name;
-    # List of units
-    Unit[]? children;
-|};
-
 # [Entity] Designation.
 public type Designation record {|
     # Id of the designation
@@ -108,7 +115,7 @@ public type Designation record {|
 |};
 
 # [Database] Employee type.
-public type Employee record {
+public type Employee record {|
     # Id of the employee
     @sql:Column {name: "employee_id"}
     string employeeId;
@@ -219,7 +226,7 @@ public type Employee record {
     # Updated on
     @sql:Column {name: "employee_updated_on"}
     string? updatedOn?;
-};
+|};
 
 # Employee filter record.
 public type EmployeeFilter record {|
@@ -259,69 +266,53 @@ type DatabaseConfig record {|
     ConnectionPool connectionPool;
 |};
 
-# Flat list record.
-public type FlatList record {|
-    # Business unit array
-    string[] buFlatList;
-    # Team array
-    string[] teamFlatList;
-    # Unit array
-    string[] unitFlatList;
+# Database config record.
+type HRISDatabaseConfig record {|
+    *DatabaseConfig;
+    # Additional configurations related to the MySQL database connection
+    mysql:Options? options;
 |};
 
-# [LocationData] record.
-public type LocationData record {
-    # Employee location
-    @sql:Column {name: "employee_location"}
-    string location;
-};
-
-# [Entity] Organization data record to set the structure.
-public type OrgData record {|
+# [Query Filter] Organization data filters.
+public type OrgDetailsFilter record {|
+    # Id of the business unit
+    int[]? businessUnitIds = ();
     # Name of the business unit
-    string name;
-    # List of teams
-    Team[]? children;
+    string[]? businessUnits = ();
+    # Employee statuses
+    string[]? employeeStatuses = ();
 |};
 
-# [Database] Organization data.
-public type OrgDataDb record {|
-    # Title of the business unit
-    @sql:Column {name: "business_unit_name"}
-    string name;
-    # List of departments
-    string children;
+# [Entity] OrgStructure.
+public type OrgStructure record {|
+    # Organization structure with business units, team, units, and subunits
+    BusinessUnit[] businessUnits;
 |};
 
-# [OrgDataResponse] record.
-public type OrgDataResponse record {|
-    # Organizational structure
-    OrgItem[] orgStructure;
-    # Organizational items as separate lists for each org level
-    FlatList flatList;
-    # Employee distinct locations
-    string[] locations;
+# [Entity] Sub unit.
+public type SubUnit record {|
+    # Id of the subunit
+    int id;
+    # Name of the subunit
+    string name;
 |};
 
-# [OrgItem] record.
-public type OrgItem record {
-    # Name of the organizational item
+# [Entity] Team.
+public type Team record {|
+    # Id of the team
+    int id;
+    # Name of the team
     string name;
-    # Level of the organizational item
-    int level;
-    # Type of the organizational item
-    string 'type;
-    # Type Name of the organizational item
-    string typeName;
-    # Children of the organizational item
-    OrgItem[] children;
-};
-
-# [OrgType] record.
-public type OrgType Team|Unit;
+    # List of units
+    Unit[]? units;
+|};
 
 # [Entity] Unit.
 public type Unit record {|
+    # Id of the unit
+    int id;
     # Name of the unit
     string name;
+    # List of subunits
+    SubUnit[]? subUnits;
 |};

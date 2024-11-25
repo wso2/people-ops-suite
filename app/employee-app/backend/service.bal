@@ -96,20 +96,24 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     # Get organization structure from business units, team and units.
     #
-    # + employeeStatuses - List of employee statuses to consider
+    # + filter - Filter objects containing the filter criteria for the query as request body
+    # + 'limit - The maximum number of organization records to return
+    # + offset - The number of organization records to skip before starting to collect the result set
     # + return - Organization structure or an error
-    resource function get org\-structure(string[]? employeeStatuses) returns OrgDataResponse|http:InternalServerError {
+    resource function post org\-structure(OrgDetailsFilter filter, int? 'limit, int? offset)
+        returns OrgStructure|http:InternalServerError {
 
-        OrgDataResponse|error orgData = database:getOrgStructure(employeeStatuses);
-        if orgData is error {
+        OrgStructure|error orgStructure = database:getOrgStructure(filter, 'limit = DEFAULT_LIMIT,
+                offset = DEFAULT_OFFSET);
+        if orgStructure is error {
             string errorMsg = string `Error getting organization structure!`;
-            log:printError(errorMsg, orgData);
+            log:printError(errorMsg, orgStructure);
             return <http:InternalServerError>{
                 body: {
                     message: errorMsg
                 }
             };
         }
-        return orgData;
+        return orgStructure;
     }
 }

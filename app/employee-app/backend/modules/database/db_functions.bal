@@ -82,95 +82,33 @@ public isolated function getEmployees(EmployeeFilter filters, int 'limit, int of
 
 # Retrieve organizational details from HRIS.
 #
-# + employeeStatuses - List of employee statuses to consider
+# + filter - Filter objects containing the filter criteria for the query
+# + limit - Number of records to retrieve
+# + offset - Number of records to offset
 # + return - List of business units
-public isolated function getOrgStructure(string[]? employeeStatuses) returns OrgDataResponse|error {
+public isolated function getOrgStructure(OrgDetailsFilter filter, int 'limit, int offset)
+    returns OrgStructure|error {
 
-    OrgItem[] orgItems = [];
-    FlatList flatList = {
-        buFlatList: [],
-        teamFlatList: [],
-        unitFlatList: []
+    OrgStructure orgStructure = {
+        businessUnits: []
     };
-    stream<OrgDataDb, sql:Error?> resultStream = databaseClient->query(getOrgStructureQuery(employeeStatuses));
-    error? orgResult = from OrgDataDb orgData in resultStream
+    stream<BusinessUnitDb, sql:Error?> resultStream = databaseClient->query(
+        getOrgStructureQuery(filter, 'limit, offset)
+    );
+    error? businessUnitResult = from BusinessUnitDb bu in resultStream
         do {
-            Team[]|error teams = orgData.children.fromJsonStringWithType();
+            Team[]|error teams = bu.teams.fromJsonStringWithType();
             if teams is error {
-                return error(string `An error occurred when retrieving teams data of ${orgData.name}!`, teams);
+                return error(string `An error occurred when retrieving teams data of ${bu.name} !`, teams);
             }
-
-            flatList = processFlatList(flatList, orgData.name, 0, teams);
-            orgItems.push(processOrgHierarchy(orgData.name, 0, teams));
+            orgStructure.businessUnits.push({
+                id: bu.id,
+                name: bu.name,
+                teams
+            });
         };
-
-    if orgResult is sql:Error {
-        return error("An error occurred when retrieving organization details!");
+    if businessUnitResult is sql:Error {
+        return error(string `An error occurred when retrieving business unit details!`, businessUnitResult);
     }
-    stream<LocationData, error?> distinctLocations =
-            databaseClient->query(getDistinctEmployeeLocationQuery(employeeStatuses));
-    string[]? locationResults = check from LocationData locationResult in distinctLocations
-        select locationResult.location;
-
-    return {orgStructure: orgItems, flatList, locations: locationResults ?: []};
-}
-
-# Recursive method to build the flatList.
-#
-# + flatList - Initialized flatList 
-# + name - Name of each business unit/team/unit
-# + level - Level number 
-# + children - Children of each business unit/team/unit
-# + return - Updated flatlist
-public isolated function processFlatList(FlatList flatList, string name, int level, OrgType[]? children)
-    returns FlatList {
-
-    if level == 0 && flatList.buFlatList.indexOf(name) is () {
-        flatList.buFlatList.push(name);
-    } else if level == 1 && flatList.teamFlatList.indexOf(name) is () {
-        flatList.teamFlatList.push(name);
-    } else if level == 2 && flatList.unitFlatList.indexOf(name) is () {
-        flatList.unitFlatList.push(name);
-    }
-
-    if children is OrgType[] {
-        foreach OrgType child in children {
-            if child is Team {
-                _ = processFlatList(flatList, child.name, level + 1, child.children);
-            } else {
-                _ = processFlatList(flatList, child.name, level + 1, []);
-            }
-        }
-    }
-
-    return flatList;
-}
-
-# Recursive method to build the organization hierarchy.
-#
-# + name - Name of the business unit/team/unit 
-# + children - Children of each business unit/team/unit
-# + level - Level number 
-# + return - Organization item with name, level, type, type name and its children
-public isolated function processOrgHierarchy(string name, int level, OrgType[]? children)
-    returns OrgItem {
-
-    OrgItem[] childItems = [];
-    if children is OrgType[] {
-        foreach OrgType child in children {
-            if child is Team {
-                childItems.push(processOrgHierarchy(child.name, level + 1, child.children));
-            } else {
-                childItems.push(processOrgHierarchy(child.name, level + 1, []));
-            }
-        }
-    }
-
-    return {
-        name,
-        level,
-        'type: ORG_TYPE_MAP.keys()[level],
-        typeName: ORG_TYPE_MAP.get(ORG_TYPE_MAP.keys()[level]),
-        children: childItems
-    };
+    return orgStructure;
 }
