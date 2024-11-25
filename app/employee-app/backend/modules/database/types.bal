@@ -16,7 +16,7 @@
 import ballerina/sql;
 import ballerinax/mysql;
 
-# [Entity] Business Unit.
+# Business unit record.
 public type BusinessUnit record {|
     # Id of the business unit
     int id;
@@ -273,8 +273,8 @@ type HRISDatabaseConfig record {|
     mysql:Options? options;
 |};
 
-# [Query Filter] Organization data filters.
-public type OrgDetailsFilter record {|
+# [Query Filter] Organization structure filter record.
+public type orgStructureFilter record {|
     # Id of the business unit
     int[]? businessUnitIds = ();
     # Name of the business unit
@@ -283,13 +283,13 @@ public type OrgDetailsFilter record {|
     string[]? employeeStatuses = ();
 |};
 
-# [Entity] OrgStructure.
+# OrgStructure record.
 public type OrgStructure record {|
     # Organization structure with business units, team, units, and subunits
     BusinessUnit[] businessUnits;
 |};
 
-# [Entity] Sub unit.
+# Sub unit record.
 public type SubUnit record {|
     # Id of the subunit
     int id;
@@ -297,7 +297,7 @@ public type SubUnit record {|
     string name;
 |};
 
-# [Entity] Team.
+# Team record.
 public type Team record {|
     # Id of the team
     int id;
@@ -307,7 +307,7 @@ public type Team record {|
     Unit[]? units;
 |};
 
-# [Entity] Unit.
+# Unit record.
 public type Unit record {|
     # Id of the unit
     int id;

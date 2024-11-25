@@ -25,9 +25,9 @@ public type EmployeeFilter record {|
     *database:EmployeeFilter;
 |};
 
-# Organization data filter record.
-public type OrgDetailsFilter record {|
-    *database:OrgDetailsFilter;
+# Organization structure filter record.
+public type orgStructureFilter record {|
+    *database:orgStructureFilter;
 |};
 
 # Organization data response record.

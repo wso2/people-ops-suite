@@ -140,7 +140,7 @@ isolated function getEmployeesQuery(EmployeeFilter filters, int 'limit, int offs
 # + 'limit - The maximum number of employees to return
 # + offset - The number of employees to skip before starting to collect the result set
 # + return - Get organization structure query
-public isolated function getOrgStructureQuery(OrgDetailsFilter filter, int 'limit, int offset) 
+public isolated function getOrgStructureQuery(orgStructureFilter filter, int 'limit, int offset) 
     returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery sqlQuery = `
@@ -191,7 +191,7 @@ public isolated function getOrgStructureQuery(OrgDetailsFilter filter, int 'limi
             bu.business_unit_id IN (SELECT distinct(business_unit_id) FROM hris_business_unit_team WHERE business_unit_team_is_active = 1)
     `;
 
-    OrgDetailsFilter {
+    orgStructureFilter {
         businessUnitIds,
         businessUnits,
         employeeStatuses

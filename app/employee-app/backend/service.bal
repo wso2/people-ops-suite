@@ -100,7 +100,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + 'limit - The maximum number of organization records to return
     # + offset - The number of organization records to skip before starting to collect the result set
     # + return - Organization structure or an error
-    resource function post org\-structure(OrgDetailsFilter filter, int? 'limit, int? offset)
+    resource function post org\-structure(orgStructureFilter filter, int? 'limit, int? offset)
         returns OrgStructure|http:InternalServerError {
 
         OrgStructure|error orgStructure = database:getOrgStructure(filter, 'limit = DEFAULT_LIMIT,

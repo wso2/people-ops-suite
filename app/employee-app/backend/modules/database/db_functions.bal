@@ -51,7 +51,7 @@ public isolated function getEmployee(string email) returns Employee|error? {
 # Get basic information about given employees.
 #
 # + filters - Filter objects containing the filter criteria for the query
-# + limit - Number of records to retrieve
+# + 'limit - Number of records to retrieve
 # + offset - Number of records to offset
 # + return - Basic information of employees or an error
 public isolated function getEmployees(EmployeeFilter filters, int 'limit, int offset)
@@ -80,13 +80,13 @@ public isolated function getEmployees(EmployeeFilter filters, int 'limit, int of
         };
 }
 
-# Retrieve organizational details from HRIS.
+# Retrieve organizational structure.
 #
 # + filter - Filter objects containing the filter criteria for the query
-# + limit - Number of records to retrieve
+# + 'limit - Number of records to retrieve
 # + offset - Number of records to offset
 # + return - List of business units
-public isolated function getOrgStructure(OrgDetailsFilter filter, int 'limit, int offset)
+public isolated function getOrgStructure(orgStructureFilter filter, int 'limit, int offset)
     returns OrgStructure|error {
 
     OrgStructure orgStructure = {
