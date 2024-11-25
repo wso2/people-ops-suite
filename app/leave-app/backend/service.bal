@@ -32,28 +32,18 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + return - authorization:JwtInterceptor
     public function createInterceptors() returns http:Interceptor[] => [new authorization:JwtInterceptor()];
 
-    function init() returns error? {
-        log:printInfo("Leave application backend service started.");
-    }
+    function init() returns error? => log:printInfo("Leave application backend service started.");
 
     # Get leaves for the given filters.
     #
     # + ctx - HTTP request context
-    # + req - HTTP request
     # + email - Email of the user to filter the leaves
     # + startDate - Start date filter
     # + endDate - End date filter
     # + isActive - Whether to filter active or inactive leaves
     # + return - Return list of leaves
-    resource function get leaves(
-            http:RequestContext ctx,
-            http:Request req,
-            string? email = (),
-            string? startDate = (),
-            string? endDate = (),
-            boolean? isActive = (),
-            int? 'limit = (),
-            int? offset = 0
+    resource function get leaves(http:RequestContext ctx, string? email = (), string? startDate = (),
+            string? endDate = (), boolean? isActive = (), int? 'limit = (), int? offset = 0
     ) returns FetchedLeavesRecord|http:Forbidden|http:InternalServerError|http:BadRequest {
 
         if email is string && !email.matches(WSO2_EMAIL_PATTERN) {
@@ -66,10 +56,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         do {
             readonly & authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
-            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
-            if jwt is error {
-                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
-            }
+            string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
             if email != userInfo.email {
                 boolean validateForSingleRole = authorization:validateForSingleRole(userInfo, authorization:adminRoles);
                 if !validateForSingleRole {
@@ -89,7 +76,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaves);
             }
             LeaveResponse[] leaveResponses = from database:Leave leave in leaves
-                select check toLeaveEntity(leave, jwt.toString());
+                select check toLeaveEntity(leave, jwt);
 
             Leave[] leavesFinalResult = [];
             map<float> statsMap = {};
@@ -149,23 +136,15 @@ service http:InterceptableService / on new http:Listener(9090) {
     # Create a new leave.
     #
     # + ctx - HTTP request context
-    # + req - HTTP request
     # + payload - Request payload
     # + isValidationOnlyMode - Whether to validate the leave or create the leave
     # + return - Success response if the leave is created successfully, otherwise an error response
-    resource function post leaves(
-            http:RequestContext ctx,
-            http:Request req,
-            LeavePayload payload,
-            boolean isValidationOnlyMode = false
-    ) returns CalculatedLeave|http:Ok|http:BadRequest|http:InternalServerError {
+    resource function post leaves(http:RequestContext ctx, LeavePayload payload, boolean isValidationOnlyMode = false)
+        returns CalculatedLeave|http:Ok|http:BadRequest|http:InternalServerError {
 
         do {
             readonly & authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
-            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
-            if jwt is error {
-                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
-            }
+            string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
             string email = userInfo.email;
             log:printInfo(string `Leave${isValidationOnlyMode ? " validation " : " "}request received from email: ${
                     email} with payload: ${payload.toString()}`);
@@ -194,7 +173,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 emailSubject: payload.emailSubject
             };
             if isValidationOnlyMode {
-                LeaveDetails|error validatedLeave = insertLeaveToDatabase(input, isValidationOnlyMode, jwt.toString());
+                LeaveDetails|error validatedLeave = insertLeaveToDatabase(input, isValidationOnlyMode, jwt);
                 if validatedLeave is error {
                     fail error(validatedLeave.message(), validatedLeave);
                 }
@@ -209,13 +188,13 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
 
             final readonly & email:EmailNotificationDetails emailContentForLeave = check email:generateContentForLeave(
-                    jwt.toString(), email, payload
+                    jwt, email, payload
             );
             final readonly & string calendarEventId = createUuidForCalendarEvent();
             final readonly & string[]|error allRecipientsForUser = getAllEmailRecipientsForUser(
                     email,
                     payload.emailRecipients,
-                    jwt.toString()
+                    jwt
             );
             if allRecipientsForUser is error {
                 fail error(allRecipientsForUser.message(), allRecipientsForUser);
@@ -225,7 +204,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             payload.emailSubject = emailContentForLeave.subject;
             payload.calendarEventId = calendarEventId;
 
-            LeaveDetails|error leave = insertLeaveToDatabase(input, isValidationOnlyMode, jwt.toString());
+            LeaveDetails|error leave = insertLeaveToDatabase(input, isValidationOnlyMode, jwt);
             if leave is error {
                 fail error(leave.message(), leave);
             }
@@ -243,7 +222,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     commentRecipients = check getPrivateRecipientsForUser(
                             email,
                             payload.emailRecipients,
-                            jwt.toString()
+                            jwt
                     );
                 }
 
@@ -277,16 +256,12 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + leaveId - Leave ID
     # + ctx - Request context
     # + return - Return cancelled leave on success, otherwise an error response
-    resource function delete leaves/[int leaveId](http:RequestContext ctx, http:Request req)
+    resource function delete leaves/[int leaveId](http:RequestContext ctx)
         returns http:Ok|http:Forbidden|http:BadRequest|http:InternalServerError {
 
         do {
             readonly & authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
-            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
-            if jwt is error {
-                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
-            }
-
+            string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
             final database:Leave|error? leave = database:getLeave(leaveId);
             if leave is () {
                 return <http:BadRequest>{
@@ -299,7 +274,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leave);
             }
 
-            LeaveResponse leaveResponse = check toLeaveEntity(leave, jwt.toString());
+            LeaveResponse leaveResponse = check toLeaveEntity(leave, jwt);
             final string email = userInfo.email;
             if leaveResponse.email != email {
                 boolean validateForSingleRole = authorization:validateForSingleRole(userInfo, authorization:adminRoles);
@@ -328,13 +303,13 @@ service http:InterceptableService / on new http:Listener(9090) {
                 fail error(ERR_MSG_CANCEL_LEAVE, cancelledLeave);
             }
 
-            LeaveDetails|error cancelledLeaveDetails = getLeaveEntityFromDbRecord(cancelledLeave, jwt.toString(), true);
+            LeaveDetails|error cancelledLeaveDetails = getLeaveEntityFromDbRecord(cancelledLeave, jwt, true);
             if cancelledLeaveDetails is error {
                 fail error(cancelledLeaveDetails.message(), cancelledLeaveDetails);
             }
 
             email:EmailNotificationDetails generateContentForLeave = check email:generateContentForLeave(
-                    jwt.toString(),
+                    jwt,
                     email,
                     leaveResponse,
                     isCancel = true,
@@ -343,7 +318,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             string[] allRecipientsForUser = check getAllEmailRecipientsForUser(
                     email,
                     cancelledLeaveDetails.emailRecipients,
-                    jwt.toString()
+                    jwt
             );
             _ = start email:sendLeaveNotification(
                     generateContentForLeave.cloneReadOnly(),
@@ -374,17 +349,12 @@ service http:InterceptableService / on new http:Listener(9090) {
     # Get Application specific data required for initializing the leave form.
     #
     # + ctx - HTTP request context
-    # + req - HTTP Request
     # + return - Return application specific form data
-    resource function get form\-data(http:RequestContext ctx, http:Request req)
-        returns FormData|http:InternalServerError {
+    resource function get form\-data(http:RequestContext ctx) returns FormData|http:InternalServerError {
 
         do {
             authorization:CustomJwtPayload {email} = check ctx.getWithType(authorization:HEADER_USER_INFO);
-            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
-            if jwt is error {
-                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT);
-            }
+            string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
             final readonly & string[] emails = [email];
             final string startDate = getStartDateOfYear();
             final string endDate = getEndDateOfYear();
@@ -395,7 +365,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaveResponse);
             }
             LeaveResponse[] leaves = from database:Leave leave in leaveResponse
-                select check toLeaveEntity(leave, jwt.toString());
+                select check toLeaveEntity(leave, jwt);
 
             Employee & readonly employee = check employee:getEmployee(email, jwt);
             Employee {leadEmail, location} = employee;
@@ -426,6 +396,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     # Fetch all the employees.
     #
+    # + ctx - HTTP request context
     # + location - Employee location
     # + businessUnit - Employee business unit
     # + team - Employee team
@@ -433,22 +404,11 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + employeeStatuses - Employee statuses to filter the employees
     # + leadEmail - Manager email to filter the employees
     # + return - Return list of employee records
-    resource function get employees(
-            http:Request req,
-            string? location,
-            string? businessUnit,
-            string? team,
-            string? unit,
-            string[]? employeeStatuses,
-            string? leadEmail)
-        returns Employee[]|http:InternalServerError {
+    resource function get employees(http:RequestContext ctx, string? location, string? businessUnit, string? team,
+            string? unit, string[]? employeeStatuses, string? leadEmail) returns Employee[]|http:InternalServerError {
 
         do {
-            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
-            if jwt is error {
-                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
-            }
-
+            string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
             Employee[] & readonly employees = check employee:getEmployees(
                     jwt,
                     {
@@ -489,9 +449,9 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     # Fetch an employee by email.
     #
-    # + email - Employee email
+    # + ctx - HTTP request context
     # + return - Return the employee record
-    resource function get employees/[string email](http:Request req)
+    resource function get employees/[string email](http:RequestContext ctx)
         returns Employee|http:InternalServerError|http:BadRequest {
 
         if !email.matches(WSO2_EMAIL_PATTERN) {
@@ -503,10 +463,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         do {
-            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
-            if jwt is error {
-                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
-            }
+            string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
             Employee & readonly employee = check employee:getEmployee(email, jwt);
             return {
                 employeeId: employee.employeeId,
@@ -533,14 +490,10 @@ service http:InterceptableService / on new http:Listener(9090) {
     # Fetch legally entitled leave for the given employee.
     #
     # + ctx - HTTP request context
-    # + req - HTTP request
     # + years - Years to fetch leave entitlement. Empty array will fetch leave entitlement for current year
     # + return - Return leave entitlement
-    resource function get employees/[string email]/leave\-entitlement(
-            http:RequestContext ctx,
-            http:Request req,
-            int[]? years = ()
-    ) returns LeaveEntitlement[]|http:BadRequest|http:Forbidden|http:InternalServerError {
+    resource function get employees/[string email]/leave\-entitlement(http:RequestContext ctx, int[]? years = ())
+        returns LeaveEntitlement[]|http:BadRequest|http:Forbidden|http:InternalServerError {
 
         if !email.matches(WSO2_EMAIL_PATTERN) {
             return <http:BadRequest>{
@@ -552,11 +505,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         do {
             readonly & authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
-            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
-            if jwt is error {
-                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT);
-            }
-
+            string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
             if email != userInfo.email {
                 boolean validateForSingleRole = authorization:validateForSingleRole(userInfo, authorization:adminRoles);
                 if !validateForSingleRole {
@@ -570,7 +519,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
 
             Employee & readonly employee = check employee:getEmployee(email, jwt);
-            LeaveEntitlement[]|error leaveEntitlement = getLeaveEntitlement(employee, jwt.toString(), years ?: []);
+            LeaveEntitlement[]|error leaveEntitlement = getLeaveEntitlement(employee, jwt, years ?: []);
             if leaveEntitlement is error {
                 fail error(ERR_MSG_LEAVE_ENTITLEMENT_RETRIEVAL_FAILED, leaveEntitlement);
             }
@@ -592,22 +541,14 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + startDate - Start date of the calendar
     # + endDate - End date of the calendar
     # + return - Return user calendar
-    resource function get user\-calendar(
-            http:RequestContext ctx,
-            http:Request req,
-            string startDate,
-            string endDate
-    ) returns UserCalendarInformation|http:InternalServerError {
+    resource function get user\-calendar(http:RequestContext ctx, string startDate, string endDate)
+        returns UserCalendarInformation|http:InternalServerError {
 
         do {
             authorization:CustomJwtPayload {email} = check ctx.getWithType(authorization:HEADER_USER_INFO);
-            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
-            if jwt is error {
-                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT);
-            }
-
+            string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
             UserCalendarInformation|http:InternalServerError|error userCalendarInformation =
-                getUserCalendarInformation(email, startDate, endDate, jwt.toString());
+                getUserCalendarInformation(email, startDate, endDate, jwt);
             if userCalendarInformation is error {
                 return {
                     body: {
@@ -632,17 +573,11 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + ctx - Request context
     # + payload - Request payload
     # + return - Return leave report on success, otherwise an error response
-    resource function post generate\-report(
-            http:RequestContext ctx,
-            http:Request req,
-            ReportPayload payload
-    ) returns ReportContent|http:InternalServerError {
+    resource function post generate\-report(http:RequestContext ctx, http:Request req, ReportPayload payload)
+        returns ReportContent|http:InternalServerError {
 
         do {
-            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
-            if jwt is error {
-                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT, jwt);
-            }
+            string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
             var {location, businessUnit, department, team, employeeStatuses, startDate, endDate} = payload;
             Employee[] & readonly employees = check employee:getEmployees(
                     jwt,
@@ -660,7 +595,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
 
             LeaveResponse[] leaveResponses = from database:Leave leave in leaveResponse
-                select check toLeaveEntity(leave, jwt.toString());
+                select check toLeaveEntity(leave, jwt);
 
             return getLeaveReportContent(leaveResponses);
         } on fail error internalErr {
@@ -678,18 +613,12 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + ctx - Request context
     # + payload - Request payload
     # + return - Return leave report on success, otherwise an error response
-    resource function post generate\-lead\-report(
-            http:RequestContext ctx,
-            http:Request req,
-            LeadReportPayload payload
-    ) returns ReportContent|http:Forbidden|http:InternalServerError {
+    resource function post generate\-lead\-report(http:RequestContext ctx, LeadReportPayload payload)
+        returns ReportContent|http:Forbidden|http:InternalServerError {
 
         do {
             authorization:CustomJwtPayload {email} = check ctx.getWithType(authorization:HEADER_USER_INFO);
-            string|error jwt = req.getHeader(authorization:JWT_ASSERTION_HEADER);
-            if jwt is error {
-                fail error(ERR_MSG_NO_JWT_TOKEN_PRESENT);
-            }
+            string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
             var {employeeStatuses, startDate, endDate} = payload;
             Employee[] & readonly employees = check employee:getEmployees(
                     jwt,
@@ -716,7 +645,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
             LeaveResponse[] leaveResponses =
             from database:Leave leave in leaveResponse
-            select check toLeaveEntity(leave, jwt.toString());
+            select check toLeaveEntity(leave, jwt);
 
             return getLeaveReportContent(leaveResponses);
         } on fail error internalErr {
