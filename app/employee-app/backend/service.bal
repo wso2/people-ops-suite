@@ -33,6 +33,8 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + return - authorization:JwtInterceptor
     public function createInterceptors() returns http:Interceptor[] => [new authorization:JwtInterceptor()];
 
+    function init() returns error? => log:printInfo("Employee application backend service started.");
+
     # Get basic information of a given active employee.
     #
     # + email - Email of the employee
