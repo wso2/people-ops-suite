@@ -21,6 +21,9 @@ public const HEADER_USER_INFO = "user-info";
 # The header used to transmit the JWT assertion token.
 public const JWT_ASSERTION_HEADER = "x-jwt-assertion";
 
+# The header used to get the JWT assertion token.
+public const INVOKER_TOKEN = "invoker-token";
+
 // Authorization related constants
 public final map<string[]> & readonly adminPathToAllowedMethods = {
     "holidays": [http:POST, http:PUT, http:DELETE, http:PATCH],
