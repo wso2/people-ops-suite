@@ -41,7 +41,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + startDate - Start date filter
     # + endDate - End date filter
     # + isActive - Whether to filter active or inactive leaves
-    # + return - Return list of leaves
+    # + return - List of leaves
     resource function get leaves(http:RequestContext ctx, string? email = (), string? startDate = (),
             string? endDate = (), boolean? isActive = (), int? 'limit = (), int? offset = 0
     ) returns FetchedLeavesRecord|http:Forbidden|http:InternalServerError|http:BadRequest {
@@ -349,7 +349,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # Get Application specific data required for initializing the leave form.
     #
     # + ctx - HTTP request context
-    # + return - Return application specific form data
+    # + return - Form data related to leaves
     resource function get form\-data(http:RequestContext ctx) returns FormData|http:InternalServerError {
 
         do {
@@ -403,7 +403,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + unit - Employee unit
     # + employeeStatuses - Employee statuses to filter the employees
     # + leadEmail - Manager email to filter the employees
-    # + return - Return list of employee records
+    # + return - List of employee records
     resource function get employees(http:RequestContext ctx, string? location, string? businessUnit, string? team,
             string? unit, string[]? employeeStatuses, string? leadEmail) returns Employee[]|http:InternalServerError {
 
@@ -450,7 +450,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # Fetch an employee by email.
     #
     # + ctx - HTTP request context
-    # + return - Return the employee record
+    # + return - The employee record
     resource function get employees/[string email](http:RequestContext ctx)
         returns Employee|http:InternalServerError|http:BadRequest {
 
@@ -491,7 +491,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + ctx - HTTP request context
     # + years - Years to fetch leave entitlement. Empty array will fetch leave entitlement for current year
-    # + return - Return leave entitlement
+    # + return - Leave entitlement
     resource function get employees/[string email]/leave\-entitlement(http:RequestContext ctx, int[]? years = ())
         returns LeaveEntitlement[]|http:BadRequest|http:Forbidden|http:InternalServerError {
 
@@ -540,7 +540,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + ctx - Request context
     # + startDate - Start date of the calendar
     # + endDate - End date of the calendar
-    # + return - Return user calendar
+    # + return - User calendar
     resource function get user\-calendar(http:RequestContext ctx, string startDate, string endDate)
         returns UserCalendarInformation|http:InternalServerError {
 
@@ -572,8 +572,8 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + ctx - Request context
     # + payload - Request payload
-    # + return - Return leave report on success, otherwise an error response
-    resource function post generate\-report(http:RequestContext ctx, http:Request req, ReportPayload payload)
+    # + return - Leave report on success, otherwise an error response
+    resource function post generate\-report(http:RequestContext ctx, ReportPayload payload)
         returns ReportContent|http:InternalServerError {
 
         do {
@@ -612,7 +612,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + ctx - Request context
     # + payload - Request payload
-    # + return - Return leave report on success, otherwise an error response
+    # + return - Employee leave details for a specific lead
     resource function post generate\-lead\-report(http:RequestContext ctx, LeadReportPayload payload)
         returns ReportContent|http:Forbidden|http:InternalServerError {
 
