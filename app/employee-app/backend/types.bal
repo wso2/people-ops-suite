@@ -25,12 +25,6 @@ public type Employee record {|
     *database:Employee;
 |};
 
-# Employee location record.
-public type EmployeeLocations record {|
-    # List of distinct locations
-    string[] locations;
-|};
-
 # Organization structure filter record.
 public type orgStructureFilter record {|
     *database:orgStructureFilter;

@@ -51,23 +51,6 @@ isolated function getCommonEmployeeQuery() returns sql:ParameterizedQuery => `
         hris_employment_type het ON e.employee_employment_type_id = het.employment_type_id
 `;
 
-# Build query to retrieve the distinct employee locations.
-#
-# + employeeStatuses - List of employee statuses to consider
-# + return - Select query for getting distinct locations of the employee table
-isolated function getDistinctEmployeeLocationsQuery(EmployeeStatus[]? employeeStatuses)
-    returns sql:ParameterizedQuery {
-
-    sql:ParameterizedQuery query = `
-        SELECT DISTINCT employee_location 
-        FROM hris_employee 
-        WHERE employee_location <> ''`;
-    if employeeStatuses is string[] && employeeStatuses.length() > 0 {
-        query = sql:queryConcat(query, ` AND employee_status IN (`, sql:arrayFlattenQuery(employeeStatuses), `)`);
-    }
-    return query;
-}
-
 # Build query to retrieve the employee from the active or marked leaver status and email.
 #
 # + email - Email of the employee

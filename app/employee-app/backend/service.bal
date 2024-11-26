@@ -96,29 +96,6 @@ service http:InterceptableService / on new http:Listener(9090) {
         return employees;
     }
 
-    # Get basic information of employees.
-    #
-    # + employeeStatuses - List of employee statuses to consider
-    # + return - Basic information of the employees or an error
-    resource function get employees/locations(database:EmployeeStatus[]? employeeStatuses)
-        returns EmployeeLocations|http:InternalServerError {
-
-        string[]|error employeeLocations =
-            database:getDistinctEmployeeLocations(employeeStatuses);
-        if employeeLocations is error {
-            string errorMsg = "Error getting employee locations!";
-            log:printError(errorMsg, employeeLocations);
-            return <http:InternalServerError>{
-                body: {
-                    message: errorMsg
-                }
-            };
-        }
-        return {
-            locations: employeeLocations
-        };
-    }
-
     # Get organization structure from business units, team and units.
     #
     # + filter - Filter objects containing the filter criteria for the query as request body

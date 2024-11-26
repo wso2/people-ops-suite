@@ -263,13 +263,6 @@ public type Employee record {|
     string? updatedOn?;
 |};
 
-# Employee location record.
-public type EmployeeLocation record {|
-    # Employee location
-    @sql:Column {name: "employee_location"}
-    string location;
-|};
-
 # OrgStructure record.
 public type OrgStructure record {|
     # Organization structure with business units, team, units, and subunits

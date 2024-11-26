@@ -15,20 +15,6 @@
 // under the License.
 import ballerina/sql;
 
-# Get distinct employee locations from given employee status.
-#
-# + employeeStatuses - List of employee statuses to consider
-# + return - Distinct employee locations or an error
-public isolated function getDistinctEmployeeLocations(EmployeeStatus[]? employeeStatuses)
-    returns string[]|error {
-
-    stream<EmployeeLocation, error?> resultStream = databaseClient->query(
-        getDistinctEmployeeLocationsQuery(employeeStatuses)
-    );
-    return check from EmployeeLocation empLocation in resultStream
-        select empLocation.location;
-}
-
 # Get basic information about a given active employee.
 #
 # + email - Email of the employee
