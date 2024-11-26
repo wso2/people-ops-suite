@@ -16,12 +16,8 @@
 import employee_service.authorization;
 import employee_service.database;
 
-import ballerina/cache;
 import ballerina/http;
 import ballerina/log;
-
-final cache:Cache userInfoCache = new ('capacity = CACHE_CAPACITY, 'evictionFactor = CACHE_EVICTION_FACTOR);
-final cache:Cache orgStructureCache = new ('capacity = CACHE_CAPACITY, 'evictionFactor = CACHE_EVICTION_FACTOR);
 
 @display {
     label: "Employee Backend Service",
