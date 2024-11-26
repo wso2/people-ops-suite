@@ -24,8 +24,21 @@ type ChoreoApp record {|
     string clientSecret;
 |};
 
+# Time record.
+public type Time record {|
+    # The date, in the format "yyyy-mm-dd"
+    @display {label: "Date"}
+    string date?;
+    # A combined date-time value formatted according to RFC3339
+    @display {label: "Date And Time"}
+    string dateTime?;
+    # The time zone in which the time is specified
+    @display {label: "Time Zone"}
+    string timeZone?;
+|};
+
 # Elements representing event input record.
-public type EventPayload record {
+public type EventPayload record {|
     # Title of the event
     @display {label: "Event Title"}
     string summary?;
@@ -59,7 +72,7 @@ public type EventPayload record {
     # Visibility of the event
     @display {label: "Event Visibility"}
     string visibility?;
-};
+|};
 
 # Server Message.
 public type CreatedMessage record {|
@@ -75,14 +88,28 @@ public type Day record {|
     string date;
 |};
 
-# Server Message for event deletion.
-public type DeletedMessage record {|
-    # Message
-    string message?;
+# Holiday record.
+public type Holiday record {|
+    # ID of the holiday
+    string id;
+    # Title of the holiday
+    string title;
+    # Date of the holiday
+    string date;
+    # Country of the holiday
+    string country;
+|};
+
+# Holiday group record type, which contains the country name and the list of holidays.
+public type HolidayGroup record {|
+    # Country name(example, US, UK, etc)  
+    string country;
+    # List of holidays
+    Event[] holidays;
 |};
 
 # Event record.
-public type Event record {
+public type Event record {|
     # ID of the event
     string id;
     # Event type
@@ -109,51 +136,8 @@ public type Event record {
         string date?;
         string datetime?;
     } end;
-};
+    json...; // Rest descriptor allows additional fields
+|};
 
 # Event type record.
 public type EventType GOOGLE_CALENDAR_EVENT;
-
-# Holiday record.
-public type Holiday record {|
-    # ID of the holiday
-    string id;
-    # Title of the holiday
-    string title;
-    # Date of the holiday
-    string date;
-    # Country of the holiday
-    string country;
-|};
-
-# Holiday group record type, which contains the country name and the list of holidays.
-public type HolidayGroup record {
-    # Country name(example, US, UK, etc)  
-    string country;
-    # List of holidays
-    Event[] holidays;
-};
-
-# Time record.
-public type Time record {
-    # The date, in the format "yyyy-mm-dd"
-    @display {label: "Date"}
-    string date?;
-    # A combined date-time value formatted according to RFC3339
-    @display {label: "Date And Time"}
-    string dateTime?;
-    # The time zone in which the time is specified
-    @display {label: "Time Zone"}
-    string timeZone?;
-};
-
-# Validation error detail record.
-public type ValidationErrorDetail record {
-    # Error message for response
-    string externalMessage; // `message` is made a mandatory field
-    # Number of working days
-    float workingDays = 0;
-};
-
-# Validation error record.
-public type ValidationError error<ValidationErrorDetail>;

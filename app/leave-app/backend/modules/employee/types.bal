@@ -24,6 +24,28 @@ type ChoreoApp record {|
     string clientSecret;
 |};
 
+# Employee filter record.
+public type EmployeeFilter record {|
+    # Employee location
+    string? location = ();
+    # Employee business unit
+    string? businessUnit = ();
+    # Employee unit
+    string? unit = ();
+    # Employee team
+    string? team = ();
+    # Employee statuses
+    string[]? status = ();
+    # Employee lead email
+    string? leadEmail = ();
+    # Employee designation
+    string? designation = ();
+    # Employee employment type
+    string[]? employmentType = ();
+    # Employee is a lead or not
+    boolean? lead = ();
+|};
+
 # Employee type.
 public type Employee record {|
     # Id of the employee
@@ -46,28 +68,6 @@ public type Employee record {|
     string? finalDayOfEmployment;
     # Employee is a lead or not
     boolean? lead;
-|};
-
-# Employee filter record.
-public type EmployeeFilter record {|
-    # Employee location
-    string? location = ();
-    # Employee business unit
-    string? businessUnit = ();
-    # Employee unit
-    string? unit = ();
-    # Employee team
-    string? team = ();
-    # Employee statuses
-    string[]? status = ();
-    # Employee lead email
-    string? leadEmail = ();
-    # Employee designation
-    string? designation = ();
-    # Employee employment type
-    string[]? employmentType = ();
-    # Employee is a lead or not
-    boolean? lead = ();
 |};
 
 # Employee response type.
