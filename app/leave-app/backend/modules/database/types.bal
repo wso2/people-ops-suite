@@ -42,22 +42,29 @@ type DatabaseConfig record {|
     ConnectionPool connectionPool;
 |};
 
-# Day record.
-public type Day record {|
-    # Date of day
-    string date;
+# Database config record.
+type LeaveDatabaseConfig record {|
+    *DatabaseConfig;
+    # Additional configurations related to the MySQL database connection
+    mysql:Options? options;
 |};
 
-# Holiday record.
-public type Holiday record {|
-    # ID of the holiday
-    string id;
-    # Title of the holiday
-    string title;
-    # Date of the holiday
-    string date;
-    # Country of the holiday
-    string country;
+# [Query Filter] Leave entity filters.
+public type LeaveFilter record {|
+    # Start date (yyyy-mm-dd)
+    string? startDate?;
+    # End date (yyyy-mm-dd)
+    string? endDate?;
+    # Leave type
+    string[]? leaveTypes?;
+    # Leave period type
+    string? periodType?;
+    # Email addresses of employees
+    string[]? emails?;
+    # Is leave active
+    boolean? isActive?;
+    # Order by Ascending or Descending
+    OrderBy? orderBy?;
 |};
 
 # [Database] Leave type.
@@ -130,6 +137,24 @@ public type Leave record {|
     string? location;
 |};
 
+# Day record.
+public type Day record {|
+    # Date of day
+    string date;
+|};
+
+# Holiday record.
+public type Holiday record {|
+    # ID of the holiday
+    string id;
+    # Title of the holiday
+    string title;
+    # Date of the holiday
+    string date;
+    # Country of the holiday
+    string country;
+|};
+
 # Payload for calculating leave details.
 public type LeaveCalculationPayload record {|
     # Start date of the leave
@@ -142,14 +167,6 @@ public type LeaveCalculationPayload record {|
     LeavePeriodType periodType;
 |};
 
-
-# Database config record.
-type LeaveDatabaseConfig record {|
-    *DatabaseConfig;
-    # Additional configurations related to the MySQL database connection
-    mysql:Options? options;
-|};
-
 # Leave day record.
 public type LeaveDay record {|
     # Date of leave
@@ -160,24 +177,6 @@ public type LeaveDay record {|
     boolean isMorningLeave?;
     # Leave period type
     LeavePeriodType periodType;
-|};
-
-# [Query Filter] Leave entity filters.
-public type LeaveFilter record {|
-    # Start date (yyyy-mm-dd)
-    string? startDate?;
-    # End date (yyyy-mm-dd)
-    string? endDate?;
-    # Leave type
-    string[]? leaveTypes?;
-    # Leave period type
-    string? periodType?;
-    # Email addresses of employees
-    string[]? emails?;
-    # Is leave active
-    boolean? isActive?;
-    # Order by Ascending or Descending
-    OrderBy? orderBy?;
 |};
 
 # Leave input for leave creation.
