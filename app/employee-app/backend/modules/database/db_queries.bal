@@ -55,7 +55,8 @@ isolated function getCommonEmployeeQuery() returns sql:ParameterizedQuery => `
 #
 # + employeeStatuses - List of employee statuses to consider
 # + return - Select query for getting distinct locations of the employee table
-isolated function getDistinctEmployeeLocationQuery(string[]? employeeStatuses) returns sql:ParameterizedQuery {
+isolated function getDistinctEmployeeLocationsQuery(EmployeeStatus[]? employeeStatuses)
+    returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery query = `
         SELECT DISTINCT employee_location 
@@ -140,7 +141,7 @@ isolated function getEmployeesQuery(EmployeeFilter filters, int 'limit, int offs
 # + 'limit - The maximum number of employees to return
 # + offset - The number of employees to skip before starting to collect the result set
 # + return - Get organization structure query
-public isolated function getOrgStructureQuery(orgStructureFilter filter, int 'limit, int offset) 
+public isolated function getOrgStructureQuery(orgStructureFilter filter, int 'limit, int offset)
     returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery sqlQuery = `
@@ -213,7 +214,7 @@ public isolated function getOrgStructureQuery(orgStructureFilter filter, int 'li
     }
     if businessUnits is string[] && businessUnits.length() > 0 {
         filterQueries.push(sql:queryConcat(`bu.business_unit_name IN (`, sql:arrayFlattenQuery(businessUnits), `)`));
-    }    
+    }
     sqlQuery = buildSqlSelectQuery(sqlQuery, filterQueries);
     sqlQuery = sql:queryConcat(sqlQuery, ` LIMIT ${'limit} OFFSET ${offset}`);
 

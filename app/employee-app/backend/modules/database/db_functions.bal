@@ -15,13 +15,27 @@
 // under the License.
 import ballerina/sql;
 
+# Get distinct employee locations from given employee status.
+#
+# + employeeStatuses - List of employee statuses to consider
+# + return - Distinct employee locations or an error
+public isolated function getDistinctEmployeeLocations(EmployeeStatus[]? employeeStatuses)
+    returns string[]|error {
+
+    stream<EmployeeLocation, error?> resultStream = databaseClient->query(
+        getDistinctEmployeeLocationsQuery(employeeStatuses)
+    );
+    return check from EmployeeLocation empLocation in resultStream
+        select empLocation.location;
+}
+
 # Get basic information about a given active employee.
 #
 # + email - Email of the employee
 # + return - Basic information of the employee or an error
 public isolated function getEmployee(string email) returns Employee|error? {
 
-    DBEmployee|error result = databaseClient->queryRow(getEmployeeQuery(email));
+    EmployeeDb|error result = databaseClient->queryRow(getEmployeeQuery(email));
     if result is error {
         string errorMsg = string `An error occurred when retrieving employee data of ${email} !`;
         return error(errorMsg, result);
@@ -57,26 +71,26 @@ public isolated function getEmployee(string email) returns Employee|error? {
 public isolated function getEmployees(EmployeeFilter filters, int 'limit, int offset)
     returns Employee[]|error {
 
-    stream<DBEmployee, error?> resultStream = databaseClient->query(getEmployeesQuery(filters, 'limit, offset));
-    return from DBEmployee dbEmployeeInfo in resultStream
+    stream<EmployeeDb, error?> resultStream = databaseClient->query(getEmployeesQuery(filters, 'limit, offset));
+    return from EmployeeDb EmployeeDbInfo in resultStream
         select {
-            employeeId: dbEmployeeInfo.employeeId,
-            workEmail: dbEmployeeInfo.workEmail,
-            firstName: dbEmployeeInfo.firstName,
-            lastName: dbEmployeeInfo.lastName,
-            employeeThumbnail: dbEmployeeInfo.employeeThumbnail,
-            location: dbEmployeeInfo.location,
-            startDate: dbEmployeeInfo.startDate,
-            leadEmail: dbEmployeeInfo.leadEmail,
-            finalDayOfEmployment: dbEmployeeInfo.finalDayOfEmployment,
-            employeeStatus: dbEmployeeInfo.employeeStatus,
-            designation: dbEmployeeInfo.designation,
-            employmentType: dbEmployeeInfo.employmentType,
-            team: dbEmployeeInfo.team,
-            businessUnit: dbEmployeeInfo.businessUnit,
-            unit: dbEmployeeInfo.unit,
-            jobBand: dbEmployeeInfo.jobBand,
-            lead: dbEmployeeInfo.lead == 1
+            employeeId: EmployeeDbInfo.employeeId,
+            workEmail: EmployeeDbInfo.workEmail,
+            firstName: EmployeeDbInfo.firstName,
+            lastName: EmployeeDbInfo.lastName,
+            employeeThumbnail: EmployeeDbInfo.employeeThumbnail,
+            location: EmployeeDbInfo.location,
+            startDate: EmployeeDbInfo.startDate,
+            leadEmail: EmployeeDbInfo.leadEmail,
+            finalDayOfEmployment: EmployeeDbInfo.finalDayOfEmployment,
+            employeeStatus: EmployeeDbInfo.employeeStatus,
+            designation: EmployeeDbInfo.designation,
+            employmentType: EmployeeDbInfo.employmentType,
+            team: EmployeeDbInfo.team,
+            businessUnit: EmployeeDbInfo.businessUnit,
+            unit: EmployeeDbInfo.unit,
+            jobBand: EmployeeDbInfo.jobBand,
+            lead: EmployeeDbInfo.lead == 1
         };
 }
 

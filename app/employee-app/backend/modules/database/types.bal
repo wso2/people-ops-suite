@@ -51,7 +51,7 @@ type ConnectionPool record {|
 # [Database] Employee basic information record to get lead type as int.
 # Duplicated record with one field change(int? lead) had created due to below issue in ballerina 2201.8.6. 
 # Issue: https://github.com/ballerina-platform/ballerina-library/issues/7297
-public type DBEmployee record {|
+public type EmployeeDb record {|
     # Id of the employee
     @sql:Column {name: "employee_id"}
     string employeeId;
@@ -248,6 +248,13 @@ public type EmployeeFilter record {|
     string? unit = ();
     # Employee is a lead or not
     boolean? lead = ();
+|};
+
+# Employee location record.
+public type EmployeeLocation record {|
+    # Employee location
+    @sql:Column {name: "employee_location"}
+    string location;
 |};
 
 # [Configurable] database configs.
