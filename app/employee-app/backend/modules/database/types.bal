@@ -16,14 +16,69 @@
 import ballerina/sql;
 import ballerinax/mysql;
 
-# Business unit record.
-public type BusinessUnit record {|
+# Database connection pool.
+type ConnectionPool record {|
+    # Maximum number of open connections
+    int maxOpenConnections;
+    # Maximum lifetime of a connection
+    decimal maxConnectionLifeTime;
+    # Minimum number of open connections
+    int minIdleConnections;
+|};
+
+# [Configurable] database configs.
+type DatabaseConfig record {|
+    # Database User 
+    string user;
+    # Database Password
+    string password;
+    # Database Name
+    string database;
+    # Database Host
+    string host;
+    # Database port
+    int port;
+    # Database connection pool
+    ConnectionPool connectionPool;
+|};
+
+# Database config record.
+type HRISDatabaseConfig record {|
+    *DatabaseConfig;
+    # Additional configurations related to the MySQL database connection
+    mysql:Options? options;
+|};
+
+# Employee filter record.
+public type EmployeeFilter record {|
+    # Employee location
+    string? location = ();
+    # Employee business unit
+    string? businessUnit = ();
+    # Employee designation
+    string? designation = ();
+    # Employee employment type
+    string[]? employmentType = ();
+    # Employee lead email
+    string? leadEmail = ();
+    # Employee statuses
+    string[]? status = ();
+    # Employee team
+    string? team = ();
+    # Employee unit
+    string? unit = ();
+    # Employee is a lead or not
+    boolean? lead = ();
+|};
+
+# Organization structure filter record.
+public type orgStructureFilter record {|
     # Id of the business unit
-    int id;
-    # Title of the business unit
-    string name;
-    # List of teams
-    Team[]? teams;
+    int[]? businessUnitIds = ();
+    # Name of the business unit
+    string[]? businessUnits = ();
+    # Employee statuses
+    string[]? employeeStatuses = ();
 |};
 
 # [Database] Business unit data.
@@ -36,16 +91,6 @@ public type BusinessUnitDb record {|
     string name;
     # List of teams
     string teams;
-|};
-
-# [Database] connection pool.
-type ConnectionPool record {|
-    # Maximum number of open connections
-    int maxOpenConnections;
-    # Maximum lifetime of a connection
-    decimal maxConnectionLifeTime;
-    # Minimum number of open connections
-    int minIdleConnections;
 |};
 
 # [Database] Employee basic information record to get lead type as int.
@@ -102,16 +147,6 @@ public type EmployeeDb record {|
     # Job band of the employee
     @sql:Column {name: "designation_job_band"}
     int? jobBand;
-|};
-
-# [Entity] Designation.
-public type Designation record {|
-    # Id of the designation
-    int id;
-    # Title of the designation
-    string designation;
-    # Job band of the designation
-    int jobBand;
 |};
 
 # [Database] Employee type.
@@ -228,66 +263,11 @@ public type Employee record {|
     string? updatedOn?;
 |};
 
-# Employee filter record.
-public type EmployeeFilter record {|
-    # Employee location
-    string? location = ();
-    # Employee business unit
-    string? businessUnit = ();
-    # Employee designation
-    string? designation = ();
-    # Employee employment type
-    string[]? employmentType = ();
-    # Employee lead email
-    string? leadEmail = ();
-    # Employee statuses
-    string[]? status = ();
-    # Employee team
-    string? team = ();
-    # Employee unit
-    string? unit = ();
-    # Employee is a lead or not
-    boolean? lead = ();
-|};
-
 # Employee location record.
 public type EmployeeLocation record {|
     # Employee location
     @sql:Column {name: "employee_location"}
     string location;
-|};
-
-# [Configurable] database configs.
-type DatabaseConfig record {|
-    # Database User 
-    string user;
-    # Database Password
-    string password;
-    # Database Name
-    string database;
-    # Database Host
-    string host;
-    # Database port
-    int port;
-    # Database connection pool
-    ConnectionPool connectionPool;
-|};
-
-# Database config record.
-type HRISDatabaseConfig record {|
-    *DatabaseConfig;
-    # Additional configurations related to the MySQL database connection
-    mysql:Options? options;
-|};
-
-# [Query Filter] Organization structure filter record.
-public type orgStructureFilter record {|
-    # Id of the business unit
-    int[]? businessUnitIds = ();
-    # Name of the business unit
-    string[]? businessUnits = ();
-    # Employee statuses
-    string[]? employeeStatuses = ();
 |};
 
 # OrgStructure record.
@@ -296,12 +276,14 @@ public type OrgStructure record {|
     BusinessUnit[] businessUnits;
 |};
 
-# Sub unit record.
-public type SubUnit record {|
-    # Id of the subunit
+# Business unit record.
+public type BusinessUnit record {|
+    # Id of the business unit
     int id;
-    # Name of the subunit
+    # Title of the business unit
     string name;
+    # List of teams
+    Team[]? teams;
 |};
 
 # Team record.
@@ -322,4 +304,12 @@ public type Unit record {|
     string name;
     # List of subunits
     SubUnit[]? subUnits;
+|};
+
+# Sub unit record.
+public type SubUnit record {|
+    # Id of the subunit
+    int id;
+    # Name of the subunit
+    string name;
 |};
