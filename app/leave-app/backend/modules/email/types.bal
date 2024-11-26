@@ -17,13 +17,12 @@ import leave_service.database;
 import leave_service.employee;
 
 # [Configurable] Choreo OAuth2 application configuration.
-#
-# + tokenUrl - OAuth2 token endpoint
-# + clientId - OAuth2 client ID
-# + clientSecret - OAuth2 client secret
 type ChoreoApp record {|
+    # OAuth2 token endpoint
     string tokenUrl;
+    # OAuth2 client ID
     string clientId;
+    # OAuth2 client secret
     string clientSecret;
 |};
 
