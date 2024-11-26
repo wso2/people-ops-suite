@@ -77,7 +77,11 @@ isolated function getEmployeeQuery(string email) returns sql:ParameterizedQuery 
     sql:ParameterizedQuery mainQuery = getCommonEmployeeQuery();
     sql:ParameterizedQuery finalQuery = sql:queryConcat(
             mainQuery,
-            ` WHERE (e.employee_status = ${ACTIVE} OR e.employee_status = ${MARKED\ LEAVER}) AND e.employee_work_email = ${email}`
+            ` WHERE 
+                (e.employee_status = ${ACTIVE} OR 
+                e.employee_status = ${MARKED\ LEAVER}) AND 
+                e.employee_work_email = ${email}
+            `
     );
     return finalQuery;
 }
@@ -166,7 +170,11 @@ public isolated function getOrgStructureQuery(orgStructureFilter filter, int 'li
                                         FROM
                                             hris_sub_unit st
                                             RIGHT JOIN
-                                            (SELECT * FROM hris_business_unit_team_unit_sub_unit WHERE business_unit_team_unit_sub_unit_is_active = 1) budtst
+                                            (
+                                                SELECT * 
+                                                FROM hris_business_unit_team_unit_sub_unit 
+                                                WHERE business_unit_team_unit_sub_unit_is_active = 1
+                                            ) budtst
                                             ON st.sub_unit_id = budtst.sub_unit_id
                                         WHERE budtst.business_unit_team_unit_id = budt.business_unit_team_unit_id
                                     )
@@ -174,7 +182,11 @@ public isolated function getOrgStructureQuery(orgStructureFilter filter, int 'li
                             FROM 
                                 hris_unit t
                                 RIGHT JOIN
-                                (SELECT * FROM hris_business_unit_team_unit WHERE business_unit_team_unit_is_active = 1) budt
+                                (
+                                    SELECT * 
+                                    FROM hris_business_unit_team_unit 
+                                    WHERE business_unit_team_unit_is_active = 1
+                                ) budt
                                 ON t.unit_id = budt.unit_id
                             WHERE budt.business_unit_team_id = bud.business_unit_team_id
                         )
@@ -189,7 +201,9 @@ public isolated function getOrgStructureQuery(orgStructureFilter filter, int 'li
         FROM 
             hris_business_unit bu
         WHERE
-            bu.business_unit_id IN (SELECT distinct(business_unit_id) FROM hris_business_unit_team WHERE business_unit_team_is_active = 1)
+            bu.business_unit_id IN (
+                SELECT distinct(business_unit_id) FROM hris_business_unit_team WHERE business_unit_team_is_active = 1
+            )
     `;
 
     orgStructureFilter {
