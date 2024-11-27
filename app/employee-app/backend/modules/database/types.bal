@@ -71,28 +71,6 @@ public type EmployeeFilter record {|
     boolean? lead = ();
 |};
 
-# Organization structure filter record.
-public type orgStructureFilter record {|
-    # Id of the business unit
-    int[]? businessUnitIds = ();
-    # Name of the business unit
-    string[]? businessUnits = ();
-    # Employee statuses
-    string[]? employeeStatuses = ();
-|};
-
-# [Database] Business unit data.
-public type BusinessUnitDb record {|
-    # Id of the business unit
-    @sql:Column {name: "business_unit_id"}
-    int id;
-    # Title of the business unit
-    @sql:Column {name: "business_unit_name"}
-    string name;
-    # List of teams
-    string teams;
-|};
-
 # [Database] Employee basic information record to get lead type as int.
 # Duplicated record with one field change(int? lead) had created due to below issue in ballerina 2201.8.6. 
 # Issue: https://github.com/ballerina-platform/ballerina-library/issues/7297
@@ -261,6 +239,28 @@ public type Employee record {|
     # Updated on
     @sql:Column {name: "employee_updated_on"}
     string? updatedOn?;
+|};
+
+# Organization structure filter record.
+public type orgStructureFilter record {|
+    # Id of the business unit
+    int[]? businessUnitIds = ();
+    # Name of the business unit
+    string[]? businessUnits = ();
+    # Employee statuses
+    string[]? employeeStatuses = ();
+|};
+
+# [Database] Business unit data.
+public type BusinessUnitDb record {|
+    # Id of the business unit
+    @sql:Column {name: "business_unit_id"}
+    int id;
+    # Title of the business unit
+    @sql:Column {name: "business_unit_name"}
+    string name;
+    # List of teams
+    string teams;
 |};
 
 # OrgStructure record.
