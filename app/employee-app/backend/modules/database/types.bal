@@ -16,7 +16,7 @@
 import ballerina/sql;
 import ballerinax/mysql;
 
-# [Database] connection pool.
+# Database connection pool.
 type ConnectionPool record {|
     # Maximum number of open connections
     int maxOpenConnections;
@@ -26,6 +26,22 @@ type ConnectionPool record {|
     int minIdleConnections;
 |};
 
+# [Configurable] database configs.
+type DatabaseConfig record {|
+    # Database User 
+    string user;
+    # Database Password
+    string password;
+    # Database Name
+    string database;
+    # Database Host
+    string host;
+    # Database port
+    int port;
+    # Database connection pool
+    ConnectionPool connectionPool;
+|};
+
 # Database config record.
 type HRISDatabaseConfig record {|
     *DatabaseConfig;
@@ -33,10 +49,32 @@ type HRISDatabaseConfig record {|
     mysql:Options? options;
 |};
 
+# Employee filter record.
+public type EmployeeFilter record {|
+    # Employee location
+    string? location = ();
+    # Employee business unit
+    string? businessUnit = ();
+    # Employee designation
+    string? designation = ();
+    # Employee employment type
+    string[]? employmentType = ();
+    # Employee lead email
+    string? leadEmail = ();
+    # Employee statuses
+    string[]? status = ();
+    # Employee team
+    string? team = ();
+    # Employee unit
+    string? unit = ();
+    # Employee is a lead or not
+    boolean? lead = ();
+|};
+
 # [Database] Employee basic information record to get lead type as int.
 # Duplicated record with one field change(int? lead) had created due to below issue in ballerina 2201.8.6. 
 # Issue: https://github.com/ballerina-platform/ballerina-library/issues/7297
-public type DBEmployee record {|
+public type EmployeeDb record {|
     # Id of the employee
     @sql:Column {name: "employee_id"}
     string employeeId;
@@ -89,28 +127,8 @@ public type DBEmployee record {|
     int? jobBand;
 |};
 
-# [Entity] Department.
-public type Department record {|
-    # Id of the department
-    int id;
-    # Title of the department
-    string department;
-    # List of teams
-    Team[]? teams;
-|};
-
-# [Entity] Designation.
-public type Designation record {|
-    # Id of the designation
-    int id;
-    # Title of the designation
-    string designation;
-    # Job band of the designation
-    int jobBand;
-|};
-
 # [Database] Employee type.
-public type Employee record {
+public type Employee record {|
     # Id of the employee
     @sql:Column {name: "employee_id"}
     string employeeId;
@@ -221,60 +239,70 @@ public type Employee record {
     # Updated on
     @sql:Column {name: "employee_updated_on"}
     string? updatedOn?;
-};
+|};
 
-# Employee filter record.
-public type EmployeeFilter record {|
-    # Employee location
-    string? location = ();
-    # Employee business unit
-    string? businessUnit = ();
-    # Employee designation
-    string? designation = ();
-    # Employee employment type
-    string[]? employmentType = ();
-    # Employee lead email
-    string? leadEmail = ();
+# Organization structure filter record.
+public type orgStructureFilter record {|
+    # Id of the business unit
+    int[]? businessUnitIds = ();
+    # Name of the business unit
+    string[]? businessUnits = ();
     # Employee statuses
-    string[]? status = ();
-    # Employee team
-    string? team = ();
-    # Employee unit
-    string? unit = ();
-    # Employee is a lead or not
-    boolean? lead = ();
+    string[]? employeeStatuses = ();
 |};
 
-# [Configurable] database configs.
-type DatabaseConfig record {|
-    # Database User 
-    string user;
-    # Database Password
-    string password;
-    # Database Name
-    string database;
-    # Database Host
-    string host;
-    # Database port
-    int port;
-    # Database connection pool
-    ConnectionPool connectionPool;
-|};
-
-# [Entity] Sub Team.
-public type SubTeam record {|
-    # Id of the sub team
+# [Database] Business unit data.
+public type BusinessUnitDb record {|
+    # Id of the business unit
+    @sql:Column {name: "business_unit_id"}
     int id;
-    # Title of the sub team
-    string subTeam;
+    # Title of the business unit
+    @sql:Column {name: "business_unit_name"}
+    string name;
+    # List of teams
+    string teams;
 |};
 
-# [Entity] Team.
+# OrgStructure record.
+public type OrgStructure record {|
+    # Organization structure with business units, team, units, and subunits
+    BusinessUnit[] businessUnits;
+|};
+
+# Business unit record.
+public type BusinessUnit record {|
+    # Id of the business unit
+    int id;
+    # Title of the business unit
+    string name;
+    # List of teams
+    Team[]? teams;
+|};
+
+# Team record.
 public type Team record {|
     # Id of the team
     int id;
-    # Title of the team
-    string team;
-    # List of sub teams
-    SubTeam[]? subTeams;
+    # Name of the team
+    string name;
+    # List of units
+    Unit[]? units;
+|};
+
+# Unit record.
+public type Unit record {|
+    # Id of the unit
+    int id;
+    # Name of the unit
+    string name;
+    # List of subunits
+    SubUnit[]? subUnits;
+|};
+
+# Sub unit record.
+public type SubUnit record {|
+    # Id of the subunit
+    int id;
+    # Name of the subunit
+    string name;
 |};

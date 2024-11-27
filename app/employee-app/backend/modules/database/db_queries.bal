@@ -17,7 +17,7 @@ import ballerina/sql;
 
 # Common build query to retrieve the employee/employees.
 #
-# + return - sql:ParameterizedQuery - Select query for the employee table
+# + return - Common select query for the employee table
 isolated function getCommonEmployeeQuery() returns sql:ParameterizedQuery => `
     SELECT
         e.employee_id,
@@ -54,13 +54,17 @@ isolated function getCommonEmployeeQuery() returns sql:ParameterizedQuery => `
 # Build query to retrieve the employee from the active or marked leaver status and email.
 #
 # + email - Email of the employee
-# + return - sql:ParameterizedQuery - Select query for the employee table
+# + return - Select query for the employee table
 isolated function getEmployeeQuery(string email) returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery mainQuery = getCommonEmployeeQuery();
     sql:ParameterizedQuery finalQuery = sql:queryConcat(
-        mainQuery,
-        ` WHERE (e.employee_status = ${ACTIVE} OR e.employee_status = ${MARKED\ LEAVER}) AND e.employee_work_email = ${email}`
+            mainQuery,
+            ` WHERE 
+                (e.employee_status = ${ACTIVE} OR 
+                e.employee_status = ${MARKED\ LEAVER}) AND 
+                e.employee_work_email = ${email}
+            `
     );
     return finalQuery;
 }
@@ -70,7 +74,7 @@ isolated function getEmployeeQuery(string email) returns sql:ParameterizedQuery 
 # + filters - Filter objects containing the filter criteria for the query
 # + 'limit - The maximum number of employees to return
 # + offset - The number of employees to skip before starting to collect the result set
-# + return - sql:ParameterizedQuery - Select query for the employee table
+# + return - Select query for the employee table
 isolated function getEmployeesQuery(EmployeeFilter filters, int 'limit, int offset)
     returns sql:ParameterizedQuery {
 
@@ -103,7 +107,7 @@ isolated function getEmployeesQuery(EmployeeFilter filters, int 'limit, int offs
     }
     if employmentType is string[] && employmentType.length() > 0 {
         filterQueries.push(sql:queryConcat(`het.employment_type_name IN (`,
-        sql:arrayFlattenQuery(employmentType), `)`));
+                sql:arrayFlattenQuery(employmentType), `)`));
     }
     if filters.lead is boolean {
         sql:ParameterizedQuery leadQuery = <boolean>filters.lead ?
@@ -116,4 +120,100 @@ isolated function getEmployeesQuery(EmployeeFilter filters, int 'limit, int offs
         LIMIT ${'limit} OFFSET ${offset}`);
 
     return finalQuery;
+}
+
+# Query to retrieve business units, teams, units and sub units data to build organization structure.
+#
+# + filter - Filter objects containing the filter criteria for the query
+# + 'limit - The maximum number of employees to return
+# + offset - The number of employees to skip before starting to collect the result set
+# + return - Get organization structure query
+public isolated function getOrgStructureQuery(orgStructureFilter filter, int 'limit, int offset)
+    returns sql:ParameterizedQuery {
+
+    sql:ParameterizedQuery sqlQuery = `
+        SELECT 
+            business_unit_id,
+            business_unit_name, (
+                SELECT
+                    JSON_ARRAYAGG(JSON_OBJECT(
+                        'id', d.team_id,
+                        'name', d.team_name,
+                        'units', (
+                            SELECT 
+                                JSON_ARRAYAGG(JSON_OBJECT(
+                                    'id',t.unit_id,
+                                    'name',t.unit_name,
+                                    'subUnits',(
+                                        SELECT
+                                            COALESCE(JSON_ARRAYAGG(JSON_OBJECT(
+                                                'id' , st.sub_unit_id,
+                                                'name', st.sub_unit_name
+                                            )), JSON_ARRAY())
+                                        FROM
+                                            hris_sub_unit st
+                                            RIGHT JOIN
+                                            (
+                                                SELECT * 
+                                                FROM hris_business_unit_team_unit_sub_unit 
+                                                WHERE business_unit_team_unit_sub_unit_is_active = 1
+                                            ) budtst
+                                            ON st.sub_unit_id = budtst.sub_unit_id
+                                        WHERE budtst.business_unit_team_unit_id = budt.business_unit_team_unit_id
+                                    )
+                                ))
+                            FROM 
+                                hris_unit t
+                                RIGHT JOIN
+                                (
+                                    SELECT * 
+                                    FROM hris_business_unit_team_unit 
+                                    WHERE business_unit_team_unit_is_active = 1
+                                ) budt
+                                ON t.unit_id = budt.unit_id
+                            WHERE budt.business_unit_team_id = bud.business_unit_team_id
+                        )
+                    ))
+                FROM 
+                    hris_team d
+                    RIGHT JOIN
+                    (SELECT * FROM hris_business_unit_team WHERE business_unit_team_is_active = 1) bud
+                    ON d.team_id = bud.team_id
+                WHERE bud.business_unit_id = bu.business_unit_id
+            ) AS teams
+        FROM 
+            hris_business_unit bu
+        WHERE
+            bu.business_unit_id IN (
+                SELECT distinct(business_unit_id) FROM hris_business_unit_team WHERE business_unit_team_is_active = 1
+            )
+    `;
+
+    orgStructureFilter {
+        businessUnitIds,
+        businessUnits,
+        employeeStatuses
+    } = filter;
+    sql:ParameterizedQuery[] filterQueries = [];
+    if employeeStatuses is string[] && employeeStatuses.length() > 0 {
+        sqlQuery = sql:queryConcat(sqlQuery, `
+            AND EXISTS (
+                SELECT 1
+                FROM hris_employee e
+                WHERE e.employee_business_unit_id = bu.business_unit_id
+            AND e.employee_status IN (`, sql:arrayFlattenQuery(employeeStatuses), `)
+            )
+        `);
+    }
+
+    if businessUnitIds is int[] && businessUnitIds.length() > 0 {
+        filterQueries.push(sql:queryConcat(`bu.business_unit_id IN (`, sql:arrayFlattenQuery(businessUnitIds), `)`));
+    }
+    if businessUnits is string[] && businessUnits.length() > 0 {
+        filterQueries.push(sql:queryConcat(`bu.business_unit_name IN (`, sql:arrayFlattenQuery(businessUnits), `)`));
+    }
+    sqlQuery = buildSqlSelectQuery(sqlQuery, filterQueries);
+    sqlQuery = sql:queryConcat(sqlQuery, ` LIMIT ${'limit} OFFSET ${offset}`);
+
+    return sqlQuery;
 }

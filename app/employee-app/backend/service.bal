@@ -16,12 +16,8 @@
 import employee_service.authorization;
 import employee_service.database;
 
-import ballerina/cache;
 import ballerina/http;
 import ballerina/log;
-
-final cache:Cache userInfoCache = new ('capacity = CACHE_CAPACITY, 'evictionFactor = CACHE_EVICTION_FACTOR);
-final cache:Cache orgStructureCache = new ('capacity = CACHE_CAPACITY, 'evictionFactor = CACHE_EVICTION_FACTOR);
 
 @display {
     label: "Employee Backend Service",
@@ -31,9 +27,9 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     # Request interceptor.
     # + return - authorization:JwtInterceptor
-    public function createInterceptors() returns http:Interceptor[] {
-        return [new authorization:JwtInterceptor()];
-    }
+    public function createInterceptors() returns http:Interceptor[] => [new authorization:JwtInterceptor()];
+
+    function init() returns error? => log:printInfo("Employee application backend service started.");
 
     # Get basic information of a given active employee.
     #
@@ -94,5 +90,28 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
         return employees;
+    }
+
+    # Get organization structure from business units, team and units.
+    #
+    # + filter - Filter objects containing the filter criteria for the query as request body
+    # + 'limit - The maximum number of organization records to return
+    # + offset - The number of organization records to skip before starting to collect the result set
+    # + return - Organization structure or an error
+    resource function post org\-structure(orgStructureFilter filter, int? 'limit, int? offset)
+        returns OrgStructure|http:InternalServerError {
+
+        OrgStructure|error orgStructure = database:getOrgStructure(filter, 'limit = DEFAULT_LIMIT,
+                offset = DEFAULT_OFFSET);
+        if orgStructure is error {
+            string errorMsg = string `Error getting organization structure!`;
+            log:printError(errorMsg, orgStructure);
+            return <http:InternalServerError>{
+                body: {
+                    message: errorMsg
+                }
+            };
+        }
+        return orgStructure;
     }
 }

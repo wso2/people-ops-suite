@@ -15,13 +15,22 @@
 // under the License.
 import employee_service.database;
 
-# Employee type.
+# Employee filter record.
+public type EmployeeFilter record {|
+    *database:EmployeeFilter;
+|};
+
+# Employee record.
 public type Employee record {|
     *database:Employee;
 |};
 
+# Organization structure filter record.
+public type orgStructureFilter record {|
+    *database:orgStructureFilter;
+|};
 
-# Employee filter record.
-public type EmployeeFilter record {|
-    *database:EmployeeFilter;
+# Organization data response record.
+public type OrgStructure record {|
+    *database:OrgStructure;
 |};

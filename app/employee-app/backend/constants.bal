@@ -20,7 +20,3 @@ public const DEFAULT_OFFSET = 0;
 
 # RegeExp to check the wso2 email.
 public final string:RegExp WSO2_EMAIL_PATTERN = re `^[a-zA-Z0-9._%+-]+@wso2\.com$`;
-
-# Cache parameters related constants.
-public const CACHE_CAPACITY = 100;
-public const CACHE_EVICTION_FACTOR = 0.2;
