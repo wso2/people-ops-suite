@@ -24,18 +24,19 @@ final mysql:Client leaveDbClient = check initializeLeaveClient();
 # + filter - Leave filter 
 # + 'limit - Maximum records limit  
 # + offset - Offset value
-# + return - Return list of Leaves
+# + return - List of Leaves or an error on failure
 public isolated function getLeaves(LeaveFilter filter, int? 'limit = (), int? offset = ()) returns Leave[]|error {
+
     sql:ParameterizedQuery sqlQuery = getLeavesQuery(filter, getValidatedLimit('limit), getValidatedOffset(offset));
     stream<Leave, sql:Error?> resultStream = leaveDbClient->query(sqlQuery);
     return from Leave leave in resultStream
         select leave;
 }
 
-# Query to fetch leave by ID.
+# Get a leave from database with the given id.
 #
 # + id - Leave ID
-# + return - Select query
+# + return - Requested leave or an error on failure
 public isolated function getLeave(int id) returns Leave|error? {
 
     sql:ParameterizedQuery mainQuery = getCommonLeaveQuery();
@@ -56,7 +57,7 @@ public isolated function getLeave(int id) returns Leave|error? {
 # + input - Input data for the leave
 # + numDaysForLeave - Number of days for leave
 # + location - Employee location
-# + return - Returns the inserted `Leave` record if successful; otherwise, an error
+# + return - The inserted Leave record if successful; otherwise, an error
 public isolated function insertLeave(LeaveInput input, float numDaysForLeave, string location) returns Leave|error {
 
     sql:ExecutionResult|error result = leaveDbClient->execute(insertLeaveQuery(input, numDaysForLeave, location));
@@ -66,7 +67,7 @@ public isolated function insertLeave(LeaveInput input, float numDaysForLeave, st
     int lastInsertId = check result.lastInsertId.ensureType();
     Leave|error? insertedLeave = getLeave(lastInsertId);
     if insertedLeave is error? {
-        return error("Error occurred while fetching inserted leave!");
+        return error("Error occurred while fetching inserted leave!", insertedLeave);
     }
     return insertedLeave;
 }

@@ -41,6 +41,14 @@ public type Employee record {|
     *employee:Employee;
 |};
 
+# Leave stat record.
+public type LeaveStat record {|
+    # Leave type
+    string 'type;
+    # Number of leave types 
+    float count;
+|};
+
 # Record for fetched leaves.
 public type FetchedLeavesRecord record {|
     # List of leaves
@@ -48,6 +56,17 @@ public type FetchedLeavesRecord record {|
     # List of leave stats
     LeaveStat[] stats;
 |};
+
+# Leave policy record.
+public type LeavePolicy record {|
+    # Annual leave count
+    float? annual?;
+    # Casual leave count
+    float? casual?;
+|};
+
+# Leaves report content.
+public type ReportContent map<map<float>>;
 
 # Form data record.
 public type FormData record {|
@@ -131,6 +150,11 @@ public type LeaveEntitlement record {|
     LeavePolicy policyAdjustedLeave;
 |};
 
+# Leave input for leave creation.
+public type LeaveInput record {|
+    *database:LeaveInput;
+|};
+
 # Leave details record.
 public type LeaveDetails record {|
     *LeaveInput;
@@ -150,22 +174,9 @@ public type LeaveDetails record {|
     string? location;
 |};
 
-# Leave input for leave creation.
-public type LeaveInput record {|
-    *database:LeaveInput;
-|};
-
 # Payload for leave creation.
 public type LeavePayload record {|
     *database:LeavePayload;
-|};
-
-# Leave policy record.
-public type LeavePolicy record {|
-    # Annual leave count
-    float? annual?;
-    # Casual leave count
-    float? casual?;
 |};
 
 # Leave entity record.
@@ -182,17 +193,6 @@ public type LeadReportPayload readonly & record {|
     # Employee status list
     EmployeeStatus[]? employeeStatuses = DEFAULT_EMPLOYEE_STATUSES;
 |};
-
-# Leave stat record.
-public type LeaveStat record {|
-    # Leave type
-    string 'type;
-    # Number of leave types 
-    float count;
-|};
-
-# Leaves report content.
-public type ReportContent map<map<float>>;
 
 # Report generation payload.
 public type ReportPayload readonly & record {|
@@ -219,6 +219,3 @@ public type UserCalendarInformation record {|
     # List of holidays
     Holiday[] holidays;
 |};
-
-# Uncounted leaves
-public type UncountedLeaves database:LIEU_LEAVE;
