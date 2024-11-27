@@ -85,7 +85,7 @@ public isolated function getEmployees(EmployeeFilter filters, int 'limit, int of
 # + filter - Filter objects containing the filter criteria for the query
 # + 'limit - Number of records to retrieve
 # + offset - Number of records to offset
-# + return - List of business units
+# + return - Organization structure or an error
 public isolated function getOrgStructure(orgStructureFilter filter, int 'limit, int offset)
     returns OrgStructure|error {
 
