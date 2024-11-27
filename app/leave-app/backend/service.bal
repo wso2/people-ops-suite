@@ -110,7 +110,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 });
                 statsMap[leaveType] = statsMap.hasKey(leaveType) ?
                     statsMap.get(leaveType) + numberOfDays : numberOfDays;
-                if leaveType !is UncountedLeaves {
+                if leaveType !is database:LIEU_LEAVE {
                     totalCount += numberOfDays;
                 }
             }
@@ -255,7 +255,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + leaveId - Leave ID
     # + ctx - Request context
-    # + return - Return cancelled leave on success, otherwise an error response
+    # + return - Cancelled leave on success, otherwise an error response
     resource function delete leaves/[int leaveId](http:RequestContext ctx)
         returns http:Ok|http:Forbidden|http:BadRequest|http:InternalServerError {
 

@@ -50,7 +50,7 @@ isolated function getCommonLeaveQuery() returns sql:ParameterizedQuery => `
 # + filter - Query filter  
 # + 'limit - Maximum records limit  
 # + offset - Offset value
-# + return - Select query
+# + return - Select query fetch leaves
 isolated function getLeavesQuery(LeaveFilter filter, int? 'limit = (), int? offset = ())
     returns sql:ParameterizedQuery {
 
