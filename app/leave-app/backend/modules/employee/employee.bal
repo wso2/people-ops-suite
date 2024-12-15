@@ -40,11 +40,11 @@ public isolated function getEmployee(string email, string token)
     http:Response employeeResponse = check employeeClient->/employees/[email].get({"x-jwt-assertion": token});
     json|error employeeJsonResponse = employeeResponse.getJsonPayload();
     if employeeJsonResponse is error {
-        return error(ERR_MSG_EMPLOYEE_PROCESSING_FAILED, employeeJsonResponse);
+        return error("Error occurred while processing employee JSON payload!", employeeJsonResponse);
     }
     final readonly & EmployeeResponse|error employee = employeeJsonResponse.cloneWithType();
     if employee is error {
-        return error(ERR_MSG_EMPLOYEE_PROCESSING_FAILED, employee);
+        return error("Error occurred while processing employee JSON payload!", employee);
     }
 
     lock {
@@ -64,12 +64,8 @@ public isolated function getEmployee(string email, string token)
 # + 'limit - The maximum number of employees to return
 # + offset - The number of employees to skip before starting to collect the result set
 # + return - Return an array of Employee entity or error
-public isolated function getEmployees(
-        string token,
-        EmployeeFilter filters = {},
-        int 'limit = DEFAULT_LIMIT,
-        int offset = DEFAULT_OFFSET
-) returns readonly & Employee[]|error {
+public isolated function getEmployees(string token, EmployeeFilter filters = {}, int 'limit = DEFAULT_LIMIT,
+        int offset = DEFAULT_OFFSET) returns readonly & Employee[]|error {
 
     http:Response employeesResponse = check employeeClient->/employees/search.post(
         filters,
@@ -79,11 +75,11 @@ public isolated function getEmployees(
     );
     json|error employeesJsonResponse = employeesResponse.getJsonPayload();
     if employeesJsonResponse is error {
-        return error(ERR_MSG_EMPLOYEES_PROCESSING_FAILED, employeesJsonResponse);
+        return error("Error occurred while processing employees JSON payload!", employeesJsonResponse);
     }
     final readonly & EmployeeResponse[]|error employees = employeesJsonResponse.fromJsonWithType();
     if employees is error {
-        return error(ERR_MSG_EMPLOYEES_PROCESSING_FAILED, employees);
+        return error("Error occurred while converting employees from JSON!", employees);
     }
 
     return from EmployeeResponse empResp in employees
@@ -103,7 +99,7 @@ public isolated function getEmployeeLocation(string email, string token) returns
     }
     string? location = employee.location;
     if location is () {
-        return error(string `${ERR_MSG_EMPLOYEE_LOCATION_NOT_FOUND}`);
+        return error("Employee location not found!");
     }
 
     return location;
@@ -120,7 +116,7 @@ public isolated function getOrgStructure(orgStructureFilter filter, string token
     );
     json|error orgStructureJsonResponse = orgStructureResponse.getJsonPayload();
     if orgStructureJsonResponse is error {
-        return error("Error occurred while processing organization structure JSON payload.", orgStructureJsonResponse);
+        return error("Error occurred while processing organization structure JSON payload!", orgStructureJsonResponse);
     }
     final readonly & OrgStructure|error orgStructure = orgStructureJsonResponse.fromJsonWithType();
     if orgStructure is error {

@@ -14,13 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-public const JWT_ASSERTION_HEADER = "x-jwt-assertion";
-
 // Errors
-public const ERR_MSG_EMPLOYEE_PROCESSING_FAILED = "Error occurred while processing employee.";
-public const ERR_MSG_EMPLOYEES_PROCESSING_FAILED = "Error occurred while processing employees.";
-public const ERR_MSG_NO_JWT_TOKEN_PRESENT = "x-jwt-assertion header does not exist!";
-public const ERR_MSG_EMPLOYEE_LOCATION_NOT_FOUND = "Employee location not found.";
 public const ERR_MSG_EMPLOYEE_RETRIEVAL_FAILED = "Error occurred while retrieving employee.";
 public const ERR_MSG_EMPLOYEES_RETRIEVAL_FAILED = "Error occurred while retrieving employes.";
 

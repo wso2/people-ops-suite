@@ -41,18 +41,16 @@ public final map<string> & readonly TIMEZONE_OFFSET_MAP = {
 };
 
 // Errors
-public const ERR_MSG_CANCEL_LEAVE = "Error occurred when fetching cancelled leave!";
 public const ERR_MSG_EFFECTIVE_DAYS_FAILED = "Error when getting effective days!";
 public const ERR_MSG_EMPLOYEE_LOCATION_RETRIEVAL_FAILED = "Error occurred while retrieving employee location!";
-public const ERR_MSG_FORBIDDEN_TO_NON_LEADS = "You have not been assigned as a lead/manager to any employee!";
 public const ERR_MSG_HOLIDAYS_RETRIEVAL_FAILED = "Error occurred while retrieving holidays!";
 public const ERR_MSG_INVALID_DATE_FORMAT = "Invalid date. Date string should be in ISO 8601 format!";
 public const ERR_MSG_LEGALLY_ENTITLED_LEAVE_RETRIEVAL_FAILED =
     "Error occurred while retrieving legally entitled leaves!";
-public const ERR_MSG_LEAVE_ENTITLEMENT_RETRIEVAL_FAILED = "Error occurred while retrieving leave entitlement!";
 public const ERR_MSG_LEAVE_IN_INVALID_STATE = "Leave is in an invalid state!";
 public const ERR_MSG_LEAVE_OVERLAPS_WITH_EXISTING_LEAVE = "Leave overlaps with existing leave(s)!";
 public const ERR_MSG_LEAVES_RETRIEVAL_FAILED = "Error occurred while retrieving leaves!";
+public const ERR_MSG_LEAVE_RETRIEVAL_FAILED = "Error occurred while retrieving the leave!";
 public const ERR_MSG_LEAVE_SHOULD_BE_AT_LEAST_ONE_WORKING_DAY =
     "Leave requests should contain at least one working day!";
 public const ERR_MSG_LEAVE_SHOULD_BE_AT_LEAST_ONE_WEEKDAY = "Leave requests should contain at least one weekday!";
@@ -60,7 +58,6 @@ public const ERR_MSG_NO_JWT_TOKEN_PRESENT = "x-jwt-assertion header does not exi
 public const ERR_MSG_END_DATE_BEFORE_START_DATE = "End date cannot be before start date!";
 public const ERR_MSG_UNAUTHORIZED_VIEW_LEAVE = "You are not authorized to view the requested leaves!";
 public const ERR_MSG_INVALID_WSO2_EMAIL = "Input email is not a valid WSO2 email address!";
-public const ERR_MSG_ORGANIZATION_DATA_RETRIEVAL_FAILED = "Error occurred while retrieving organization structure data";
 
 // Regex
 final string:RegExp & readonly REGEX_DATE_YYYY_MM_DD = re `^\d{4}-\d{2}-\d{2}`;

@@ -123,6 +123,7 @@ isolated function checkIfLeavedAllowedToCancel(LeaveResponse leave) returns bool
 # + leave - Created leave
 # + calendarEventId - UUID to be used for event
 isolated function createLeaveEventInCalendar(string email, LeaveResponse leave, string calendarEventId) {
+
     final LeaveResponse {id, periodType, isMorningLeave, startDate, endDate, location} = leave;
     string startDateString = getDateStringFromTimestamp(startDate);
     string endDateString = getDateStringFromTimestamp(endDate);
@@ -278,6 +279,7 @@ isolated function getLegallyEntitledLeave(readonly & Employee employee) returns 
 # + leaves - Leaves to be used to generate report content
 # + return - Report content
 isolated function getLeaveReportContent(LeaveResponse[] leaves) returns ReportContent {
+
     ReportContent reportContent = {};
     foreach LeaveResponse leave in leaves {
         string leaveType = leave.leaveType;
