@@ -68,6 +68,16 @@ public type LeavePolicy record {|
 # Leaves report content.
 public type ReportContent map<map<float>>;
 
+# Report filters record
+public type ReportFilters record {|
+    # List of countries
+    string[] countries;
+    # List of business units
+    employee:OrgStructure orgStructure;
+    # Employee statuses
+    EmployeeStatus[] employeeStatuses;
+|};
+
 # Form data record.
 public type FormData record {|
     # List of email recipients

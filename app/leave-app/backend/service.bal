@@ -208,7 +208,20 @@ service http:InterceptableService / on new http:Listener(9090) {
             if leave is error {
                 fail error(leave.message(), leave);
             }
-            LeaveResponse leaveResponse = <LeaveResponse>leave.clone();
+            LeaveResponse leaveResponse = {
+                id: leave.id,
+                startDate: leave.startDate,
+                calendarEventId: leave.calendarEventId,
+                periodType: leave.periodType,
+                createdDate: leave.createdDate,
+                leaveType: leave.leaveType,
+                endDate: leave.endDate,
+                location: leave.location,
+                numberOfDays: leave.numberOfDays ?: 0.0,
+                isActive: leave.isActive,
+                email: leave.email,
+                isMorningLeave: leave.isMorningLeave
+            };
             log:printInfo(string `Submitted leave successfully. ID: ${leaveResponse.id}.`);
 
             future<error?> notificationFuture = start email:sendLeaveNotification(
@@ -567,6 +580,38 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
     }
+
+    # Fetch report filters required for the reports UI.
+    #
+    # + employeeStatuses - Employee statuses to filter the employees
+    # + return - Report filters
+    resource function get report\-filters(http:RequestContext ctx, string[]? employeeStatuses, string[]? businessUnits,
+            int[]? businessUnitIds) returns ReportFilters|http:BadRequest|http:InternalServerError {
+
+        do {
+            string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
+            employee:OrgStructure|error orgStructure = employee:getOrgStructure(
+                    {employeeStatuses, businessUnits, businessUnitIds}, jwt);
+            if orgStructure is error {
+                fail error(ERR_MSG_ORGANIZATION_DATA_RETRIEVAL_FAILED, orgStructure);
+            }
+
+            return {
+                countries: [],
+                orgStructure,
+                employeeStatuses: [EMP_STATUS_ACTIVE, EMP_STATUS_LEFT, EMP_STATUS_MARKED_LEAVER]
+            };
+        } on fail error internalErr {
+            log:printError(internalErr.message(), internalErr);
+            return <http:InternalServerError>{
+                body: {
+                    message: internalErr.message()
+                }
+            };
+        }
+
+    }
+
 
     # Generate and fetch leave report.
     #

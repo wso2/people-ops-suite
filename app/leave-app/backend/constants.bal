@@ -60,6 +60,7 @@ public const ERR_MSG_NO_JWT_TOKEN_PRESENT = "x-jwt-assertion header does not exi
 public const ERR_MSG_END_DATE_BEFORE_START_DATE = "End date cannot be before start date!";
 public const ERR_MSG_UNAUTHORIZED_VIEW_LEAVE = "You are not authorized to view the requested leaves!";
 public const ERR_MSG_INVALID_WSO2_EMAIL = "Input email is not a valid WSO2 email address!";
+public const ERR_MSG_ORGANIZATION_DATA_RETRIEVAL_FAILED = "Error occurred while retrieving organization structure data";
 
 // Regex
 final string:RegExp & readonly REGEX_DATE_YYYY_MM_DD = re `^\d{4}-\d{2}-\d{2}`;
