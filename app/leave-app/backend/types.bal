@@ -16,6 +16,14 @@
 import leave_service.database;
 import leave_service.employee;
 
+# Holiday record.
+public type Holiday record {|
+    # Title of the holiday
+    string title;
+    # Date of the holiday
+    string date;
+|};
+
 # Calculated leave record.
 public type CalculatedLeave record {|
     # Number of working days
@@ -34,11 +42,6 @@ public type Day record {|
     string date;
     # List of holidays
     Holiday[] holidays?;
-|};
-
-# Employee record.
-public type Employee record {|
-    *employee:Employee;
 |};
 
 # Leave stat record.
@@ -63,19 +66,6 @@ public type LeavePolicy record {|
     float? annual?;
     # Casual leave count
     float? casual?;
-|};
-
-# Leaves report content.
-public type ReportContent map<map<float>>;
-
-# Report filters record
-public type ReportFilters record {|
-    # List of countries
-    string[] countries;
-    # List of business units
-    employee:OrgStructure orgStructure;
-    # Employee statuses
-    EmployeeStatus[] employeeStatuses;
 |};
 
 # Form data record.
@@ -103,14 +93,6 @@ public type FormData record {|
         {'key: "maternity", value: "Maternity leave"},
         {'key: "lieu", value: "Lieu leave"}
     ];
-|};
-
-# Holiday record.
-public type Holiday record {|
-    # Title of the holiday
-    string title;
-    # Date of the holiday
-    string date;
 |};
 
 # Leave record.
@@ -228,4 +210,22 @@ public type UserCalendarInformation record {|
     Leave[] leaves;
     # List of holidays
     Holiday[] holidays;
+|};
+
+# Employee record.
+public type Employee record {|
+    *employee:Employee;
+|};
+
+# Leaves report content.
+public type ReportContent map<map<float>>;
+
+# Report filters record
+public type ReportFilters record {|
+    # List of countries
+    string[] countries;
+    # List of business units
+    employee:OrgStructure orgStructure;
+    # Employee statuses
+    EmployeeStatus[] employeeStatuses;
 |};

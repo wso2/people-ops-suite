@@ -123,6 +123,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                         count
                     }
             };
+
         } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
@@ -254,6 +255,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     message: "Leave submitted successfully"
                 }
             };
+
         } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
@@ -284,7 +286,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 };
             }
             if leave is error {
-                fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leave);
+                fail error(ERR_MSG_LEAVE_RETRIEVAL_FAILED, leave);
             }
 
             LeaveResponse leaveResponse = check toLeaveEntity(leave, jwt);
@@ -313,7 +315,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
             database:Leave|error? cancelledLeave = database:getLeave(leaveId);
             if cancelledLeave is error? {
-                fail error(ERR_MSG_CANCEL_LEAVE, cancelledLeave);
+                fail error("Error occurred when fetching cancelled leave!", cancelledLeave);
             }
 
             LeaveDetails|error cancelledLeaveDetails = getLeaveEntityFromDbRecord(cancelledLeave, jwt, true);
@@ -349,6 +351,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     message: "Leave cancelled successfully"
                 }
             };
+
         } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
@@ -371,18 +374,18 @@ service http:InterceptableService / on new http:Listener(9090) {
             final readonly & string[] emails = [email];
             final string startDate = getStartDateOfYear();
             final string endDate = getEndDateOfYear();
-            final database:Leave[]|error leaveResponse = database:getLeaves(
+            final database:Leave[]|error leaves = database:getLeaves(
                     {emails, startDate, endDate, orderBy: database:DESC}
             );
-            if leaveResponse is error {
-                fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaveResponse);
+            if leaves is error {
+                fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaves);
             }
-            LeaveResponse[] leaves = from database:Leave leave in leaveResponse
+            LeaveResponse[] leaveResponses = from database:Leave leave in leaves
                 select check toLeaveEntity(leave, jwt);
 
             Employee & readonly employee = check employee:getEmployee(email, jwt);
             Employee {leadEmail, location} = employee;
-            string[] emailRecipients = leaves.length() > 0 ? leaves[0].emailRecipients : [];
+            string[] emailRecipients = leaveResponses.length() > 0 ? leaveResponses[0].emailRecipients : [];
             string[] leadEmails = leadEmail == () ? [] : [leadEmail];
             LeavePolicy|error legallyEntitledLeave = getLegallyEntitledLeave(employee);
             if legallyEntitledLeave is error {
@@ -395,8 +398,9 @@ service http:InterceptableService / on new http:Listener(9090) {
                 isLead: <boolean>employee.lead,
                 location,
                 legallyEntitledLeave,
-                leaveReportContent: getLeaveReportContent(leaves)
+                leaveReportContent: getLeaveReportContent(leaveResponses)
             };
+
         } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
@@ -449,7 +453,9 @@ service http:InterceptableService / on new http:Listener(9090) {
                     finalDayOfEmployment: employee.finalDayOfEmployment,
                     lead: employee.lead
                 };
+
             return employeesToReturn;
+
         } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
@@ -478,6 +484,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         do {
             string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
             Employee & readonly employee = check employee:getEmployee(email, jwt);
+
             return {
                 employeeId: employee.employeeId,
                 firstName: employee.firstName,
@@ -490,6 +497,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 finalDayOfEmployment: employee.finalDayOfEmployment,
                 lead: employee.lead
             };
+
         } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
@@ -532,12 +540,13 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
 
             Employee & readonly employee = check employee:getEmployee(email, jwt);
-            LeaveEntitlement[]|error leaveEntitlement = getLeaveEntitlement(employee, jwt, years ?: []);
-            if leaveEntitlement is error {
-                fail error(ERR_MSG_LEAVE_ENTITLEMENT_RETRIEVAL_FAILED, leaveEntitlement);
+            LeaveEntitlement[]|error leaveEntitlements = getLeaveEntitlement(employee, jwt, years ?: []);
+            if leaveEntitlements is error {
+                fail error("Error occurred while retrieving leave entitlement!", leaveEntitlements);
             }
 
-            return leaveEntitlement;
+            return leaveEntitlements;
+
         } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
@@ -571,6 +580,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
 
             return userCalendarInformation;
+
         } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
@@ -593,7 +603,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             employee:OrgStructure|error orgStructure = employee:getOrgStructure(
                     {employeeStatuses, businessUnits, businessUnitIds}, jwt);
             if orgStructure is error {
-                fail error(ERR_MSG_ORGANIZATION_DATA_RETRIEVAL_FAILED, orgStructure);
+                fail error("Error occurred while retrieving organization structure data!", orgStructure);
             }
 
             return {
@@ -601,6 +611,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 orgStructure,
                 employeeStatuses: [EMP_STATUS_ACTIVE, EMP_STATUS_LEFT, EMP_STATUS_MARKED_LEAVER]
             };
+
         } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
@@ -611,7 +622,6 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
     }
-
 
     # Generate and fetch leave report.
     #
@@ -632,17 +642,17 @@ service http:InterceptableService / on new http:Listener(9090) {
             string[] emails = from Employee employee in employees
                 select employee.workEmail ?: "";
 
-            final database:Leave[]|error leaveResponse = database:getLeaves(
+            final database:Leave[]|error leaves = database:getLeaves(
                     {emails, isActive: true, startDate, endDate}
             );
-            if leaveResponse is error {
-                fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaveResponse);
+            if leaves is error {
+                fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaves);
             }
-
-            LeaveResponse[] leaveResponses = from database:Leave leave in leaveResponse
+            LeaveResponse[] leaveResponses = from database:Leave leave in leaves
                 select check toLeaveEntity(leave, jwt);
 
             return getLeaveReportContent(leaveResponses);
+
         } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{
@@ -672,27 +682,27 @@ service http:InterceptableService / on new http:Listener(9090) {
                         leadEmail: email
                     }
             );
-
             string[] emails = from Employee employee in employees
                 select employee.workEmail ?: "";
             if emails.length() == 0 {
                 return <http:Forbidden>{
                     body: {
-                        message: ERR_MSG_FORBIDDEN_TO_NON_LEADS
+                        message: "You have not been assigned as a lead/manager to any employee!"
                     }
                 };
             }
-            final database:Leave[]|error leaveResponse = database:getLeaves(
+            final database:Leave[]|error leaves = database:getLeaves(
                     {emails, isActive: true, startDate, endDate}
             );
-            if leaveResponse is error {
-                fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaveResponse);
+            if leaves is error {
+                fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaves);
             }
             LeaveResponse[] leaveResponses =
-            from database:Leave leave in leaveResponse
+            from database:Leave leave in leaves
             select check toLeaveEntity(leave, jwt);
 
             return getLeaveReportContent(leaveResponses);
+
         } on fail error internalErr {
             log:printError(internalErr.message(), internalErr);
             return <http:InternalServerError>{

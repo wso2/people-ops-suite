@@ -30,6 +30,7 @@ configurable string[] defaultRecipients = [];
 # + stringToCheck - String to be checked
 # + return - Whether the string is empty or not
 public isolated function checkIfEmptyString(string stringToCheck) returns boolean {
+
     if stringToCheck.length() == 0 {
         return true;
     }
@@ -51,7 +52,7 @@ public isolated function checkIfWeekday(time:Civil|time:Utc date) returns boolea
 #
 # + input - The leave input details as a `database:LeaveInput` record
 # + isValidationOnlyMode - A flag indicating whether to only validate the leave (`true`) or 
-#   insert the leave into the database (`false`)
+# insert the leave into the database (`false`)
 # + token - The authentication token for accessing employee details
 # + return - Returns a `LeaveDetails` record if successful, or an error otherwise
 public isolated function insertLeaveToDatabase(database:LeaveInput input, boolean isValidationOnlyMode, string token)
@@ -216,8 +217,8 @@ public isolated function getEndDateOfYear(time:Utc? date = (), int? year = ()) r
 # + token - JWT token
 # + fetchEffectiveDays - Should affected days be fetched
 # + return - Return Leave entity
-public isolated function getLeaveEntityFromDbRecord(database:Leave dbLeave, string token, boolean fetchEffectiveDays = false)
-    returns LeaveDetails|error {
+public isolated function getLeaveEntityFromDbRecord(database:Leave dbLeave, string token,
+        boolean fetchEffectiveDays = false) returns LeaveDetails|error {
 
     database:Leave {
         id,
@@ -260,7 +261,8 @@ public isolated function getLeaveEntityFromDbRecord(database:Leave dbLeave, stri
         entityLeavePeriodType = clonedLeavePeriodType;
     }
 
-    string[] emailRecipients = copyEmailList == () || copyEmailList.length() == 0 ? [] : regex:split(copyEmailList, ",");
+    string[] emailRecipients = copyEmailList == () || copyEmailList.length() == 0 ?
+        [] : regex:split(copyEmailList, ",");
 
     string|error empLocation = employee:getEmployeeLocation(email, token);
     if empLocation is error {
@@ -313,12 +315,8 @@ public isolated function getLeaveEntityFromDbRecord(database:Leave dbLeave, stri
 # + fetchEffectiveDays - Should effective days be fetched
 # + failOnError - Should the function fail on error
 # + return - Return Leave entity
-public isolated function getLeaveEntitiesFromDbRecords(
-        database:Leave[] dbLeaves,
-        string token,
-        boolean fetchEffectiveDays = false,
-        boolean failOnError = false
-    ) returns LeaveDetails[]|error {
+public isolated function getLeaveEntitiesFromDbRecords(database:Leave[] dbLeaves, string token,
+        boolean fetchEffectiveDays = false, boolean failOnError = false) returns LeaveDetails[]|error {
 
     LeaveDetails[] leaves = [];
     foreach database:Leave dbLeave in dbLeaves {
@@ -367,6 +365,7 @@ public isolated function getTimestampFromDateString(string date) returns string 
 # + leaveDays - An array of `LeaveDay` records representing the leave days to be calculated
 # + return - The total number of days as a `float`
 public isolated function getNumberOfDaysFromLeaveDays(LeaveDay[] leaveDays) returns float {
+
     float numberOfDays = 0.0;
     from LeaveDay leaveDay in leaveDays
     do {
@@ -561,13 +560,16 @@ public isolated function toLeaveEntity(database:Leave leave, string token, boole
 # + endDate - End date of the range
 # + return - Returns UTC start and end dates or error for validation failure
 public isolated function validateDateRange(string startDate, string endDate) returns [time:Utc, time:Utc]|error {
+
     do {
         time:Utc startUtc = check getUtcDateFromString(startDate);
         time:Utc endUtc = check getUtcDateFromString(endDate);
         if startUtc > endUtc {
             return error(ERR_MSG_END_DATE_BEFORE_START_DATE);
         }
+
         return [startUtc, endUtc];
+
     } on fail error err {
         return error(err.message());
     }

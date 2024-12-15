@@ -34,13 +34,8 @@ final string appName = isDebug ? APP_NAME_DEV : APP_NAME;
 # + recipients - Email recipients
 # + templateId - Email template ID
 # + return - Error if sending the email fails
-isolated function processEmailNotification(
-        string alertHeader,
-        string subject,
-        map<string> body,
-        string[] recipients,
-        string templateId = emailAlertConfig.templateId
-) returns error? {
+isolated function processEmailNotification(string alertHeader, string subject, map<string> body, string[] recipients,
+        string templateId = emailAlertConfig.templateId) returns error? {
 
     if !emailNotificationsEnabled {
         log:printInfo("Email notifications are disabled. Skipping the email alert.");
@@ -68,6 +63,7 @@ isolated function processEmailNotification(
         }
 
         check commit;
+
     } on fail error err {
         log:printError(err.message());
         return err;
@@ -116,14 +112,9 @@ public isolated function sendAdditionalComment(EmailNotificationDetails details,
 # + isPastLeave - Whether the leave is in the past
 # + emailSubject - Email subject
 # + return - EmailNotificationDetails record
-public isolated function generateContentForLeave(
-        string token,
-        string employeeEmail,
-        LeaveResponse|LeavePayload leave,
-        boolean isCancel = false,
-        boolean isPastLeave = false,
-        string? emailSubject = ()
-) returns readonly & EmailNotificationDetails|error {
+public isolated function generateContentForLeave(string token, string employeeEmail, LeaveResponse|LeavePayload leave,
+        boolean isCancel = false, boolean isPastLeave = false, string? emailSubject = ()
+        ) returns readonly & EmailNotificationDetails|error {
 
     EmailNotificationDetails notificationDetails;
     string startDateString = getEmailDateStringFromTimestamp(leave.startDate);
@@ -182,15 +173,8 @@ public isolated function generateContentForLeave(
 # + isPastLeave - Whether the leave is in the past
 # + emailSubject - Email subject
 # + return - EmailNotificationDetails record
-isolated function generateContentForHalfDayLeave(
-        string employeeName,
-        boolean isCancel,
-        string leaveType,
-        string date,
-        boolean isMorningHalf,
-        boolean isPastLeave,
-        string? emailSubject = ()
-) returns EmailNotificationDetails {
+isolated function generateContentForHalfDayLeave(string employeeName, boolean isCancel, string leaveType, string date,
+        boolean isMorningHalf, boolean isPastLeave, string? emailSubject = ()) returns EmailNotificationDetails {
 
     string subject = emailSubject ?: getPrefixedEmailSubject(
             string `${employeeName} ${isPastLeave ? "was" : "is"} on half-day ${leaveType is database:LIEU_LEAVE ? string `${database:LIEU_LEAVE} ` : ""}leave (${isMorningHalf ? "first" : "second"} half) on ${date}`);
@@ -210,6 +194,7 @@ isolated function generateContentForHalfDayLeave(
                 Please note that ${employeeName} has cancelled the half-day ${leaveType is database:LIEU_LEAVE ? string `${database:LIEU_LEAVE} ` : ""}leave applied for ${date}.
             <p>
         `);
+
     return {
         subject,
         body
@@ -225,14 +210,8 @@ isolated function generateContentForHalfDayLeave(
 # + isPastLeave - Whether the leave is in the past
 # + emailSubject - Email subject
 # + return - EmailNotificationDetails record
-isolated function generateContentForOneDayLeave(
-        string employeeName,
-        boolean isCancel,
-        string leaveType,
-        string date,
-        boolean isPastLeave,
-        string? emailSubject = ()
-) returns EmailNotificationDetails {
+isolated function generateContentForOneDayLeave(string employeeName, boolean isCancel, string leaveType, string date,
+        boolean isPastLeave, string? emailSubject = ()) returns EmailNotificationDetails {
 
     string subject = emailSubject ?: getPrefixedEmailSubject(
             string `${employeeName} ${isPastLeave ? "was" : "will be"} on ${leaveType is database:LIEU_LEAVE ? string `${database:LIEU_LEAVE} ` : ""}leave on ${date}`);
@@ -268,15 +247,9 @@ isolated function generateContentForOneDayLeave(
 # + isPastLeave - Whether the leave is in the past
 # + emailSubject - Email subject
 # + return - EmailNotificationDetails record
-isolated function generateContentForMultipleDaysLeave(
-        string employeeName,
-        boolean isCancel,
-        string leaveType,
-        string fromDate,
-        string toDate,
-        boolean isPastLeave,
-        string? emailSubject = ()
-) returns EmailNotificationDetails {
+isolated function generateContentForMultipleDaysLeave(string employeeName, boolean isCancel, string leaveType,
+        string fromDate, string toDate, boolean isPastLeave, string? emailSubject = ())
+        returns EmailNotificationDetails {
 
     string subject = emailSubject ?: getPrefixedEmailSubject(string `${employeeName} ${isPastLeave ? "was" : "will be"} on ${leaveType is database:LIEU_LEAVE ? string `${database:LIEU_LEAVE} ` : ""}leave from ${fromDate} to ${toDate}`);
     string body = !isCancel ?
