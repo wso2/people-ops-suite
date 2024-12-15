@@ -147,3 +147,57 @@ public type EmployeeResponse record {
     # Updated on
     string? updatedOn?;
 };
+
+# Organization structure filter record.
+public type orgStructureFilter record {|
+    # Id of the business unit
+    int[]? businessUnitIds = ();
+    # Name of the business unit
+    string[]? businessUnits = ();
+    # Employee statuses
+    string[]? employeeStatuses = ();
+|};
+
+# OrgStructure record.
+public type OrgStructure record {|
+    # Organization structure with business units, team, units, and subunits
+    BusinessUnit[] businessUnits;
+|};
+
+# Business unit record.
+public type BusinessUnit record {|
+    # Id of the business unit
+    int id;
+    # Title of the business unit
+    string name;
+    # List of teams
+    Team[]? teams;
+|};
+
+# Team record.
+public type Team record {|
+    # Id of the team
+    int id;
+    # Name of the team
+    string name;
+    # List of units
+    Unit[]? units;
+|};
+
+# Unit record.
+public type Unit record {|
+    # Id of the unit
+    int id;
+    # Name of the unit
+    string name;
+    # List of subunits
+    SubUnit[]? subUnits;
+|};
+
+# Sub unit record.
+public type SubUnit record {|
+    # Id of the subunit
+    int id;
+    # Name of the subunit
+    string name;
+|};

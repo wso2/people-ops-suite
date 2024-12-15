@@ -90,6 +90,11 @@ public isolated function getEmployees(
         select toEmployee(empResp);
 }
 
+# Get the location of an employee based on their email address.
+#
+# + email - Email address of the employee 
+# + token - JWT token
+# + return - The employee's location or an error
 public isolated function getEmployeeLocation(string email, string token) returns string|error {
 
     readonly & Employee|error employee = getEmployee(email, token);
@@ -102,4 +107,24 @@ public isolated function getEmployeeLocation(string email, string token) returns
     }
 
     return location;
+}
+
+public isolated function getOrgStructure(orgStructureFilter filter, string token, int 'limit = DEFAULT_LIMIT,
+        int offset = DEFAULT_OFFSET) returns OrgStructure|error {
+
+    http:Response orgStructureResponse = check employeeClient->/org\-structure.post(
+        filter,
+        {"x-jwt-assertion": token.toString()},
+        'limit = 'limit,
+        offset = offset
+    );
+    json|error orgStructureJsonResponse = orgStructureResponse.getJsonPayload();
+    if orgStructureJsonResponse is error {
+        return error("Error occurred while processing organization structure JSON payload.", orgStructureJsonResponse);
+    }
+    final readonly & OrgStructure|error orgStructure = orgStructureJsonResponse.fromJsonWithType();
+    if orgStructure is error {
+        return error("Error occurred while converting organization structure from JSON", orgStructure);
+    }
+    return orgStructure;
 }
