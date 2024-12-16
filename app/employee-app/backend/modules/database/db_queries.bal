@@ -141,7 +141,7 @@ public isolated function getOrgStructureQuery(orgStructureFilter filter, int 'li
                         'name', d.team_name,
                         'units', (
                             SELECT 
-                                JSON_ARRAYAGG(JSON_OBJECT(
+                                COALESCE(JSON_ARRAYAGG(JSON_OBJECT(
                                     'id',t.unit_id,
                                     'name',t.unit_name,
                                     'subUnits',(
@@ -161,7 +161,7 @@ public isolated function getOrgStructureQuery(orgStructureFilter filter, int 'li
                                             ON st.sub_unit_id = budtst.sub_unit_id
                                         WHERE budtst.business_unit_team_unit_id = budt.business_unit_team_unit_id
                                     )
-                                ))
+                                )), JSON_ARRAY())
                             FROM 
                                 hris_unit t
                                 RIGHT JOIN
