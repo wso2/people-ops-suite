@@ -19,7 +19,7 @@ const initialState = {
   isLoading: false,
   openBasicDialog: false,
   basicDialogInfo: {},
-  basicDialogCallbackFn: () => {},
+  basicDialogCallbackFn: null,
   showSnackbar: false,
   snackbarAlertStack: [],
 };

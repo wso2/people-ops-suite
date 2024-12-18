@@ -190,7 +190,7 @@ export function createComponents(config) {
           [`&.${filledInputClasses.focused}`]: {
             backgroundColor: "transparent",
             borderColor: palette.primary.main,
-            boxShadow: `${palette.primary.main} 0 0 0 2px`,
+            boxShadow: `inherit`,
           },
           [`&.${filledInputClasses.error}`]: {
             borderColor: palette.error.main,
@@ -217,7 +217,7 @@ export function createComponents(config) {
             backgroundColor: "transparent",
             [`& .${outlinedInputClasses.notchedOutline}`]: {
               borderColor: palette.primary.main,
-              boxShadow: `${palette.primary.main} 0 0 0 2px`,
+              boxShadow: "inherit",
             },
           },
           [`&.${filledInputClasses.error}`]: {
@@ -255,9 +255,6 @@ export function createComponents(config) {
             },
             [`&.${inputLabelClasses.filled}`]: {
               transform: "translate(12px, 6px) scale(0.85)",
-            },
-            [`&.${inputLabelClasses.outlined}`]: {
-              transform: "translate(14px, -9px) scale(0.85)",
             },
           },
         },

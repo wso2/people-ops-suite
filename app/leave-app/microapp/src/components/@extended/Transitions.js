@@ -19,7 +19,7 @@ import React, { forwardRef } from "react";
 import { Fade, Box, Grow } from "@mui/material";
 
 const Transitions = forwardRef(
-  ({ children, position, type, ...others }, ref) => {
+  ({ children, position = "top-left", type = "grow", ...others }, ref) => {
     let positionSX = {
       transformOrigin: "0 0 0",
     };
@@ -63,7 +63,6 @@ const Transitions = forwardRef(
 );
 
 Transitions.propTypes = {
-  children: PropTypes.node,
   type: PropTypes.oneOf(["grow", "fade", "collapse", "slide", "zoom"]),
   position: PropTypes.oneOf([
     "top-left",
@@ -73,11 +72,6 @@ Transitions.propTypes = {
     "bottom-right",
     "bottom",
   ]),
-};
-
-Transitions.defaultProps = {
-  type: "grow",
-  position: "top-left",
 };
 
 export default Transitions;
