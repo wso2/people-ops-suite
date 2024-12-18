@@ -27,7 +27,7 @@ import { LoadingButton } from "@mui/lab";
 
 import { openBasicDialog } from "../../store/reducers/feedback";
 
-const Transition = forwardRef(function Transition(props, ref) {
+const Transition = forwardRef((props, ref) => {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 

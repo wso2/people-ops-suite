@@ -13,7 +13,7 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef } from "react";
 import { useSelector } from "react-redux";
 import { VariableSizeList } from "react-window";
 
@@ -86,7 +86,7 @@ function renderRow(props) {
   );
 }
 
-const OuterElementType = React.forwardRef((props, ref) => {
+const OuterElementType = forwardRef((props, ref) => {
   const outerProps = React.useContext(OuterElementContext);
   return <div ref={ref} {...props} {...outerProps} />;
 });
@@ -103,10 +103,7 @@ function useResetCache(data) {
   return ref;
 }
 
-const ListboxComponent = React.forwardRef(function ListboxComponent(
-  props,
-  ref
-) {
+const ListboxComponent = forwardRef((props, ref) => {
   const { children, ...other } = props;
   const itemData = [];
   children.forEach((item) => {
@@ -318,10 +315,11 @@ const NotifyPeople = (props) => {
                       minHeight: "30px !important",
                     }}
                     title={option.workEmail}
+                    key={index}
                   >
                     <Chip
                       clickable
-                      onDelete={!isFixed && handleOnDelete(option)}
+                      onDelete={!isFixed ? handleOnDelete(option) : null}
                       key={option.workEmail}
                       color={"secondary"}
                       avatar={
@@ -385,7 +383,6 @@ const NotifyPeople = (props) => {
                 placeholder="Type or select"
               />
             )}
-            // TODO: Post React 18 update - validate this conversion, look like a hidden bug
             renderGroup={(params) => params}
           />
         </Paper>

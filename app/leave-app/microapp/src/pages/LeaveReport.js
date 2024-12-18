@@ -160,10 +160,6 @@ export default function LeaveHistory(props) {
     setValue(newValue);
   };
 
-  const handleChangeIndex = (index) => {
-    setValue(index);
-  };
-
   const handleSwipe = (delta) => {
     if (delta > 0 && value > 0) {
       setValue(value - 1);

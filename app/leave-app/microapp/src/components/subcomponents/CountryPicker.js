@@ -54,7 +54,7 @@ export default function CountryPicker(props) {
   return (
     <Autocomplete
       id="country-select-demo"
-      sx={{ m: 1, minWidth: 220 }}
+      sx={{ minWidth: 220 }}
       options={filteredCountries}
       autoHighlight
       value={value}

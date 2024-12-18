@@ -13,8 +13,7 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import React, { useState, useEffect } from "react";
-import PropTypes from "prop-types";
+import React, { useState, useEffect, forwardRef } from "react";
 import { VariableSizeList } from "react-window";
 import { useSelector } from "react-redux";
 
@@ -72,7 +71,7 @@ function renderRow(props) {
 
 const OuterElementContext = React.createContext({});
 
-const OuterElementType = React.forwardRef((props, ref) => {
+const OuterElementType = forwardRef((props, ref) => {
   const outerProps = React.useContext(OuterElementContext);
   return <div ref={ref} {...props} {...outerProps} />;
 });
@@ -87,10 +86,7 @@ function useResetCache(data) {
   return ref;
 }
 
-const ListboxComponent = React.forwardRef(function ListboxComponent(
-  props,
-  ref
-) {
+const ListboxComponent = forwardRef((props, ref) => {
   const { children, ...other } = props;
   const itemData = [];
   children.forEach((item) => {
@@ -143,10 +139,6 @@ const ListboxComponent = React.forwardRef(function ListboxComponent(
   );
 });
 
-ListboxComponent.propTypes = {
-  children: PropTypes.node,
-};
-
 export default function EmailPicker(props) {
   const { email, handleEmailChange } = props;
   const { employeeData } = useSelector((state) => state.menu);
@@ -176,7 +168,6 @@ export default function EmailPicker(props) {
   return (
     <Autocomplete
       id="employee-selector"
-      sx={{ width: 300 }}
       autoHighlight
       ListboxComponent={ListboxComponent}
       options={employeeData}
@@ -218,7 +209,6 @@ export default function EmailPicker(props) {
       selectOnFocus
       clearOnBlur
       handleHomeEndKeys
-      // TODO: Post React 18 update - validate this conversion, look like a hidden bug
       renderGroup={(params) => params}
     />
   );

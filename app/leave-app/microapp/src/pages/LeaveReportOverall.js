@@ -310,7 +310,7 @@ const LeaveReportOverall = (props) => {
                 <Stack
                   direction="column"
                   justifyContent="center"
-                  alignItems="center"
+                  alignItems="left"
                   spacing={3}
                 >
                   <span>
@@ -320,7 +320,7 @@ const LeaveReportOverall = (props) => {
                     />
                   </span>
                   <span>
-                    <FormControl sx={{ m: 1, minWidth: 220 }}>
+                    <FormControl sx={{ minWidth: 220 }}>
                       <InputLabel id="bu-select-small-label">
                         Business Unit
                       </InputLabel>
@@ -350,7 +350,7 @@ const LeaveReportOverall = (props) => {
                     </FormControl>
                   </span>
                   <span>
-                    <FormControl sx={{ m: 1, minWidth: 220 }}>
+                    <FormControl sx={{ minWidth: 220 }}>
                       <InputLabel id="department-select-small-label">
                         Department
                       </InputLabel>
@@ -379,7 +379,7 @@ const LeaveReportOverall = (props) => {
                     </FormControl>
                   </span>
                   <span>
-                    <FormControl sx={{ m: 1, minWidth: 220 }}>
+                    <FormControl sx={{ minWidth: 220 }}>
                       <InputLabel id="team-select-small-label">Team</InputLabel>
                       <Select
                         labelId="team-select-small-label"
@@ -407,7 +407,7 @@ const LeaveReportOverall = (props) => {
                     </FormControl>
                   </span>
                   <span>
-                    <FormControl sx={{ m: 1, width: 220 }}>
+                    <FormControl sx={{ width: 220 }}>
                       <InputLabel id="demo-multiple-chip-label">
                         Employee Status
                       </InputLabel>
