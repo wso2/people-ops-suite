@@ -20,13 +20,11 @@ import { drawerWidth } from "../../../config";
 
 const openedMixin = (theme) => ({
   width: drawerWidth,
-  borderRight: `1px solid ${theme.palette.divider}`,
   transition: theme.transitions.create("width", {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.enteringScreen,
   }),
   overflowX: "hidden",
-  boxShadow: "none",
 });
 
 const closedMixin = (theme) => ({
@@ -35,18 +33,19 @@ const closedMixin = (theme) => ({
     duration: theme.transitions.duration.leavingScreen,
   }),
   overflowX: "hidden",
-  width: 0,
-  borderRight: "none",
-  boxShadow: theme.customShadows.z1,
+  width: `calc(${theme.spacing(60)} + 1px)`,
+  [theme.breakpoints.up("sm")]: {
+    width: `calc(${theme.spacing(9)} + 1px)`,
+  },
 });
 
 const MiniDrawerStyled = styled(Drawer, {
   shouldForwardProp: (prop) => prop !== "open",
 })(({ theme, open }) => ({
   width: drawerWidth,
+  display: "flex",
   flexShrink: 0,
   whiteSpace: "nowrap",
-  boxSizing: "border-box",
   ...(open && {
     ...openedMixin(theme),
     "& .MuiDrawer-paper": openedMixin(theme),

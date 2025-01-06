@@ -20,13 +20,9 @@ import { isMobile } from "react-device-detect";
 
 import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
-import DrawerMui from "@mui/material/Drawer";
 import CssBaseline from "@mui/material/CssBaseline";
 import MuiAppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
-import Divider from "@mui/material/Divider";
-import IconButton from "@mui/material/IconButton";
-import MenuIcon from "@mui/icons-material/Menu";
 import { Paper } from "@mui/material";
 
 import { drawerWidth } from "../../config";
@@ -34,23 +30,17 @@ import DrawerContent from "./Drawer/DrawerContent";
 import DrawerHeader from "./Drawer/DrawerHeader";
 import HeaderContent from "./Header/HeaderContent";
 import Footer from "./Footer";
+import MiniDrawerStyled from "./Drawer/MiniDrawerStyled";
 
 const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
   ({ theme, open }) => ({
-    flexGrow: 1,
+    flex: 1,
     padding: theme.spacing(3),
     transition: theme.transitions.create("margin", {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
     }),
-    marginLeft: `-${drawerWidth}px`,
-    ...(open && {
-      transition: theme.transitions.create("margin", {
-        easing: theme.transitions.easing.easeOut,
-        duration: theme.transitions.duration.enteringScreen,
-      }),
-      marginLeft: 0,
-    }),
+    width: `calc(100% - (${theme.spacing(10)} + 1px))`,
   })
 );
 
@@ -89,37 +79,19 @@ export default function PersistentDrawerLeft() {
         position="fixed"
         sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerOpen}
-            edge="start"
-            sx={{ mr: 2, ...(open && { display: "none" }) }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <HeaderContent />
+        <Toolbar sx={{paddingLeft:"16px !important"}}>
+          <HeaderContent
+            open={open}
+            handleDrawerOpen={handleDrawerOpen}
+            handleDrawerClose={handleDrawerClose}
+          />
         </Toolbar>
       </AppBar>
 
-      <DrawerMui
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          "& .MuiDrawer-paper": {
-            width: drawerWidth,
-            boxSizing: "border-box",
-          },
-        }}
-        variant="persistent"
-        anchor="left"
-        open={open}
-      >
+      <MiniDrawerStyled variant="permanent" open={open}>
         <DrawerHeader open={open} handleDrawerClose={handleDrawerClose} />
-        <Divider />
-        <DrawerContent />
-      </DrawerMui>
+        <DrawerContent open={open} />
+      </MiniDrawerStyled>
       <Main open={open}>
         <Box component="main" sx={{ pt: 5 }}>
           <Outlet />

@@ -21,52 +21,56 @@ import MainCard from "../../../../components/MainCard";
 import { getGmailMailTo } from "../../../../utils/formatting";
 import { LEAVE_APP } from "../../../../constants";
 
-const NavCard = () => (
-  <MainCard sx={{ bgcolor: "grey.50", m: 3 }}>
-    <Stack alignItems="center" spacing={2.5}>
-      <Collapse
-        in={true}
-        orientation="horizontal"
-        classes={{ wrapperInner: { width: "100%" } }}
-        timeout={2}
-      >
-        <Box
-          sx={{
-            backgroundColor: "background.default",
-            m: 2,
-            p: 2,
-          }}
-        >
-          <Typography align="center" gutterBottom variant="h4" noWrap>
-            Need help?
-          </Typography>
-          <Typography align="center" variant="body2" noWrap>
-            Contact Internal Apps
-          </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              pt: 2,
-            }}
+const NavCard = ({ open }) => {
+  return (
+    open && (
+      <MainCard sx={{ bgcolor: "grey.50", m: 3 }}>
+        <Stack alignItems="center" spacing={2.5}>
+          <Collapse
+            in={true}
+            orientation="horizontal"
+            classes={{ wrapperInner: { width: "100%" } }}
+            timeout={2}
           >
-            <Link
-              href={getGmailMailTo(
-                LEAVE_APP.EMAILS.GET_HELP_EMAIL_TO,
-                LEAVE_APP.EMAILS.GET_HELP_EMAIL_SUBJECT
-              )}
-              target="_blank"
-              rel="noreferrer"
+            <Box
+              sx={{
+                backgroundColor: "background.default",
+                m: 2,
+                p: 2,
+              }}
             >
-              <Button color="primary" variant="contained">
-                Get Help
-              </Button>
-            </Link>
-          </Box>
-        </Box>
-      </Collapse>
-    </Stack>
-  </MainCard>
-);
+              <Typography align="center" gutterBottom variant="h4" noWrap>
+                Need help?
+              </Typography>
+              <Typography align="center" variant="body2" noWrap>
+                Contact Internal Apps
+              </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  pt: 2,
+                }}
+              >
+                <Link
+                  href={getGmailMailTo(
+                    LEAVE_APP.EMAILS.GET_HELP_EMAIL_TO,
+                    LEAVE_APP.EMAILS.GET_HELP_EMAIL_SUBJECT
+                  )}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Button color="primary" variant="contained">
+                    Get Help
+                  </Button>
+                </Link>
+              </Box>
+            </Box>
+          </Collapse>
+        </Stack>
+      </MainCard>
+    )
+  );
+};
 
 export default NavCard;

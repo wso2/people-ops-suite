@@ -335,6 +335,7 @@ const LeaveReportOverall = (props) => {
                         // displayEmpty
                         inputProps={{ "aria-label": "Without label" }}
                         disabled={isLoading}
+                        sx={{ fontSize:'12px !important' }}
                       >
                         <MenuItem value={null}>
                           <em>None</em>

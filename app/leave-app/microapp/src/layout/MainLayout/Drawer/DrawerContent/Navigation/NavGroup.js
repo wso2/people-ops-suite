@@ -21,7 +21,7 @@ import { Box, List, Typography } from "@mui/material";
 
 import NavItem from "./NavItem";
 
-const NavGroup = ({ item }) => {
+const NavGroup = ({ item, open }) => {
   const menu = useSelector((state) => state.menu);
   const { isAdmin, isLead, drawerOpen } = menu;
 
@@ -45,7 +45,7 @@ const NavGroup = ({ item }) => {
         item.children.map((menuItem) => {
           return (menuItem.isAdmin && !isAdmin) ||
             (menuItem.isLead && !isLead) ? null : (
-            <NavItem key={menuItem.id} item={menuItem} level={1} />
+            <NavItem key={menuItem.id} item={menuItem} level={1} open={open} />
           );
         })}
     </List>

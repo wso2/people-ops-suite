@@ -18,21 +18,24 @@ import PropTypes from "prop-types";
 
 import { useTheme } from "@mui/material/styles";
 import { Stack, IconButton } from "@mui/material";
-import {
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-} from "@mui/icons-material";
+import MenuIcon from "@mui/icons-material/Menu";
 
 import DrawerHeaderStyled from "./DrawerHeaderStyled";
 
-const DrawerHeader = ({ open, handleDrawerClose }) => {
+const DrawerHeader = ({ open, handleDrawerClose, handleDrawerOpen }) => {
   const theme = useTheme();
 
   return (
     <DrawerHeaderStyled theme={theme} open={open}>
-      <IconButton onClick={handleDrawerClose}>
-        {theme.direction === "ltr" ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-      </IconButton>
+      {open ? (
+        <IconButton onClick={handleDrawerClose}>
+          <MenuIcon />
+        </IconButton>
+      ) : (
+        <IconButton onClick={handleDrawerOpen}>
+          <MenuIcon />
+        </IconButton>
+      )}
       <Stack direction="row" spacing={1} alignItems="center"></Stack>
     </DrawerHeaderStyled>
   );

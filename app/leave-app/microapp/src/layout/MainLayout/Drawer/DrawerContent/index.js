@@ -22,7 +22,7 @@ import { Box, Stack } from "@mui/material";
 import NavCard from "./NavCard";
 import Navigation from "./Navigation";
 
-const DrawerContent = () => (
+const DrawerContent = (props) => (
   <Box style={{ height: "100%" }}>
     <Stack
       sx={{ height: "100%" }}
@@ -32,12 +32,12 @@ const DrawerContent = () => (
       spacing={2}
     >
       <span>
-        <Navigation />
+        <Navigation open={props.open} />
       </span>
       <span>
         <div style={{ width: 100 }} />
       </span>
-      <span>{isDesktop && <NavCard />}</span>
+      <span>{isDesktop && <NavCard open={props.open} />}</span>
     </Stack>
   </Box>
 );

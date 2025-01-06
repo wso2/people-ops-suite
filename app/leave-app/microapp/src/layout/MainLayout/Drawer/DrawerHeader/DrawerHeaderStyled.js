@@ -23,7 +23,6 @@ const DrawerHeaderStyled = styled(Box, {
   display: "flex",
   alignItems: "center",
   justifyContent: open ? "flex-start" : "center",
-  paddingLeft: theme.spacing(open ? 3 : 0),
 }));
 
 export default DrawerHeaderStyled;

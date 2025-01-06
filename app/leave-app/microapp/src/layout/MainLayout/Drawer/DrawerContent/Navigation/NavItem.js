@@ -29,24 +29,18 @@ import {
 
 import { navigateToView } from "../../../../../store/reducers/menu";
 
-const drawerOpen = true;
-const NavItem = ({ item, level }) => {
+const NavItem = ({ item, level, open }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const { openItem, navigatedView } = useSelector((state) => state.menu);
   const [value, setValue] = useState(navigatedView);
-
 
   const itemHandler = (newValue) => {
     dispatch(navigateToView({ navigatedView: newValue }));
   };
 
   const Icon = item.icon;
-  const itemIcon = item.icon ? (
-    <Icon style={{ fontSize: drawerOpen ? "1rem" : "1.25rem" }} />
-  ) : (
-    false
-  );
+  const itemIcon = item.icon ? <Icon style={{ fontSize: "1.25rem" }} /> : false;
 
   const isSelected = openItem.findIndex((id) => id === item.id) > -1;
 
@@ -74,10 +68,9 @@ const NavItem = ({ item, level }) => {
       onClick={() => itemHandler(item.id)}
       selected={value === item.id}
       sx={{
-        zIndex: 1201,
-        pl: drawerOpen ? `${level * 28}px` : 1.5,
-        py: !drawerOpen && level === 1 ? 1.25 : 1,
-        ...(drawerOpen && {
+        pl: `${level * 18}px`,
+        py: level === 1 ? 1.25 : 1,
+        ...(open && {
           "&:hover": {
             bgcolor: "primary.lighter",
           },
@@ -91,15 +84,16 @@ const NavItem = ({ item, level }) => {
             },
           },
         }),
-        ...(!drawerOpen && {
+        ...(!open && {
           "&:hover": {
-            bgcolor: "transparent",
+            bgcolor: "primary.lighter",
           },
           "&.Mui-selected": {
             "&:hover": {
-              bgcolor: "transparent",
+              bgcolor: "primary.lighter",
             },
-            bgcolor: "transparent",
+            borderRight: `2px solid ${theme.palette.primary.main}`,
+            bgcolor: "primary.lighter",
           },
         }),
       }}
@@ -109,7 +103,7 @@ const NavItem = ({ item, level }) => {
           sx={{
             minWidth: 28,
             color: isSelected ? iconSelectedColor : textColor,
-            ...(!drawerOpen && {
+            ...{
               borderRadius: 1.5,
               width: 36,
               height: 36,
@@ -118,20 +112,19 @@ const NavItem = ({ item, level }) => {
               "&:hover": {
                 bgcolor: "secondary.lighter",
               },
-            }),
-            ...(!drawerOpen &&
-              isSelected && {
+            },
+            ...(isSelected && {
+              bgcolor: "primary.lighter",
+              "&:hover": {
                 bgcolor: "primary.lighter",
-                "&:hover": {
-                  bgcolor: "primary.lighter",
-                },
-              }),
+              },
+            }),
           }}
         >
           {itemIcon}
         </ListItemIcon>
       )}
-      {
+      {open && (
         <ListItemText
           primary={
             <Typography
@@ -142,8 +135,8 @@ const NavItem = ({ item, level }) => {
             </Typography>
           }
         />
-      }
-      {drawerOpen && item.chip && (
+      )}
+      {open && item.chip && (
         <Chip
           color={item.chip.color}
           variant={item.chip.variant}
@@ -159,6 +152,7 @@ const NavItem = ({ item, level }) => {
 NavItem.propTypes = {
   item: PropTypes.object,
   level: PropTypes.number,
+  open: PropTypes.bool,
 };
 
 export default NavItem;
