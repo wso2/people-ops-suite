@@ -606,8 +606,14 @@ service http:InterceptableService / on new http:Listener(9090) {
                 fail error("Error occurred while retrieving organization structure data!", orgStructure);
             }
 
+            Employee[] & readonly employees = check employee:getEmployees(jwt, {status: employeeStatuses});
+            string[] countries = from Employee employee in employees
+                let string country = employee.location ?: ""
+                group by country
+                select country;
+
             return {
-                countries: [],
+                countries,
                 orgStructure,
                 employeeStatuses: [EMP_STATUS_ACTIVE, EMP_STATUS_LEFT, EMP_STATUS_MARKED_LEAVER]
             };
