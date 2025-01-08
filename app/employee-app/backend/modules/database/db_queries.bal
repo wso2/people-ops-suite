@@ -119,7 +119,6 @@ isolated function getEmployeesQuery(EmployeeFilter filters, int 'limit, int offs
     finalQuery = sql:queryConcat(finalQuery, ` ORDER BY e.employee_id DESC
         LIMIT ${'limit} OFFSET ${offset}`);
 
-    
     return finalQuery;
 }
 
