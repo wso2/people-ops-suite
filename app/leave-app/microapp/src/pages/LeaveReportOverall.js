@@ -168,7 +168,7 @@ const LeaveReportOverall = (props) => {
     dispatchLeave({ type: ACTIONS.SET_IS_LOADING, isLoading: true });
     handleRequestWithNewToken(() => {
       handleRequest(
-        `${services.GENERATE_REPORT}`,
+        `${services.GENERATE_LEAVE_REPORT}`,
         "POST",
         {
           startDate: getDateFromDateString(startDate),

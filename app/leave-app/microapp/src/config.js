@@ -58,8 +58,7 @@ export const services = {
   CANCEL_LEAVE: API_BASE_URL + "/leaves",
   FETCH_EMPLOYEES: API_BASE_URL + "/employees",
   FETCH_REPORT_FILTERS: API_BASE_URL + "/report-filters",
-  GENERATE_REPORT: API_BASE_URL + "/generate-report",
-  GENERATE_LEAD_REPORT: API_BASE_URL + "/generate-lead-report",
+  GENERATE_LEAVE_REPORT: API_BASE_URL + "/leaves/report",
   FETCH_LEAVE_ENTITLEMENT_PATH: "/leave-entitlement",
 };
 
