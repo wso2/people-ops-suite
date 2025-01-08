@@ -16,10 +16,10 @@
 
 # Application specific role mapping.
 public type AppRoles record {|
-    # Role for the recruitment team
-    string recruitmentTeamRole;
+    # Role for employees
+    string[] userRoles;
     # Role for the head of people operations 
-    string headPeopleOperationsRole;
+    string[] adminRoles;
 |};
 
 # User info custom type for Asgardeo token.

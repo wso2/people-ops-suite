@@ -20,7 +20,7 @@ public const ERR_MSG_EMPLOYEES_RETRIEVAL_FAILED = "Error occurred while retrievi
 
 // Database query related constants
 public const DEFAULT_LIMIT = 1000;
-public const DEFAULT_OFFSET = 10;
+public const DEFAULT_OFFSET = 0;
 
 // Cache related constants
 public const CACHE_DEFAULT_MAX_AGE = 1800.0d;

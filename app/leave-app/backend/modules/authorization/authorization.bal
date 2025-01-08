@@ -17,10 +17,7 @@ import ballerina/http;
 import ballerina/jwt;
 import ballerina/log;
 
-// Allowed user roles of the API
-configurable string[] userRoles = ?;
-// Allowed admin roles of the API
-public configurable string[] adminRoles = ?;
+public configurable AppRoles authorizedRoles = ?;
 
 # To handle authorization for each resource function invocation.
 public isolated service class JwtInterceptor {
@@ -55,19 +52,9 @@ public isolated service class JwtInterceptor {
         }
         readonly & CustomJwtPayload readonlyDecodeUserInfo = decodeUserInfo.cloneReadOnly();
 
-        // Commented this out as roles are not being sent in the token exchange flow
-        // Checks if the user is authorized to access the API
-        // boolean|error userIsAuthorized = security:validateForSingleRole(jwt, userRoles);
-        // if userIsAuthorized != true {
-        //     security:logUnauthorizedUserAccess(jwt.email, req.rawPath, false);
-        //     return <types:Forbidden>{
-        //         body: {message: types:NO_PRIVILEGES_ERROR}
-        //     };
-        // }
-
         final boolean isAdminOnlyPath = checkIfAdminOnlyPath(path, method);
         if isAdminOnlyPath {
-            boolean|error userIsAdmin = validateForSingleRole(readonlyDecodeUserInfo, adminRoles);
+            boolean|error userIsAdmin = validateForSingleRole(readonlyDecodeUserInfo, authorizedRoles.adminRoles);
             if userIsAdmin != true {
                 string errorMsg = string `The user ${decodeUserInfo.email} was not privileged to access the${true ? " admin " : " "}resource ${req.rawPath}`;
                 log:printWarn(errorMsg);
@@ -123,3 +110,11 @@ public isolated function validateForSingleRole(readonly & CustomJwtPayload jwt, 
         isolated function(string expectedRole) returns boolean =>
             jwt.groups.indexOf(expectedRole) !is ()
     );
+
+# Check if user has required roles.
+#
+# + requiredRoles - Required Role list
+# + userRoles - Roles list, the user has
+# + return - Allow or not
+public function checkRoles(string[] requiredRoles, string[] userRoles) returns boolean =>
+    userRoles.some(userRole => requiredRoles.some(role => role == userRole));

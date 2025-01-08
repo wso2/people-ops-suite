@@ -176,16 +176,6 @@ public type LeaveResponse record {|
     *database:LeaveResponse;
 |};
 
-# Lead report generation payload.
-public type LeadReportPayload readonly & record {|
-    # Start date of the report
-    string? startDate = ();
-    # End date of the report
-    string? endDate = ();
-    # Employee status list
-    EmployeeStatus[]? employeeStatuses = DEFAULT_EMPLOYEE_STATUSES;
-|};
-
 # Report generation payload.
 public type ReportPayload readonly & record {|
     # Start date of the report

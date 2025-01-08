@@ -58,7 +58,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             readonly & authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
             string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
             if email != userInfo.email {
-                boolean validateForSingleRole = authorization:validateForSingleRole(userInfo, authorization:adminRoles);
+                boolean validateForSingleRole = authorization:validateForSingleRole(userInfo,
+                        authorization:authorizedRoles.adminRoles);
                 if !validateForSingleRole {
                     log:printWarn(string `The user ${userInfo.email} was not privileged to access the resource 
                         /leaves with email=${email.toString()}`);
@@ -292,7 +293,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             LeaveResponse leaveResponse = check toLeaveEntity(leave, jwt);
             final string email = userInfo.email;
             if leaveResponse.email != email {
-                boolean validateForSingleRole = authorization:validateForSingleRole(userInfo, authorization:adminRoles);
+                boolean validateForSingleRole = authorization:validateForSingleRole(userInfo,
+                        authorization:authorizedRoles.adminRoles);
                 if !validateForSingleRole {
                     return <http:Forbidden>{
                         body: {
@@ -528,9 +530,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             readonly & authorization:CustomJwtPayload userInfo = check ctx.getWithType(authorization:HEADER_USER_INFO);
             string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
             if email != userInfo.email {
-                boolean validateForSingleRole = authorization:validateForSingleRole(userInfo, authorization:adminRoles);
+                boolean validateForSingleRole = authorization:validateForSingleRole(userInfo,
+                        authorization:authorizedRoles.adminRoles);
                 if !validateForSingleRole {
-                    log:printWarn(string `The user ${userInfo.email} was not privileged to access the${false ? " admin " : " "}resource /leave-entitlement with email=${email.toString()}`);
+                    log:printWarn(string `The user ${userInfo.email} was not privileged to access the${false ?
+                                " admin " : " "}resource /leave-entitlement with email=${email.toString()}`);
                     return <http:Forbidden>{
                         body: {
                             message: ERR_MSG_UNAUTHORIZED_VIEW_LEAVE
@@ -629,83 +633,52 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     }
 
-    # Generate and fetch leave report.
+    # Generate and fetch leave reports for admins and leads.
     #
     # + ctx - Request context
     # + payload - Request payload
-    # + return - Leave report on success, otherwise an error response
-    resource function post generate\-report(http:RequestContext ctx, ReportPayload payload)
-        returns ReportContent|http:InternalServerError {
-
-        do {
-            string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
-            var {location, businessUnit, department, team, employeeStatuses, startDate, endDate} = payload;
-            Employee[] & readonly employees = check employee:getEmployees(
-                    jwt,
-                    {location, businessUnit, team: department, unit: team, status: employeeStatuses}
-            );
-
-            string[] emails = from Employee employee in employees
-                select employee.workEmail ?: "";
-
-            final database:Leave[]|error leaves = database:getLeaves(
-                    {emails, isActive: true, startDate, endDate}
-            );
-            if leaves is error {
-                fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaves);
-            }
-            LeaveResponse[] leaveResponses = from database:Leave leave in leaves
-                select check toLeaveEntity(leave, jwt);
-
-            return getLeaveReportContent(leaveResponses);
-
-        } on fail error internalErr {
-            log:printError(internalErr.message(), internalErr);
-            return <http:InternalServerError>{
-                body: {
-                    message: internalErr.message()
-                }
-            };
-        }
-    }
-
-    # Generate and fetch leave report for lead.
-    #
-    # + ctx - Request context
-    # + payload - Request payload
-    # + return - Employee leave details for a specific lead
-    resource function post generate\-lead\-report(http:RequestContext ctx, LeadReportPayload payload)
+    # + return - Leave report or lead-specific leave report
+    resource function post leaves/report(http:RequestContext ctx, ReportPayload payload)
         returns ReportContent|http:Forbidden|http:InternalServerError {
 
         do {
-            authorization:CustomJwtPayload {email} = check ctx.getWithType(authorization:HEADER_USER_INFO);
+            authorization:CustomJwtPayload {email, groups} = check ctx.getWithType(authorization:HEADER_USER_INFO);
             string jwt = check ctx.getWithType(authorization:INVOKER_TOKEN);
-            var {employeeStatuses, startDate, endDate} = payload;
-            Employee[] & readonly employees = check employee:getEmployees(
+
+            boolean isAdmin = authorization:checkRoles(authorization:authorizedRoles.adminRoles, groups);
+            Employee[] & readonly employees;
+
+            employees = check employee:getEmployees(
                     jwt,
                     {
-                        status: employeeStatuses,
-                        leadEmail: email
+                        location: payload.location,
+                        businessUnit: payload.businessUnit,
+                        team: payload.department,
+                        unit: payload.team,
+                        status: payload.employeeStatuses,
+                        leadEmail: isAdmin ? () : email
                     }
-            );
+                );
             string[] emails = from Employee employee in employees
                 select employee.workEmail ?: "";
-            if emails.length() == 0 {
+
+            if !isAdmin && emails.length() == 0 {
                 return <http:Forbidden>{
                     body: {
                         message: "You have not been assigned as a lead/manager to any employee!"
                     }
                 };
             }
+
             final database:Leave[]|error leaves = database:getLeaves(
-                    {emails, isActive: true, startDate, endDate}
+                    {emails, isActive: true, startDate: payload.startDate, endDate: payload.endDate}
             );
             if leaves is error {
                 fail error(ERR_MSG_LEAVES_RETRIEVAL_FAILED, leaves);
             }
-            LeaveResponse[] leaveResponses =
-            from database:Leave leave in leaves
-            select check toLeaveEntity(leave, jwt);
+
+            LeaveResponse[] leaveResponses = from database:Leave leave in leaves
+                select check toLeaveEntity(leave, jwt);
 
             return getLeaveReportContent(leaveResponses);
 
