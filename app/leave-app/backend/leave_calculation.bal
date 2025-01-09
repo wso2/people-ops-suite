@@ -105,10 +105,7 @@ isolated function checkIfLeavedAllowedToCancel(LeaveResponse leave) returns bool
     final LeaveResponse {startDate} = leave;
     time:Utc|error startUtc = getUtcDateFromString(getDateStringFromTimestamp(startDate));
     if startUtc is error {
-        log:printError(
-                string `Error occurred while getting UTC date from start date: ${startDate}.`,
-                'error = startUtc
-        );
+        log:printError(string `Error occurred while getting UTC date from start date: ${startDate}.`, startUtc);
         return false;
     }
 
@@ -192,10 +189,10 @@ isolated function createUuidForCalendarEvent() returns string {
 isolated function deleteLeaveEventFromCalendar(string email, string eventId) returns error? {
 
     log:printInfo(string `Deleting with event ID: ${eventId} email: ${email}.`);
-    error? err = calendar_events:deleteEvent(email, eventId);
-    if err is error {
-        log:printError(string `Error occurred while deleting event with event ID: ${eventId}.`);
-        return err;
+    error? deleteEventResult = calendar_events:deleteEvent(email, eventId);
+    if deleteEventResult is error {
+        log:printError(string `Error occurred while deleting event with event ID: ${eventId}.`, deleteEventResult);
+        return deleteEventResult;
     }
     log:printInfo(string `Event deleted successfully with event ID: ${eventId}.`);
 }
