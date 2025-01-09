@@ -29,6 +29,9 @@ dependencies = [
 	{org = "ballerina", name = "task"},
 	{org = "ballerina", name = "time"}
 ]
+modules = [
+	{org = "ballerina", packageName = "cache", moduleName = "cache"}
+]
 
 [[package]]
 org = "ballerina"
@@ -61,7 +64,7 @@ dependencies = [
 [[package]]
 org = "ballerina"
 name = "http"
-version = "2.11.5"
+version = "2.11.7"
 dependencies = [
 	{org = "ballerina", name = "auth"},
 	{org = "ballerina", name = "cache"},
@@ -93,7 +96,7 @@ modules = [
 [[package]]
 org = "ballerina"
 name = "io"
-version = "1.6.1"
+version = "1.6.3"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "lang.value"}
@@ -169,6 +172,9 @@ version = "0.0.0"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"}
 ]
+modules = [
+	{org = "ballerina", packageName = "lang.regexp", moduleName = "lang.regexp"}
+]
 
 [[package]]
 org = "ballerina"
@@ -185,6 +191,14 @@ version = "0.0.0"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "lang.regexp"}
+]
+
+[[package]]
+org = "ballerina"
+name = "lang.transaction"
+version = "0.0.0"
+dependencies = [
+	{org = "ballerina", name = "jballerina.java"}
 ]
 
 [[package]]
@@ -251,6 +265,18 @@ dependencies = [
 
 [[package]]
 org = "ballerina"
+name = "regex"
+version = "1.4.3"
+dependencies = [
+	{org = "ballerina", name = "jballerina.java"},
+	{org = "ballerina", name = "lang.string"}
+]
+modules = [
+	{org = "ballerina", packageName = "regex", moduleName = "regex"}
+]
+
+[[package]]
+org = "ballerina"
 name = "sql"
 version = "1.13.4"
 dependencies = [
@@ -275,9 +301,12 @@ dependencies = [
 [[package]]
 org = "ballerina"
 name = "time"
-version = "2.4.0"
+version = "2.5.0"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"}
+]
+modules = [
+	{org = "ballerina", packageName = "time", moduleName = "time"}
 ]
 
 [[package]]
@@ -286,6 +315,20 @@ name = "url"
 version = "2.4.0"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"}
+]
+
+[[package]]
+org = "ballerina"
+name = "uuid"
+version = "1.8.0"
+dependencies = [
+	{org = "ballerina", name = "crypto"},
+	{org = "ballerina", name = "jballerina.java"},
+	{org = "ballerina", name = "lang.int"},
+	{org = "ballerina", name = "time"}
+]
+modules = [
+	{org = "ballerina", packageName = "uuid", moduleName = "uuid"}
 ]
 
 [[package]]
@@ -298,6 +341,27 @@ dependencies = [
 ]
 modules = [
 	{org = "ballerinai", packageName = "observe", moduleName = "observe"}
+]
+
+[[package]]
+org = "ballerinai"
+name = "transaction"
+version = "0.0.0"
+dependencies = [
+	{org = "ballerina", name = "cache"},
+	{org = "ballerina", name = "http"},
+	{org = "ballerina", name = "io"},
+	{org = "ballerina", name = "jballerina.java"},
+	{org = "ballerina", name = "lang.runtime"},
+	{org = "ballerina", name = "lang.transaction"},
+	{org = "ballerina", name = "lang.value"},
+	{org = "ballerina", name = "log"},
+	{org = "ballerina", name = "task"},
+	{org = "ballerina", name = "time"},
+	{org = "ballerina", name = "uuid"}
+]
+modules = [
+	{org = "ballerinai", packageName = "transaction", moduleName = "transaction"}
 ]
 
 [[package]]
@@ -325,20 +389,29 @@ modules = [
 
 [[package]]
 org = "wso2"
-name = "employee_service"
+name = "leave_service"
 version = "1.0.0"
 dependencies = [
+	{org = "ballerina", name = "cache"},
 	{org = "ballerina", name = "http"},
 	{org = "ballerina", name = "jwt"},
+	{org = "ballerina", name = "lang.regexp"},
 	{org = "ballerina", name = "log"},
+	{org = "ballerina", name = "regex"},
 	{org = "ballerina", name = "sql"},
+	{org = "ballerina", name = "time"},
+	{org = "ballerina", name = "uuid"},
 	{org = "ballerinai", name = "observe"},
+	{org = "ballerinai", name = "transaction"},
 	{org = "ballerinax", name = "mysql"},
 	{org = "ballerinax", name = "mysql.driver"}
 ]
 modules = [
-	{org = "wso2", packageName = "employee_service", moduleName = "employee_service"},
-	{org = "wso2", packageName = "employee_service", moduleName = "employee_service.authorization"},
-	{org = "wso2", packageName = "employee_service", moduleName = "employee_service.database"}
+	{org = "wso2", packageName = "leave_service", moduleName = "leave_service"},
+	{org = "wso2", packageName = "leave_service", moduleName = "leave_service.authorization"},
+	{org = "wso2", packageName = "leave_service", moduleName = "leave_service.calendar_events"},
+	{org = "wso2", packageName = "leave_service", moduleName = "leave_service.database"},
+	{org = "wso2", packageName = "leave_service", moduleName = "leave_service.email"},
+	{org = "wso2", packageName = "leave_service", moduleName = "leave_service.employee"}
 ]
 
