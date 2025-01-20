@@ -116,5 +116,6 @@ public isolated function validateForSingleRole(readonly & CustomJwtPayload jwt, 
 # + requiredRoles - Required Role list
 # + userRoles - Roles list, the user has
 # + return - Allow or not
-public function checkRoles(string[] requiredRoles, string[] userRoles) returns boolean =>
-    userRoles.some(userRole => requiredRoles.some(role => role == userRole));
+public isolated function checkRoles(readonly & string[] requiredRoles, string[] userRoles) returns boolean =>
+    userRoles.some(isolated function(string userRole) returns boolean => requiredRoles.some(
+        isolated function(string role) returns boolean => role == userRole));
