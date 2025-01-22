@@ -51,8 +51,7 @@ const useHttp = () => {
         body: body ? JSON.stringify(body) : null,
         headers: headers || {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${getAccessToken()}`,
-          "x-jwt-assertion": getAccessToken(),
+          Authorization: `Bearer ${getAccessToken()}`
         },
       });
 
