@@ -210,7 +210,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             if leave is error {
                 fail error(leave.message(), leave);
             }
-            LeaveResponse leaveResponse = {
+            final readonly & LeaveResponse leaveResponse = {
                 id: leave.id,
                 startDate: leave.startDate,
                 calendarEventId: leave.calendarEventId,
