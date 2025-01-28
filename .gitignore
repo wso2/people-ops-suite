@@ -26,3 +26,5 @@ replay_pid*
 .DS_Store
 target
 Config.toml
+node_modules
+**/public/config.js
