@@ -126,10 +126,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
 
         } on fail error internalErr {
-            log:printError(internalErr.message(), internalErr);
+            string errMsg = "Error occurred while fetching leaves";
+            log:printError(errMsg, internalErr);
             return <http:InternalServerError>{
                 body: {
-                    message: internalErr.message()
+                    message: errMsg
                 }
             };
         }
@@ -258,10 +259,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
 
         } on fail error internalErr {
-            log:printError(internalErr.message(), internalErr);
+            string errMsg = "Error occurred while submitting a leave";
+            log:printError(errMsg, internalErr);
             return <http:InternalServerError>{
                 body: {
-                    message: internalErr.message()
+                    message: errMsg
                 }
             };
         }
@@ -355,10 +357,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
 
         } on fail error internalErr {
-            log:printError(internalErr.message(), internalErr);
+            string errMsg = "Error occurred while deleting a leave request";
+            log:printError(errMsg, internalErr);
             return <http:InternalServerError>{
                 body: {
-                    message: internalErr.message()
+                    message: errMsg
                 }
             };
         }
@@ -404,10 +407,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
 
         } on fail error internalErr {
-            log:printError(internalErr.message(), internalErr);
+            string errMsg = "Error occurred while fetching leave form data";
+            log:printError(errMsg, internalErr);
             return <http:InternalServerError>{
                 body: {
-                    message: internalErr.message()
+                    message: errMsg
                 }
             };
         }
@@ -459,10 +463,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             return employeesToReturn;
 
         } on fail error internalErr {
-            log:printError(internalErr.message(), internalErr);
+            string errMsg = "Error occurred while fetching employees";
+            log:printError(errMsg, internalErr);
             return <http:InternalServerError>{
                 body: {
-                    message: internalErr.message()
+                    message: errMsg
                 }
             };
         }
@@ -501,10 +506,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
 
         } on fail error internalErr {
-            log:printError(internalErr.message(), internalErr);
+            string errMsg = "Error occurred while fetching employee";
+            log:printError(errMsg, internalErr);
             return <http:InternalServerError>{
                 body: {
-                    message: internalErr.message()
+                    message: errMsg
                 }
             };
         }
@@ -552,10 +558,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             return leaveEntitlements;
 
         } on fail error internalErr {
-            log:printError(internalErr.message(), internalErr);
+            string errMsg = "Error occurred while fetching legally entitled leave for the given employee";
+            log:printError(errMsg, internalErr);
             return <http:InternalServerError>{
                 body: {
-                    message: internalErr.message()
+                    message: errMsg
                 }
             };
         }
@@ -586,10 +593,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             return userCalendarInformation;
 
         } on fail error internalErr {
-            log:printError(internalErr.message(), internalErr);
+            string errMsg = "Error occurred while fetching user calendar";
+            log:printError(errMsg, internalErr);
             return <http:InternalServerError>{
                 body: {
-                    message: internalErr.message()
+                    message: errMsg
                 }
             };
         }
@@ -623,10 +631,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
 
         } on fail error internalErr {
-            log:printError(internalErr.message(), internalErr);
+            string errMsg = "Error occurred while fetching report filters";
+            log:printError(errMsg, internalErr);
             return <http:InternalServerError>{
                 body: {
-                    message: internalErr.message()
+                    message: errMsg
                 }
             };
         }
@@ -683,10 +692,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             return getLeaveReportContent(leaveResponses);
 
         } on fail error internalErr {
-            log:printError(internalErr.message(), internalErr);
+            string errMsg = "Error occurred while generating leave report";
+            log:printError(errMsg, internalErr);
             return <http:InternalServerError>{
                 body: {
-                    message: internalErr.message()
+                    message: errMsg
                 }
             };
         }
