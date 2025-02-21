@@ -25,7 +25,7 @@ public isolated service class JwtInterceptor {
     *http:RequestInterceptor;
 
     isolated resource function default [string... path](http:RequestContext ctx, http:Request req)
-        returns http:NextService|http:Unauthorized|http:BadRequest|http:Forbidden|http:InternalServerError|error? {
+        returns http:NextService|http:Forbidden|http:InternalServerError|error? {
 
         final string method = req.method;
         if method == http:OPTIONS {
@@ -33,16 +33,16 @@ public isolated service class JwtInterceptor {
         }
         string|error idToken = req.getHeader(JWT_ASSERTION_HEADER);
         if idToken is error {
-            return <http:BadRequest>{
+            return <http:InternalServerError>{
                 body: {
-                    message: "x-jwt-assertion header does not exist!"
+                    message: "Missing authentication details in the request!"
                 }
             };
         }
 
         CustomJwtPayload|error decodeUserInfo = decodeJwt(idToken);
         if decodeUserInfo is error {
-            string errorMsg = "Error in decoding JWT!";
+            string errorMsg = "Error while extracting user information!";
             log:printError(errorMsg, decodeUserInfo);
             return <http:InternalServerError>{
                 body: {
@@ -69,7 +69,7 @@ public isolated service class JwtInterceptor {
     }
 }
 
-# Check if path is only valid for admin users
+# Check if path is only valid for admin users.
 #
 # + path - Resource path
 # + method - Request HTTP method
