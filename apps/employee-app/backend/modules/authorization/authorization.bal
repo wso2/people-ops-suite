@@ -35,10 +35,10 @@ public isolated service class JwtInterceptor {
             };
         }
 
-        CustomJwtPayload|error decodeUserInfo = decodeJwt(idToken);
-        if decodeUserInfo is error {
+        CustomJwtPayload|error decodedUserInfo = decodeJwt(idToken);
+        if decodedUserInfo is error {
             string errorMsg = "Error while extracting user information!";
-            log:printError(errorMsg, decodeUserInfo);
+            log:printError(errorMsg, decodedUserInfo);
             return <http:InternalServerError>{
                 body: {
                     message: errorMsg
@@ -46,10 +46,10 @@ public isolated service class JwtInterceptor {
             };
         }
 
-        CustomJwtPayload|error userInfo = checkPrivileges(decodeUserInfo);
-        if userInfo is error {
+        boolean isAuthorized = checkPrivileges(decodedUserInfo);
+        if !isAuthorized {
             string errorMsg = "Insufficient privileges!";
-            log:printError(errorMsg, userInfo);
+            log:printError(errorMsg);
             return <http:Forbidden>{
                 body: {
                     message: errorMsg
@@ -57,7 +57,7 @@ public isolated service class JwtInterceptor {
             };
         }
 
-        ctx.set(HEADER_USER_INFO, userInfo);
+        ctx.set(HEADER_USER_INFO, decodedUserInfo);
         return ctx.next();
     }
 }
@@ -79,17 +79,13 @@ public isolated function decodeJwt(string key) returns CustomJwtPayload|error {
 # Checks if the user belongs to any of the authorized groups.
 # 
 # + userInfo - `CustomJwtPayload` object containing the user's email and groups
-# + return - Returns the `CustomJwtPayload` with the user's email and groups if the user is authorized
-# Otherwise, returns an error
-public isolated function checkPrivileges(CustomJwtPayload userInfo) returns CustomJwtPayload|error {
+# + return - Returns true if the user is authorized Otherwise, false
+public isolated function checkPrivileges(CustomJwtPayload userInfo) returns boolean {
 
     foreach anydata role in authorizedRoles.toArray() {
         if userInfo.groups.some(r => r == role) {
-            return {
-                email: userInfo.email,
-                groups: userInfo.groups
-            };
+            return true;
         }
     }
-    return userInfo;
+    return false;
 }
