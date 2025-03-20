@@ -1,21 +1,40 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
+// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
 //
-// This software is the property of WSO2 LLC. and its suppliers, if any.
-// Dissemination of any information or reproduction of any material contained
-// herein in any form is strictly forbidden, unless permitted by WSO2 expressly.
-// You may not alter or remove any copyright or other notice from copies of this content.
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 import React from "react";
 import Typography from "@mui/material/Typography";
 import Toolbar from "@mui/material/Toolbar";
-import { AppBar, Avatar, Box, Menu, MenuItem, Stack, Tooltip } from "@mui/material";
+import {
+  AppBar,
+  Avatar,
+  Box,
+  Menu,
+  MenuItem,
+  Stack,
+  Tooltip,
+} from "@mui/material";
 import { useAppAuthContext } from "@context/AuthContext";
 import { APP_NAME } from "@config/config";
 import { RootState, useAppSelector } from "@slices/store";
 
 const Header = () => {
   const authContext = useAppAuthContext();
-  const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
+  const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(
+    null
+  );
   const user = useAppSelector((state: RootState) => state.user);
 
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -33,7 +52,10 @@ const Header = () => {
         zIndex: (theme) => theme.zIndex.drawer + 1,
         color: "black",
 
-        background: (theme) => (theme.palette.mode === "light" ? theme.palette.common.white : "#0d0d0d"),
+        background: (theme) =>
+          theme.palette.mode === "light"
+            ? theme.palette.common.white
+            : "#0d0d0d",
         boxShadow: 1,
       }}
     >
@@ -74,7 +96,9 @@ const Header = () => {
                   <Typography variant="body1" sx={{ fontWeight: 600 }}>
                     {user.userInfo?.firstName + " " + user.userInfo.lastName}
                   </Typography>
-                  <Typography variant="body2">{user.userInfo?.jobRole}</Typography>
+                  <Typography variant="body2">
+                    {user.userInfo?.jobRole}
+                  </Typography>
                 </Box>
                 <Tooltip title="Open settings">
                   <Avatar

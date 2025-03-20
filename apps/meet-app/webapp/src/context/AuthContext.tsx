@@ -1,9 +1,18 @@
-// Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
+// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
 //
-// This software is the property of WSO2 LLC. and its suppliers, if any.
-// Dissemination of any information or reproduction of any material contained
-// herein in any form is strictly forbidden, unless permitted by WSO2 expressly.
-// You may not alter or remove any copyright or other notice from copies of this content.
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 import React, { useContext, useEffect, useState } from "react";
 import { Button } from "@mui/material";
@@ -21,7 +30,6 @@ import PreLoader from "@component/common/PreLoader";
 import { getUserInfo } from "@slices/userSlice/user";
 import { useIdleTimer } from "react-idle-timer";
 
-
 type AuthContextType = {
   appSignIn: () => void;
   appSignOut: () => void;
@@ -33,7 +41,9 @@ const promptBeforeIdle = 4_000;
 
 const AppAuthProvider = (props: { children: React.ReactNode }) => {
   const [open, setOpen] = useState<boolean>(false);
-  const [appState, setAppState] = useState<"logout" | "active" | "loading">("loading");
+  const [appState, setAppState] = useState<"logout" | "active" | "loading">(
+    "loading"
+  );
 
   const dispatch = useAppDispatch();
   const auth = useAppSelector((state: RootState) => state.auth);
@@ -65,7 +75,10 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
     var appStatus = localStorage.getItem("hris-app-state");
 
     if (!localStorage.getItem("hris-app-redirect-url")) {
-      localStorage.setItem("hris-app-redirect-url", window.location.href.replace(window.location.origin, ""));
+      localStorage.setItem(
+        "hris-app-redirect-url",
+        window.location.href.replace(window.location.origin, "")
+      );
     }
 
     if (appStatus && appStatus === "logout") {
@@ -157,10 +170,13 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
           >
-            <DialogTitle id="alert-dialog-title">{"Are you still there?"}</DialogTitle>
+            <DialogTitle id="alert-dialog-title">
+              {"Are you still there?"}
+            </DialogTitle>
             <DialogContent>
               <DialogContentText id="alert-dialog-description">
-                It looks like you've been inactive for a while. Would you like to continue?
+                It looks like you've been inactive for a while. Would you like
+                to continue?
               </DialogContentText>
             </DialogContent>
             <DialogActions>
