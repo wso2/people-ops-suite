@@ -1,5 +1,5 @@
 {
-  "name": "sample-app",
+  "name": "timesheet-app",
   "version": "1.1.0",
   "private": true,
   "dependencies": {

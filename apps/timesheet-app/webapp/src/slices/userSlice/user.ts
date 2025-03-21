@@ -17,13 +17,15 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { APIService } from "../../utils/apiService";
 import { AppConfig } from "../../config/config";
-import { State } from "../../types/types";
+import { Roles, State } from "../../types/types";
+import { RootState } from "@slices/store";
 
 const initialState: UserState = {
   state: State.idle,
   stateMessage: null,
   errorMessage: null,
   userInfo: null,
+  roles: [],
 };
 
 interface UserState {
@@ -31,6 +33,7 @@ interface UserState {
   stateMessage: string | null;
   errorMessage: string | null;
   userInfo: UserInfoInterface | null;
+  roles: Roles[];
 }
 
 interface UserInfoInterface {
@@ -40,6 +43,7 @@ interface UserInfoInterface {
   workEmail: string;
   employeeThumbnail: string;
   jobRole: string;
+  privileges: number[];
 }
 
 export const getUserInfo = createAsyncThunk("User/getUserInfo", async () => {
@@ -74,7 +78,19 @@ export const UserSlice = createSlice({
         state.stateMessage = "Checking User Info";
       })
       .addCase(getUserInfo.fulfilled, (state, action) => {
-        state.userInfo = action.payload.UserInfo;
+        const userInfo = action.payload.UserInfo;
+        state.userInfo = userInfo;
+        var roles = [];
+        if (userInfo.privileges.includes(987)) {
+          roles.push(Roles.EMPLOYEE);
+        }
+        if (userInfo.privileges.includes(862)) {
+          roles.push(Roles.LEAD);
+        }
+        if (userInfo.privileges.includes(762)) {
+          roles.push(Roles.ADMIN);
+        }
+        state.roles = roles;
         state.state = State.success;
       })
       .addCase(getUserInfo.rejected, (state) => {
@@ -83,6 +99,7 @@ export const UserSlice = createSlice({
   },
 });
 
+export const selectRoles = (state: RootState) => state.user.roles;
 export const { updateStateMessage } = UserSlice.actions;
 
 export default UserSlice.reducer;

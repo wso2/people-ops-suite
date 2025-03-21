@@ -50,7 +50,13 @@ public type Employee record {
     # Job role
     string jobRole;
     # Thumbnail of the employee
-    string employeeThumbnail;
+    string? employeeThumbnail;
+    # Company of the employee
+    string company;
+    # Manager email of the employee
+    string managerEmail;
+    # Job band of the employee
+    int? jobBand;
 };
 
 # Employee data.

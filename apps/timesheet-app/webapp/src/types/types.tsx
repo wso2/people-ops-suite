@@ -45,3 +45,9 @@ export interface CommonCardProps {
   actions: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
   dataCardIndex: number;
 }
+
+export enum Roles {
+  ADMIN = "ADMIN",
+  EMPLOYEE = "EMPLOYEE",
+  LEAD = "LEAD",
+}

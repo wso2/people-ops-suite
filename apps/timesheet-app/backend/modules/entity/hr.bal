@@ -28,6 +28,9 @@ public isolated function fetchEmployeesBasicInfo(string workEmail) returns Emplo
                 lastName,
                 jobRole,
                 employeeThumbnail,
+                company,
+                managerEmail,
+                jobBand
             }
         }
     `;

@@ -17,7 +17,9 @@
 import { lazy } from "react";
 
 const firstView = lazy(() => import("./first-view"));
+const employeeView = lazy(() => import("./employee-view"));
 
 export const View = {
   firstView,
+  employeeView,
 };

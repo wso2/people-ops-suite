@@ -20,17 +20,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 //-------MUI Imports---------
-import {
-  Box,
-  IconButton,
-  InputAdornment,
-  Popper,
-  Stack,
-  Tab,
-  Tabs,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Box, IconButton, InputAdornment, Popper, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import SendIcon from "@mui/icons-material/Send";
 import SearchIcon from "@mui/icons-material/Search";
@@ -100,12 +90,7 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
             /{searchParams.get("tab")}
           </Typography>
         </Stack>
-        <Stack
-          sx={{ ml: "auto" }}
-          flexDirection={"row"}
-          gap={1.2}
-          alignItems={"center"}
-        >
+        <Stack sx={{ ml: "auto" }} flexDirection={"row"} gap={1.2} alignItems={"center"}>
           {/* Search */}
           <TextField
             size="small"
@@ -139,11 +124,7 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
             <FilterAltOutlinedIcon />
           </IconButton>
         </Stack>
-        <Popper
-          open={Boolean(anchorEl)}
-          anchorEl={anchorEl}
-          placement="bottom-start"
-        >
+        <Popper open={Boolean(anchorEl)} anchorEl={anchorEl} placement="bottom-start">
           <SearchFilter />
         </Popper>
       </Box>
@@ -170,6 +151,7 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
         >
           {commonPageTabs.map((tab, index) => (
             <Tab
+              key={index}
               icon={tab.icon}
               label={tab.tabTitle}
               onClick={() => setSearchParams({ tab: tabs[index] })}
@@ -179,11 +161,7 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
                 lineHeight: 0,
                 background:
                   tabs[index] === searchParams.get("tab")
-                    ? (theme) =>
-                        alpha(
-                          theme.palette.primary.main,
-                          theme.palette.action.activatedOpacity
-                        )
+                    ? (theme) => alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity)
                     : "inherit",
               }}
             />
@@ -193,14 +171,13 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
           sx={{
             ml: "auto",
             alignSelf: "center",
-            display:
-              searchParams.get("tab") === "send-offer" ? "block" : "none",
+            display: searchParams.get("tab") === "send-offer" ? "block" : "none",
           }}
         ></Box>
       </Stack>
 
       {commonPageTabs.map((tab, index) => (
-        <TabPanel value={value} index={index}>
+        <TabPanel value={value} index={index} key={index}>
           {tab.page}
         </TabPanel>
       ))}
@@ -232,11 +209,7 @@ function TabPanel(props: TabPanelProps) {
             overflow: "auto",
             height: "100%",
             borderTop: "none",
-            background: (theme) =>
-              alpha(
-                theme.palette.primary.main,
-                theme.palette.action.activatedOpacity
-              ),
+            background: (theme) => alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity),
             borderRadius: 3,
             borderTopLeftRadius: 0,
           }}

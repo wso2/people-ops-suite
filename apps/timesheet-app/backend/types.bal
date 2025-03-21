@@ -13,7 +13,7 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import sample_app.database;
+import timesheet_app.database;
 
 # Collection type.
 public type SampleCollection record {
@@ -21,4 +21,34 @@ public type SampleCollection record {
     int count;
     # List of collections
     database:SampleCollection[] collections;
+};
+
+// Application Privileges
+const EMPLOYEE_PRIVILEGE = 987;
+const LEAD_PRIVILEGE = 862;
+const HR_ADMIN_PRIVILEGE = 762;
+
+// Get employee graphQL service Responses.
+# Employee.
+public type EmployeeWithPermissions record {
+    # Id of the employee
+    string employeeId;
+    # Email of the employee
+    string workEmail;
+    # First name of the employee
+    string firstName;
+    # Last name of the employee
+    string lastName;
+    # Job role
+    string jobRole;
+    # Thumbnail of the employee
+    string? employeeThumbnail;
+    # Company of the employee
+    string company;
+    # Manager email of the employee
+    string managerEmail;
+    # Job band of the employee
+    int? jobBand;
+    # Privileges of the employee
+    int[] privileges;
 };

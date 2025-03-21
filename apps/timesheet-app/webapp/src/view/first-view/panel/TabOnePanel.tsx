@@ -36,7 +36,7 @@ const TabOnePanel = () => {
   const [showAddCollectionPopUp, setShowAddCollectionPopUp] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchCollections());
+    // dispatch(fetchCollections());
   }, []);
 
   const toggleClose = () => {

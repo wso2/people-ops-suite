@@ -22,20 +22,15 @@ import CssBaseline from "@mui/material/CssBaseline";
 
 import Header from "./header";
 import Sidebar from "./sidebar";
-import {
-  Outlet,
-  useLocation,
-  useNavigate,
-  matchRoutes,
-} from "react-router-dom";
+import { Outlet, useLocation, useNavigate, matchRoutes } from "react-router-dom";
 import { routes } from "../route";
 
 import ConfirmationModalContextProvider from "@context/DialogContext";
-import { selectUserInfo, selectRoles } from "@slices/authSlice";
 import { useSnackbar } from "notistack";
 import pJson from "../../package.json";
 import { RootState, useAppSelector } from "@slices/store";
 import { Typography } from "@mui/material";
+import { selectRoles } from "@slices/userSlice/user";
 
 export default function Layout() {
   //snackbar configuration
@@ -72,7 +67,7 @@ export default function Layout() {
         <CssBaseline />
 
         <Sidebar
-          roles={roles}
+          roles={roles.map((role) => role.toString())}
           currentPath={location.pathname}
           open={open}
           handleDrawer={() => setOpen(!open)}
@@ -99,11 +94,7 @@ export default function Layout() {
             sx={{
               background:
                 theme.palette.mode === "light"
-                  ? (theme) =>
-                      alpha(
-                        theme.palette.secondary.main,
-                        theme.palette.action.activatedOpacity
-                      )
+                  ? (theme) => alpha(theme.palette.secondary.main, theme.palette.action.activatedOpacity)
                   : "#0d0d0d",
             }}
           >

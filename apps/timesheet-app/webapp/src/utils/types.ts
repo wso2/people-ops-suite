@@ -25,7 +25,6 @@ export interface AuthState {
   isAuthenticated: boolean;
   userInfo: BasicUserInfo | null;
   decodedIdToken: DecodedIDTokenPayload | null;
-  roles: string[];
 }
 
 export interface AuthData {

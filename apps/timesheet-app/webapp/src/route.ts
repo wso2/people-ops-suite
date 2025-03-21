@@ -15,19 +15,15 @@
 // under the License.
 
 import React from "react";
-import { RouteObject, NonIndexRouteObject } from "react-router-dom";
-// MUI imports
-import AttachEmailIcon from "@mui/icons-material/AttachEmail";
-// APP imports
-import { View } from "./view/index";
+import { View } from "./view/Index";
 import { isIncludedRole } from "./utils/utils";
-import { RECRUITMENT_ADMIN, RECRUITMENT_TEAM } from "@config/config";
+import AttachEmailIcon from "@mui/icons-material/AttachEmail";
+import { RouteObject, NonIndexRouteObject } from "react-router-dom";
+import { Roles } from "./types/types";
 
 export interface RouteObjectWithRole extends NonIndexRouteObject {
   allowRoles: string[];
-  icon:
-    | React.ReactElement<any, string | React.JSXElementConstructor<any>>
-    | undefined;
+  icon: React.ReactElement<any, string | React.JSXElementConstructor<any>> | undefined;
   text: string;
   children?: RouteObjectWithRole[];
   bottomNav?: boolean;
@@ -36,20 +32,25 @@ export interface RouteObjectWithRole extends NonIndexRouteObject {
 interface RouteDetail {
   path: string;
   allowRoles: string[];
-  icon:
-    | React.ReactElement<any, string | React.JSXElementConstructor<any>>
-    | undefined;
+  icon: React.ReactElement<any, string | React.JSXElementConstructor<any>> | undefined;
   text: string;
   bottomNav?: boolean;
 }
 
 export const routes: RouteObjectWithRole[] = [
+  // {
+  //   path: "/",
+  //   text: "Collections",
+  //   icon: React.createElement(AttachEmailIcon),
+  //   element: React.createElement(View.firstView),
+  //   allowRoles: [RECRUITMENT_TEAM, RECRUITMENT_ADMIN],
+  // },
   {
     path: "/",
-    text: "Collections",
+    text: "Employee Portal",
     icon: React.createElement(AttachEmailIcon),
-    element: React.createElement(View.firstView),
-    allowRoles: [RECRUITMENT_TEAM, RECRUITMENT_ADMIN],
+    element: React.createElement(View.employeeView),
+    allowRoles: [Roles.ADMIN],
   },
 ];
 export const getActiveRoutesV2 = (

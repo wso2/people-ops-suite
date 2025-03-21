@@ -63,7 +63,6 @@ const PreLoader = (props: PreLoaderProps) => {
   return (
     <Paper
       variant="outlined"
-      elevation={4}
       sx={{
         background: alpha(
           theme.palette.primary.main,
