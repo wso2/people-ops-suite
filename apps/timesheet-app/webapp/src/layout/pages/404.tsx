@@ -39,10 +39,10 @@ export default function Error() {
         minHeight: "100vh",
       }}
     >
-      <Typography variant="h1" style={{ color: "gray" }}>
+      <Typography variant="h1" sx={{ color: "gray" }}>
         404
       </Typography>
-      <Typography variant="h6" style={{ color: "gray" }}>
+      <Typography variant="h1" sx={{ color: "gray" }}>
         The page you’re looking for doesn’t exist.
       </Typography>
       <Button component={Link} to={"/"} variant="contained">
