@@ -106,3 +106,10 @@ export  enum TimeSheetStatus  {
   APPROVED = "APPROVED",
   REJECTED = "REJECTED"
 };
+
+export type WorkPolicy = {
+  companyId: number;
+  otHoursPerYear: number;
+  workingHoursPerDay: number;
+  lunchPerDay: boolean;
+};

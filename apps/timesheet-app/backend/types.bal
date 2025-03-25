@@ -23,13 +23,22 @@ public type SampleCollection record {
     database:SampleCollection[] collections;
 };
 
-// Application Privileges
+# Application Privileges
 const EMPLOYEE_PRIVILEGE = 987;
 const LEAD_PRIVILEGE = 862;
 const HR_ADMIN_PRIVILEGE = 762;
 
-// Get employee graphQL service Responses.
-# Employee.
+# Work policy record
+public type WorkPolicy record {|
+    # Number of OT hours per year
+    int otHoursPerYear;
+    # Number of working hours per day
+    decimal workingHoursPerDay;
+    # Lunch time duration per day
+    decimal lunchHoursPerDay;
+|};
+
+# Employee record with permissions
 public type EmployeeWithPermissions record {
     # Id of the employee
     string employeeId;
@@ -51,4 +60,14 @@ public type EmployeeWithPermissions record {
     int? jobBand;
     # Privileges of the employee
     int[] privileges;
+    # Work policies of the employee
+    WorkPolicy workPolicy;
+};
+
+# Timesheet records collection type.
+public type TimeSheetRecords record {
+    # Overtime information from the database
+    database:OvertimeInformation? overtimeInfo;
+    # List of timesheet records
+    database:TimeSheetRecord[]? timesheetRecords;
 };

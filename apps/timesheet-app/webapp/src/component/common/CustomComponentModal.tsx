@@ -37,7 +37,6 @@ export const CustomModal = ({
           maxHeight: maxHeight,
           bgcolor: "background.paper",
           boxShadow: 24,
-          p: 2,
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",

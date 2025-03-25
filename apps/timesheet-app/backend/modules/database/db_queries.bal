@@ -25,34 +25,34 @@ isolated function addSampleCollectionQuery(AddSampleCollection sampleCollection,
 `
     INSERT INTO sample_collection
     (
-        sample_collection_name, 
-        sample_collection_created_by, 
+        sample_collection_name,
+        sample_collection_created_by,
         sample_collection_updated_by
     )
     VALUES
     (
-        ${sampleCollection.name}, 
-        ${createdBy}, 
+        ${sampleCollection.name},
+        ${createdBy},
         ${createdBy}
     )
 `;
 
 # Build query to retrieve sample collections.
 #
-# + name - Name to filter  
-# + 'limit - Limit of the data  
+# + name - Name to filter
+# + 'limit - Limit of the data
 # + offset - offset of the query
 # + return - sql:ParameterizedQuery - Select query for the sample_collection table
 isolated function getSampleCollectionsQuery(string? name, int? 'limit, int? offset) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
-            SELECT 
+            SELECT
                 sample_collection_id AS 'id',
                 sample_collection_name AS 'name',
                 sample_collection_created_on AS 'createdOn',
                 sample_collection_created_by AS 'createdBy',
                 sample_collection_updated_on AS 'updatedOn',
                 sample_collection_updated_by AS 'updatedBy'
-            FROM 
+            FROM
                 sample_schema.sample_collection
     `;
 
@@ -72,7 +72,7 @@ isolated function getSampleCollectionsQuery(string? name, int? 'limit, int? offs
             mainQuery = sql:queryConcat(mainQuery, ` OFFSET ${offset}`);
         }
     } else {
-        mainQuery = sql:queryConcat(mainQuery, ` LIMIT 1000`);
+        mainQuery = sql:queryConcat(mainQuery, ` LIMIT 100`);
     }
 
     return mainQuery;
@@ -84,15 +84,165 @@ isolated function getSampleCollectionsQuery(string? name, int? 'limit, int? offs
 # + return - sql:ParameterizedQuery - Select query for the sample_collection table
 isolated function getSampleCollectionQuery(int id) returns sql:ParameterizedQuery =>
 `
-    SELECT 
+    SELECT
         sample_collection_id AS 'id',
         sample_collection_name AS 'name',
         sample_collection_created_on AS 'createdOn',
         sample_collection_created_by AS 'createdBy',
         sample_collection_updated_on AS 'updatedOn',
         sample_collection_updated_by AS 'updatedBy'
-    FROM 
+    FROM
         sample_schema.sample_collection
     WHERE
         sample_collection_id = ${id}
 `;
+
+# Query to retrieve work policies.
+#
+# + companyName - Company name to filter
+# + return - Select query for the work policies
+isolated function getWorkPolicyQuery(string companyName) returns sql:ParameterizedQuery =>
+`
+    SELECT
+        ot_hours_per_year AS 'otHoursPerYear',
+        working_hours_per_day AS 'workingHoursPerDay',
+        lunch_hours_per_day AS 'lunchHoursPerDay'
+    FROM
+        hris_timesheet_work_policies
+    WHERE
+        company_name = ${companyName};
+`;
+
+// # Query to retrieve the timesheet records of an employee.
+// #
+// # + 'limit - Limit of the data
+// # + offset - offset of the query
+// # + employeeEmail - Employee email to filter
+// # + status - Status of the timesheet records
+// # + return - Select query for the work policies
+// isolated function getTimeSheetRecordsOfEmployee(string employeeEmail, TimeSheetStatus status, int 'limit, int offset)
+//     returns sql:ParameterizedQuery => `
+//     SELECT
+//         tr.ts_record_id AS recordId,
+//         tr.ts_employee_email AS employeeEmail,
+//         tr.ts_company_name AS companyName,
+//         tr.ts_clock_in AS clockInTime,
+//         tr.ts_clock_out AS clockOutTIme,
+//         tr.ts_lunch_included AS isLunchIncluded,
+//         tr.ts_ot_hours AS overtimeDuration,
+//         tr.ts_ot_reason AS overtimeReason,
+//         tr.ts_lead_email AS leadEmail,
+//         tr.ts_ot_rejection_reason AS overtimeRejectReason,
+//         tr.ts_ot_status AS overtimeStatus
+//     FROM
+//         hris_timesheet_records tr
+//     WHERE
+//         tr.ts_employee_email = ${employeeEmail}
+//             AND tr.ts_ot_status = ${status}
+//     LIMIT ${'limit} OFFSET ${offset};
+// `;
+
+# Query to retrieve the timesheet records of an employee.
+#
+# + filter - Filter type for the  records
+# + return - Select query for the work policies
+isolated function getTimeSheetRecordsOfEmployee(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
+    sql:ParameterizedQuery mainQuery = `
+    SELECT
+        tr.ts_record_id AS recordId,
+        tr.ts_employee_email AS employeeEmail,
+        tr.ts_record_date AS recordDate,
+        tr.ts_company_name AS companyName,
+        tr.ts_clock_in AS clockInTime,
+        tr.ts_clock_out AS clockOutTIme,
+        tr.ts_lunch_included AS isLunchIncluded,
+        tr.ts_ot_hours AS overtimeDuration,
+        tr.ts_ot_reason AS overtimeReason,
+        tr.ts_lead_email AS leadEmail,
+        tr.ts_ot_rejection_reason AS overtimeRejectReason,
+        tr.ts_ot_status AS overtimeStatus
+    FROM
+        hris_timesheet_records tr
+    `;
+    sql:ParameterizedQuery[] filters = [];
+
+    if filter.employeeEmail is string {
+        filters.push(sql:queryConcat(`tr.ts_employee_email = `, `${filter.employeeEmail}`));
+    }
+
+    if filter.status is TimeSheetStatus {
+        filters.push(sql:queryConcat(`tr.ts_ot_status =  `, `${filter.status}`));
+    }
+
+    if filter.rangeStart is string && filter.rangeEnd is string {
+        filters.push(sql:queryConcat(`tr.ts_record_date BETWEEN ${filter.rangeStart} `, ` AND ${filter.rangeEnd}`));
+    }
+
+    if filter.leadEmail is string {
+        filters.push(sql:queryConcat(`tr.ts_lead_email =  `, `${filter.leadEmail}`));
+    }
+
+    mainQuery = buildSqlSelectQuery(mainQuery, filters);
+
+    if filter.recordsLimit is int {
+        mainQuery = sql:queryConcat(mainQuery, ` LIMIT ${filter.recordsLimit}`);
+        if filter.recordOffset is int {
+            mainQuery = sql:queryConcat(mainQuery, ` OFFSET ${filter.recordOffset}`);
+        }
+    } else {
+        mainQuery = sql:queryConcat(mainQuery, ` LIMIT 100`);
+    }
+
+    return mainQuery;
+
+}
+
+# Query to retrieve the timesheet records count of an employee.
+#
+# + filter - Filter type for the records
+# + return - Select query for the work policies
+isolated function getTimesheetOTInfoOfEmployeeQuery(TimesheetCommonFilter filter)
+    returns sql:ParameterizedQuery {
+    sql:ParameterizedQuery mainQuery = `
+    SELECT
+        SUM(ts_ot_hours) AS overtimeCount,
+            COUNT(*) AS totalRecords,
+            SUM(CASE
+                WHEN ts_ot_hours > 0 THEN 1
+                ELSE 0
+            END) AS recordsWithOvertime
+    FROM
+        hris_timesheet_records
+    `;
+    sql:ParameterizedQuery[] filters = [];
+
+    if filter.employeeEmail is string {
+        filters.push(sql:queryConcat(`ts_employee_email = `, `${filter.employeeEmail}`));
+    }
+
+    if filter.status is TimeSheetStatus {
+        filters.push(sql:queryConcat(`ts_ot_status = `, `${filter.status}`));
+    }
+
+    if filter.leadEmail is string {
+        filters.push(sql:queryConcat(`ts_lead_email =  `, `${filter.leadEmail}`));
+    }
+
+    mainQuery = buildSqlSelectQuery(mainQuery, filters);
+
+    if filter.rangeStart is string && filter.rangeEnd is string {
+        filters.push(sql:queryConcat(`ts_record_date BETWEEN ${filter.rangeStart} `, ` AND ${filter.rangeEnd}`));
+    }
+
+    if filter.recordsLimit is int {
+        mainQuery = sql:queryConcat(mainQuery, ` LIMIT ${filter.recordsLimit}`);
+        if filter.recordOffset is int {
+            mainQuery = sql:queryConcat(mainQuery, ` OFFSET ${filter.recordOffset}`);
+        }
+    } else {
+        mainQuery = sql:queryConcat(mainQuery, ` LIMIT 100`);
+    }
+
+    return mainQuery;
+
+}

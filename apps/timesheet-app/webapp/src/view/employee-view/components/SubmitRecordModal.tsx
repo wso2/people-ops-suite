@@ -29,6 +29,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
+import CloseIcon from "@mui/icons-material/Close";
 import React, { useState, useEffect } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PublishIcon from "@mui/icons-material/Publish";
@@ -36,8 +37,8 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { format, differenceInMinutes, isWeekend, startOfDay } from "date-fns";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 
 interface TimeEntry {
   id: string;
@@ -51,9 +52,10 @@ interface TimeEntry {
 
 interface TimeTrackingFormProps {
   regularWorkHoursPerDay?: number;
+  onClose?: () => void;
 }
 
-const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPerDay = 8 }) => {
+const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPerDay = 8, onClose }) => {
   const regularWorkMinutes = regularWorkHoursPerDay * 60;
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [currentEntry, setCurrentEntry] = useState<TimeEntry>(createNewEntry());
@@ -258,27 +260,32 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <Card elevation={3} sx={{ height: "100%" }}>
           <CardHeader
-            title="Time Tracking"
             subheader="Record your work hours"
             titleTypographyProps={{ variant: "h5" }}
             sx={{ bgcolor: "primary.main", color: "primary.contrastText" }}
             action={
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={handleBatchSubmit}
-                sx={{ width: "160px", mx: 1 }}
-                startIcon={<PublishIcon />}
-                disabled={entries.length === 0}
-              >
-                Submit Entries
-              </Button>
+              <>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={handleBatchSubmit}
+                  sx={{ width: "160px", mx: 1 }}
+                  startIcon={<PublishIcon />}
+                  disabled={entries.length === 0}
+                >
+                  Submit Entries
+                </Button>
+
+                <IconButton color="secondary" onClick={onClose} sx={{ mx: 1 }}>
+                  <CloseIcon />
+                </IconButton>
+              </>
             }
           />
           <CardContent>
             <Box sx={{ mb: 4 }}>
               <Grid container spacing={2} alignItems="center" justifyContent="center" textAlign="center">
-                <Grid item xs={12} md={3} lg={2}>
+                <Grid item xs={12} md={3} lg={1.5}>
                   <DatePicker
                     label="Date"
                     value={currentEntry.date}
@@ -339,7 +346,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                     label="Lunch Break"
                   />
                 </Grid>
-                <Grid item xs={12} md={6} lg={3.5}>
+                <Grid item xs={12} md={6} lg={3}>
                   {currentEntry.overtimeHours > 0 && (
                     <FormControl fullWidth error={!!errors.overtimeReason} variant="outlined">
                       <TextField
@@ -373,7 +380,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                     </FormControl>
                   )}
                 </Grid>
-                <Grid item xs={12} md={12} lg={2}>
+                <Grid item xs={12} md={12} lg={3}>
                   <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
                     <Button
                       variant="outlined"

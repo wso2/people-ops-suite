@@ -18,7 +18,7 @@ import ballerinax/mysql;
 
 # [Configurable] database configs.
 type DatabaseConfig record {|
-    # Database User 
+    # Database User
     string user;
     # Database Password
     string password;
@@ -59,4 +59,77 @@ public type SampleCollection record {|
 public type AddSampleCollection record {|
     # Name of the collection
     string name;
+|};
+
+# Work policy record.
+public type WorkPolicy record {|
+    # Number of OT hours per year
+    int otHoursPerYear;
+    # Number of working hours per day
+    decimal workingHoursPerDay;
+    # Lunch time duration per day
+    decimal lunchHoursPerDay;
+|};
+
+# Enum for time sheet status.
+public enum TimeSheetStatus {
+    PENDING = "PENDING",
+    APPROVED = "APPROVED",
+    REJECTED = "REJECTED"
+};
+
+# Work policy record.
+public type TimeSheetRecord record {|
+    # Time sheet record id
+    int recordId;
+    # Employee's email address
+    string employeeEmail;
+    # Record date
+    string recordDate;
+    # Company name
+    string companyName;
+    # Clock in time
+    string clockInTime;
+    # Clock out time
+    string clockOutTime;
+    # Total work duration
+    int isLunchIncluded;
+    # Overtime duration
+    string? overtimeDuration;
+    # Overtime reason
+    string? overtimeReason;
+    # Leads email
+    string leadEmail;
+    # Overtime rejection reason
+    string? overtimeRejectReason;
+    # Overtime status
+    TimeSheetStatus overtimeStatus;
+|};
+
+# Timesheet records common filter type.
+public type TimesheetCommonFilter record {|
+    # Employee email
+    string? employeeEmail;
+    # Lead emails
+    string? leadEmail;
+    # TimeSheetStatus
+    TimeSheetStatus? status;
+    # Limit of the records
+    int? recordsLimit;
+    # Offset of the records
+    int? recordOffset;
+    # Start date to filter
+    string? rangeStart;
+    # End date to filter
+    string? rangeEnd;
+|};
+
+# Timesheet information record type.
+public type OvertimeInformation record {|
+    # Total count of the overtime records
+    decimal? overtimeCount;
+    # Total count of the records
+    int totalRecords;
+    # Lunch time duration per day
+    decimal? recordsWithOvertime;
 |};

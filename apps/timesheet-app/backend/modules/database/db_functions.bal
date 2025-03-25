@@ -17,8 +17,8 @@ import ballerina/sql;
 
 # Fetch sample collections.
 #
-# + name - Name to filter  
-# + 'limit - Limit of the response  
+# + name - Name to filter
+# + 'limit - Limit of the response
 # + offset - Offset of the number of sample collection to retrieve
 # + return - List of sample collections|Error
 public isolated function fetchSampleCollections(string? name, int? 'limit, int? offset) returns SampleCollection[]|error {
@@ -59,4 +59,48 @@ public isolated function addSampleCollection(AddSampleCollection sampleCollectio
     }
 
     return <int>executionResults.lastInsertId;
+}
+
+# Fetch work policy.
+#
+# + companyName - Company name to filter
+# + return - A work policy or an error
+public isolated function gteWorkPolicy(string companyName) returns WorkPolicy|error? {
+    WorkPolicy|sql:Error policy = databaseClient->queryRow(getWorkPolicyQuery(companyName));
+
+    if policy is sql:Error && policy is sql:NoRowsError {
+        return;
+    }
+    return policy;
+}
+
+# Function to get timesheet records using filters.
+#
+# + filter - Filter type for the records
+# + return - A work policy or an error
+public isolated function getTimeSheetRecords(TimesheetCommonFilter filter) returns TimeSheetRecord[]|error? {
+    stream<TimeSheetRecord, error?> recordsResult =
+        databaseClient->query(getTimeSheetRecordsOfEmployee(filter));
+
+    TimeSheetRecord[] timesheetRecords = [];
+    check from TimeSheetRecord timesheetRecord in recordsResult
+        do {
+            timesheetRecords.push(timesheetRecord);
+        };
+
+    return timesheetRecords;
+}
+
+# Function to retrieve the timesheet records count of an employee.
+#
+# + filter - Filter type for the records
+# + return - Timesheet record count of the employee or an error
+public isolated function getTimesheetOTInfoOfEmployee(TimesheetCommonFilter filter)
+    returns OvertimeInformation|error? {
+    OvertimeInformation|sql:Error count = databaseClient->queryRow(getTimesheetOTInfoOfEmployeeQuery(filter));
+
+    if count is sql:Error && count is sql:NoRowsError {
+        return;
+    }
+    return count;
 }
