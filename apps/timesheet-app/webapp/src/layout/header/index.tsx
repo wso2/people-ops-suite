@@ -18,6 +18,7 @@ import React from "react";
 import Typography from "@mui/material/Typography";
 import Toolbar from "@mui/material/Toolbar";
 import {
+  alpha,
   AppBar,
   Avatar,
   Box,
@@ -84,61 +85,66 @@ const Header = () => {
             flexGrow: 1,
             fontWeight: 600,
           }}
+          color="primary"
         >
           {APP_NAME}
         </Typography>
 
         <Box sx={{ flexGrow: 0 }}>
-          {user.userInfo?.employeeThumbnail && (
-            <>
-              <Stack flexDirection={"row"} alignItems={"center"} gap={2}>
-                <Box>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                    {user.userInfo?.firstName + " " + user.userInfo.lastName}
-                  </Typography>
-                  <Typography variant="body2">
-                    {user.userInfo?.jobRole}
-                  </Typography>
-                </Box>
-                <Tooltip title="Open settings">
-                  <Avatar
-                    onClick={handleOpenUserMenu}
-                    sx={{ border: 1, borderColor: "primary.main" }}
-                    src={user.userInfo?.employeeThumbnail || ""}
-                    alt={user.userInfo?.firstName || "Avatar"}
-                  >
-                    {user.userInfo?.firstName?.charAt(0)}
-                  </Avatar>
-                </Tooltip>
-              </Stack>
-
-              <Menu
-                sx={{ mt: "45px" }}
-                id="menu-appbar"
-                anchorEl={anchorElUser}
-                anchorOrigin={{
-                  vertical: "top",
-                  horizontal: "right",
-                }}
-                keepMounted
-                transformOrigin={{
-                  vertical: "top",
-                  horizontal: "right",
-                }}
-                open={Boolean(anchorElUser)}
-                onClose={handleCloseUserMenu}
-              >
-                <MenuItem
-                  key={"logout"}
-                  onClick={() => {
-                    authContext.appSignOut();
+          <>
+            <Stack flexDirection={"row"} alignItems={"center"} gap={2}>
+              <Box>
+                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                  {user.userInfo?.firstName + " " + user.userInfo?.lastName}
+                </Typography>
+                <Typography variant="body2">{user.userInfo?.jobRole}</Typography>
+              </Box>
+              <Tooltip title="Open settings">
+                <Avatar
+                  onClick={handleOpenUserMenu}
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    boxShadow: (theme) =>
+                      `0 0 0 2px ${theme.palette.background.paper}, 0 0 0 4px ${alpha(
+                        theme.palette.primary.main,
+                        0.3
+                      )}`,
                   }}
+                  src={user.userInfo?.employeeThumbnail || ""}
+                  alt={user.userInfo?.firstName || "Avatar"}
                 >
-                  <Typography textAlign="center">Logout</Typography>
-                </MenuItem>
-              </Menu>
-            </>
-          )}
+                  {user.userInfo?.firstName?.charAt(0)}
+                </Avatar>
+              </Tooltip>
+            </Stack>
+
+            <Menu
+              sx={{ mt: "45px" }}
+              id="menu-appbar"
+              anchorEl={anchorElUser}
+              anchorOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+              open={Boolean(anchorElUser)}
+              onClose={handleCloseUserMenu}
+            >
+              <MenuItem
+                key={"logout"}
+                onClick={() => {
+                  authContext.appSignOut();
+                }}
+              >
+                <Typography textAlign="center">Logout</Typography>
+              </MenuItem>
+            </Menu>
+          </>
         </Box>
       </Toolbar>
     </AppBar>

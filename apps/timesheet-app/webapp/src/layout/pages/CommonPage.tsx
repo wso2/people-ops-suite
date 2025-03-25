@@ -81,7 +81,7 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
           alignItems: "center",
         }}
       >
-        <SendIcon color="primary" />
+        {/* <SendIcon color="primary" />
         <Stack flexDirection="row" gap={1}>
           <Typography variant="h5" fontWeight="bold">
             {title}
@@ -89,9 +89,8 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
           <Typography variant="h6" color={"secondary.dark"}>
             /{searchParams.get("tab")}
           </Typography>
-        </Stack>
-        <Stack sx={{ ml: "auto" }} flexDirection={"row"} gap={1.2} alignItems={"center"}>
-          {/* Search */}
+        </Stack> */}
+        {/* <Stack sx={{ ml: "auto" }} flexDirection={"row"} gap={1.2} alignItems={"center"}>
           <TextField
             size="small"
             label="Search"
@@ -123,7 +122,7 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
           >
             <FilterAltOutlinedIcon />
           </IconButton>
-        </Stack>
+        </Stack> */}
         <Popper open={Boolean(anchorEl)} anchorEl={anchorEl} placement="bottom-start">
           <SearchFilter />
         </Popper>

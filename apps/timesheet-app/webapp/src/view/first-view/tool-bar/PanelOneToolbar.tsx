@@ -15,15 +15,11 @@
 // under the License.
 
 import React from "react";
-
-// MUI imports
 import { Button, IconButton, Stack } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import EditIcon from "@mui/icons-material/Edit";
-
-// App imports
 import { useConfirmationModalContext } from "@context/DialogContext";
-import { ConfirmationType } from "../../../types/types";
+import { ConfirmationType } from "@utils/types";
 
 const PanelOneToolbar = () => {
   const dialogContext = useConfirmationModalContext();

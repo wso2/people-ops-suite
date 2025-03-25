@@ -12,7 +12,7 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License. 
+// under the License.
 import timesheet_app.authorization;
 // import timesheet_app.database;
 import timesheet_app.entity;
@@ -86,8 +86,8 @@ service http:InterceptableService / on new http:Listener(9091) {
 
     // # Fetch all samples from the database.
     // #
-    // # + name - Name to filter  
-    // # + 'limit - Limit of the data  
+    // # + name - Name to filter
+    // # + 'limit - Limit of the data
     // # + offset - Offset of the data
     // # + return - All samples|Error
     // isolated resource function get collections(http:RequestContext ctx, string? name, int? 'limit, int? offset)
@@ -206,7 +206,7 @@ service http:InterceptableService / on new http:Listener(9091) {
 
     # Get the authorization levels of the invoker
     #
-    # + ctx - Request Context 
+    # + ctx - Request Context
     # + return - Internal Server Error or Employee info object
     resource function get user\-info(http:RequestContext ctx) returns EmployeeWithPermissions|http:InternalServerError|
         http:BadRequest|http:Forbidden {

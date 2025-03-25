@@ -15,14 +15,10 @@
 // under the License.
 
 import React from "react";
-
-// MUI imports
+import TabOnePanel from "./panel/TabOnePanel";
+import CommonPage from "../../layout/pages/CommonPage";
 import AttachEmailIcon from "@mui/icons-material/AttachEmail";
 import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
-
-// App imports
-import CommonPage from "../../layout/pages/CommonPage";
-import TabOnePanel from "./panel/TabOnePanel";
 
 export default function OfferLetter() {
   return (

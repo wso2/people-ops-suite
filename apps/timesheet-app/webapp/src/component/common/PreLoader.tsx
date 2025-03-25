@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { PreLoaderProps } from "../../types/types";
+import { PreLoaderProps } from "@utils/types";
 import Grid from "@mui/material/Grid";
 import { Box, Container, Paper, alpha, useTheme } from "@mui/material";
 import CircularProgress, {

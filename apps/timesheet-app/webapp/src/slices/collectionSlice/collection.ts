@@ -14,8 +14,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { createSlice, isDraft, PayloadAction } from "@reduxjs/toolkit";
-import { State } from "../../types/types";
+import { createSlice } from "@reduxjs/toolkit";
+import { State } from "@utils/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { APIService } from "../../utils/apiService";
 import { AppConfig } from "../../config/config";

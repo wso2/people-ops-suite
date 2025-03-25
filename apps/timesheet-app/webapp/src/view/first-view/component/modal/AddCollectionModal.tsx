@@ -45,7 +45,7 @@ import {
   resetSubmitSate,
 } from "@slices/collectionSlice/collection";
 import { useConfirmationModalContext } from "@context/DialogContext";
-import { ConfirmationType } from "../../../../types/types";
+import { ConfirmationType } from "@utils/types";
 
 // Other imports
 import { useFormik } from "formik";

@@ -15,9 +15,9 @@
 // under the License.
 
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { APIService } from "../../utils/apiService";
-import { AppConfig } from "../../config/config";
-import { Roles, State } from "../../types/types";
+import { APIService } from "@utils/apiService";
+import { AppConfig } from "@config/config";
+import { Roles, State } from "@utils/types";
 import { RootState } from "@slices/store";
 
 const initialState: UserState = {

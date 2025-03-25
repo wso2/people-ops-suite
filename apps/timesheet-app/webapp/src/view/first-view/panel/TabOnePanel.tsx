@@ -23,8 +23,7 @@ import { green } from "@mui/material/colors";
 
 // APP imports
 import { useAppDispatch, useAppSelector } from "@slices/store";
-import { State } from "../../../types/types";
-import { fetchCollections } from "@slices/collectionSlice/collection";
+import { State } from "@utils/types";
 import DataCard from "../component/card/CommonCard";
 import SkeletonCard from "@component/ui/common-card/SkeletonCard";
 import PanelOneToolBar from "@view/first-view/tool-bar/PanelOneToolbar";

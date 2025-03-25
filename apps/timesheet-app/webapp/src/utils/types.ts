@@ -15,7 +15,8 @@
 // under the License.
 
 import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
-import { State } from "src/types/types";
+import { Collection } from "@slices/collectionSlice/collection";
+
 export type stateType = "failed" | "success" | "loading" | "idle";
 
 export interface AuthState {
@@ -51,3 +52,57 @@ export enum ThemeMode {
   Light = "light",
   Dark = "dark",
 }
+
+export interface PreLoaderProps {
+  message: string | null;
+  hideLogo?: boolean;
+  isLoading?: boolean;
+}
+
+export interface ErrorHandlerProps {
+  message: string | null;
+}
+
+export enum State {
+  failed = "failed",
+  success = "success",
+  loading = "loading",
+  idle = "idle",
+}
+
+export enum ConfirmationType {
+  update = "update",
+  send = "send",
+  upload = "upload",
+  accept = "accept",
+}
+
+export interface CommonCardProps {
+  collection: Collection;
+  actions: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
+  dataCardIndex: number;
+}
+
+export enum Roles {
+  ADMIN = "ADMIN",
+  EMPLOYEE = "EMPLOYEE",
+  LEAD = "LEAD",
+}
+
+export type TimesheetEntry = {
+  id: number;
+  recordDate: string;
+  clockIn: string;
+  clockOut: string;
+  lunchIncluded: boolean;
+  overtimeHours: number;
+  overtimeReason: string;
+  overtimeRejectionReason: string;
+  recordStatus: TimeSheetStatus;
+};
+
+export  enum TimeSheetStatus  {
+  PENDING ="PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED"
+};

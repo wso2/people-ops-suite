@@ -15,14 +15,10 @@
 // under the License.
 
 import React from "react";
-
-// MUI imports
+import CommonPage from "../../layout/pages/CommonPage";
+import TimesheetDataGrid from "./panel/EmployeeTimeSheetView";
 import AttachEmailIcon from "@mui/icons-material/AttachEmail";
 import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
-
-// App imports
-import CommonPage from "../../layout/pages/CommonPage";
-import TabOnePanel from "./panel/TabOnePanel";
 
 export default function OfferLetter() {
   return (
@@ -30,17 +26,17 @@ export default function OfferLetter() {
       title="Menu 1"
       commonPageTabs={[
         {
-          tabTitle: "Tab 1",
-          tabPath: "tab-one",
+          tabTitle: "Timesheet",
+          tabPath: "timesheet-records",
           icon: <AttachEmailIcon />,
-          page: <TabOnePanel />,
+          page: <TimesheetDataGrid />,
         },
-        {
-          tabTitle: "Tab 2",
-          tabPath: "tab-two",
-          icon: <MarkEmailReadIcon />,
-          page: <></>,
-        },
+        // {
+        //   tabTitle: "Tab 2",
+        //   tabPath: "tab-two",
+        //   icon: <MarkEmailReadIcon />,
+        //   page: <TimesheetDataGrid/>,
+        // },
       ]}
     />
   );
