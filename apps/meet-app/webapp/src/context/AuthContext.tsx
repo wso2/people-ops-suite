@@ -1,34 +1,25 @@
-// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
 //
-// WSO2 LLC. licenses this file to you under the Apache License,
-// Version 2.0 (the "License"); you may not use this file except
-// in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
+// This software is the property of WSO2 LLC. and its suppliers, if any.
+// Dissemination of any information or reproduction of any material contained
+// herein in any form is strictly forbidden, unless permitted by WSO2 expressly.
+// You may not alter or remove any copyright or other notice from copies of this content.
 
-import React, { useContext, useEffect, useState } from "react";
 import { Button } from "@mui/material";
-import { APIService } from "@utils/apiService";
 import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
+import { APIService } from "@utils/apiService";
+import { useIdleTimer } from "react-idle-timer";
 import DialogTitle from "@mui/material/DialogTitle";
-import { useAuthContext, SecureApp } from "@asgardeo/auth-react";
-import { setUserAuthData } from "@slices/authSlice";
-import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
-import StatusWithAction from "@component/ui/StatusWithAction";
 import PreLoader from "@component/common/PreLoader";
 import { getUserInfo } from "@slices/userSlice/user";
-import { useIdleTimer } from "react-idle-timer";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import StatusWithAction from "@component/ui/StatusWithAction";
+import React, { useContext, useEffect, useState } from "react";
+import DialogContentText from "@mui/material/DialogContentText";
+import { useAuthContext, SecureApp } from "@asgardeo/auth-react";
+import { loadPrivileges, setUserAuthData } from "@slices/authSlice/auth";
+import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
 
 type AuthContextType = {
   appSignIn: () => void;
@@ -53,12 +44,17 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
     appState === "active" && setOpen(true);
   };
 
-  const { getRemainingTime, activate } = useIdleTimer({
+  const { activate } = useIdleTimer({
     onPrompt,
     timeout,
     promptBeforeIdle,
     throttle: 500,
   });
+
+  const handleContinue = () => {
+    setOpen(false);
+    activate();
+  };
 
   const {
     signIn,
@@ -72,11 +68,11 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
   } = useAuthContext();
 
   useEffect(() => {
-    var appStatus = localStorage.getItem("hris-app-state");
+    var appStatus = localStorage.getItem("sales-meet-app-state");
 
-    if (!localStorage.getItem("hris-app-redirect-url")) {
+    if (!localStorage.getItem("sales-meet-app-redirect-url")) {
       localStorage.setItem(
-        "hris-app-redirect-url",
+        "sales-meet-app-redirect-url",
         window.location.href.replace(window.location.origin, "")
       );
     }
@@ -114,6 +110,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
       if (state.isAuthenticated) {
         if (userInfo.state !== "loading") {
           dispatch(getUserInfo());
+          dispatch(loadPrivileges());
         }
       } else {
         signIn();
@@ -143,14 +140,14 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
 
   const appSignOut = async () => {
     setAppState("loading");
-    localStorage.setItem("hris-app-state", "logout");
+    localStorage.setItem("sales-meet-app-state", "logout");
     await signOut();
     setAppState("logout");
   };
 
   const appSignIn = async () => {
     setAppState("active");
-    localStorage.setItem("hris-app-state", "active");
+    localStorage.setItem("sales-meet-app-state", "active");
   };
 
   const authContext: AuthContextType = {
@@ -166,7 +163,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
         <>
           <Dialog
             open={open}
-            onClose={() => setOpen(false)}
+            onClose={handleContinue}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
           >
@@ -180,7 +177,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
               </DialogContentText>
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setOpen(false)}>Continue</Button>
+              <Button onClick={handleContinue}>Continue</Button>
               <Button onClick={() => appSignOut()}>Logout</Button>
             </DialogActions>
           </Dialog>

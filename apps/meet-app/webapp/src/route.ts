@@ -1,33 +1,24 @@
-// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
 //
-// WSO2 LLC. licenses this file to you under the Apache License,
-// Version 2.0 (the "License"); you may not use this file except
-// in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
+// This software is the property of WSO2 LLC. and its suppliers, if any.
+// Dissemination of any information or reproduction of any material contained
+// herein in any form is strictly forbidden, unless permitted by WSO2 expressly.
+// You may not alter or remove any copyright or other notice from copies of this content.
 
 import React from "react";
 import { RouteObject, NonIndexRouteObject } from "react-router-dom";
 // MUI imports
-import AttachEmailIcon from "@mui/icons-material/AttachEmail";
+import DuoIcon from '@mui/icons-material/Duo';
 // APP imports
 import { View } from "./view/index";
 import { isIncludedRole } from "./utils/utils";
-import { RECRUITMENT_ADMIN, RECRUITMENT_TEAM } from "@config/config";
+import { Role } from "@utils/types";
 
 export interface RouteObjectWithRole extends NonIndexRouteObject {
   allowRoles: string[];
   icon:
-    | React.ReactElement<any, string | React.JSXElementConstructor<any>>
-    | undefined;
+  | React.ReactElement<any, string | React.JSXElementConstructor<any>>
+  | undefined;
   text: string;
   children?: RouteObjectWithRole[];
   bottomNav?: boolean;
@@ -37,8 +28,8 @@ interface RouteDetail {
   path: string;
   allowRoles: string[];
   icon:
-    | React.ReactElement<any, string | React.JSXElementConstructor<any>>
-    | undefined;
+  | React.ReactElement<any, string | React.JSXElementConstructor<any>>
+  | undefined;
   text: string;
   bottomNav?: boolean;
 }
@@ -46,10 +37,10 @@ interface RouteDetail {
 export const routes: RouteObjectWithRole[] = [
   {
     path: "/",
-    text: "Collections",
-    icon: React.createElement(AttachEmailIcon),
-    element: React.createElement(View.firstView),
-    allowRoles: [RECRUITMENT_TEAM, RECRUITMENT_ADMIN],
+    text: "Meetings",
+    icon: React.createElement(DuoIcon),
+    element: React.createElement(View.meetings),
+    allowRoles: [Role.SALES_ADMIN, Role.SALES_TEAM],
   },
 ];
 export const getActiveRoutesV2 = (

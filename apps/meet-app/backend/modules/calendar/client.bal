@@ -4,19 +4,19 @@
 // Dissemination of any information or reproduction of any material contained
 // herein in any form is strictly forbidden, unless permitted by WSO2 expressly.
 // You may not alter or remove any copyright or other notice from copies of this content.
-import ballerina/graphql;
+import ballerina/http;
 
-configurable string hrEntityBaseUrl = ?;
-configurable GraphQlRetryConfig retryConfig = ?;
+configurable string calendarBaseUrl = ?;
+configurable CalendarRetryConfig retryConfig = ?;
 configurable Oauth2Config oauthConfig = ?;
 
-# Hr Entity -> GraphQL Service Credentials.
+# Hr Entity -> HRIS Calendar Event Service Credentials.
 @display {
-    label: "HR Entity GraphQL Service",
-    id: "hris/entity-graphql-service"
+    label: "Google Meet Scheduler Service",
+    id: "hris/google-meet-scheduler-service"
 }
 
-final graphql:Client hrClient = check new (hrEntityBaseUrl, {
+final http:Client calendarClient = check new (calendarBaseUrl, {
     auth: {
         ...oauthConfig
     },

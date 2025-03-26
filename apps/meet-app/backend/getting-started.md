@@ -19,43 +19,59 @@
 
 ```toml
 # App Configurations.
-[sample_app]
+[sales_meet]
     port = <Port number>
 
-# Entity Configurations.
-[sample_app.entity]
-    hrEntityBaseUrl = "<Entity URL>"
-    [sample_app.entity.oauthConfig]
+# Calendar Configurations.
+[sales_meet.calendar]
+    calendarBaseUrl = "<Calendar Event Service URL>"
+    calendarId = "<Calendar Account>"
+    disclaimerMessage = "<Disclaimer Message>"
+    [sales_meet.calendar.oauthConfig]
         tokenUrl = "<Refresh URL>"
         clientId = "<Client ID of the Asgardeo app>"
         clientSecret = "<Client secret of the Asgardeo app>"
 
-    [sample_app.entity.retryConfig]
+    [sales_meet.calendar.retryConfig]
+        count = 3
+        interval = 3.0
+        backOffFactor = 2.0
+        maxWaitInterval = 20.0
+
+# Entity Configurations.
+[sales_meet.entity]
+    hrEntityBaseUrl = "<Entity URL>"
+    [sales_meet.entity.oauthConfig]
+        tokenUrl = "<Refresh URL>"
+        clientId = "<Client ID of the Asgardeo app>"
+        clientSecret = "<Client secret of the Asgardeo app>"
+
+    [sales_meet.entity.retryConfig]
         count = <Retry count: 3>
         interval = <Retry interval: 3.0>
         backOffFactor = <Backoff factor: 2.0>
         maxWaitInterval = <Max waiting interval: 20.0>
 
 # Database Configurations.
-[sample_app.database.dbConfig]
+[sales_meet.database.dbConfig]
     host = "<Database host>"
     user = "<Database user name>"
     password = "<Database password>"
     database = "<Schema name>"
     port = <Database port>
-    [sample_app.database.dbConfig.connectionPool]
+    [sales_meet.database.dbConfig.connectionPool]
         maxOpenConnections = <Maximum open connections: 10>
         maxConnectionLifeTime = <Maximum connection lifetime: 100.0>
         minIdleConnections= <Maximum idle connections: 3>
-    [sample_app.database.dbConfig.options]
+    [sales_meet.database.dbConfig.options]
         connectTimeout = <Connection timeout in: 10.0>
-    [sample_app.database.dbConfig.options.ssl]
+    [sales_meet.database.dbConfig.options.ssl]
         mode = "PREFERRED"
 
 # Authorization Configurations.
-[sample_app.authorization.authorizedRoles]
-    employeeRole  = "<Asgardeo role mapped to this application role>"
-    headPeopleOperationsRole = "<Asgardeo role mapped to this application role>"
+[sales_meet.authorization.authorizedRoles]
+    SALES_TEAM  = "<Asgardeo role mapped to this application role>"
+    SALES_ADMIN = "<Asgardeo role mapped to this application role>"
 ```
 
 ## Execute
@@ -82,7 +98,7 @@ You can get a token from the sample Asgardeo app or using the webapp-template it
    - /tests/Config.toml
 
 ```toml
-    [sample_app]
+    [sales_meet]
     jwtKey = ""
 ```
 

@@ -1,28 +1,24 @@
-// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
 //
-// WSO2 LLC. licenses this file to you under the Apache License,
-// Version 2.0 (the "License"); you may not use this file except
-// in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
+// This software is the property of WSO2 LLC. and its suppliers, if any.
+// Dissemination of any information or reproduction of any material contained
+// herein in any form is strictly forbidden, unless permitted by WSO2 expressly.
+// You may not alter or remove any copyright or other notice from copies of this content.
 
-import { PreLoaderProps } from "../../types/types";
 import Grid from "@mui/material/Grid";
+import { APP_NAME } from "@config/config";
+import StateWithImage from "@component/ui/StateWithImage";
 import { Box, Container, Paper, alpha, useTheme } from "@mui/material";
 import CircularProgress, {
   circularProgressClasses,
   CircularProgressProps,
 } from "@mui/material/CircularProgress";
-import { APP_NAME } from "@config/config";
-import StateWithImage from "@component/ui/StateWithImage";
+
+interface PreLoaderProps {
+  message: string | null;
+  hideLogo?: boolean;
+  isLoading?: boolean;
+}
 
 function CustomCircularProgress(props: CircularProgressProps) {
   return (
@@ -59,10 +55,8 @@ function CustomCircularProgress(props: CircularProgressProps) {
 
 const PreLoader = (props: PreLoaderProps) => {
   const theme = useTheme();
-
   return (
     <Paper
-      variant="outlined"
       elevation={4}
       sx={{
         background: alpha(
@@ -93,14 +87,14 @@ const PreLoader = (props: PreLoaderProps) => {
                 alt="logo"
                 width="150"
                 height="auto"
-                src={require("../../assets/images/wso2-logo.svg").default}
-              ></img>
+                src={require("@assets/images/wso2-logo.svg").default}
+              />
             )}
           </Grid>
           <Grid item xs={12}>
             <StateWithImage
               message={"Loading " + APP_NAME + " Data..."}
-              imageUrl={require("../../assets/images/loading.svg").default}
+              imageUrl={require("@assets/images/loading.svg").default}
             />
           </Grid>
           <Grid item xs={12}>

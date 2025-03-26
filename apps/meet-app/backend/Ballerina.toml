@@ -1,6 +1,6 @@
 [package]
 org = "wso2"
-name = "sample_app"
+name = "sales_meet"
 version = "1.0.0"
 distribution = "2201.8.4"
 
