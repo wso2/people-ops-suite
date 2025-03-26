@@ -234,15 +234,6 @@ isolated function getTimesheetOTInfoOfEmployeeQuery(TimesheetCommonFilter filter
         filters.push(sql:queryConcat(`ts_record_date BETWEEN ${filter.rangeStart} `, ` AND ${filter.rangeEnd}`));
     }
 
-    if filter.recordsLimit is int {
-        mainQuery = sql:queryConcat(mainQuery, ` LIMIT ${filter.recordsLimit}`);
-        if filter.recordOffset is int {
-            mainQuery = sql:queryConcat(mainQuery, ` OFFSET ${filter.recordOffset}`);
-        }
-    } else {
-        mainQuery = sql:queryConcat(mainQuery, ` LIMIT 100`);
-    }
-
     return mainQuery;
 
 }

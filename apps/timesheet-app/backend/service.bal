@@ -289,7 +289,7 @@ service http:InterceptableService / on new http:Listener(9091) {
     # + offset - Offset of the number of timesheet records to retrieve
     # + employeeEmail - Email of the employee to filter timesheet records
     # + return - A work policy or an error
-    isolated resource function get employees/timesheet\-records(http:RequestContext ctx, string? employeeEmail, int? 'limit,
+    isolated resource function get timesheet\-records(http:RequestContext ctx, string? employeeEmail, int? 'limit,
             string leadEmail, database:TimeSheetStatus? status, int? offset, string? rangeStart, string? rangeEnd)
         returns TimeSheetRecords|http:Forbidden|http:BadRequest|http:InternalServerError {
 

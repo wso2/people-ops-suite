@@ -45,5 +45,6 @@ export const AppConfig = {
   serviceUrls: {
     collections: ServiceBaseUrl + "/collections",
     getUserInfo: ServiceBaseUrl + "/user-info",
+    timesheetRecords : ServiceBaseUrl + "/timesheet-records",
   },
 };

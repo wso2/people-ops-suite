@@ -17,8 +17,6 @@
 import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
 import { Collection } from "@slices/collectionSlice/collection";
 
-export type stateType = "failed" | "success" | "loading" | "idle";
-
 export interface AuthState {
   status: State;
   mode: "active" | "maintenance";
@@ -89,27 +87,34 @@ export enum Roles {
   LEAD = "LEAD",
 }
 
-export type TimesheetEntry = {
-  id: number;
-  recordDate: string;
-  clockIn: string;
-  clockOut: string;
-  lunchIncluded: boolean;
-  overtimeHours: number;
-  overtimeReason: string;
-  overtimeRejectionReason: string;
-  recordStatus: TimeSheetStatus;
-};
-
 export  enum TimeSheetStatus  {
   PENDING ="PENDING",
   APPROVED = "APPROVED",
   REJECTED = "REJECTED"
 };
 
-export type WorkPolicy = {
-  companyId: number;
-  otHoursPerYear: number;
-  workingHoursPerDay: number;
-  lunchPerDay: boolean;
-};
+export interface OvertimeInfo {
+  overtimeCount?: number;
+  totalRecords: number;
+  recordsWithOvertime?: number;
+}
+
+export interface TimesheetRecord {
+  recordId: number;
+  employeeEmail: string;
+  recordDate: string;
+  companyName: string;
+  clockInTime: string;
+  clockOutTime: string;
+  isLunchIncluded: number;
+  overtimeDuration: number;
+  overtimeReason: string | null;
+  leadEmail: string;
+  overtimeRejectReason: string | null;
+  overtimeStatus: TimeSheetStatus;
+}
+
+export interface TimesheetData {
+  overtimeInfo: OvertimeInfo;
+  timesheetRecords: TimesheetRecord[];
+}

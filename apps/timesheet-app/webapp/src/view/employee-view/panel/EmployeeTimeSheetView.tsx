@@ -1,188 +1,38 @@
-import { useEffect, useState } from "react";
-import { Box, Typography, Paper, Chip, IconButton, Button, Stack, useTheme, Tooltip } from "@mui/material";
-import { DataGrid, GridRenderCellParams } from "@mui/x-data-grid";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { LocalizationProvider } from "@mui/x-date-pickers";
-import AddIcon from "@mui/icons-material/Add";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import LunchDiningIcon from "@mui/icons-material/LunchDining";
-import { TimesheetEntry, TimeSheetStatus } from "@utils/types";
-import { CustomModal } from "@component/common/CustomComponentModal";
-import SubmitRecordModal from "../components/SubmitRecordModal";
-import { format, parseISO } from "date-fns";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import PendingIcon from "@mui/icons-material/Pending";
-import CancelIcon from "@mui/icons-material/Cancel";
+// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
-const sampleData: TimesheetEntry[] = [
-  {
-    id: 1,
-    recordDate: "2025-03-24",
-    clockIn: "08:00:00",
-    clockOut: "2025-03-24T17:00:00",
-    lunchIncluded: true,
-    overtimeHours: 1,
-    overtimeReason: "Stayed late to finish the timesheet app",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.APPROVED,
-  },
-  {
-    id: 2,
-    recordDate: "2025-03-23",
-    clockIn: "2025-03-23T08:30:00",
-    clockOut: "2025-03-23T16:30:00",
-    lunchIncluded: true,
-    overtimeHours: 0,
-    overtimeReason: "",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.PENDING,
-  },
-  {
-    id: 3,
-    recordDate: "2025-03-22",
-    clockIn: "2025-03-22T09:00:00",
-    clockOut: "2025-03-22T18:00:00",
-    lunchIncluded: false,
-    overtimeHours: 2,
-    overtimeReason: "Client emergency meeting",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.REJECTED,
-  },
-  {
-    id: 4,
-    recordDate: "2025-03-21",
-    clockIn: "2025-03-21T08:00:00",
-    clockOut: "2025-03-21T16:00:00",
-    lunchIncluded: true,
-    overtimeHours: 0,
-    overtimeReason: "",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.PENDING,
-  },
-  {
-    id: 5,
-    recordDate: "2025-03-20",
-    clockIn: "2025-03-20T08:15:00",
-    clockOut: "2025-03-20T17:45:00",
-    lunchIncluded: true,
-    overtimeHours: 1.5,
-    overtimeReason: "Sprint deadline preparation",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.APPROVED,
-  },
-  {
-    id: 6,
-    recordDate: "2025-03-24",
-    clockIn: "08:00:00",
-    clockOut: "2025-03-24T17:00:00",
-    lunchIncluded: true,
-    overtimeHours: 1,
-    overtimeReason: "Stayed late to finish the timesheet app",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.APPROVED,
-  },
-  {
-    id: 7,
-    recordDate: "2025-03-23",
-    clockIn: "2025-03-23T08:30:00",
-    clockOut: "2025-03-23T16:30:00",
-    lunchIncluded: true,
-    overtimeHours: 0,
-    overtimeReason: "",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.PENDING,
-  },
-  {
-    id: 8,
-    recordDate: "2025-03-22",
-    clockIn: "2025-03-22T09:00:00",
-    clockOut: "2025-03-22T18:00:00",
-    lunchIncluded: false,
-    overtimeHours: 2,
-    overtimeReason: "Client emergency meeting",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.REJECTED,
-  },
-  {
-    id: 9,
-    recordDate: "2025-03-21",
-    clockIn: "2025-03-21T08:00:00",
-    clockOut: "2025-03-21T16:00:00",
-    lunchIncluded: true,
-    overtimeHours: 0,
-    overtimeReason: "",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.PENDING,
-  },
-  {
-    id: 10,
-    recordDate: "2025-03-20",
-    clockIn: "2025-03-20T08:15:00",
-    clockOut: "2025-03-20T17:45:00",
-    lunchIncluded: true,
-    overtimeHours: 1.5,
-    overtimeReason: "Sprint deadline preparation",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.APPROVED,
-  },
-  {
-    id: 11,
-    recordDate: "2025-03-24",
-    clockIn: "08:00:00",
-    clockOut: "2025-03-24T17:00:00",
-    lunchIncluded: true,
-    overtimeHours: 1,
-    overtimeReason: "Stayed late to finish the timesheet app",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.APPROVED,
-  },
-  {
-    id: 12,
-    recordDate: "2025-03-23",
-    clockIn: "2025-03-23T08:30:00",
-    clockOut: "2025-03-23T16:30:00",
-    lunchIncluded: true,
-    overtimeHours: 0,
-    overtimeReason: "",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.PENDING,
-  },
-  {
-    id: 13,
-    recordDate: "2025-03-22",
-    clockIn: "2025-03-22T09:00:00",
-    clockOut: "2025-03-22T18:00:00",
-    lunchIncluded: false,
-    overtimeHours: 2,
-    overtimeReason: "Client emergency meeting",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.REJECTED,
-  },
-  {
-    id: 14,
-    recordDate: "2025-03-21",
-    clockIn: "2025-03-21T08:00:00",
-    clockOut: "2025-03-21T16:00:00",
-    lunchIncluded: true,
-    overtimeHours: 0,
-    overtimeReason: "",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.PENDING,
-  },
-  {
-    id: 15,
-    recordDate: "2025-03-20",
-    clockIn: "2025-03-20T08:15:00",
-    clockOut: "2025-03-20T17:45:00",
-    lunchIncluded: true,
-    overtimeHours: 1.5,
-    overtimeReason: "Sprint deadline preparation",
-    overtimeRejectionReason: "",
-    recordStatus: TimeSheetStatus.APPROVED,
-  },
-];
+import { format, parseISO } from "date-fns";
+import { SetStateAction, useEffect, useState } from "react";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import CancelIcon from "@mui/icons-material/Cancel";
+import DeleteIcon from "@mui/icons-material/Delete";
+import PendingIcon from "@mui/icons-material/Pending";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import LunchDiningIcon from "@mui/icons-material/LunchDining";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { useAppDispatch, useAppSelector } from "@slices/store";
+import SubmitRecordModal from "../components/SubmitRecordModal";
+import { fetchTimesheetRecords } from "@slices/recordSlice/record";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { CustomModal } from "@component/common/CustomComponentModal";
+import { State, TimesheetRecord, TimeSheetStatus } from "@utils/types";
+import { DataGrid, GridPaginationModel, GridRenderCellParams } from "@mui/x-data-grid";
+import { Box, Typography, Paper, Chip, IconButton, Button, Stack, useTheme, Tooltip } from "@mui/material";
 
 const statusChipStyles = {
   [TimeSheetStatus.APPROVED]: {
@@ -202,17 +52,9 @@ const statusChipStyles = {
 const TimesheetDataGrid = () => {
   const theme = useTheme();
   const [openDialog, setOpenDialog] = useState(false);
-
-  const rowCount = 15;
-
-  const [rowCountState, setRowCountState] = useState(rowCount);
-
-  useEffect(() => {
-    setRowCountState((prevRowCountState) => (rowCount !== undefined ? rowCount : prevRowCountState));
-  }, [rowCount, setRowCountState]);
-
   const handleOpenDialog = () => setOpenDialog(true);
   const handleCloseDialog = () => setOpenDialog(false);
+  const dispatch = useAppDispatch();
 
   const formatTime = (timeString: string) => {
     try {
@@ -231,51 +73,51 @@ const TimesheetDataGrid = () => {
       field: "recordDate",
       headerName: "Date",
       flex: 1,
-      valueGetter: (params: { row: TimesheetEntry }) => format(parseISO(params.row.recordDate), "MMM dd, yyyy"),
+      valueGetter: (params: { row: TimesheetRecord }) => format(parseISO(params.row.recordDate), "MMM dd, yyyy"),
     },
     {
-      field: "clockIn",
+      field: "clockInTime",
       headerName: "Clock In",
       flex: 1,
-      renderCell: (params: GridRenderCellParams<TimesheetEntry>) => (
+      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row" alignItems="center" gap={1}>
           <AccessTimeIcon fontSize="small" color="action" />
-          <Typography variant="body2">{formatTime(params.row.clockIn)}</Typography>
+          <Typography variant="body2">{formatTime(params.row.clockInTime)}</Typography>
         </Stack>
       ),
     },
     {
-      field: "clockOut",
+      field: "clockOutTime",
       headerName: "Clock Out",
       flex: 1,
-      renderCell: (params: GridRenderCellParams<TimesheetEntry>) => (
+      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row" alignItems="center" gap={1}>
           <AccessTimeIcon fontSize="small" color="action" />
-          <Typography variant="body2">{formatTime(params.row.clockOut)}</Typography>
+          <Typography variant="body2">{formatTime(params.row.clockOutTime)}</Typography>
         </Stack>
       ),
     },
     {
-      field: "lunchIncluded",
+      field: "isLunchIncluded",
       headerName: "Lunch",
-      flex: 0.8,
-      renderCell: (params: GridRenderCellParams<TimesheetEntry>) => (
+      flex: 0.5,
+      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row" alignItems="center" gap={1}>
-          <LunchDiningIcon fontSize="small" color={params.row.lunchIncluded ? "success" : "error"} />
-          <Typography variant="body2">{params.row.lunchIncluded ? "Yes" : "No"}</Typography>
+          <LunchDiningIcon fontSize="small" color={params.row.isLunchIncluded ? "success" : "error"} />
+          <Typography variant="body2">{params.row.isLunchIncluded ? "Yes" : "No"}</Typography>
         </Stack>
       ),
     },
     {
-      field: "overtimeHours",
+      field: "overtimeDuration",
       headerName: "Overtime",
-      flex: 1,
-      renderCell: (params: GridRenderCellParams<TimesheetEntry>) => (
+      flex: 2,
+      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Box>
-          <Typography variant="body2" fontWeight={params.row.overtimeHours > 0 ? 600 : 400}>
-            {params.row.overtimeHours > 0 ? `${params.row.overtimeHours}h` : "None"}
-          </Typography>
-          {params.row.overtimeHours > 0 && (
+          {params.row.overtimeDuration > 0 && (
+            <Chip label={`${params.row.overtimeDuration}h`} color="primary" size="small" sx={{ mr: 2 }} />
+          )}
+          {params.row.overtimeDuration > 0 && (
             <Tooltip title={params.row.overtimeReason}>
               <Typography variant="caption" color="text.secondary" noWrap>
                 {params.row.overtimeReason}
@@ -289,11 +131,13 @@ const TimesheetDataGrid = () => {
       field: "recordStatus",
       headerName: "Status",
       flex: 1,
-      renderCell: (params: GridRenderCellParams<TimesheetEntry>) => (
+      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Chip
-          icon={statusChipStyles[params.row.recordStatus as TimeSheetStatus].icon}
-          label={params.row.recordStatus}
-          color={statusChipStyles[params.row.recordStatus as TimeSheetStatus].color as "success" | "error" | "warning"}
+          icon={statusChipStyles[params.row.overtimeStatus as TimeSheetStatus].icon}
+          label={params.row.overtimeStatus}
+          color={
+            statusChipStyles[params.row.overtimeStatus as TimeSheetStatus].color as "success" | "error" | "warning"
+          }
           variant="outlined"
           size="small"
         />
@@ -303,15 +147,15 @@ const TimesheetDataGrid = () => {
       field: "actions",
       headerName: "Actions",
       width: 120,
-      renderCell: (params: GridRenderCellParams<TimesheetEntry>) => (
+      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row">
           <Tooltip title="Edit">
-            <IconButton size="small" disabled={params.row.recordStatus === TimeSheetStatus.APPROVED}>
+            <IconButton size="small" disabled={params.row.overtimeStatus === TimeSheetStatus.APPROVED}>
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete">
-            <IconButton size="small" disabled={params.row.recordStatus === TimeSheetStatus.APPROVED}>
+            <IconButton size="small" disabled={params.row.overtimeStatus === TimeSheetStatus.APPROVED}>
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -320,9 +164,43 @@ const TimesheetDataGrid = () => {
     },
   ];
 
+  const userEmail = useAppSelector((state) => state.auth.userInfo?.email);
+  const leadEmail = useAppSelector((state) => state.auth.userInfo?.leadEmail);
+  const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
+  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
+  const totalRecordCount = useAppSelector(
+    (state) => state.timesheetRecord.timesheetData?.overtimeInfo?.totalRecords || 0
+  );
+
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 5,
+  });
+
+  const fetchData = async () => {
+    if (!userEmail) return;
+
+    dispatch(
+      fetchTimesheetRecords({
+        employeeEmail: userEmail,
+        // status: TimeSheetStatus.APPROVED,
+        limit: paginationModel.pageSize,
+        offset: paginationModel.page * paginationModel.pageSize,
+        rangeStart: "2025-01-01",
+        rangeEnd: "2025-03-25",
+        leadEmail: leadEmail,
+      })
+    );
+  };
+
+  useEffect(() => {
+    if (!userEmail) return;
+    fetchData();
+  }, [paginationModel]);
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Paper sx={{ width: "100%", height: "100%", p: 3 }}>
+      <Paper sx={{ width: "100%", height: "100%", p: 3, overflow: "auto" }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h5" fontWeight="bold" color="text.primary">
             Timesheet Entries
@@ -341,7 +219,6 @@ const TimesheetDataGrid = () => {
             New Entry
           </Button>
         </Stack>
-
         <Paper
           elevation={0}
           sx={{
@@ -353,51 +230,55 @@ const TimesheetDataGrid = () => {
             overflow: "hidden",
           }}
         >
-          <DataGrid
-            rows={sampleData}
-            columns={columns}
-            disableDensitySelector
-            disableSelectionOnClick
-            pagination
-            paginationMode="server"
-            rowCount={15}
-            sx={{
-              border: "none",
-              "& .MuiDataGrid-columnHeaders": {
-                backgroundColor: theme.palette.background.paper,
-                borderBottom: `1px solid ${theme.palette.divider}`,
-              },
-              "& .MuiDataGrid-cell": {
-                borderBottom: `1px solid ${theme.palette.divider}`,
-              },
-              "& .MuiDataGrid-virtualScroller": {
-                backgroundColor: theme.palette.background.default,
-              },
-              "& .MuiDataGrid-footerContainer": {
-                borderTop: `1px solid ${theme.palette.divider}`,
-                backgroundColor: theme.palette.background.paper,
-              },
-              "& .MuiDataGrid-row": {
-                "&:hover": {
-                  backgroundColor: theme.palette.action.hover,
+          {records && (
+            <DataGrid
+              pagination
+              rows={records}
+              columns={columns}
+              disableDensitySelector
+              paginationMode="server"
+              rowCount={totalRecordCount}
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
+              loading={recordLoadingState === State.loading}
+              getRowId={(row) => row.recordId}
+              sx={{
+                border: "none",
+                "& .MuiDataGrid-columnHeaders": {
+                  backgroundColor: theme.palette.background.paper,
+                  borderBottom: `1px solid ${theme.palette.divider}`,
                 },
-                "&.Mui-selected": {
-                  backgroundColor: theme.palette.action.selected,
+                "& .MuiDataGrid-cell": {
+                  borderBottom: `1px solid ${theme.palette.divider}`,
+                },
+                "& .MuiDataGrid-virtualScroller": {
+                  backgroundColor: theme.palette.background.default,
+                },
+                "& .MuiDataGrid-footerContainer": {
+                  borderTop: `1px solid ${theme.palette.divider}`,
+                  backgroundColor: theme.palette.background.paper,
+                },
+                "& .MuiDataGrid-row": {
                   "&:hover": {
+                    backgroundColor: theme.palette.action.hover,
+                  },
+                  "&.Mui-selected": {
                     backgroundColor: theme.palette.action.selected,
+                    "&:hover": {
+                      backgroundColor: theme.palette.action.selected,
+                    },
                   },
                 },
-              },
-              overflow: "auto",
-              height: "100%",
-              width: "100%",
-            }}
-            rowsPerPageOptions={[5]}
-          />
+                overflow: "auto",
+                height: "100%",
+                width: "100%",
+              }}
+            />
+          )}
         </Paper>
 
         <CustomModal open={openDialog} onClose={handleCloseDialog}>
-          <SubmitRecordModal />
+          <SubmitRecordModal onClose={handleCloseDialog} />
         </CustomModal>
       </Paper>
     </LocalizationProvider>
