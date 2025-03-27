@@ -1,9 +1,18 @@
-// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
+// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
 //
-// This software is the property of WSO2 LLC. and its suppliers, if any.
-// Dissemination of any information or reproduction of any material contained
-// herein in any form is strictly forbidden, unless permitted by WSO2 expressly.
-// You may not alter or remove any copyright or other notice from copies of this content.
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License. 
 
 # client retry configuration for max retry attempts.
 public const int RETRY_COUNT = 3;
@@ -16,3 +25,6 @@ public const float RETRY_BACKOFF_FACTOR = 2.0;
 
 # client retry configuration for maximum wait interval in seconds.
 public const decimal RETRY_MAX_INTERVAL = 20.0;
+
+# Conference solution type used for Google Meet integration.
+const string CONFERENCE_SOLUTION_TYPE = "hangoutsMeet";

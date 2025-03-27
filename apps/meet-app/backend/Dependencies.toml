@@ -456,7 +456,7 @@ modules = [
 
 [[package]]
 org = "wso2"
-name = "sales_meet"
+name = "meet_app"
 version = "1.0.0"
 dependencies = [
 	{org = "ballerina", name = "cache"},
@@ -474,10 +474,10 @@ dependencies = [
 	{org = "ballerinax", name = "mysql.driver"}
 ]
 modules = [
-	{org = "wso2", packageName = "sales_meet", moduleName = "sales_meet"},
-	{org = "wso2", packageName = "sales_meet", moduleName = "sales_meet.authorization"},
-	{org = "wso2", packageName = "sales_meet", moduleName = "sales_meet.calendar"},
-	{org = "wso2", packageName = "sales_meet", moduleName = "sales_meet.database"},
-	{org = "wso2", packageName = "sales_meet", moduleName = "sales_meet.entity"}
+	{org = "wso2", packageName = "meet_app", moduleName = "meet_app"},
+	{org = "wso2", packageName = "meet_app", moduleName = "meet_app.authorization"},
+	{org = "wso2", packageName = "meet_app", moduleName = "meet_app.calendar"},
+	{org = "wso2", packageName = "meet_app", moduleName = "meet_app.database"},
+	{org = "wso2", packageName = "meet_app", moduleName = "meet_app.entity"}
 ]
 

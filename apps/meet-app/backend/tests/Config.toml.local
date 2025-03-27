@@ -1,35 +1,35 @@
-[sales_meet]
+[meet_app]
     port = 
     jwtKey = ""
 
-[sales_meet.entity]
+[meet_app.entity]
     # hrEntityBaseUrl = ""
     hrEntityBaseUrl = ""
     disclaimerMessage = ""
-    [sales_meet.entity.oauthConfig]
+    [meet_app.entity.oauthConfig]
         tokenUrl = ""
         clientId = ""
         clientSecret = ""
 
-    [sales_meet.entity.retryConfig]
+    [meet_app.entity.retryConfig]
         count = 
         interval = 
         backOffFactor = 
         maxWaitInterval = 
 
-[sales_meet.database.dbConfig]
+[meet_app.database.dbConfig]
     host = ""
     user = ""
     password = ""
     database = ""
     port = 3306
-    [sales_meet.database.dbConfig.connectionPool]
+    [meet_app.database.dbConfig.connectionPool]
     maxOpenConnections = 
     maxConnectionLifeTime = 
     minIdleConnections= 
-    [sales_meet.database.dbConfig.options]
+    [meet_app.database.dbConfig.options]
     connectTimeout = 
 
-[sales_meet.authorization.authorizedRoles]
+[meet_app.authorization.authorizedRoles]
     SALES_TEAM  = ""
     SALES_ADMIN = ""

@@ -1,13 +1,22 @@
-// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
+// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
 //
-// This software is the property of WSO2 LLC. and its suppliers, if any.
-// Dissemination of any information or reproduction of any material contained
-// herein in any form is strictly forbidden, unless permitted by WSO2 expressly.
-// You may not alter or remove any copyright or other notice from copies of this content. 
-import sales_meet.authorization;
-import sales_meet.calendar;
-import sales_meet.database;
-import sales_meet.entity;
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License. 
+import meet_app.authorization;
+import meet_app.calendar;
+import meet_app.database;
+import meet_app.entity;
 
 import ballerina/cache;
 import ballerina/http;
@@ -19,17 +28,16 @@ public configurable int port = ?;
 final cache:Cache userInfoCache = new (capacity = 100, evictionFactor = 0.2);
 
 @display {
-    label: "Sales Meet",
-    id: "sales/sales-meet"
+    label: "Meet Backend Service",
+    id: "people-ops/meet-application"
 }
 
 service class ErrorInterceptor {
     *http:ResponseErrorInterceptor;
 
-    remote function interceptResponseError(error err, http:RequestContext ctx)
-        returns http:BadRequest|error {
+    remote function interceptResponseError(error err, http:RequestContext ctx) returns http:BadRequest|error {
 
-        // Handle data-binding errors separately
+        // Handle data-binding errors separately.
         if err is http:PayloadBindingError {
             return {
                 body: {
@@ -46,17 +54,16 @@ service http:InterceptableService / on new http:Listener(port) {
     # Request interceptor.
     #
     # + return - authorization:JwtInterceptor, ErrorInterceptor
-    public function createInterceptors() returns
-    http:Interceptor[] => [new authorization:JwtInterceptor(), new ErrorInterceptor()];
+    public function createInterceptors() returns http:Interceptor[] =>
+        [new authorization:JwtInterceptor(), new ErrorInterceptor()];
 
     # Fetch user information of the logged in users.
     #
     # + ctx - Request object
     # + return - User information | Error
-    resource function get user\-info(http:RequestContext ctx)
-        returns http:Ok|http:InternalServerError {
+    resource function get user\-info(http:RequestContext ctx) returns http:Ok|http:InternalServerError {
 
-        // User information header
+        // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
             return <http:InternalServerError>{
@@ -78,14 +85,12 @@ service http:InterceptableService / on new http:Listener(port) {
             };
         }
 
-        // Fetch the user's privileges based on the roles
+        // Fetch the user's privileges based on the roles.
         int[] privileges = [];
-        if authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM],
-                userInfo.groups) {
+        if authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups) {
             privileges.push(authorization:SALES_TEAM_PRIVILEGE);
         }
-        if authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN],
-                userInfo.groups) {
+        if authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups) {
             privileges.push(authorization:SALES_ADMIN_PRIVILEGE);
         }
 
@@ -104,7 +109,7 @@ service http:InterceptableService / on new http:Listener(port) {
     isolated resource function get meetings/types(http:RequestContext ctx, string domain)
         returns database:MeetingTypes|http:Forbidden|http:InternalServerError {
 
-        // User information header
+        // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
             return <http:InternalServerError>{
@@ -123,7 +128,7 @@ service http:InterceptableService / on new http:Listener(port) {
             };
         }
 
-        // Fetch the meeting types from the database
+        // Fetch the meeting types from the database.
         database:MeetingTypes|error? meetingTypes = database:fetchMeetingTypes(domain);
         if meetingTypes is error {
             string customError = string `Error occurred while retrieving the meeting types!`;
@@ -151,11 +156,11 @@ service http:InterceptableService / on new http:Listener(port) {
     #
     # + createCalendarEventRequest - Create calendar event request
     # + return - Created meeting | Error
-    isolated resource function post meetings(
-            http:RequestContext ctx, calendar:CreateCalendarEventRequest createCalendarEventRequest)
+    isolated resource function post meetings(http:RequestContext ctx,
+            calendar:CreateCalendarEventRequest createCalendarEventRequest)
         returns http:Created|http:Forbidden|http:InternalServerError {
 
-        // User information header
+        // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
             return <http:InternalServerError>{
@@ -174,7 +179,7 @@ service http:InterceptableService / on new http:Listener(port) {
             };
         }
 
-        // Attempt to create the meeting
+        // Attempt to create the meeting.
         calendar:CreateCalendarEventResponse|error calendarCreateEventResponse = calendar:createCalendarEvent(
                 createCalendarEventRequest, userInfo.email);
         if calendarCreateEventResponse is error {
@@ -183,7 +188,7 @@ service http:InterceptableService / on new http:Listener(port) {
             };
         }
 
-        // Prepare the meeting details to insert into the database
+        // Prepare the meeting details to insert into the database.
         database:AddMeetingPayload addMeetingPayload = {
             title: createCalendarEventRequest.title,
             googleEventId: calendarCreateEventResponse.id,
@@ -196,7 +201,7 @@ service http:InterceptableService / on new http:Listener(port) {
             .substring(0, createCalendarEventRequest.endTime.length() - 5)
         };
 
-        // Insert the meeting details into the database
+        // Insert the meeting details into the database.
         int|error meetingId = database:addMeeting(addMeetingPayload, userInfo.email);
         if meetingId is error {
             string customError = string `Error occurred while adding meeting to database!`;
@@ -208,7 +213,7 @@ service http:InterceptableService / on new http:Listener(port) {
             };
         }
 
-        // Check if the meeting was added successfully
+        // Check if the meeting was added successfully.
         database:Meeting|error? addedMeeting = database:fetchMeeting(meetingId);
         if addedMeeting is error {
             string customError = string `Error occurred while retrieving the added meeting!`;
@@ -251,7 +256,7 @@ service http:InterceptableService / on new http:Listener(port) {
             string? startTime, string? endTime, string? wso2Participants, int? 'limit, int? offset)
         returns http:Ok|http:Forbidden|http:InternalServerError {
 
-        // User information header
+        // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
             return <http:InternalServerError>{
@@ -273,17 +278,17 @@ service http:InterceptableService / on new http:Listener(port) {
         boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN],
                 userInfo.groups);
 
-        // Return Forbidden if a non-admin user provides a host query parameter
+        // Return Forbidden if a non-admin user provides a host query parameter.
         if (!isAdmin && (host != ()) && (host != userInfo.email)) {
             return <http:Forbidden>{
                 body: {message: "Insufficient privileges to filter by host!"}
             };
         }
 
-        // Determine the host filter based on user role
+        // Determine the host filter based on user role.
         string? filteredHost = isAdmin ? (host != () ? host : ()) : userInfo.email;
 
-        // Fetch the meetings from the database
+        // Fetch the meetings from the database.
         database:Meeting[]|error meetings = database:fetchMeetings(
                 title, filteredHost, startTime, endTime, wso2Participants, 'limit, offset);
         if meetings is error {
@@ -324,7 +329,7 @@ service http:InterceptableService / on new http:Listener(port) {
     isolated resource function get meetings/[int meetingId]/attachments(http:RequestContext ctx)
         returns http:Ok|http:InternalServerError|http:Forbidden {
 
-        // User information header
+        // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
             return <http:InternalServerError>{
@@ -343,7 +348,7 @@ service http:InterceptableService / on new http:Listener(port) {
             };
         }
 
-        // Fetch the meeting from the database
+        // Fetch the meeting from the database.
         database:Meeting|error? meeting = database:fetchMeeting(meetingId);
         if meeting is error {
             string customError = string `Error occurred while fetching the meeting!`;
@@ -367,14 +372,14 @@ service http:InterceptableService / on new http:Listener(port) {
         boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN],
                 userInfo.groups);
 
-        // Return Forbidden if a non-admin user views attachments of a meeting they did not host
+        // Return Forbidden if a non-admin user views attachments of a meeting they did not host.
         if !isAdmin && (meeting.host != userInfo.email) {
             return <http:Forbidden>{
                 body: {message: "Insufficient privileges to view the attachments!"}
             };
         }
 
-        // Fetch the attachments of the meeting
+        // Fetch the attachments of the meeting.
         gcalendar:Attachment[]|error? calendarEventAttachments = calendar:getCalendarEventAttachments(
                 meeting.googleEventId);
         if calendarEventAttachments is error {
@@ -397,7 +402,7 @@ service http:InterceptableService / on new http:Listener(port) {
     isolated resource function delete meetings/[int meetingId](http:RequestContext ctx)
         returns http:Ok|http:InternalServerError|http:Forbidden {
 
-        // User information header
+        // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
             return <http:InternalServerError>{
@@ -416,7 +421,7 @@ service http:InterceptableService / on new http:Listener(port) {
             };
         }
 
-        // Fetch meeting details
+        // Fetch meeting details.
         database:Meeting|error? meeting = database:fetchMeeting(meetingId);
         if meeting is error {
             string customError = string `Error occurred while deleting the meeting!`;
@@ -457,7 +462,7 @@ service http:InterceptableService / on new http:Listener(port) {
             };
         }
 
-        // Delete the meeting from the calendar
+        // Delete the meeting from the calendar.
         calendar:DeleteCalendarEventResponse|error deleteCalendarEventResponse = calendar:deleteCalendarEvent(
                 meeting.googleEventId);
         if deleteCalendarEventResponse is error {
@@ -466,7 +471,7 @@ service http:InterceptableService / on new http:Listener(port) {
             };
         }
 
-        // Cancel the meeting in the database
+        // Cancel the meeting in the database.
         int|error cancelledMeetingId = database:cancelMeeting(meetingId);
         if cancelledMeetingId is error {
             string customError = string `Error occurred while deleting meeting from database!`;

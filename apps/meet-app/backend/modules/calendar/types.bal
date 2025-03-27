@@ -1,9 +1,18 @@
-// Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
+// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
 //
-// This software is the property of WSO2 LLC. and its suppliers, if any.
-// Dissemination of any information or reproduction of any material contained
-// herein in any form is strictly forbidden, unless permitted by WSO2 expressly.
-// You may not alter or remove any copyright or other notice from copies of this content.
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License. 
 
 # [Configurable] OAuth2 entity application configuration.
 type Oauth2Config record {|
@@ -27,7 +36,7 @@ public type CalendarRetryConfig record {|
     decimal maxWaitInterval = RETRY_MAX_INTERVAL;
 |};
 
-# Event create request record
+# Event create request record.
 public type CreateCalendarEventRequest record {|
     # Event title
     string title;
@@ -45,7 +54,7 @@ public type CreateCalendarEventRequest record {|
     string[] externalParticipants;
 |};
 
-# Event create payload record
+# Event create payload record.
 public type CreateCalendarEventPayload record {|
     # Event title
     string summary;
@@ -78,7 +87,7 @@ public type CreateCalendarEventPayload record {|
     |} conferenceData;
 |};
 
-# Event create success response record
+# Event create success response record.
 public type CreateCalendarEventResponse record {|
     # Success message
     string message;
@@ -86,7 +95,7 @@ public type CreateCalendarEventResponse record {|
     string id;
 |};
 
-# Event delete response record
+# Event delete response record.
 public type DeleteCalendarEventResponse record {|
     # Success message
     string message;
