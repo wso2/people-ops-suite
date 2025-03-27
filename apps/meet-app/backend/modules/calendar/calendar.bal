@@ -32,7 +32,7 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
     string:RegExp wso2EmailDomainRegex = re `^([a-zA-Z0-9_\-\.]+)(@wso2\.com|@ws02\.com)$`;
     foreach string participant in createCalendarEventRequest.wso2Participants {
         if !wso2EmailDomainRegex.isFullMatch(participant.trim()) {
-            return error("Failed to create the calendar event.");
+            return error(string `Invalid WSO2 participant email: ${participant}`);
         }
     }
 
@@ -67,16 +67,11 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
         }
     };
 
-    // Create the payload for the API request.
+    // Make the API call to create the event.
     http:Request req = new;
     json calendarEventPayloadJson = calendarEventPayload.toJson();
     req.setPayload(calendarEventPayloadJson);
-
-    // Make the API call to create the event.
-    http:Response|error response = calendarClient->post(string `/events/${calendarId}?sendUpdates=all`, req);
-    if response is error {
-        return error("Failed to create the calendar event.");
-    }
+    http:Response response = check calendarClient->post(string `/events/${calendarId}?sendUpdates=all`, req);
 
     // Check if the event was created successfully.
     if response.statusCode == 201 {
@@ -86,7 +81,8 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
         return createCalendarEventResponse;
     }
 
-    return error("Failed to create the calendar event.");
+    json? errorResponseBody = check response.getJsonPayload();
+    return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
 }
 
 # Delete an event from the calendar.
@@ -96,10 +92,7 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
 public isolated function deleteCalendarEvent(string eventId) returns DeleteCalendarEventResponse|error {
 
     // Make the API call to delete the event.
-    http:Response|error response = calendarClient->delete(string `/events/${calendarId}/${eventId}`);
-    if response is error {
-        return error("Failed to delete the calendar event.");
-    }
+    http:Response response = check calendarClient->delete(string `/events/${calendarId}/${eventId}`);
 
     // Check if the event was deleted successfully.
     if response.statusCode == 200 {
@@ -109,7 +102,8 @@ public isolated function deleteCalendarEvent(string eventId) returns DeleteCalen
         return deleteCalendarEventResponse;
     }
 
-    return error("Failed to delete the calendar event.");
+    json? errorResponseBody = check response.getJsonPayload();
+    return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
 }
 
 # Get an event from the calendar.
@@ -119,10 +113,7 @@ public isolated function deleteCalendarEvent(string eventId) returns DeleteCalen
 public isolated function getCalendarEventAttachments(string eventId) returns gcalendar:Attachment[]|error? {
 
     // Make the API call to get the event attachments.
-    http:Response|error response = calendarClient->get(string `/calendars/${calendarId}/events/${eventId}`);
-    if response is error {
-        return error("Failed to get calendar event attachments.");
-    }
+    http:Response response = check calendarClient->get(string `/calendars/${calendarId}/events/${eventId}`);
 
     // Check if the event attachments were fetched successfully.
     if response.statusCode == 200 {
@@ -134,7 +125,8 @@ public isolated function getCalendarEventAttachments(string eventId) returns gca
         return calendarEvent.attachments;
     }
 
-    return error("Failed to get calendar event attachments.");
+    json? errorResponseBody = check response.getJsonPayload();
+    return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
 }
 
 # Replace the ${creatorEmail} placeholder with a mailto link.

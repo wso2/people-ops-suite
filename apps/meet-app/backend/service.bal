@@ -37,11 +37,13 @@ service class ErrorInterceptor {
 
     remote function interceptResponseError(error err, http:RequestContext ctx) returns http:BadRequest|error {
 
-        // Handle data-binding errors separately.
+        // Handle data-binding errors.
         if err is http:PayloadBindingError {
+            string customError = string `Payload binding failed!`;
+            log:printError(customError, err);
             return {
                 body: {
-                    message: "Payload binding failed"
+                    message: customError
                 }
             };
         }
@@ -140,7 +142,7 @@ service http:InterceptableService / on new http:Listener(port) {
             };
         }
         if meetingTypes is null {
-            string customError = string `No meeting types found for the given domain!`;
+            string customError = string `No meeting types found for the domain: ${domain}!`;
             log:printError(customError);
             return <http:InternalServerError>{
                 body: {
@@ -183,8 +185,12 @@ service http:InterceptableService / on new http:Listener(port) {
         calendar:CreateCalendarEventResponse|error calendarCreateEventResponse = calendar:createCalendarEvent(
                 createCalendarEventRequest, userInfo.email);
         if calendarCreateEventResponse is error {
+            string customError = string `Error occurred while creating the calendar event!`;
+            log:printError(customError, calendarCreateEventResponse);
             return <http:InternalServerError>{
-                body: {message: "Failed to create meeting!"}
+                body: {
+                    message: customError
+                }
             };
         }
 
@@ -237,7 +243,7 @@ service http:InterceptableService / on new http:Listener(port) {
         return <http:Created>{
             body: {
                 message: "Calendar event created successfully.",
-                meetingId: meetingId
+                meetingId
             }
         };
     }
@@ -383,8 +389,12 @@ service http:InterceptableService / on new http:Listener(port) {
         gcalendar:Attachment[]|error? calendarEventAttachments = calendar:getCalendarEventAttachments(
                 meeting.googleEventId);
         if calendarEventAttachments is error {
+            string customError = string `Error occurred while fetching the attachments!`;
+            log:printError(customError, calendarEventAttachments);
             return <http:InternalServerError>{
-                body: {message: "Failed to fetch the attachments!"}
+                body: {
+                    message: customError
+                }
             };
         }
 
@@ -466,8 +476,12 @@ service http:InterceptableService / on new http:Listener(port) {
         calendar:DeleteCalendarEventResponse|error deleteCalendarEventResponse = calendar:deleteCalendarEvent(
                 meeting.googleEventId);
         if deleteCalendarEventResponse is error {
+            string customError = string `Error occurred while deleting the meeting!`;
+            log:printError(customError, deleteCalendarEventResponse);
             return <http:InternalServerError>{
-                body: {message: "Failed to delete the meeting!"}
+                body: {
+                    message: customError
+                }
             };
         }
 

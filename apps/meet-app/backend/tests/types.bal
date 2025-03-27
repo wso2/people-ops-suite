@@ -14,10 +14,10 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-# Description.
+# CreateCalendarEvent Response.
 #
 # + message - Success message 
-# + id - fCreated event ID
+# + id - Created event ID
 public type CreateCalendarEventResponse record {|
     string message;
     string id;
