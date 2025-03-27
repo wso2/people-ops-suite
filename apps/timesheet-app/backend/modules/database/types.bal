@@ -83,11 +83,11 @@ public type TimeSheetRecord record {|
     # Time sheet record id
     int recordId;
     # Employee's email address
-    string employeeEmail;
+    string employeeEmail?;
     # Record date
     string recordDate;
     # Company name
-    string companyName;
+    string companyName?;
     # Clock in time
     string clockInTime;
     # Clock out time
@@ -95,13 +95,13 @@ public type TimeSheetRecord record {|
     # Total work duration
     int isLunchIncluded;
     # Overtime duration
-    string? overtimeDuration;
+    decimal? overtimeDuration?;
     # Overtime reason
-    string? overtimeReason;
+    string? overtimeReason?;
     # Leads email
-    string leadEmail;
+    string? leadEmail?;
     # Overtime rejection reason
-    string? overtimeRejectReason;
+    string? overtimeRejectReason?;
     # Overtime status
     TimeSheetStatus overtimeStatus;
 |};
@@ -125,11 +125,17 @@ public type TimesheetCommonFilter record {|
 |};
 
 # Timesheet information record type.
-public type OvertimeInformation record {|
+public type TimesheetMetaData record {|
     # Total count of the overtime records
     decimal? overtimeCount;
     # Total count of the records
     int totalRecords;
     # Lunch time duration per day
     decimal? recordsWithOvertime;
+    # Employee email
+    string? employeeEmail;
+    # Lead emails
+    string? leadEmail;
+    # Company name
+    string companyName;
 |};

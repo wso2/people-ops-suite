@@ -87,16 +87,19 @@ export enum Roles {
   LEAD = "LEAD",
 }
 
-export  enum TimeSheetStatus  {
-  PENDING ="PENDING",
+export enum TimesheetStatus {
+  PENDING = "PENDING",
   APPROVED = "APPROVED",
-  REJECTED = "REJECTED"
-};
+  REJECTED = "REJECTED",
+}
 
-export interface OvertimeInfo {
+export interface MetaData {
   overtimeCount?: number;
   totalRecords: number;
   recordsWithOvertime?: number;
+  employeeEmail?: string;
+  leadEmail?: string;
+  companyName?: string;
 }
 
 export interface TimesheetRecord {
@@ -106,15 +109,26 @@ export interface TimesheetRecord {
   companyName: string;
   clockInTime: string;
   clockOutTime: string;
-  isLunchIncluded: number;
+  isLunchIncluded: boolean;
   overtimeDuration: number;
   overtimeReason: string | null;
   leadEmail: string;
   overtimeRejectReason: string | null;
-  overtimeStatus: TimeSheetStatus;
+  overtimeStatus: TimesheetStatus;
+}
+
+export interface CreateUITimesheetRecord {
+  recordId: number;
+  recordDate: Date | null;
+  clockInTime: Date | null;
+  clockOutTime: Date | null;
+  isLunchIncluded: boolean;
+  overtimeDuration: number;
+  overtimeReason: string | null;
+  overtimeStatus: TimesheetStatus;
 }
 
 export interface TimesheetData {
-  overtimeInfo: OvertimeInfo;
+  metaData: MetaData;
   timesheetRecords: TimesheetRecord[];
 }

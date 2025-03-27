@@ -14,13 +14,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-export const SnackMessage = {
+export const Messages = {
   success: {
     addCollections: "Successfully added the Collection",
+    updateTimesheetRecords: "Successfully updated the record",
+    sendTimesheetRecords: "Successfully saved the records",
   },
   error: {
     fetchCollectionsMessage: "Unable to retrieve list of selected Collections",
     addCollections: "Unable to create the Collection",
+    fetchTimesheetRecords: "Unable to retrieve timesheet records",
+    sendTimesheetRecords: "Unable to save timesheet records",
   },
   warning: {},
 };

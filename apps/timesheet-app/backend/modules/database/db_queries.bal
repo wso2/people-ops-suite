@@ -150,15 +150,12 @@ isolated function getTimeSheetRecordsOfEmployee(TimesheetCommonFilter filter) re
     sql:ParameterizedQuery mainQuery = `
     SELECT
         tr.ts_record_id AS recordId,
-        tr.ts_employee_email AS employeeEmail,
         tr.ts_record_date AS recordDate,
-        tr.ts_company_name AS companyName,
         tr.ts_clock_in AS clockInTime,
         tr.ts_clock_out AS clockOutTIme,
         tr.ts_lunch_included AS isLunchIncluded,
         tr.ts_ot_hours AS overtimeDuration,
         tr.ts_ot_reason AS overtimeReason,
-        tr.ts_lead_email AS leadEmail,
         tr.ts_ot_rejection_reason AS overtimeRejectReason,
         tr.ts_ot_status AS overtimeStatus
     FROM
@@ -201,11 +198,14 @@ isolated function getTimeSheetRecordsOfEmployee(TimesheetCommonFilter filter) re
 #
 # + filter - Filter type for the records
 # + return - Select query for the work policies
-isolated function getTimesheetOTInfoOfEmployeeQuery(TimesheetCommonFilter filter)
+isolated function getTimesheetMetaDataQuery(TimesheetCommonFilter filter)
     returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
     SELECT
         SUM(ts_ot_hours) AS overtimeCount,
+        ts_employee_email AS employeeEmail,
+        ts_company_name AS companyName,
+        ts_lead_email AS leadEmail,
             COUNT(*) AS totalRecords,
             SUM(CASE
                 WHEN ts_ot_hours > 0 THEN 1
@@ -230,10 +230,49 @@ isolated function getTimesheetOTInfoOfEmployeeQuery(TimesheetCommonFilter filter
 
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
 
-    if filter.rangeStart is string && filter.rangeEnd is string {
-        filters.push(sql:queryConcat(`ts_record_date BETWEEN ${filter.rangeStart} `, ` AND ${filter.rangeEnd}`));
-    }
+    // if filter.rangeStart is string && filter.rangeEnd is string {
+    //     filters.push(sql:queryConcat(`ts_record_date BETWEEN ${filter.rangeStart} `, ` AND ${filter.rangeEnd}`));
+    // }
+
+    mainQuery = sql:queryConcat(mainQuery, `GROUP BY ts_employee_email, ts_company_name, ts_lead_email;`);
 
     return mainQuery;
 
 }
+
+isolated function insertTimesheetRecordsQuery(TimeSheetRecord[] timesheetRecords, string employeeEmail,
+        string companyName, string leadEmail) returns sql:ParameterizedQuery[] =>
+            from TimeSheetRecord timesheetRecord in timesheetRecords
+let TimeSheetRecord {recordDate, clockInTime, clockOutTime, isLunchIncluded, overtimeDuration, overtimeReason,
+            overtimeStatus} = timesheetRecord
+select `
+        INSERT INTO hris_timesheet_records (
+            ts_employee_email,
+            ts_record_date,
+            ts_company_name,
+            ts_clock_in,
+            ts_clock_out,
+            ts_lunch_included,
+            ts_ot_hours,
+            ts_ot_reason,
+            ts_lead_email,
+            ts_ot_status,
+            ts_created_by,
+            ts_updated_by
+        )
+        VALUES (
+            ${employeeEmail},
+            ${recordDate},
+            ${companyName},
+            ${clockInTime},
+            ${clockOutTime},
+            ${isLunchIncluded},
+            ${overtimeDuration},
+            ${overtimeReason},
+            ${leadEmail},
+            ${overtimeStatus},
+            ${employeeEmail},
+            ${employeeEmail}
+        );
+    `;
+

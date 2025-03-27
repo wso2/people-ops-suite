@@ -95,12 +95,32 @@ public isolated function getTimeSheetRecords(TimesheetCommonFilter filter) retur
 #
 # + filter - Filter type for the records
 # + return - Timesheet record count of the employee or an error
-public isolated function getTimesheetOTInfoOfEmployee(TimesheetCommonFilter filter)
-    returns OvertimeInformation|error? {
-    OvertimeInformation|sql:Error count = databaseClient->queryRow(getTimesheetOTInfoOfEmployeeQuery(filter));
+public isolated function GetTimesheetMetaData(TimesheetCommonFilter filter)
+    returns TimesheetMetaData|error? {
+
+    TimesheetMetaData|sql:Error count = databaseClient->queryRow(getTimesheetMetaDataQuery(filter));
 
     if count is sql:Error && count is sql:NoRowsError {
         return;
     }
     return count;
+}
+
+# Function to insert timesheet records.
+#
+# + timesheetRecords - Timesheet records payload
+# + employeeEmail - Email of the employee
+# + invokerEmail - Email of the invoker
+# + leadEmail - Email of the employee's lead
+# + companyName - Name of the company of the employee
+# + return - Id of the timesheet records|Error
+public isolated function insertTimesheetRecords(TimeSheetRecord[] timesheetRecords, string employeeEmail,
+        string companyName, string leadEmail) returns error? {
+    sql:ExecutionResult[]|sql:Error executionResult =
+        databaseClient->batchExecute(insertTimesheetRecordsQuery(timesheetRecords, employeeEmail, companyName,
+                leadEmail));
+
+    if executionResult is error {
+        return executionResult;
+    }
 }

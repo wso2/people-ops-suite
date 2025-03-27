@@ -67,7 +67,7 @@ public type EmployeeWithPermissions record {
 # Timesheet records collection type.
 public type TimeSheetRecords record {
     # Overtime information from the database
-    database:OvertimeInformation? overtimeInfo;
+    database:TimesheetMetaData? metaData;
     # List of timesheet records
     database:TimeSheetRecord[]? timesheetRecords;
 };

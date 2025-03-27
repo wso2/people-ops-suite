@@ -14,21 +14,23 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import React, { useContext, useEffect, useState } from "react";
-import { Button } from "@mui/material";
-import { APIService } from "@utils/apiService";
+import { State } from "@utils/types";
 import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
-import { useAuthContext, SecureApp } from "@asgardeo/auth-react";
-import { setUserAuthData } from "@slices/authSlice";
-import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
-import StatusWithAction from "@component/ui/StatusWithAction";
+import { Box, Button } from "@mui/material";
+import { APIService } from "@utils/apiService";
 import PreLoader from "@component/common/PreLoader";
+import DialogTitle from "@mui/material/DialogTitle";
+import { setUserAuthData } from "@slices/authSlice";
 import { getUserInfo } from "@slices/userSlice/user";
-import { useIdleTimer } from "react-idle-timer";
+import NoDataView from "@component/common/NoDataView";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import LoadingScreen from "@component/common/LoadingScreen";
+import StatusWithAction from "@component/ui/StatusWithAction";
+import React, { useContext, useEffect, useState } from "react";
+import DialogContentText from "@mui/material/DialogContentText";
+import { useAuthContext, SecureApp } from "@asgardeo/auth-react";
+import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
 
 type AuthContextType = {
   appSignIn: () => void;
@@ -36,49 +38,22 @@ type AuthContextType = {
 };
 const AuthContext = React.createContext<AuthContextType>({} as AuthContextType);
 
-const timeout = 1800_000;
-const promptBeforeIdle = 4_000;
-
 const AppAuthProvider = (props: { children: React.ReactNode }) => {
   const [open, setOpen] = useState<boolean>(false);
-  const [appState, setAppState] = useState<"logout" | "active" | "loading">(
-    "loading"
-  );
+  const [appState, setAppState] = useState<"logout" | "active" | "loading">("loading");
 
   const dispatch = useAppDispatch();
   const auth = useAppSelector((state: RootState) => state.auth);
   const userInfo = useAppSelector((state: RootState) => state.user);
+  const userInfoState = useAppSelector((state: RootState) => state.user.state);
 
-  const onPrompt = () => {
-    appState === "active" && setOpen(true);
-  };
-
-  const { getRemainingTime, activate } = useIdleTimer({
-    onPrompt,
-    timeout,
-    promptBeforeIdle,
-    throttle: 500,
-  });
-
-  const {
-    signIn,
-    signOut,
-    getDecodedIDToken,
-    getBasicUserInfo,
-    refreshAccessToken,
-    isAuthenticated,
-    getIDToken,
-    state,
-  } = useAuthContext();
+  const { signIn, getIDToken, signOut, getDecodedIDToken, getBasicUserInfo, state } = useAuthContext();
 
   useEffect(() => {
     var appStatus = localStorage.getItem("hris-app-state");
 
     if (!localStorage.getItem("hris-app-redirect-url")) {
-      localStorage.setItem(
-        "hris-app-redirect-url",
-        window.location.href.replace(window.location.origin, "")
-      );
+      localStorage.setItem("hris-app-redirect-url", window.location.href.replace(window.location.origin, ""));
     }
 
     if (appStatus && appStatus === "logout") {
@@ -89,13 +64,10 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (appState === "active") {
-      if (state.isAuthenticated) {
-        Promise.all([
-          getBasicUserInfo(),
-          getIDToken(),
-          getDecodedIDToken(),
-        ]).then(async ([userInfo, idToken, decodedIdToken]) => {
+    const isSignInInitiated = localStorage.getItem("signInInitiated") === "true";
+    if (state.isAuthenticated) {
+      Promise.all([getBasicUserInfo(), getIDToken(), getDecodedIDToken()]).then(
+        async ([userInfo, idToken, decodedIdToken]) => {
           dispatch(
             setUserAuthData({
               userInfo: userInfo,
@@ -103,42 +75,55 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
               decodedIdToken: decodedIdToken,
             })
           );
-          new APIService(idToken, refreshToken);
-        });
-      }
+
+          new APIService(idToken, refreshTokens);
+          localStorage.setItem("signInInitiated", "false");
+        }
+      );
+    } else if (!isSignInInitiated) {
+      localStorage.setItem("signInInitiated", "true");
+      signIn();
     }
-  }, [appState, state.isAuthenticated]);
+  }, [state.isAuthenticated]);
 
   useEffect(() => {
+    let isMounted = true;
+
     if (appState === "active") {
       if (state.isAuthenticated) {
         if (userInfo.state !== "loading") {
-          dispatch(getUserInfo());
+          Promise.all([dispatch(getUserInfo())]).catch((error) => {
+            if (isMounted) {
+              console.error("Error fetching data:", error);
+            }
+          });
         }
       } else {
         signIn();
       }
     } else if (appState === "loading") {
-      <PreLoader isLoading={true} message={auth.statusMessage}></PreLoader>;
+      <PreLoader isLoading={true} message={auth.statusMessage} />;
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [auth.userInfo]);
 
-  const refreshToken = () => {
-    return new Promise<{ idToken: string }>(async (resolve) => {
-      const userIsAuthenticated = await isAuthenticated();
-      if (userIsAuthenticated) {
-        resolve({ idToken: await getIDToken() });
-      } else {
-        refreshAccessToken()
-          .then(async (res) => {
-            const idToken = await getIDToken();
-            resolve({ idToken: idToken });
-          })
-          .catch((error) => {
-            appSignOut();
-          });
+  useEffect(() => {
+    if (appState === "active") {
+      if (state.isAuthenticated) {
+        if (userInfoState === State.failed) {
+          console.log(userInfo.state);
+          console.log(userInfo.stateMessage);
+        }
       }
-    });
+    }
+  }, [userInfo]);
+
+  const refreshTokens = async () => {
+    const idToken = await getIDToken();
+    return { idToken: idToken };
   };
 
   const appSignOut = async () => {
@@ -170,13 +155,10 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
           >
-            <DialogTitle id="alert-dialog-title">
-              {"Are you still there?"}
-            </DialogTitle>
+            <DialogTitle id="alert-dialog-title">{"Are you still there?"}</DialogTitle>
             <DialogContent>
               <DialogContentText id="alert-dialog-description">
-                It looks like you've been inactive for a while. Would you like
-                to continue?
+                It looks like you've been inactive for a while. Would you like to continue?
               </DialogContentText>
             </DialogContent>
             <DialogActions>
@@ -185,9 +167,23 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
             </DialogActions>
           </Dialog>
           {appState === "active" ? (
-            <AuthContext.Provider value={authContext}>
-              <SecureApp>{props.children}</SecureApp>
-            </AuthContext.Provider>
+            <>
+              {userInfoState === State.failed && (
+                <Box sx={{ width: "60%", height: "90vh" }}>
+                  <NoDataView message={userInfo.stateMessage || "No Data Found"} type="error" />
+                </Box>
+              )}
+              {userInfoState === State.success && (
+                <AuthContext.Provider value={authContext}>
+                  <SecureApp>{props.children}</SecureApp>
+                </AuthContext.Provider>
+              )}
+              {userInfoState === State.loading && (
+                <Box sx={{ width: "100%", height: "100vh" }}>
+                  <LoadingScreen message={userInfo.stateMessage || "Loading"} />
+                </Box>
+              )}
+            </>
           ) : (
             <StatusWithAction action={() => appSignIn()} />
           )}

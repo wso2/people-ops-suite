@@ -1,3 +1,18 @@
+// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 import {
   Box,
   Card,
@@ -28,27 +43,21 @@ import {
   FormControlLabel,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { TimesheetStatus } from "@utils/types";
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
-import React, { useState, useEffect } from "react";
+import { CreateUITimesheetRecord } from "@utils/types";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PublishIcon from "@mui/icons-material/Publish";
+import React, { useState, useEffect, useRef } from "react";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { format, differenceInMinutes, isWeekend, startOfDay } from "date-fns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-
-interface TimeEntry {
-  id: string;
-  date: Date | null;
-  clockInTime: Date | null;
-  clockOutTime: Date | null;
-  lunchBreakTaken: boolean;
-  overtimeHours: number;
-  overtimeReason: string;
-}
+import { useAppDispatch, useAppSelector } from "@slices/store";
+import { addTimesheetRecords } from "@slices/recordSlice/record";
 
 interface TimeTrackingFormProps {
   regularWorkHoursPerDay?: number;
@@ -57,21 +66,27 @@ interface TimeTrackingFormProps {
 
 const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPerDay = 8, onClose }) => {
   const regularWorkMinutes = regularWorkHoursPerDay * 60;
-  const [entries, setEntries] = useState<TimeEntry[]>([]);
-  const [currentEntry, setCurrentEntry] = useState<TimeEntry>(createNewEntry());
+  const newRecordId = useRef<number>(0);
+  const dispatch = useAppDispatch();
+  const [entries, setEntries] = useState<CreateUITimesheetRecord[]>([]);
+  const [currentEntry, setCurrentEntry] = useState<CreateUITimesheetRecord>(createNewEntry());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
+  const [editingEntry, setEditingEntry] = useState<CreateUITimesheetRecord | null>(null);
+  const totalOvertimeHours = entries.reduce((sum, entry) => sum + entry.overtimeDuration, 0);
+  const totalDays = entries.length;
+  const userEmail = useAppSelector((state) => state.user.userInfo!.workEmail);
 
-  function createNewEntry(): TimeEntry {
+  function createNewEntry(): CreateUITimesheetRecord {
     return {
-      id: Date.now().toString(),
-      date: new Date(),
+      recordId: (newRecordId.current += 1),
+      recordDate: new Date(),
       clockInTime: null,
       clockOutTime: null,
-      lunchBreakTaken: true,
-      overtimeHours: 0,
+      isLunchIncluded: true,
+      overtimeDuration: 0,
       overtimeReason: "",
+      overtimeStatus: TimesheetStatus.APPROVED,
     };
   }
 
@@ -80,13 +95,13 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
   }, [
     currentEntry.clockInTime,
     currentEntry.clockOutTime,
-    currentEntry.lunchBreakTaken,
-    currentEntry.date,
+    currentEntry.isLunchIncluded,
+    currentEntry.recordDate,
     regularWorkMinutes,
   ]);
 
   const handleDateChange = (newDate: Date | null) => {
-    setCurrentEntry({ ...currentEntry, date: newDate });
+    setCurrentEntry({ ...currentEntry, recordDate: newDate });
   };
 
   const handleClockInChange = (newTime: Date | null) => {
@@ -98,7 +113,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
   };
 
   const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setCurrentEntry({ ...currentEntry, lunchBreakTaken: event.target.checked });
+    setCurrentEntry({ ...currentEntry, isLunchIncluded: event.target.checked });
   };
 
   const handleOvertimeReasonChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,8 +132,8 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
     }
   };
 
-  const handleDeleteEntry = (id: string) => {
-    setEntries(entries.filter((entry) => entry.id !== id));
+  const handleDeleteEntry = (recordId: number) => {
+    setEntries(entries.filter((entry) => entry.recordId !== recordId));
   };
 
   const handleBatchSubmit = () => {
@@ -126,14 +141,42 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
       const entryErrors = validateEntry(currentEntry);
 
       if (Object.keys(entryErrors).length === 0) {
+        setEntries([...entries, currentEntry]);
         setCurrentEntry(createNewEntry());
       } else {
         setErrors(entryErrors);
       }
     } else {
-      setEntries([]);
-      setCurrentEntry(createNewEntry());
+      handleDataSubmit();
     }
+  };
+
+  const cleanTimeEntries = (entries: CreateUITimesheetRecord[]) => {
+    return entries.map((entry) => {
+      const formattedRecordDate = entry.recordDate ? entry.recordDate.toISOString().split("T")[0] : "";
+
+      const formatTime = (dateTime: Date) => {
+        const date = new Date(dateTime);
+        return date.toISOString().split("T")[1].split(".")[0];
+      };
+
+      return {
+        ...entry,
+        isLunchIncluded: entry.isLunchIncluded ? 1 : 0,
+        recordDate: formattedRecordDate,
+        clockInTime: formatTime(entry.clockInTime!),
+        clockOutTime: formatTime(entry.clockOutTime!),
+        overtimeStatus:
+          entry.overtimeDuration && entry.overtimeReason ? TimesheetStatus.PENDING : TimesheetStatus.PENDING,
+      };
+    });
+  };
+
+  const handleDataSubmit = async () => {
+    const cleanedEntries = cleanTimeEntries(entries);
+    console.log("cleaned entries", cleanedEntries);
+
+    dispatch(addTimesheetRecords({ employeeEmail: userEmail, payload: cleanedEntries }));
   };
 
   const handleReset = () => {
@@ -141,52 +184,49 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
     setErrors({});
   };
 
-  const openEditDialog = (entry: TimeEntry) => {
+  const openEditDialog = (entry: CreateUITimesheetRecord) => {
     setEditingEntry(entry);
     setEditDialogOpen(true);
   };
 
-  const calculateOvertime = (entry: TimeEntry): TimeEntry => {
-    if (entry.clockInTime && entry.clockOutTime && entry.date) {
+  const calculateOvertime = (entry: CreateUITimesheetRecord): CreateUITimesheetRecord => {
+    if (entry.clockInTime && entry.clockOutTime && entry.recordDate) {
       const totalMinutes = differenceInMinutes(entry.clockOutTime, entry.clockInTime);
-      const lunchBreakMinutes = entry.lunchBreakTaken ? 60 : 0;
+      const lunchBreakMinutes = entry.isLunchIncluded ? 60 : 0;
       const workMinutes = Math.max(0, totalMinutes - lunchBreakMinutes);
 
       let overtimeMinutes = 0;
-      if (isWeekend(entry.date)) {
+      if (isWeekend(entry.recordDate)) {
         overtimeMinutes = workMinutes;
       } else {
         overtimeMinutes = Math.max(0, workMinutes - regularWorkMinutes);
       }
 
-      const overtimeHours = parseFloat((overtimeMinutes / 60).toFixed(2));
+      const overtimeDuration = parseFloat((overtimeMinutes / 60).toFixed(2));
 
-      // Clear overtime reason if no overtime
       const overtimeReason =
-        overtimeHours > 0 ? entry.overtimeReason || (isWeekend(entry.date) ? "Weekend work" : "") : "";
+        overtimeDuration > 0 ? entry.overtimeReason || (isWeekend(entry.recordDate) ? "Weekend work" : "") : "";
 
       return {
         ...entry,
-        overtimeHours,
+        overtimeDuration,
         overtimeReason,
       };
     }
     return entry;
   };
 
-  // Update the handleSaveEditedEntry function to recalculate before saving
   const handleSaveEditedEntry = () => {
     if (editingEntry) {
       const updatedEntry = calculateOvertime(editingEntry);
       const entryErrors = validateEntry(updatedEntry);
 
-      // Remove overtime reason error if there are no overtime hours
-      if (updatedEntry.overtimeHours <= 0 && entryErrors.overtimeReason) {
+      if (updatedEntry.overtimeDuration <= 0 && entryErrors.overtimeReason) {
         delete entryErrors.overtimeReason;
       }
 
       if (Object.keys(entryErrors).length === 0) {
-        setEntries(entries.map((entry) => (entry.id === updatedEntry.id ? updatedEntry : entry)));
+        setEntries(entries.map((entry) => (entry.recordId === updatedEntry.recordId ? updatedEntry : entry)));
         setEditDialogOpen(false);
         setEditingEntry(null);
         setErrors({});
@@ -196,16 +236,14 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
     }
   };
 
-  // Update the edit dialog to recalculate on field changes
-  const handleEditFieldChange = (field: keyof TimeEntry, value: any) => {
+  const handleEditFieldChange = (field: keyof CreateUITimesheetRecord, value: any) => {
     if (editingEntry) {
       const updatedEntry = {
         ...editingEntry,
         [field]: value,
       };
 
-      // Recalculate overtime when time-related fields change
-      if (["date", "clockInTime", "clockOutTime", "lunchBreakTaken"].includes(field)) {
+      if (["recordDate", "clockInTime", "clockOutTime", "isLunchIncluded"].includes(field)) {
         setEditingEntry(calculateOvertime(updatedEntry));
       } else {
         setEditingEntry(updatedEntry);
@@ -213,12 +251,11 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
     }
   };
 
-  // Update the validateEntry function to not require reason when no overtime
-  const validateEntry = (entry: TimeEntry): Record<string, string> => {
+  const validateEntry = (entry: CreateUITimesheetRecord): Record<string, string> => {
     const entryErrors: Record<string, string> = {};
 
-    if (!entry.date) {
-      entryErrors.date = "Date is required";
+    if (!entry.recordDate) {
+      entryErrors.recordDate = "Date is required";
     }
 
     if (!entry.clockInTime) {
@@ -233,27 +270,23 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
       entryErrors.clockOutTime = "Clock out time must be after clock in time";
     }
 
-    // Only require reason if there are overtime hours
-    if (entry.overtimeHours > 0 && !entry.overtimeReason.trim()) {
+    if (entry.overtimeDuration > 0 && !entry.overtimeReason?.trim()) {
       entryErrors.overtimeReason = "Reason is required for overtime hours";
     }
 
-    if (entry.date) {
-      const entryDate = startOfDay(entry.date).getTime();
+    if (entry.recordDate) {
+      const entryDate = startOfDay(entry.recordDate).getTime();
       const conflictingEntry = entries.find(
-        (e) => e.id !== entry.id && e.date && startOfDay(e.date).getTime() === entryDate
+        (e) => e.recordId !== entry.recordId && e.recordDate && startOfDay(e.recordDate).getTime() === entryDate
       );
 
       if (conflictingEntry) {
-        entryErrors.date = "You already have an entry for this date";
+        entryErrors.recordDate = "You already have an entry for this recordDate";
       }
     }
 
     return entryErrors;
   };
-
-  const totalDays = entries.length;
-  const totalOvertimeHours = entries.reduce((sum, entry) => sum + entry.overtimeHours, 0);
 
   return (
     <Box sx={{ height: "100%", overflow: "auto" }}>
@@ -288,14 +321,17 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                 <Grid item xs={12} md={3} lg={1.5}>
                   <DatePicker
                     label="Date"
-                    value={currentEntry.date}
+                    value={currentEntry.recordDate}
                     onChange={handleDateChange}
+                    maxDate={new Date()}
                     slotProps={{
                       textField: {
                         fullWidth: true,
                         variant: "outlined",
-                        error: !!errors.date,
-                        helperText: errors.date || (currentEntry.date && isWeekend(currentEntry.date) ? "Weekend" : ""),
+                        error: !!errors.recordDate,
+                        helperText:
+                          errors.recordDate ||
+                          (currentEntry.recordDate && isWeekend(currentEntry.recordDate) ? "Weekend" : ""),
                         sx: { textAlign: "center" },
                       },
                     }}
@@ -337,9 +373,9 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                   <FormControlLabel
                     control={
                       <Switch
-                        checked={currentEntry.lunchBreakTaken}
+                        checked={currentEntry.isLunchIncluded}
                         onChange={handleSwitchChange}
-                        name="lunchBreakTaken"
+                        name="isLunchIncluded"
                         color="primary"
                       />
                     }
@@ -347,7 +383,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                   />
                 </Grid>
                 <Grid item xs={12} md={6} lg={3}>
-                  {currentEntry.overtimeHours > 0 && (
+                  {currentEntry.overtimeDuration > 0 && (
                     <FormControl fullWidth error={!!errors.overtimeReason} variant="outlined">
                       <TextField
                         label="Reason for Overtime"
@@ -361,12 +397,12 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                         required
                         sx={{ textAlign: "center" }}
                         InputProps={{
-                          startAdornment: currentEntry.overtimeHours > 0 && (
+                          startAdornment: currentEntry.overtimeDuration > 0 && (
                             <InputAdornment position="end">
                               <Tooltip title={currentEntry.overtimeReason}>
                                 <Chip
-                                  label={`${currentEntry.overtimeHours} hr${
-                                    currentEntry.overtimeHours !== 1 ? "s" : ""
+                                  label={`${currentEntry.overtimeDuration} hr${
+                                    currentEntry.overtimeDuration !== 1 ? "s" : ""
                                   }`}
                                   color="primary"
                                   size="small"
@@ -426,21 +462,23 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                     </TableHead>
                     <TableBody>
                       {entries.map((entry) => (
-                        <TableRow key={entry.id}>
+                        <TableRow key={entry.recordDate?.toString()}>
                           <TableCell>
-                            {entry.date ? format(entry.date, "MMM dd, yyyy") : ""}
-                            {entry.date && isWeekend(entry.date) && (
+                            {entry.recordDate ? format(entry.recordDate, "MMM dd, yyyy") : ""}
+                            {entry.recordDate && isWeekend(entry.recordDate) && (
                               <Chip size="small" label="Weekend" color="secondary" sx={{ ml: 1 }} />
                             )}
                           </TableCell>
                           <TableCell>{entry.clockInTime ? format(entry.clockInTime, "hh:mm a") : ""}</TableCell>
                           <TableCell>{entry.clockOutTime ? format(entry.clockOutTime, "hh:mm a") : ""}</TableCell>
-                          <TableCell>{entry.lunchBreakTaken ? "Yes" : "No"}</TableCell>
+                          <TableCell>{entry.isLunchIncluded ? "Yes" : "No"}</TableCell>
                           <TableCell>
-                            {entry.overtimeHours > 0 ? (
+                            {entry.overtimeDuration > 0 ? (
                               <Tooltip title={entry.overtimeReason}>
                                 <Chip
-                                  label={`${entry.overtimeHours.toFixed(2)} hr${entry.overtimeHours !== 1 ? "s" : ""}`}
+                                  label={`${entry.overtimeDuration.toFixed(2)} hr${
+                                    entry.overtimeDuration !== 1 ? "s" : ""
+                                  }`}
                                   color="primary"
                                   size="small"
                                 />
@@ -459,7 +497,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                               >
                                 <EditIcon fontSize="small" />
                               </IconButton>
-                              <IconButton size="small" color="error" onClick={() => handleDeleteEntry(entry.id)}>
+                              <IconButton size="small" color="error" onClick={() => handleDeleteEntry(entry.recordId)}>
                                 <DeleteIcon fontSize="small" />
                               </IconButton>
                             </Box>
@@ -491,14 +529,14 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                 <Grid item xs={12} md={6}>
                   <DatePicker
                     label="Date"
-                    value={editingEntry.date}
-                    onChange={(newDate) => handleEditFieldChange("date", newDate)}
+                    value={editingEntry.recordDate}
+                    onChange={(newDate) => handleEditFieldChange("recordDate", newDate)}
                     slotProps={{
                       textField: {
                         fullWidth: true,
                         variant: "outlined",
-                        error: !!errors.date,
-                        helperText: errors.date,
+                        error: !!errors.recordDate,
+                        helperText: errors.recordDate,
                       },
                     }}
                   />
@@ -507,9 +545,9 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                   <FormControlLabel
                     control={
                       <Switch
-                        checked={editingEntry.lunchBreakTaken}
-                        onChange={(e) => handleEditFieldChange("lunchBreakTaken", e.target.checked)}
-                        name="lunchBreakTaken"
+                        checked={editingEntry.isLunchIncluded}
+                        onChange={(e) => handleEditFieldChange("isLunchIncluded", e.target.checked)}
+                        name="isLunchIncluded"
                         color="primary"
                       />
                     }
@@ -546,7 +584,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                     }}
                   />
                 </Grid>
-                {editingEntry.overtimeHours > 0 && (
+                {editingEntry.overtimeDuration > 0 && (
                   <Grid item xs={12}>
                     <TextField
                       label="Overtime Reason"
@@ -558,12 +596,12 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                       fullWidth
                       multiline
                       rows={3}
-                      required={editingEntry.overtimeHours > 0}
+                      required={editingEntry.overtimeDuration > 0}
                       InputProps={{
-                        startAdornment: editingEntry.overtimeHours > 0 && (
+                        startAdornment: editingEntry.overtimeDuration > 0 && (
                           <InputAdornment position="start">
                             <Chip
-                              label={`OT: ${editingEntry.overtimeHours.toFixed(2)} hrs`}
+                              label={`OT: ${editingEntry.overtimeDuration.toFixed(2)} hrs`}
                               color="primary"
                               size="small"
                             />

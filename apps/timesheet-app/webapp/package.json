@@ -53,6 +53,7 @@
     "formik": "^2.2.9",
     "immer": "^9.0.19",
     "lodash": "^4.17.21",
+    "lucide-react": "^0.468.0",
     "material-ui-popup-state": "^5.0.4",
     "notistack": "^2.0.8",
     "postcss": "^8.4.20",

@@ -20,7 +20,7 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import { APIService } from "../../utils/apiService";
 import { AppConfig } from "../../config/config";
 import { enqueueSnackbarMessage } from "../commonSlice/common";
-import { SnackMessage } from "../../config/constant";
+import { Messages } from "../../config/constant";
 import axios, { HttpStatusCode } from "axios";
 
 interface CollectionState {
@@ -79,7 +79,7 @@ export const fetchCollections = createAsyncThunk(
             enqueueSnackbarMessage({
               message:
                 error.response?.status === HttpStatusCode.InternalServerError
-                  ? SnackMessage.error.fetchCollectionsMessage
+                  ? Messages.error.fetchCollectionsMessage
                   : String(error.response.data.message),
               type: "error",
             })
@@ -104,7 +104,7 @@ export const addCollections = createAsyncThunk(
         .then((response) => {
           dispatch(
             enqueueSnackbarMessage({
-              message: SnackMessage.success.addCollections,
+              message: Messages.success.addCollections,
               type: "success",
             })
           );
@@ -115,7 +115,7 @@ export const addCollections = createAsyncThunk(
             enqueueSnackbarMessage({
               message:
                 error.response?.status === HttpStatusCode.InternalServerError
-                  ? SnackMessage.error.addCollections
+                  ? Messages.error.addCollections
                   : String(error.response.data.message),
               type: "error",
             })

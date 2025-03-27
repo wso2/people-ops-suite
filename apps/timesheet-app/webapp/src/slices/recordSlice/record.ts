@@ -15,12 +15,12 @@
 // under the License.
 
 import { createSlice } from "@reduxjs/toolkit";
-import { State, TimesheetData, TimeSheetStatus } from "../../utils/types";
+import { CreateUITimesheetRecord, State, TimesheetData, TimesheetStatus } from "../../utils/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { APIService } from "../../utils/apiService";
 import { AppConfig } from "../../config/config";
 import { enqueueSnackbarMessage } from "../commonSlice/common";
-import { SnackMessage } from "../../config/constant";
+import { Messages } from "../../config/constant";
 import axios, { HttpStatusCode } from "axios";
 
 interface TimesheetRecordState {
@@ -48,7 +48,7 @@ export const fetchTimesheetRecords = createAsyncThunk(
   async (
     params: {
       employeeEmail?: string;
-      status?: TimeSheetStatus;
+      status?: TimesheetStatus;
       limit?: number;
       offset?: number;
       rangeStart?: string;
@@ -85,7 +85,7 @@ export const fetchTimesheetRecords = createAsyncThunk(
             enqueueSnackbarMessage({
               message:
                 error.response?.status === HttpStatusCode.InternalServerError
-                  ? SnackMessage.error.fetchCollectionsMessage
+                  ? Messages.error.fetchCollectionsMessage
                   : String(error.response?.data?.message || error.message),
               type: "error",
             })
@@ -96,21 +96,21 @@ export const fetchTimesheetRecords = createAsyncThunk(
   }
 );
 
-// Payload of the add new collection
-export interface AddCollectionPayload {
-  name: string;
+export interface AddTimesheetRecordPayload {
+  employeeEmail: string;
+  records: CreateUITimesheetRecord[];
 }
 
-export const addCollections = createAsyncThunk(
-  "collection/addCollections",
-  async (payload: AddCollectionPayload, { dispatch }) => {
-    return new Promise<AddCollectionPayload>((resolve, reject) => {
+export const addTimesheetRecords = createAsyncThunk(
+  "timesheet/addTimesheetRecords",
+  async ({ payload, employeeEmail }: { payload: any[]; employeeEmail: string }, { dispatch }) => {
+    return new Promise((resolve, reject) => {
       APIService.getInstance()
-        .post(AppConfig.serviceUrls.collections, payload)
+        .post(`${AppConfig.serviceUrls.timesheetRecords}/${employeeEmail}`, payload)
         .then((response) => {
           dispatch(
             enqueueSnackbarMessage({
-              message: SnackMessage.success.addCollections,
+              message: Messages.success.sendTimesheetRecords,
               type: "success",
             })
           );
@@ -121,7 +121,7 @@ export const addCollections = createAsyncThunk(
             enqueueSnackbarMessage({
               message:
                 error.response?.status === HttpStatusCode.InternalServerError
-                  ? SnackMessage.error.addCollections
+                  ? Messages.error.sendTimesheetRecords
                   : String(error.response.data.message),
               type: "error",
             })
@@ -155,15 +155,15 @@ const TimesheetRecordSlice = createSlice({
         state.retrievingState = State.failed;
         state.stateMessage = "Failed to fetch!";
       })
-      .addCase(addCollections.pending, (state) => {
+      .addCase(addTimesheetRecords.pending, (state) => {
         state.submitState = State.loading;
         state.stateMessage = "Creating collections...";
       })
-      .addCase(addCollections.fulfilled, (state) => {
+      .addCase(addTimesheetRecords.fulfilled, (state) => {
         state.submitState = State.success;
         state.stateMessage = "Successfully created!";
       })
-      .addCase(addCollections.rejected, (state) => {
+      .addCase(addTimesheetRecords.rejected, (state) => {
         state.submitState = State.failed;
         state.stateMessage = "Failed to create!";
       });

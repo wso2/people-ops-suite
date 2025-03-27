@@ -290,7 +290,7 @@ service http:InterceptableService / on new http:Listener(9091) {
     # + employeeEmail - Email of the employee to filter timesheet records
     # + return - A work policy or an error
     isolated resource function get timesheet\-records(http:RequestContext ctx, string? employeeEmail, int? 'limit,
-            string leadEmail, database:TimeSheetStatus? status, int? offset, string? rangeStart, string? rangeEnd)
+            string? leadEmail, database:TimeSheetStatus? status, int? offset, string? rangeStart, string? rangeEnd)
         returns TimeSheetRecords|http:Forbidden|http:BadRequest|http:InternalServerError {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -321,11 +321,11 @@ service http:InterceptableService / on new http:Listener(9091) {
             rangeEnd: rangeEnd
         };
 
-        database:OvertimeInformation|error? overtimeInfo = database:getTimesheetOTInfoOfEmployee(filter);
+        database:TimesheetMetaData|error? metaData = database:GetTimesheetMetaData(filter);
 
-        if overtimeInfo is error {
+        if metaData is error {
             string customError = string `Error occurred while retrieving the record count!`;
-            log:printError(customError, overtimeInfo);
+            log:printError(customError, metaData);
             return <http:InternalServerError>{
                 body: {
                     message: customError
@@ -346,9 +346,64 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
 
         return {
-            overtimeInfo: overtimeInfo,
+            metaData: metaData,
             timesheetRecords: timesheetRecords
         };
+    }
+
+    # Endpoint to save timesheet records of an employee.
+    #
+    # + records - Timesheet records payload
+    # + employeeEmail - Email of the employee to filter timesheet records
+    # + return - A work policy or an error
+    isolated resource function post timesheet\-records/[string employeeEmail](http:RequestContext ctx,
+            database:TimeSheetRecord[] records)
+        returns http:Created|http:Forbidden|http:BadRequest|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            return <http:BadRequest>{
+                body: {
+                    message: "User information header not found!"
+                }
+            };
+        }
+
+        if !authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups) {
+
+            return <http:Forbidden>{
+                body: {
+                    message: "Insufficient privileges!"
+                }
+            };
+        }
+
+        entity:Employee|error loggedInUser = entity:fetchEmployeesBasicInfo(userInfo.email);
+
+        if loggedInUser is error {
+            string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
+            log:printError(customError, loggedInUser);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        error? timesheetInsertResult = database:insertTimesheetRecords(records, loggedInUser.workEmail,
+                loggedInUser.company, loggedInUser.managerEmail);
+
+        if timesheetInsertResult is error {
+            string customError = string `Error occurred while saving the records for ${loggedInUser.workEmail}!`;
+            log:printError(customError, timesheetInsertResult);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return http:CREATED;
     }
 
 }
