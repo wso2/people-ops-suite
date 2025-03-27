@@ -169,7 +169,7 @@ isolated function getMeetingQuery(int meetingId) returns sql:ParameterizedQuery 
 #
 # + meetingId - ID of the meeting to cancel
 # + return - sql:ParameterizedQuery - Update query for the meeting table
-isolated function updateMeetingStatusQuery(int meetingId) returns sql:ParameterizedQuery =>
+isolated function cancelMeetingStatusQuery(int meetingId) returns sql:ParameterizedQuery =>
 `
     UPDATE 
         sales.meeting

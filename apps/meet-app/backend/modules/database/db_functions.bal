@@ -20,8 +20,7 @@ import ballerina/sql;
 # + domain - meeting domain
 # + return - Meeting | Error, if not found
 public isolated function fetchMeetingTypes(string domain) returns MeetingTypes|error? {
-    RawMeetingTypes|sql:Error meetingTypes = databaseClient->queryRow(
-        getMeetingTypesQuery(domain));
+    RawMeetingTypes|sql:Error meetingTypes = databaseClient->queryRow(getMeetingTypesQuery(domain));
 
     if meetingTypes is sql:Error && meetingTypes is sql:NoRowsError {
         return;
@@ -46,12 +45,8 @@ public isolated function fetchMeetingTypes(string domain) returns MeetingTypes|e
 # + createdBy - Person who created the meeting
 # + return - Id of the meeting | Error
 public isolated function addMeeting(AddMeetingPayload addMeetingPayload, string createdBy) returns int|error {
-    sql:ExecutionResult|error executionResults = databaseClient->execute(
+    sql:ExecutionResult executionResults = check databaseClient->execute(
         addMeetingQuery(addMeetingPayload, createdBy));
-    if executionResults is error {
-        return executionResults;
-    }
-
     return executionResults.lastInsertId.ensureType(int);
 }
 
@@ -87,7 +82,6 @@ public isolated function fetchMeetings(string? title, string? host, string? star
 # + return - Meeting | Error, if not found
 public isolated function fetchMeeting(int meetingId) returns Meeting|error? {
     Meeting|sql:Error meeting = databaseClient->queryRow(getMeetingQuery(meetingId));
-
     if meeting is sql:Error && meeting is sql:NoRowsError {
         return;
     }
@@ -99,11 +93,6 @@ public isolated function fetchMeeting(int meetingId) returns Meeting|error? {
 # + meetingId - The ID of the meeting to cancel
 # + return - Id of the cancelled meeting|Error
 public isolated function cancelMeeting(int meetingId) returns int|error {
-    // Update the meetingStatus
-    sql:ExecutionResult|error executionResults = databaseClient->execute(updateMeetingStatusQuery(meetingId));
-    if executionResults is error {
-        return executionResults;
-    }
-
+    sql:ExecutionResult _ = check databaseClient->execute(cancelMeetingStatusQuery(meetingId));
     return meetingId.ensureType(int);
 }

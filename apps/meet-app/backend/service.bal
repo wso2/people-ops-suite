@@ -183,7 +183,7 @@ service http:InterceptableService / on new http:Listener(port) {
 
         // Attempt to create the meeting.
         calendar:CreateCalendarEventResponse|error calendarCreateEventResponse = calendar:createCalendarEvent(
-                createCalendarEventRequest, userInfo.email);
+            createCalendarEventRequest, userInfo.email);
         if calendarCreateEventResponse is error {
             string customError = string `Error occurred while creating the calendar event!`;
             log:printError(customError, calendarCreateEventResponse);
@@ -212,27 +212,6 @@ service http:InterceptableService / on new http:Listener(port) {
         if meetingId is error {
             string customError = string `Error occurred while adding meeting to database!`;
             log:printError(customError, meetingId);
-            return <http:InternalServerError>{
-                body: {
-                    message: customError
-                }
-            };
-        }
-
-        // Check if the meeting was added successfully.
-        database:Meeting|error? addedMeeting = database:fetchMeeting(meetingId);
-        if addedMeeting is error {
-            string customError = string `Error occurred while retrieving the added meeting!`;
-            log:printError(customError, addedMeeting);
-            return <http:InternalServerError>{
-                body: {
-                    message: customError
-                }
-            };
-        }
-        if addedMeeting is null {
-            string customError = string `Added meeting is no longer available to access!`;
-            log:printError(customError);
             return <http:InternalServerError>{
                 body: {
                     message: customError
