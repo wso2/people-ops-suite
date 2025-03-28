@@ -1,8 +1,3 @@
--- Drop the schema if it already exists and create a new one
-DROP SCHEMA IF EXISTS `sales`;
-CREATE SCHEMA `sales`;
-
--- Use the newly created schema
 USE `sales`;
 
 -- Create the meeting table to store meeting details
@@ -34,7 +29,7 @@ CREATE TABLE meeting_type (
   PRIMARY KEY (`domain`)                       -- Primary key for the table
 );
 
--- Insert dummy data into the meeting_type table
+-- Insert data into the meeting_type table
 INSERT INTO meeting_type (`domain`, `types`, `created_by`, `updated_by`)
 VALUES
   ('Sales', 'Discovery Call, Technical Call, Demo Call, POC Call, Legal Chat, Procurement Chat, Pricing chat', 'patric@wso2.com', 'patric@wso2.com');
