@@ -19,7 +19,7 @@ import { RouteObject, NonIndexRouteObject } from "react-router-dom";
 // MUI imports
 import AttachEmailIcon from "@mui/icons-material/AttachEmail";
 // APP imports
-import { View } from "./view/index";
+import { View } from "./view/Index";
 import { isIncludedRole } from "./utils/utils";
 import { RECRUITMENT_ADMIN, RECRUITMENT_TEAM } from "@config/config";
 
