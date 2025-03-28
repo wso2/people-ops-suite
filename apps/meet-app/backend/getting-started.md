@@ -18,10 +18,6 @@
 ## Configuration samples
 
 ```toml
-# App Configurations.
-[meet_app]
-    port = <Port number>
-
 # Calendar Configurations.
 [meet_app.calendar]
     calendarBaseUrl = "<Calendar Event Service URL>"

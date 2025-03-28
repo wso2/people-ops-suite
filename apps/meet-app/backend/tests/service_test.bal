@@ -17,9 +17,8 @@ import ballerina/http;
 import ballerina/test;
 
 configurable string jwtKey = ?;
-configurable int servicePort = 9090;
 
-http:Client testClient = check new (string `http://localhost:${servicePort}`);
+http:Client testClient = check new (string `http://localhost:9090`);
 
 # Test get user-info resource.
 #

@@ -23,8 +23,6 @@ import ballerina/http;
 import ballerina/log;
 import ballerinax/googleapis.calendar as gcalendar;
 
-public configurable int port = ?;
-
 final cache:Cache userInfoCache = new (capacity = 100, evictionFactor = 0.2);
 
 @display {
@@ -51,7 +49,7 @@ service class ErrorInterceptor {
     }
 }
 
-service http:InterceptableService / on new http:Listener(port) {
+service http:InterceptableService / on new http:Listener(9090) {
 
     # Request interceptor.
     #

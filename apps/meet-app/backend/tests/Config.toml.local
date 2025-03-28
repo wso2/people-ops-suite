@@ -1,5 +1,4 @@
 [meet_app]
-    port = 
     jwtKey = ""
 
 [meet_app.entity]
