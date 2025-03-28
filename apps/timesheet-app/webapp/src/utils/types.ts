@@ -105,10 +105,10 @@ export interface MetaData {
 export interface TimesheetRecord {
   recordId: number;
   employeeEmail: string;
-  recordDate: string;
+  recordDate: number;
   companyName: string;
-  clockInTime: string;
-  clockOutTime: string;
+  clockInTime: number;
+  clockOutTime: number;
   isLunchIncluded: boolean;
   overtimeDuration: number;
   overtimeReason: string | null;
@@ -131,4 +131,10 @@ export interface CreateUITimesheetRecord {
 export interface TimesheetData {
   metaData: MetaData;
   timesheetRecords: TimesheetRecord[];
+}
+
+export interface WorkPolicies {
+  otHoursPerYear: number;
+  workingHoursPerDay: number;
+  lunchHoursPerDay: number;
 }

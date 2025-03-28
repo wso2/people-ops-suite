@@ -15,12 +15,12 @@
 // under the License.
 import timesheet_app.authorization;
 import timesheet_app.database;
-// import timesheet_app.database;
 import timesheet_app.entity;
 
 import ballerina/cache;
 import ballerina/http;
 import ballerina/log;
+import ballerina/sql;
 
 final cache:Cache userInfoCache = new (capacity = 100, evictionFactor = 0.2);
 
@@ -241,12 +241,12 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        WorkPolicy|error workPolicy = database:gteWorkPolicy(loggedInUser.company).ensureType();
+        WorkPolicies|error workPolicies = database:gteWorkPolicy(loggedInUser.company).ensureType();
 
-        if workPolicy is error {
+        if workPolicies is error {
             string customError =
                 string `Error occurred while retrieving work policy for ${userInfo.email} and ${loggedInUser.company}!`;
-            log:printError(customError, workPolicy);
+            log:printError(customError, workPolicies);
             return <http:InternalServerError>{
                 body: {
                     message: customError
@@ -274,7 +274,7 @@ service http:InterceptableService / on new http:Listener(9091) {
             managerEmail: loggedInUser.managerEmail,
             jobBand: loggedInUser.jobBand,
             privileges: privileges,
-            workPolicy: workPolicy
+            workPolicies: workPolicies
         };
 
         return employee;
@@ -318,7 +318,8 @@ service http:InterceptableService / on new http:Listener(9091) {
             recordsLimit: 'limit,
             recordOffset: offset,
             rangeStart: rangeStart,
-            rangeEnd: rangeEnd
+            rangeEnd: rangeEnd,
+            recordDates: ()
         };
 
         database:TimesheetMetaData|error? metaData = database:GetTimesheetMetaData(filter);
@@ -353,14 +354,14 @@ service http:InterceptableService / on new http:Listener(9091) {
 
     # Endpoint to save timesheet records of an employee.
     #
-    # + records - Timesheet records payload
+    # + recordPayload - Timesheet records payload
     # + employeeEmail - Email of the employee to filter timesheet records
     # + return - A work policy or an error
     isolated resource function post timesheet\-records/[string employeeEmail](http:RequestContext ctx,
-            database:TimeSheetRecord[] records)
-        returns http:Created|http:Forbidden|http:BadRequest|http:InternalServerError {
-
+            database:TimeSheetRecord[] recordPayload)
+        returns http:InternalServerError|http:Created|http:BadRequest|http:Forbidden {
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+
         if userInfo is error {
             return <http:BadRequest>{
                 body: {
@@ -390,7 +391,50 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        error? timesheetInsertResult = database:insertTimesheetRecords(records, loggedInUser.workEmail,
+        string[] newRecordDates = [];
+        foreach var newRecord in recordPayload {
+            newRecordDates.push(newRecord.recordDate);
+        }
+
+        database:TimesheetCommonFilter filter = {
+            employeeEmail: employeeEmail,
+            leadEmail: loggedInUser.managerEmail,
+            status: (),
+            recordsLimit: (),
+            recordOffset: (),
+            rangeStart: (),
+            rangeEnd: (),
+            recordDates: newRecordDates
+        };
+
+        database:TimeSheetRecord[]|error? existingRecords = database:getTimeSheetRecords(filter);
+
+        if existingRecords is error {
+            string customError = string `Error occurred while retrieving the existing timesheet records!`;
+            log:printError(customError, existingRecords);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        string[] duplicateRecords = [];
+        if existingRecords !is () && existingRecords.length() > 0 {
+            foreach var existingRecord in existingRecords {
+                duplicateRecords.push(existingRecord.recordDate);
+            }
+            string customError = string `Duplicated dates found ${string:'join(", ", ...duplicateRecords.map(d => d.toString()))}`;
+            log:printError(customError);
+            return <http:BadRequest>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        sql:Error|sql:ExecutionResult[] timesheetInsertResult =
+            database:insertTimesheetRecords(recordPayload, loggedInUser.workEmail,
                 loggedInUser.company, loggedInUser.managerEmail);
 
         if timesheetInsertResult is error {
@@ -402,8 +446,6 @@ service http:InterceptableService / on new http:Listener(9091) {
                 }
             };
         }
-
         return http:CREATED;
     }
-
 }

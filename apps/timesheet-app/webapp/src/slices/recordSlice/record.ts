@@ -117,12 +117,13 @@ export const addTimesheetRecords = createAsyncThunk(
           resolve(response.data);
         })
         .catch((error) => {
+          const errorMessage =
+            error.response?.status === HttpStatusCode.InternalServerError
+              ? Messages.error.sendTimesheetRecords
+              : error.response?.data?.message || "An unexpected error occurred";
           dispatch(
             enqueueSnackbarMessage({
-              message:
-                error.response?.status === HttpStatusCode.InternalServerError
-                  ? Messages.error.sendTimesheetRecords
-                  : String(error.response.data.message),
+              message: errorMessage,
               type: "error",
             })
           );

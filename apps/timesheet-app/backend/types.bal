@@ -28,8 +28,8 @@ const EMPLOYEE_PRIVILEGE = 987;
 const LEAD_PRIVILEGE = 862;
 const HR_ADMIN_PRIVILEGE = 762;
 
-# Work policy record
-public type WorkPolicy record {|
+# Work policies record
+public type WorkPolicies record {|
     # Number of OT hours per year
     int otHoursPerYear;
     # Number of working hours per day
@@ -61,7 +61,7 @@ public type EmployeeWithPermissions record {
     # Privileges of the employee
     int[] privileges;
     # Work policies of the employee
-    WorkPolicy workPolicy;
+    WorkPolicies workPolicies;
 };
 
 # Timesheet records collection type.

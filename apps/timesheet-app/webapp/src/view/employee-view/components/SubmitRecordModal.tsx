@@ -46,18 +46,18 @@ import AddIcon from "@mui/icons-material/Add";
 import { TimesheetStatus } from "@utils/types";
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
-import { CreateUITimesheetRecord } from "@utils/types";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PublishIcon from "@mui/icons-material/Publish";
+import { CreateUITimesheetRecord } from "@utils/types";
 import React, { useState, useEffect, useRef } from "react";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import { useAppDispatch, useAppSelector } from "@slices/store";
+import { addTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { format, differenceInMinutes, isWeekend, startOfDay } from "date-fns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { useAppDispatch, useAppSelector } from "@slices/store";
-import { addTimesheetRecords } from "@slices/recordSlice/record";
 
 interface TimeTrackingFormProps {
   regularWorkHoursPerDay?: number;
@@ -166,17 +166,19 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
         recordDate: formattedRecordDate,
         clockInTime: formatTime(entry.clockInTime!),
         clockOutTime: formatTime(entry.clockOutTime!),
-        overtimeStatus:
-          entry.overtimeDuration && entry.overtimeReason ? TimesheetStatus.PENDING : TimesheetStatus.PENDING,
+        overtimeStatus: entry.overtimeDuration > 0 ? TimesheetStatus.PENDING : TimesheetStatus.APPROVED,
       };
     });
   };
 
   const handleDataSubmit = async () => {
     const cleanedEntries = cleanTimeEntries(entries);
-    console.log("cleaned entries", cleanedEntries);
 
-    dispatch(addTimesheetRecords({ employeeEmail: userEmail, payload: cleanedEntries }));
+    const resultAction = await dispatch(addTimesheetRecords({ employeeEmail: userEmail, payload: cleanedEntries }));
+
+    if (addTimesheetRecords.fulfilled.match(resultAction)) {
+      // onClose?.();
+    }
   };
 
   const handleReset = () => {
@@ -623,6 +625,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
             </Button>
           </DialogActions>
         </Dialog>
+
       </LocalizationProvider>
     </Box>
   );

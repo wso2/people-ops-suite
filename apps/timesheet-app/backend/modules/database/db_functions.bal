@@ -65,8 +65,8 @@ public isolated function addSampleCollection(AddSampleCollection sampleCollectio
 #
 # + companyName - Company name to filter
 # + return - A work policy or an error
-public isolated function gteWorkPolicy(string companyName) returns WorkPolicy|error? {
-    WorkPolicy|sql:Error policy = databaseClient->queryRow(getWorkPolicyQuery(companyName));
+public isolated function gteWorkPolicy(string companyName) returns WorkPolicies|error? {
+    WorkPolicies|sql:Error policy = databaseClient->queryRow(getWorkPolicyQuery(companyName));
 
     if policy is sql:Error && policy is sql:NoRowsError {
         return;
@@ -110,17 +110,17 @@ public isolated function GetTimesheetMetaData(TimesheetCommonFilter filter)
 #
 # + timesheetRecords - Timesheet records payload
 # + employeeEmail - Email of the employee
-# + invokerEmail - Email of the invoker
 # + leadEmail - Email of the employee's lead
 # + companyName - Name of the company of the employee
 # + return - Id of the timesheet records|Error
 public isolated function insertTimesheetRecords(TimeSheetRecord[] timesheetRecords, string employeeEmail,
-        string companyName, string leadEmail) returns error? {
+        string companyName, string leadEmail) returns sql:Error|sql:ExecutionResult[] {
     sql:ExecutionResult[]|sql:Error executionResult =
         databaseClient->batchExecute(insertTimesheetRecordsQuery(timesheetRecords, employeeEmail, companyName,
-                leadEmail));
+            leadEmail));
 
     if executionResult is error {
         return executionResult;
     }
+    return executionResult;
 }

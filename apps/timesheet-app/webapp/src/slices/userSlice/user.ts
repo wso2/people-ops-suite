@@ -17,7 +17,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { APIService } from "@utils/apiService";
 import { AppConfig } from "@config/config";
-import { Roles, State } from "@utils/types";
+import { Roles, State, WorkPolicies } from "@utils/types";
 import { RootState } from "@slices/store";
 
 const initialState: UserState = {
@@ -26,6 +26,8 @@ const initialState: UserState = {
   errorMessage: null,
   userInfo: null,
   roles: [],
+  privileges: [],
+  workPolicies: {} as WorkPolicies,
 };
 
 interface UserState {
@@ -34,6 +36,8 @@ interface UserState {
   errorMessage: string | null;
   userInfo: UserInfoInterface | null;
   roles: Roles[];
+  privileges: number[];
+  workPolicies: WorkPolicies;
 }
 
 interface UserInfoInterface {
@@ -44,6 +48,7 @@ interface UserInfoInterface {
   employeeThumbnail: string;
   jobRole: string;
   privileges: number[];
+  workPolicies: WorkPolicies;
 }
 
 export const getUserInfo = createAsyncThunk("User/getUserInfo", async () => {

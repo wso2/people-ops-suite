@@ -61,8 +61,8 @@ public type AddSampleCollection record {|
     string name;
 |};
 
-# Work policy record.
-public type WorkPolicy record {|
+# Work policies record.
+public type WorkPolicies record {|
     # Number of OT hours per year
     int otHoursPerYear;
     # Number of working hours per day
@@ -122,6 +122,8 @@ public type TimesheetCommonFilter record {|
     string? rangeStart;
     # End date to filter
     string? rangeEnd;
+    # Dates array to filter
+    string[]? recordDates;
 |};
 
 # Timesheet information record type.

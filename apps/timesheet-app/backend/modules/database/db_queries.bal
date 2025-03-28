@@ -152,7 +152,7 @@ isolated function getTimeSheetRecordsOfEmployee(TimesheetCommonFilter filter) re
         tr.ts_record_id AS recordId,
         tr.ts_record_date AS recordDate,
         tr.ts_clock_in AS clockInTime,
-        tr.ts_clock_out AS clockOutTIme,
+        tr.ts_clock_out AS clockOutTime,
         tr.ts_lunch_included AS isLunchIncluded,
         tr.ts_ot_hours AS overtimeDuration,
         tr.ts_ot_reason AS overtimeReason,
@@ -162,25 +162,22 @@ isolated function getTimeSheetRecordsOfEmployee(TimesheetCommonFilter filter) re
         hris_timesheet_records tr
     `;
     sql:ParameterizedQuery[] filters = [];
-
     if filter.employeeEmail is string {
         filters.push(sql:queryConcat(`tr.ts_employee_email = `, `${filter.employeeEmail}`));
     }
-
+    if filter.recordDates is string[] {
+        filters.push(sql:queryConcat(`tr.ts_record_date IN (`, sql:arrayFlattenQuery(filter.recordDates ?: []), `)`));
+    }
     if filter.status is TimeSheetStatus {
         filters.push(sql:queryConcat(`tr.ts_ot_status =  `, `${filter.status}`));
     }
-
     if filter.rangeStart is string && filter.rangeEnd is string {
         filters.push(sql:queryConcat(`tr.ts_record_date BETWEEN ${filter.rangeStart} `, ` AND ${filter.rangeEnd}`));
     }
-
     if filter.leadEmail is string {
         filters.push(sql:queryConcat(`tr.ts_lead_email =  `, `${filter.leadEmail}`));
     }
-
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
-
     if filter.recordsLimit is int {
         mainQuery = sql:queryConcat(mainQuery, ` LIMIT ${filter.recordsLimit}`);
         if filter.recordOffset is int {
@@ -189,9 +186,7 @@ isolated function getTimeSheetRecordsOfEmployee(TimesheetCommonFilter filter) re
     } else {
         mainQuery = sql:queryConcat(mainQuery, ` LIMIT 100`);
     }
-
     return mainQuery;
-
 }
 
 # Query to retrieve the timesheet records count of an employee.
@@ -214,30 +209,20 @@ isolated function getTimesheetMetaDataQuery(TimesheetCommonFilter filter)
     FROM
         hris_timesheet_records
     `;
-    sql:ParameterizedQuery[] filters = [];
 
+    sql:ParameterizedQuery[] filters = [];
     if filter.employeeEmail is string {
         filters.push(sql:queryConcat(`ts_employee_email = `, `${filter.employeeEmail}`));
     }
-
     if filter.status is TimeSheetStatus {
         filters.push(sql:queryConcat(`ts_ot_status = `, `${filter.status}`));
     }
-
     if filter.leadEmail is string {
         filters.push(sql:queryConcat(`ts_lead_email =  `, `${filter.leadEmail}`));
     }
-
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
-
-    // if filter.rangeStart is string && filter.rangeEnd is string {
-    //     filters.push(sql:queryConcat(`ts_record_date BETWEEN ${filter.rangeStart} `, ` AND ${filter.rangeEnd}`));
-    // }
-
     mainQuery = sql:queryConcat(mainQuery, `GROUP BY ts_employee_email, ts_company_name, ts_lead_email;`);
-
     return mainQuery;
-
 }
 
 isolated function insertTimesheetRecordsQuery(TimeSheetRecord[] timesheetRecords, string employeeEmail,
