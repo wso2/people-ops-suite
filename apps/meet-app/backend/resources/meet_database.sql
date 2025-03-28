@@ -1,4 +1,4 @@
-USE `sales`;
+USE `people_ops_suite`;
 
 -- Create the meeting table to store meeting details
 CREATE TABLE meeting (
