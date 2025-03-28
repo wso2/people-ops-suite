@@ -98,6 +98,7 @@ public type MeetingTypes record {|
     string[] types;
 |};
 
+# [Database]MeetingStatus type.
 public enum MeetingStatus {
     ACTIVE = "ACTIVE",
     CANCELLED = "CANCELLED"
