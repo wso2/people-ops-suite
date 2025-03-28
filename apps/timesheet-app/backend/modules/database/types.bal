@@ -127,17 +127,23 @@ public type TimesheetCommonFilter record {|
 |};
 
 # Timesheet information record type.
-public type TimesheetMetaData record {|
-    # Total count of the overtime records
-    decimal? overtimeCount;
+public type TimesheetInfo record {|
     # Total count of the records
     int totalRecords;
-    # Lunch time duration per day
-    decimal? recordsWithOvertime;
-    # Employee email
-    string? employeeEmail;
-    # Lead emails
-    string? leadEmail;
-    # Company name
-    string companyName;
+    # Total count of the pending records
+    decimal? pendingRecords;
+    # Total count of the approved records
+    decimal? approvedRecords;
+    # Total count of the rejected records
+    decimal? rejectedRecords;
+    # Total count of the overtime taken
+    decimal? totalOverTimeTaken;
+    # Count of overtime left from yearly quota
+    decimal? overTimeLeft;
+|};
+
+# Timesheet record count type.
+public type TimesheetCount record {|
+    # Total count of the records
+    int totalRecords;
 |};

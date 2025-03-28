@@ -113,35 +113,6 @@ isolated function getWorkPolicyQuery(string companyName) returns sql:Parameteriz
         company_name = ${companyName};
 `;
 
-// # Query to retrieve the timesheet records of an employee.
-// #
-// # + 'limit - Limit of the data
-// # + offset - offset of the query
-// # + employeeEmail - Employee email to filter
-// # + status - Status of the timesheet records
-// # + return - Select query for the work policies
-// isolated function getTimeSheetRecordsOfEmployee(string employeeEmail, TimeSheetStatus status, int 'limit, int offset)
-//     returns sql:ParameterizedQuery => `
-//     SELECT
-//         tr.ts_record_id AS recordId,
-//         tr.ts_employee_email AS employeeEmail,
-//         tr.ts_company_name AS companyName,
-//         tr.ts_clock_in AS clockInTime,
-//         tr.ts_clock_out AS clockOutTIme,
-//         tr.ts_lunch_included AS isLunchIncluded,
-//         tr.ts_ot_hours AS overtimeDuration,
-//         tr.ts_ot_reason AS overtimeReason,
-//         tr.ts_lead_email AS leadEmail,
-//         tr.ts_ot_rejection_reason AS overtimeRejectReason,
-//         tr.ts_ot_status AS overtimeStatus
-//     FROM
-//         hris_timesheet_records tr
-//     WHERE
-//         tr.ts_employee_email = ${employeeEmail}
-//             AND tr.ts_ot_status = ${status}
-//     LIMIT ${'limit} OFFSET ${offset};
-// `;
-
 # Query to retrieve the timesheet records of an employee.
 #
 # + filter - Filter type for the  records
@@ -193,19 +164,11 @@ isolated function getTimeSheetRecordsOfEmployee(TimesheetCommonFilter filter) re
 #
 # + filter - Filter type for the records
 # + return - Select query for the work policies
-isolated function getTimesheetMetaDataQuery(TimesheetCommonFilter filter)
+isolated function getTotalRecordCountQuery(TimesheetCommonFilter filter)
     returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
     SELECT
-        SUM(ts_ot_hours) AS overtimeCount,
-        ts_employee_email AS employeeEmail,
-        ts_company_name AS companyName,
-        ts_lead_email AS leadEmail,
-            COUNT(*) AS totalRecords,
-            SUM(CASE
-                WHEN ts_ot_hours > 0 THEN 1
-                ELSE 0
-            END) AS recordsWithOvertime
+        COUNT(*) AS totalRecords
     FROM
         hris_timesheet_records
     `;
@@ -225,6 +188,13 @@ isolated function getTimesheetMetaDataQuery(TimesheetCommonFilter filter)
     return mainQuery;
 }
 
+# Query to insert the timesheet records of an employee.
+#
+# + timesheetRecords - Filter type for the records
+# + employeeEmail - Email of the employee
+# + companyName - Name of the company
+# + leadEmail - Email of the lead
+# + return - Insert query for the timesheet records
 isolated function insertTimesheetRecordsQuery(TimeSheetRecord[] timesheetRecords, string employeeEmail,
         string companyName, string leadEmail) returns sql:ParameterizedQuery[] =>
             from TimeSheetRecord timesheetRecord in timesheetRecords
@@ -260,4 +230,49 @@ select `
             ${employeeEmail}
         );
     `;
+
+# Query to retrieve timesheet information of employee.
+#
+# + employeeEmail - Email of the employee
+# + return - Select query for the timesheet information
+isolated function getEmployeeTimesheetInfoQuery(string employeeEmail) returns sql:ParameterizedQuery =>
+`
+    SELECT
+        COUNT(*) AS totalRecords,
+        SUM(CASE
+            WHEN ts_ot_status = ${APPROVED} THEN 1
+            ELSE 0
+        END) AS pendingRecords,
+        SUM(CASE
+            WHEN ts_ot_status = ${REJECTED} THEN 1
+            ELSE 0
+        END) AS rejectedRecords,
+        SUM(CASE
+            WHEN ts_ot_status = ${APPROVED} THEN 1
+            ELSE 0
+        END) AS approvedRecords,
+        COALESCE(SUM(CASE
+                    WHEN ts_ot_status = ${APPROVED} THEN ts_ot_hours
+                    ELSE 0
+                END),
+                0) AS totalOvertimeTaken,
+        (SELECT
+                ot_hours_per_year
+            FROM
+                hris_timesheet_work_policies
+            WHERE
+                company_name = (SELECT
+                        ts_company_name
+                    FROM
+                        hris_timesheet_records
+                    LIMIT 1)) - COALESCE(SUM(CASE
+                    WHEN ts_ot_status = ${APPROVED} THEN ts_ot_hours
+                    ELSE 0
+                END),
+                0) AS overtimeLeft
+    FROM
+        hris_timesheet_records
+    WHERE
+        hris_timesheet_records.ts_employee_email = ${employeeEmail}
+`;
 

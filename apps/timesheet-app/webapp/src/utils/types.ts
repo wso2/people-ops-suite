@@ -93,15 +93,6 @@ export enum TimesheetStatus {
   REJECTED = "REJECTED",
 }
 
-export interface MetaData {
-  overtimeCount?: number;
-  totalRecords: number;
-  recordsWithOvertime?: number;
-  employeeEmail?: string;
-  leadEmail?: string;
-  companyName?: string;
-}
-
 export interface TimesheetRecord {
   recordId: number;
   employeeEmail: string;
@@ -129,7 +120,7 @@ export interface CreateUITimesheetRecord {
 }
 
 export interface TimesheetData {
-  metaData: MetaData;
+  totalRecordCount: TimesheetRecordCount;
   timesheetRecords: TimesheetRecord[];
 }
 
@@ -137,4 +128,17 @@ export interface WorkPolicies {
   otHoursPerYear: number;
   workingHoursPerDay: number;
   lunchHoursPerDay: number;
+}
+
+export interface TimesheetRecordCount {
+  totalRecords: number;
+}
+
+export interface TimesheetInfo {
+  approvedRecords?: number;
+  overTimeLeft: number;
+  pendingRecords?: number;
+  rejectedRecords?: number;
+  totalOverTimeTaken?: number;
+  totalRecords?: number;
 }

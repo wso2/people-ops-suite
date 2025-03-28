@@ -209,7 +209,7 @@ service http:InterceptableService / on new http:Listener(9091) {
     #
     # + ctx - Request Context
     # + return - Internal Server Error or Employee info object
-    resource function get user\-info(http:RequestContext ctx) returns EmployeeWithPermissions|http:InternalServerError|
+    resource function get user\-info(http:RequestContext ctx) returns EmployeeInformation|http:InternalServerError|
         http:BadRequest|http:Forbidden {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -241,12 +241,25 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        WorkPolicies|error workPolicies = database:gteWorkPolicy(loggedInUser.company).ensureType();
+        database:WorkPolicies|error workPolicies = database:getWorkPolicy(loggedInUser.company).ensureType();
 
         if workPolicies is error {
             string customError =
                 string `Error occurred while retrieving work policy for ${userInfo.email} and ${loggedInUser.company}!`;
             log:printError(customError, workPolicies);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        database:TimesheetInfo|error? employeeTimesheetInfo = database:getEmployeeTimesheetInfo(userInfo.email);
+
+        if employeeTimesheetInfo is error {
+            string customError =
+                string `Error occurred while retrieving timesheet information for ${userInfo.email}!`;
+            log:printError(customError, employeeTimesheetInfo);
             return <http:InternalServerError>{
                 body: {
                     message: customError
@@ -263,7 +276,7 @@ service http:InterceptableService / on new http:Listener(9091) {
             privileges.push(LEAD_PRIVILEGE);
         }
 
-        EmployeeWithPermissions employee = {
+        EmployeeInformation employee = {
             employeeId: loggedInUser.employeeId,
             workEmail: loggedInUser.workEmail,
             firstName: loggedInUser.firstName,
@@ -274,7 +287,8 @@ service http:InterceptableService / on new http:Listener(9091) {
             managerEmail: loggedInUser.managerEmail,
             jobBand: loggedInUser.jobBand,
             privileges: privileges,
-            workPolicies: workPolicies
+            workPolicies: workPolicies,
+            timesheetInfo: employeeTimesheetInfo
         };
 
         return employee;
@@ -322,11 +336,11 @@ service http:InterceptableService / on new http:Listener(9091) {
             recordDates: ()
         };
 
-        database:TimesheetMetaData|error? metaData = database:GetTimesheetMetaData(filter);
+        database:TimesheetCount|error? totalRecordCount = database:getTimesheetMetaData(filter);
 
-        if metaData is error {
+        if totalRecordCount is error {
             string customError = string `Error occurred while retrieving the record count!`;
-            log:printError(customError, metaData);
+            log:printError(customError, totalRecordCount);
             return <http:InternalServerError>{
                 body: {
                     message: customError
@@ -347,7 +361,7 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
 
         return {
-            metaData: metaData,
+            totalRecordCount: totalRecordCount,
             timesheetRecords: timesheetRecords
         };
     }

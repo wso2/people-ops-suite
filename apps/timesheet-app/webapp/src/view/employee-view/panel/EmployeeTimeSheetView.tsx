@@ -95,8 +95,10 @@ const TimesheetDataGrid = () => {
   const [errors, setErrors] = useState<Partial<Record<keyof TimesheetRecord, string>>>({});
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
-  const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.metaData?.totalRecords || 0);
-  const metaData = useAppSelector((state) => state.timesheetRecord.timesheetData?.metaData);
+  const totalRecordCount = useAppSelector(
+    (state) => state.timesheetRecord.timesheetData?.totalRecordCount.totalRecords || 0
+  );
+  const timesheetInfo = useAppSelector((state) => state.user.userInfo?.timesheetInfo);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
 
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
@@ -461,8 +463,8 @@ const TimesheetDataGrid = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ width: "100%", height: "99%",  overflow: "auto", p:1, pr:1}}>
-        <Stack direction="row" justifyContent="space-end" alignItems="right" >
+      <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1, pr: 1 }}>
+        <Stack direction="row" justifyContent="space-end" alignItems="right">
           {/* <Typography variant="h5" fontWeight="bold" color="text.primary">
             Timesheet Entries
           </Typography> */}
@@ -478,22 +480,16 @@ const TimesheetDataGrid = () => {
             New Entry
           </Button>
         </Stack>
-        {metaData && workPolicies && (
+        {timesheetInfo && workPolicies && (
           <Box sx={{ width: "100%", height: "auto",}}>
             <InformationHeader
-              metaData={{
-                ...metaData,
-                overtimeCount: metaData.overtimeCount ?? 0,
-                recordsWithOvertime: metaData.recordsWithOvertime ?? 0,
-                employeeEmail: userEmail || "",
-                leadEmail: leadEmail || "",
-              }}
+              timesheetInfo={timesheetInfo}
               workPolicies={workPolicies}
             />
           </Box>
         )}
 
-        <Paper  sx={{ p: 2, border: "1px solid", borderColor: "divider", mb:1 }}>
+        <Paper sx={{ p: 2, border: "1px solid", borderColor: "divider", mb: 1 }}>
           <Stack direction="row" alignItems="center" spacing={1}>
             <TuneIcon color="action" />
             <Typography variant="subtitle1">Filters</Typography>

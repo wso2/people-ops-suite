@@ -65,7 +65,7 @@ public isolated function addSampleCollection(AddSampleCollection sampleCollectio
 #
 # + companyName - Company name to filter
 # + return - A work policy or an error
-public isolated function gteWorkPolicy(string companyName) returns WorkPolicies|error? {
+public isolated function getWorkPolicy(string companyName) returns WorkPolicies|error? {
     WorkPolicies|sql:Error policy = databaseClient->queryRow(getWorkPolicyQuery(companyName));
 
     if policy is sql:Error && policy is sql:NoRowsError {
@@ -95,10 +95,10 @@ public isolated function getTimeSheetRecords(TimesheetCommonFilter filter) retur
 #
 # + filter - Filter type for the records
 # + return - Timesheet record count of the employee or an error
-public isolated function GetTimesheetMetaData(TimesheetCommonFilter filter)
-    returns TimesheetMetaData|error? {
+public isolated function getTimesheetMetaData(TimesheetCommonFilter filter)
+    returns TimesheetCount|error? {
 
-    TimesheetMetaData|sql:Error count = databaseClient->queryRow(getTimesheetMetaDataQuery(filter));
+    TimesheetCount|sql:Error count = databaseClient->queryRow(getTotalRecordCountQuery(filter));
 
     if count is sql:Error && count is sql:NoRowsError {
         return;
@@ -123,4 +123,17 @@ public isolated function insertTimesheetRecords(TimeSheetRecord[] timesheetRecor
         return executionResult;
     }
     return executionResult;
+}
+
+# Function to fetch employee timesheet info.
+#
+# + employeeEmail - Employee email to filter
+# + return - Timesheet info record or an error
+public isolated function getEmployeeTimesheetInfo(string employeeEmail) returns TimesheetInfo|error? {
+    TimesheetInfo|sql:Error policy = databaseClient->queryRow(getEmployeeTimesheetInfoQuery(employeeEmail));
+
+    if policy is sql:Error && policy is sql:NoRowsError {
+        return;
+    }
+    return policy;
 }

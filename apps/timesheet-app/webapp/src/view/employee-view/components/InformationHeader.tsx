@@ -10,162 +10,198 @@ import {
   Divider,
   Chip,
   Avatar,
-  useTheme
+  useTheme,
+  Stack,
 } from "@mui/material";
 import {
-  AccessTime,
-  Person,
+  CheckCircle,
+  PendingActions,
+  Cancel,
   Work,
   FreeBreakfast,
-  EmojiEvents,
   HourglassTop,
   HourglassBottom,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  AccessTime,
 } from "@mui/icons-material";
 
-
-
+interface TimesheetInfo {
+  approvedRecords?: number;
+  overTimeLeft: number;
+  pendingRecords?: number;
+  rejectedRecords?: number;
+  totalOverTimeTaken?: number;
+  totalRecords?: number;
+}
 
 interface InformationHeaderProps {
-    metaData: {
-      overtimeCount: number;
-      totalRecords: number;
-      recordsWithOvertime: number;
-      employeeEmail: string;
-      leadEmail: string;
-    };
-    workPolicies: {
-      otHoursPerYear: number;
-      workingHoursPerDay: number;
-      lunchHoursPerDay: number;
-    };
-  }
+  timesheetInfo: TimesheetInfo;
+  workPolicies: {
+    otHoursPerYear: number;
+    workingHoursPerDay: number;
+    lunchHoursPerDay: number;
+  };
+}
 
-
-
-// interface InformationHeaderProps {
-//   metaData: {
-//     overtimeCount: number;
-//     totalRecords: number;
-//     recordsWithOvertime: number;
-//     employeeEmail: string;
-//     leadEmail: string;
-//     averageDailyHours?: number;
-//     approvedRecords?: number;
-//     pendingRecords?: number;
-//   };
-//   workPolicies: {
-//     otHoursPerYear: number;
-//     workingHoursPerDay: number;
-//     lunchHoursPerDay: number;
-//   };
-// }
-
-const InformationHeader: React.FC<InformationHeaderProps> = ({ metaData, workPolicies }) => {
-
-    console.log(metaData.leadEmail)
+const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, workPolicies }) => {
   const theme = useTheme();
-  const otHoursUsed = metaData.overtimeCount;
-  const otHoursRemaining = Math.max(0, workPolicies.otHoursPerYear - otHoursUsed);
-  const otUtilizationPercentage = Math.min(100, (otHoursUsed / workPolicies.otHoursPerYear) * 100);
-  const otTrend = otHoursUsed > (workPolicies.otHoursPerYear / 2) ? "high" : "low";
+
+  // Destructure with defaults
+  const {
+    approvedRecords = 0,
+    overTimeLeft = 0,
+    pendingRecords = 0,
+    rejectedRecords = 0,
+    totalOverTimeTaken = 0,
+    totalRecords = 0,
+  } = timesheetInfo;
+
+  // Calculations
+  const otUtilizationPercentage = Math.min(100, (totalOverTimeTaken / workPolicies.otHoursPerYear) * 100);
+  const otTrend = totalOverTimeTaken > workPolicies.otHoursPerYear * 0.5 ? "high" : "low";
+
+  const approvalRate = totalRecords > 0 ? (approvedRecords / totalRecords) * 100 : 0;
+
+  const rejectionRate = totalRecords > 0 ? (rejectedRecords / totalRecords) * 100 : 0;
+
+  const pendingRate = totalRecords > 0 ? (pendingRecords / totalRecords) * 100 : 0;
 
   const dailyWorkingHours = workPolicies.workingHoursPerDay;
   const dailyWorkingHoursWithoutLunch = dailyWorkingHours - workPolicies.lunchHoursPerDay;
-
-  const overtimeRatio = metaData.totalRecords > 0
-    ? (metaData.recordsWithOvertime / metaData.totalRecords) * 100
-    : 0;
-
-//   const approvalRate = metaData.approvedRecords && metaData.totalRecords > 0
-//     ? (metaData.approvedRecords / metaData.totalRecords) * 100
-//     : 0;
-
-//   const avgDailyHours = metaData.averageDailyHours || 0;
-//   const efficiency = avgDailyHours > 0
-//     ? (avgDailyHours / dailyWorkingHoursWithoutLunch) * 100
-//     : 0;
 
   const getTrendIcon = (value: number, threshold: number) => {
     return value > threshold ? <TrendingUp color="error" /> : <TrendingDown color="success" />;
   };
 
+  // Status chips data
+  const statusChips = [
+    {
+      label: `Approved: ${approvedRecords}`,
+      icon: <CheckCircle fontSize="small" />,
+      color: "success" as const,
+    },
+    {
+      label: `Pending: ${pendingRecords}`,
+      icon: <PendingActions fontSize="small" />,
+      color: "warning" as const,
+    },
+    {
+      label: `Rejected: ${rejectedRecords}`,
+      icon: <Cancel fontSize="small" />,
+      color: "error" as const,
+    },
+  ];
+
+  // Stats cards data
   const stats = [
     {
       title: "OT Utilization",
-      value: `${otHoursUsed.toFixed(1)}h`,
+      value: `${totalOverTimeTaken.toFixed(1)}h`,
       subtitle: `${otUtilizationPercentage.toFixed(0)}% of allowance`,
       icon: <HourglassTop />,
       color: otUtilizationPercentage > 80 ? "error" : "primary",
       progress: otUtilizationPercentage,
-      trend: getTrendIcon(otHoursUsed, workPolicies.otHoursPerYear * 0.5)
+      trend: getTrendIcon(totalOverTimeTaken, workPolicies.otHoursPerYear * 0.5),
     },
     {
       title: "OT Remaining",
-      value: `${otHoursRemaining.toFixed(1)}h`,
-      subtitle: `${((otHoursRemaining / workPolicies.otHoursPerYear) * 100).toFixed(0)}% remaining`,
+      value: `${overTimeLeft.toFixed(1)}h`,
+      subtitle: `${((overTimeLeft / workPolicies.otHoursPerYear) * 100).toFixed(0)}% left`,
       icon: <HourglassBottom />,
       color: "success",
-      progress: (otHoursRemaining / workPolicies.otHoursPerYear) * 100
+      progress: (overTimeLeft / workPolicies.otHoursPerYear) * 100,
     },
     {
-      title: "Overtime Frequency",
-      value: `${metaData.recordsWithOvertime}`,
-      subtitle: `${overtimeRatio.toFixed(0)}% of records`,
-      icon: <TrendingUp />,
-      color: overtimeRatio > 30 ? "warning" : "info",
-      progress: overtimeRatio
+      title: "Approval Rate",
+      value: `${approvalRate.toFixed(0)}%`,
+      subtitle: `${approvedRecords} approved records`,
+      icon: <CheckCircle />,
+      color: approvalRate > 80 ? "success" : approvalRate > 50 ? "warning" : "error",
+      progress: approvalRate,
     },
-    // {
-    //   title: "Approval Rate",
-    //   value: metaData.approvedRecords ? `${metaData.approvedRecords}` : "N/A",
-    //   subtitle: metaData.approvedRecords ? `${approvalRate.toFixed(0)}% approved` : "No data",
-    //   icon: <EmojiEvents />,
-    //   color: approvalRate > 80 ? "success" : "warning",
-    //   progress: approvalRate
-    // },
-    // {
-    //   title: "Avg Daily Hours",
-    //   value: `${avgDailyHours.toFixed(1)}h`,
-    //   subtitle: `${efficiency.toFixed(0)}% efficiency`,
-    //   icon: <AccessTime />,
-    //   color: efficiency > 100 ? "error" : "primary",
-    //   progress: efficiency > 100 ? 100 : efficiency
-    // },
+    {
+      title: "Rejection Rate",
+      value: `${rejectionRate.toFixed(0)}%`,
+      subtitle: `${rejectedRecords} rejected records`,
+      icon: <Cancel />,
+      color: rejectionRate > 30 ? "error" : rejectionRate > 15 ? "warning" : "success",
+      progress: rejectionRate,
+    },
+    {
+      title: "Pending Rate",
+      value: `${pendingRate.toFixed(0)}%`,
+      subtitle: `${pendingRecords} pending records`,
+      icon: <PendingActions />,
+      color: pendingRate > 30 ? "warning" : "info",
+      progress: pendingRate,
+    },
     {
       title: "Work Policy",
       value: `${dailyWorkingHours}h day`,
       subtitle: `${dailyWorkingHoursWithoutLunch}h net`,
       icon: <Work />,
       color: "secondary",
-      progress: 100
-    }
+      progress: 100,
+    },
   ];
 
   return (
-    <Card sx={{
-      borderRadius: 2,
-      boxShadow: theme.shadows[3],
-      mb: 1
-    }}>
+    <Card
+      sx={{
+        borderRadius: 2,
+        boxShadow: theme.shadows[3],
+        mb: 1,
+      }}
+    >
       <CardContent>
+        {/* Status Summary Chips */}
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            mb: 2,
+            flexWrap: "wrap",
+            gap: 1,
+            justifyContent: "center",
+          }}
+        >
+          {statusChips.map((chip, index) => (
+            <Chip
+              key={index}
+              icon={chip.icon}
+              label={chip.label}
+              color={chip.color}
+              variant="outlined"
+              size="medium"
+              sx={{
+                borderWidth: 2,
+                px: 1,
+              }}
+            />
+          ))}
+          <Chip
+            icon={<AccessTime fontSize="small" />}
+            label={`Total: ${totalRecords} records`}
+            color="info"
+            variant="outlined"
+            size="medium"
+            sx={{
+              borderWidth: 2,
+              px: 1,
+            }}
+          />
+          <Chip icon={<FreeBreakfast />} label={`${workPolicies.lunchHoursPerDay}h Lunch Policy`} variant="outlined" />
+          <Chip label={`OT Annual Allowance: ${workPolicies.otHoursPerYear}h`} color="primary" variant="outlined" />
+        </Stack>
 
         <Divider sx={{ my: 2 }} />
 
+        {/* Main Stats Grid */}
         <Grid container spacing={3}>
           {stats.map((stat, index) => (
             <Grid item xs={12} sm={6} md={4} lg={2} key={index}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Avatar sx={{
-                //   bgcolor: theme.palette[stat.color].light,
-                //   color: theme.palette[stat.color].dark,
-                  mr: 2,
-                  width: 40,
-                  height: 40
-                }}>
-                  {stat.icon}
-                </Avatar>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <Box>
                   <Typography variant="body2" color="text.secondary">
                     {stat.title}
@@ -187,36 +223,13 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ metaData, workPol
                     height: 6,
                     borderRadius: 3,
                     mt: 1,
-                    backgroundColor: theme.palette.grey[200]
+                    backgroundColor: theme.palette.grey[200],
                   }}
                 />
               </Tooltip>
             </Grid>
           ))}
         </Grid>
-
-        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
-          <Chip
-            label={`Total Records: ${metaData.totalRecords}`}
-            variant="outlined"
-            size="small"
-          />
-          {/* <Chip
-            label={`Pending: ${metaData.pendingRecords || 0}`}
-            color="warning"
-            size="small"
-          /> */}
-          <Chip
-            label={`OT Threshold: ${workPolicies.otHoursPerYear}h/year`}
-            color="info"
-            size="small"
-          />
-                      <Chip
-              icon={<FreeBreakfast />}
-              label={`${workPolicies.lunchHoursPerDay}h lunch`}
-              variant="outlined"
-            />
-        </Box>
       </CardContent>
     </Card>
   );

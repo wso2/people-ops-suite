@@ -28,18 +28,8 @@ const EMPLOYEE_PRIVILEGE = 987;
 const LEAD_PRIVILEGE = 862;
 const HR_ADMIN_PRIVILEGE = 762;
 
-# Work policies record
-public type WorkPolicies record {|
-    # Number of OT hours per year
-    int otHoursPerYear;
-    # Number of working hours per day
-    decimal workingHoursPerDay;
-    # Lunch time duration per day
-    decimal lunchHoursPerDay;
-|};
-
 # Employee record with permissions
-public type EmployeeWithPermissions record {
+public type EmployeeInformation record {
     # Id of the employee
     string employeeId;
     # Email of the employee
@@ -61,13 +51,15 @@ public type EmployeeWithPermissions record {
     # Privileges of the employee
     int[] privileges;
     # Work policies of the employee
-    WorkPolicies workPolicies;
+    database:WorkPolicies workPolicies;
+    # Timesheet information of employee
+    database:TimesheetInfo? timesheetInfo;
 };
 
 # Timesheet records collection type.
 public type TimeSheetRecords record {
     # Overtime information from the database
-    database:TimesheetMetaData? metaData;
+    database:TimesheetCount? totalRecordCount;
     # List of timesheet records
     database:TimeSheetRecord[]? timesheetRecords;
 };
