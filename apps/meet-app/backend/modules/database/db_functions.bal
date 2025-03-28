@@ -22,7 +22,7 @@ import ballerina/sql;
 public isolated function fetchMeetingTypes(string domain) returns MeetingTypes|error? {
     RawMeetingTypes|sql:Error meetingTypes = databaseClient->queryRow(getMeetingTypesQuery(domain));
 
-    if meetingTypes is sql:Error && meetingTypes is sql:NoRowsError {
+    if meetingTypes is sql:NoRowsError {
         return;
     }
     if meetingTypes is sql:Error {
@@ -82,7 +82,8 @@ public isolated function fetchMeetings(string? title, string? host, string? star
 # + return - Meeting | Error, if not found
 public isolated function fetchMeeting(int meetingId) returns Meeting|error? {
     Meeting|sql:Error meeting = databaseClient->queryRow(getMeetingQuery(meetingId));
-    if meeting is sql:Error && meeting is sql:NoRowsError {
+
+    if meeting is sql:NoRowsError {
         return;
     }
     return meeting;
