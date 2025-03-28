@@ -287,7 +287,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         int count = (meetings.length() > 0) ? meetings[0].totalCount : 0;
 
         MeetingListResponse meetingListResponse = {
-            count: count,
+            count,
             meetings: from var meeting in meetings
                 select {
                     meetingId: meeting.meetingId,
