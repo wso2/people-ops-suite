@@ -93,12 +93,10 @@ service http:InterceptableService / on new http:Listener(9090) {
         if authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups) {
             privileges.push(authorization:SALES_ADMIN_PRIVILEGE);
         }
+        UserInfoResponse userInfoResponse = {...loggedInUser, privileges};
 
         return <http:Ok>{
-            body: {
-                ...loggedInUser,
-                privileges
-            }
+            body: userInfoResponse
         };
     }
 
@@ -217,11 +215,13 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+        MeetingCreationResponse meetingCreationResponse = {
+            message: "Calendar event created successfully.",
+            meetingId
+        };
+
         return <http:Created>{
-            body: {
-                message: "Calendar event created successfully.",
-                meetingId
-            }
+            body: meetingCreationResponse
         };
     }
 
@@ -286,22 +286,24 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         int count = (meetings.length() > 0) ? meetings[0].totalCount : 0;
 
+        MeetingListResponse meetingListResponse = {
+            count: count,
+            meetings: from var meeting in meetings
+                select {
+                    meetingId: meeting.meetingId,
+                    title: meeting.title,
+                    googleEventId: meeting.googleEventId,
+                    host: meeting.host,
+                    startTime: meeting.startTime,
+                    endTime: meeting.endTime,
+                    wso2Participants: meeting.wso2Participants,
+                    meetingStatus: meeting.meetingStatus,
+                    timeStatus: meeting.timeStatus
+                }
+        };
+
         return <http:Ok>{
-            body: {
-                count: count,
-                meetings: from var meeting in meetings
-                    select {
-                        meetingId: meeting.meetingId,
-                        title: meeting.title,
-                        googleEventId: meeting.googleEventId,
-                        host: meeting.host,
-                        startTime: meeting.startTime,
-                        endTime: meeting.endTime,
-                        wso2Participants: meeting.wso2Participants,
-                        meetingStatus: meeting.meetingStatus,
-                        timeStatus: meeting.timeStatus
-                    }
-            }
+            body: meetingListResponse
         };
     }
 
@@ -375,10 +377,10 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+        AttachmentListResponse attachmentListResponse = {attachments: calendarEventAttachments ?: []};
+
         return <http:Ok>{
-            body: {
-                attachments: calendarEventAttachments
-            }
+            body: attachmentListResponse
         };
     }
 
@@ -474,10 +476,12 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+        MeetingDeletionResponse meetingDeletionResponse = {
+            message: deleteCalendarEventResponse.message
+        };
+
         return <http:Ok>{
-            body: {
-                message: deleteCalendarEventResponse.message
-            }
+            body: meetingDeletionResponse
         };
     }
 }
