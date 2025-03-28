@@ -14,7 +14,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import React from "react";
 import { Grid, Typography } from "@mui/material";
 
 function StateWithImage(props: {
@@ -40,7 +39,7 @@ function StateWithImage(props: {
             justifyContent: "center",
           }}
         >
-          <img alt="logo" width="120" height="auto" src={props.imageUrl}></img>
+          <img alt="logo" width="140" height="auto" src={props.imageUrl}></img>
         </Grid>
       )}
       <Grid
@@ -53,7 +52,15 @@ function StateWithImage(props: {
           color: (theme) => theme.palette.secondary.dark,
         }}
       >
-        <Typography variant="h5">{props.message}</Typography>
+        <Typography
+          variant="h5"
+          sx={(theme) => ({
+            color: theme.palette.grey[500],
+            textAlign: "center",
+          })}
+        >
+          {props.message}
+        </Typography>
       </Grid>
     </Grid>
   );

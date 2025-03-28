@@ -12,22 +12,22 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License.
+// under the License. 
 
 import React from "react";
 import { RouteObject, NonIndexRouteObject } from "react-router-dom";
 // MUI imports
-import AttachEmailIcon from "@mui/icons-material/AttachEmail";
+import DuoIcon from '@mui/icons-material/Duo';
 // APP imports
 import { View } from "./view/index";
 import { isIncludedRole } from "./utils/utils";
-import { RECRUITMENT_ADMIN, RECRUITMENT_TEAM } from "@config/config";
+import { Role } from "@utils/types";
 
 export interface RouteObjectWithRole extends NonIndexRouteObject {
   allowRoles: string[];
   icon:
-    | React.ReactElement<any, string | React.JSXElementConstructor<any>>
-    | undefined;
+  | React.ReactElement<any, string | React.JSXElementConstructor<any>>
+  | undefined;
   text: string;
   children?: RouteObjectWithRole[];
   bottomNav?: boolean;
@@ -37,8 +37,8 @@ interface RouteDetail {
   path: string;
   allowRoles: string[];
   icon:
-    | React.ReactElement<any, string | React.JSXElementConstructor<any>>
-    | undefined;
+  | React.ReactElement<any, string | React.JSXElementConstructor<any>>
+  | undefined;
   text: string;
   bottomNav?: boolean;
 }
@@ -46,10 +46,10 @@ interface RouteDetail {
 export const routes: RouteObjectWithRole[] = [
   {
     path: "/",
-    text: "Collections",
-    icon: React.createElement(AttachEmailIcon),
-    element: React.createElement(View.firstView),
-    allowRoles: [RECRUITMENT_TEAM, RECRUITMENT_ADMIN],
+    text: "Meetings",
+    icon: React.createElement(DuoIcon),
+    element: React.createElement(View.meetings),
+    allowRoles: [Role.SALES_ADMIN, Role.SALES_TEAM],
   },
 ];
 export const getActiveRoutesV2 = (

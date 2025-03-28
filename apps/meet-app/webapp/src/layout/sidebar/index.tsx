@@ -21,21 +21,20 @@ import {
   alpha,
   useTheme,
 } from "@mui/material/styles";
-import { MUIStyledCommonProps } from "@mui/system";
-import MuiDrawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
+import { SIDEBAR_WIDTH } from "@config/ui";
+import { ColorModeContext } from "@src/App";
+import MuiDrawer from "@mui/material/Drawer";
+import { Stack, Typography } from "@mui/material";
+import IconButton from "@mui/material/IconButton";
+import { getActiveRouteDetails } from "@src/route";
+import { MUIStyledCommonProps } from "@mui/system";
+import ListLinkItem from "@component/layout/LinkItem";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import IconButton from "@mui/material/IconButton";
-import ListLinkItem from "@component/layout/LinkItem";
+import { useLocation, matchPath, useMatches } from "react-router-dom";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
-import { getActiveRouteDetails } from "./../../route";
-import { SIDEBAR_WIDTH } from "@config/ui";
-import { useLocation, matchPath, useMatches } from "react-router-dom";
-import { ColorModeContext } from "../../App";
-import { Stack, Typography } from "@mui/material";
-import { APP_NAME } from "@config/config";
 
 interface SidebarProps {
   open: boolean;
@@ -80,7 +79,7 @@ const Sidebar = (props: SidebarProps) => {
           open={props.open}
           sx={{
             "& .MuiDrawer-paper": {
-              background: alpha(theme.palette.primary.main, 0.85),
+              background: alpha(theme.palette.primary.dark, 1),
             },
           }}
         >
@@ -88,7 +87,7 @@ const Sidebar = (props: SidebarProps) => {
             sx={{
               display: "flex",
               flexDirection: "column",
-              pt: 7.2,
+              pt: 6.5,
             }}
           >
             {getActiveRouteDetails(props.roles).map((r, idx) => (
@@ -119,8 +118,13 @@ const Sidebar = (props: SidebarProps) => {
                     background: alpha(props.theme.palette.common.white, 0.05),
                     ...(!props.open && {
                       "& .menu-tooltip": {
+                        marginLeft: -3,
                         opacity: 1,
                         visibility: "visible",
+                        boxShadow:
+                          theme.palette.mode === "dark"
+                            ? "0px 0px 10px rgba(120, 125, 129, 0.2)"
+                            : 10,
                       },
                     }),
                   },
@@ -141,9 +145,22 @@ const Sidebar = (props: SidebarProps) => {
               </IconButton>
               <IconButton
                 onClick={props.handleDrawer}
+                color="inherit"
                 sx={{
+                  color: "white",
                   "&:hover": {
                     background: alpha(props.theme.palette.common.white, 0.05),
+                    ...(!props.open && {
+                      "& .menu-tooltip": {
+                        marginLeft: -3,
+                        opacity: 1,
+                        visibility: "visible",
+                        boxShadow:
+                          theme.palette.mode === "dark"
+                            ? "0px 0px 10px rgba(120, 125, 129, 0.2)"
+                            : 10,
+                      },
+                    }),
                   },
                 }}
               >
@@ -152,6 +169,11 @@ const Sidebar = (props: SidebarProps) => {
                 ) : (
                   <ChevronLeftIcon sx={{ color: "white" }} />
                 )}
+                <span className="menu-tooltip">
+                  <Typography variant="h6">
+                    {(props.open ? "Collapse" : "Expand") + " Sidebar"}
+                  </Typography>
+                </span>
               </IconButton>
             </Stack>
           </DrawerFooter>
@@ -173,12 +195,14 @@ const DrawerSpace = styled("div")(({ theme }) => ({
 }));
 
 export const DrawerFooter = styled("div")(({ theme }) => ({
-  position: "relative",
+  position: "absolute",
   bottom: 0,
+  left: 0,
+  width: "100%",
   display: "flex",
   alignItems: "center",
-  justifyContent: "flex-end",
-  ...theme.mixins.toolbar,
+  justifyContent: "space-between",
+  padding: theme.spacing(1.5),
 }));
 
 const Drawer = styled(MuiDrawer, {

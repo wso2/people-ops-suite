@@ -14,35 +14,31 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { Box, alpha } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
-
 import Header from "./header";
 import Sidebar from "./sidebar";
-import {
-  Outlet,
-  useLocation,
-  useNavigate,
-  matchRoutes,
-} from "react-router-dom";
-import { routes } from "../route";
-
-import ConfirmationModalContextProvider from "@context/DialogContext";
-import { selectUserInfo, selectRoles } from "@slices/authSlice";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { selectRoles } from "@slices/authSlice/auth";
 import { useSnackbar } from "notistack";
 import pJson from "../../package.json";
 import { RootState, useAppSelector } from "@slices/store";
 import { Typography } from "@mui/material";
 
 export default function Layout() {
-  //snackbar configuration
   const { enqueueSnackbar } = useSnackbar();
   const common = useAppSelector((state: RootState) => state.common);
   const navigate = useNavigate();
-  useEffect(() => {
+  const location = useLocation();
+  const theme = useTheme();
+  const [open, setOpen] = useState(false);
+  const roles = useSelector(selectRoles);
+
+  // Memoize enqueueSnackbar to prevent unnecessary re-renders
+  const showSnackbar = useCallback(() => {
     if (common.timestamp != null) {
       enqueueSnackbar(common.message, {
         variant: common.type,
@@ -50,69 +46,65 @@ export default function Layout() {
         anchorOrigin: { horizontal: "right", vertical: "bottom" },
       });
     }
-  }, [common.timestamp]);
+  }, [common.message, common.type, common.timestamp, enqueueSnackbar]);
 
+  // Show Snackbar Notifications
   useEffect(() => {
-    if (localStorage.getItem("hris-app-redirect-url")) {
-      navigate(localStorage.getItem("hris-app-redirect-url") as string);
-      localStorage.removeItem("hris-app-redirect-url");
+    showSnackbar();
+  }, [showSnackbar]);
+
+  // Handle Redirect After Login
+  useEffect(() => {
+    const redirectUrl = localStorage.getItem("meet-app-redirect-url");
+    if (redirectUrl) {
+      navigate(redirectUrl);
+      localStorage.removeItem("meet-app-redirect-url");
     }
-  }, []);
-
-  const location = useLocation();
-  const matches = matchRoutes(routes, location.pathname);
-  const theme = useTheme();
-
-  const [open, setOpen] = useState(false);
-  const roles = useSelector(selectRoles);
+  }, [navigate]);
 
   return (
-    <ConfirmationModalContextProvider>
-      <Box sx={{ display: "flex" }}>
-        <CssBaseline />
-
-        <Sidebar
-          roles={roles}
-          currentPath={location.pathname}
-          open={open}
-          handleDrawer={() => setOpen(!open)}
-          theme={theme}
-        />
-        <Header />
-
+    <Box sx={{ display: "flex" }}>
+      <CssBaseline />
+      <Sidebar
+        roles={roles}
+        currentPath={location.pathname}
+        open={open}
+        handleDrawer={() => setOpen(!open)}
+        theme={theme}
+      />
+      <Header />
+      <Box
+        component="main"
+        className="Hello"
+        sx={{
+          flexGrow: 1,
+          height: "100vh",
+          p: 3,
+          pt: 7.5,
+          pb: 4.5,
+        }}
+      >
+        <Suspense fallback={<div>Loading...</div>}>
+          <Outlet />
+        </Suspense>
         <Box
-          component="main"
-          className="Hello"
+          className="layout-note"
           sx={{
-            flexGrow: 1,
-            height: "100vh",
-            p: 3,
-            pt: 9,
-            pb: 6,
+            background:
+              theme.palette.mode === "light"
+                ? (theme) =>
+                    alpha(
+                      theme.palette.secondary.main,
+                      theme.palette.action.activatedOpacity
+                    )
+                : (theme) => alpha(theme.palette.common.black, 0.4),
           }}
         >
-          <Suspense fallback={<div>Loading...</div>}>
-            <Outlet />
-          </Suspense>
-          <Box
-            className="layout-note"
-            sx={{
-              background:
-                theme.palette.mode === "light"
-                  ? (theme) =>
-                      alpha(
-                        theme.palette.secondary.main,
-                        theme.palette.action.activatedOpacity
-                      )
-                  : "#0d0d0d",
-            }}
-          >
-            <Typography variant="h6" sx={{ color: "#919090" }}>
-              v {pJson.version} | © {new Date().getFullYear()} WSO2 LLC
-            </Typography>
-          </Box>
+          <Typography variant="h6" sx={{ color: "#919090" }}>
+            v {pJson.version} | © {new Date().getFullYear()} WSO2 LLC
+          </Typography>
         </Box>
       </Box>
-    </ConfirmationModalContextProvider>
+    </Box>
   );
 }

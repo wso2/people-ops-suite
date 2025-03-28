@@ -12,7 +12,7 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License.
+// under the License. 
 
 # [Configurable] OAuth2 entity application configuration.
 type Oauth2Config record {|
@@ -38,7 +38,7 @@ public type GraphQlRetryConfig record {|
 
 // Get employee graphQL service Responses.
 # Employee.
-public type Employee record {
+public type Employee record {|
     # Id of the employee
     string employeeId;
     # Email of the employee
@@ -50,8 +50,8 @@ public type Employee record {
     # Job role
     string jobRole;
     # Thumbnail of the employee
-    string employeeThumbnail;
-};
+    string? employeeThumbnail;
+|};
 
 # Employee data.
 type EmployeeData record {

@@ -12,51 +12,94 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License.
+// under the License. 
 import ballerina/sql;
 import ballerinax/mysql;
 
-# [Configurable] database configs.
+# [Configurable] Database configs.
 type DatabaseConfig record {|
-    # Database User 
+    # If the MySQL server is secured, the username
     string user;
-    # Database Password
+    # The password of the MySQL server for the provided username
     string password;
-    # Database Name
+    # The name of the database
     string database;
-    # Database Host
+    # Hostname of the MySQL server
     string host;
-    # Database port
+    # Port number of the MySQL server
     int port;
-    # Database connection pool
-    sql:ConnectionPool connectionPool;
+    # The `mysql:Options` configurations
+    mysql:Options options?;
+    # The `sql:ConnectionPool` configurations
+    sql:ConnectionPool connectionPool?;
 |};
 
-# Database config record.
-type DatabaseClientConfig record {|
-    *DatabaseConfig;
-    # Additional configurations related to the MySQL database connection
-    mysql:Options? options;
+# [Database] Insert type for Meeting.
+public type AddMeetingPayload record {|
+    # Title of the meeting
+    string title;
+    # Google event ID
+    string googleEventId;
+    # Host of the meeting
+    string host;
+    # WSO2 participants' email list
+    string wso2Participants;
+    # Meeting start time in ISO format
+    string startTime;
+    # Meeting end time in ISO format
+    string endTime;
 |};
 
-# [Database]SampleCollection type.
-public type SampleCollection record {|
-    # Id of the collection
-    int id;
-    # Name
-    string name;
-    # Timestamp, when created
+# [Database]Meeting type.
+public type Meeting record {|
+    # Auto-increment meeting ID
+    int meetingId;
+    # Title of the meeting
+    string title;
+    # Google event ID
+    string googleEventId;
+    # Host of the meeting
+    string host;
+    # Meeting start time
+    string startTime;
+    # Meeting end time
+    string endTime;
+    # WSO2 participants' email list
+    string wso2Participants;
+    # Meeting status (e.g., 'ACTIVE', 'CANCELLED')
+    MeetingStatus meetingStatus;
+    # Timestamp when created
     string createdOn;
-    # Person, who created
+    # Person who created the meeting
     string createdBy;
-    # Timestamp, when updated
+    # Timestamp when updated
     string updatedOn;
-    # Person, who updates
+    # Person who updated the meeting
     string updatedBy;
+    # Total Count of Meeting
+    int totalCount;
+    # Time Status (e.g., 'PAST', 'FUTURE')
+    string timeStatus;
 |};
 
-# [Database]Collection insert type.
-public type AddSampleCollection record {|
-    # Name of the collection
-    string name;
+# [Database]RawMeetingTypes type.
+public type RawMeetingTypes record {|
+    # Meeting Domain
+    string domain;
+    # Meeting Types
+    string types;
 |};
+
+# [Database]MeetingTypes type.
+public type MeetingTypes record {|
+    # Meeting Domain
+    string domain;
+    # Meeting Types
+    string[] types;
+|};
+
+# [Database]MeetingStatus enum.
+public enum MeetingStatus {
+    ACTIVE = "ACTIVE",
+    CANCELLED = "CANCELLED"
+};

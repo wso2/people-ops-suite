@@ -12,32 +12,8 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License.
+// under the License. 
 import ballerina/sql;
-
-# Build the database update query with dynamic attributes.
-#
-# + mainQuery - Main query without the sub query
-# + filters - Array of sub queries to be added to the main query
-# + return - Dynamically build sql:ParameterizedQuery
-isolated function buildSqlUpdateQuery(sql:ParameterizedQuery mainQuery, sql:ParameterizedQuery[] filters)
-    returns sql:ParameterizedQuery {
-
-    boolean isFirstUpdate = true;
-    sql:ParameterizedQuery updatedQuery = ``;
-
-    foreach sql:ParameterizedQuery filter in filters {
-        if isFirstUpdate {
-            updatedQuery = sql:queryConcat(mainQuery, filter);
-            isFirstUpdate = false;
-            continue;
-        }
-
-        updatedQuery = sql:queryConcat(updatedQuery, ` , `, filter);
-    }
-
-    return updatedQuery;
-}
 
 # Build the database select query with dynamic filter attributes.
 #

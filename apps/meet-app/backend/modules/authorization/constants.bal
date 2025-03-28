@@ -12,8 +12,12 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License.
+// under the License. 
 
-// Authorization Constants.
+# Authorization Constants.
 public const JWT_ASSERTION_HEADER = "x-jwt-assertion";
 public const HEADER_USER_INFO = "user-info";
+
+# Privileges.
+public const SALES_TEAM_PRIVILEGE = 987;
+public const SALES_ADMIN_PRIVILEGE = 762;

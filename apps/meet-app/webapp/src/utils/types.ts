@@ -12,7 +12,7 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License.
+// under the License. 
 
 import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
 import { State } from "src/types/types";
@@ -32,6 +32,11 @@ export interface AuthData {
   userInfo: BasicUserInfo;
   idToken: string;
   decodedIdToken: DecodedIDTokenPayload;
+}
+
+export enum Role {
+  SALES_ADMIN = "SALES_ADMIN",
+  SALES_TEAM = "SALES_TEAM",
 }
 
 export interface Employee {

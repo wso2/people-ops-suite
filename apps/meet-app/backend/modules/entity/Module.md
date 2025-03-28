@@ -1,3 +1,3 @@
 # Module Overview
 
-Contains entity related functions, types, enums, and constants.
+Contains entity related functions, types and constants.

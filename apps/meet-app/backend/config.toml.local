@@ -1,27 +1,44 @@
-[sample_app.entity]
-    hrEntityBaseUrl = ""
-    [sample_app.entity.oauthConfig]
+[meet_app.calendar]
+    calendarBaseUrl = ""
+    calendarId = ""
+    disclaimerMessage = ""
+    [meet_app.calendar.oauthConfig]
         tokenUrl = ""
         clientId = ""
         clientSecret = ""
 
-    [sample_app.entity.retryConfig]
+    [meet_app.calendar.retryConfig]
+        count = 
+        interval = 
+        backOffFactor = 
+        maxWaitInterval =
+
+[meet_app.entity]
+    hrEntityBaseUrl = ""
+    [meet_app.entity.oauthConfig]
+        tokenUrl = ""
+        clientId = ""
+        clientSecret = ""
+
+    [meet_app.entity.retryConfig]
         count = 
         interval = 
         backOffFactor = 
         maxWaitInterval = 
 
-[sample_app.database.databaseConfig]
+[meet_app.database.dbConfig]
     host = ""
     user = ""
     password = ""
     database = ""
     port = 
-    [sample_app.database.databaseConfig.connectionPool]
-        maxOpenConnections = 
-        maxConnectionLifeTime = 
-        minIdleConnections= 
+    [meet_app.database.dbConfig.connectionPool]
+    maxOpenConnections = 
+    maxConnectionLifeTime = 
+    minIdleConnections= 
+    [meet_app.database.dbConfig.options]
+    connectTimeout = 
 
-[sample_app.authorization.authorizedRoles]
-    employeeRole  = ""
-    headPeopleOperationsRole = ""
+[meet_app.authorization.authorizedRoles]
+    SALES_TEAM  = ""
+    SALES_ADMIN = ""
