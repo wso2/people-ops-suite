@@ -67,7 +67,7 @@ public type Meeting record {|
     # WSO2 participants' email list
     string wso2Participants;
     # Meeting status (e.g., 'ACTIVE', 'CANCELLED')
-    string meetingStatus;
+    MeetingStatus meetingStatus;
     # Timestamp when created
     string createdOn;
     # Person who created the meeting
@@ -97,3 +97,8 @@ public type MeetingTypes record {|
     # Meeting Types
     string[] types;
 |};
+
+public enum MeetingStatus {
+    ACTIVE = "ACTIVE",
+    CANCELLED = "CANCELLED"
+};

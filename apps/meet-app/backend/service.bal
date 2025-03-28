@@ -438,7 +438,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 body: {message: "Insufficient privileges to delete the meeting!"}
             };
         }
-        if (meeting.meetingStatus != "ACTIVE") {
+        if (meeting.meetingStatus != database:ACTIVE) {
             return <http:Forbidden>{
                 body: {message: "Cannot delete a meeting that is not active!"}
             };
