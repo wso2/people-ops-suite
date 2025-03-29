@@ -21,12 +21,12 @@ import { Provider } from "react-redux";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 
 // APP imports
-import { store } from "./slices/store";
+import { store } from "@slices/store";
 import { ThemeMode } from "@utils/types";
-import { APP_NAME, AsgardeoConfig } from "./config/config";
+import { APP_NAME, AsgardeoConfig } from "@config/config";
 import AppHandler from "@app/AppHandler";
-import { themeSettings } from "./theme";
-import "./App.scss";
+import { themeSettings } from "@src/theme";
+import "@src/App.scss";
 import AppAuthProvider from "@context/AuthContext";
 
 // Other imports
