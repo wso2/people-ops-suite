@@ -78,7 +78,7 @@ public enum TimeSheetStatus {
     REJECTED = "REJECTED"
 };
 
-# Work policy record.
+# Timesheet record type.
 public type TimeSheetRecord record {|
     # Time sheet record id
     int recordId;
@@ -106,7 +106,7 @@ public type TimeSheetRecord record {|
     TimeSheetStatus overtimeStatus;
 |};
 
-# Timesheet records common filter type.
+# Common filter for the timesheet records.
 public type TimesheetCommonFilter record {|
     # Employee email
     string? employeeEmail;
@@ -146,4 +146,26 @@ public type TimesheetInfo record {|
 public type TimesheetCount record {|
     # Total count of the records
     int totalRecords;
+|};
+
+# Update type for the timesheet record.
+public type TimesheetUpdate record {|
+    # Time sheet record id
+    int recordId;
+    # Record date
+    string? recordDate;
+    # Clock in time
+    string? clockInTime;
+    # Clock out time
+    string? clockOutTime;
+    # Total work duration
+    int? isLunchIncluded;
+    # Overtime duration
+    decimal? overtimeDuration;
+    # Overtime reason
+    string? overtimeReason;
+    # Overtime rejection reason
+    string? overtimeRejectReason;
+    # Overtime status
+    TimeSheetStatus? overtimeStatus;
 |};

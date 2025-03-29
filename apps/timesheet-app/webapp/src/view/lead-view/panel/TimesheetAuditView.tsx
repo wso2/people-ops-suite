@@ -210,7 +210,7 @@ const TimesheetAuditView = () => {
                 size="small"
                 color="info"
                 onClick={() => openEditDialog(params.row)}
-                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 0}
+                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
                 sx={{ mr: 1 }}
               >
                 <ThumbUpIcon fontSize="small" />
@@ -222,7 +222,7 @@ const TimesheetAuditView = () => {
               <IconButton
                 size="small"
                 color="error"
-                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 0}
+                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
                 // onClick={() => handleDeleteEntry(params.row.recordId)}
               >
                 <ThumbDownIcon fontSize="small" />
@@ -537,7 +537,7 @@ const TimesheetAuditView = () => {
             onClick={handleBatchApprove}
             sx={{ width: "160px", mx: 1 }}
             startIcon={<ThumbUpIcon />}
-            disabled={selectionModel.length === 0}
+            disabled={selectionModel.length <= 1}
           >
             Batch Approve
           </Button>
@@ -548,7 +548,7 @@ const TimesheetAuditView = () => {
             color="error"
             sx={{ width: "160px", mx: 1 }}
             startIcon={<ThumbDownIcon />}
-            disabled={selectionModel.length === 0}
+            disabled={selectionModel.length <= 1}
           >
             Batch Reject
           </Button>

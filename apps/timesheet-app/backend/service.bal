@@ -104,6 +104,100 @@ service http:InterceptableService / on new http:Listener(9091) {
         };
     }
 
+    # Endpoint to save timesheet records of an employee.
+    #
+    # + recordPayload - Timesheet records payload
+    # + employeeEmail - Email of the employee to filter timesheet records
+    # + return - A work policy or an error
+    isolated resource function post timesheet\-records/[string employeeEmail](http:RequestContext ctx,
+            database:TimeSheetRecord[] recordPayload)
+        returns http:InternalServerError|http:Created|http:BadRequest|http:Forbidden {
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+
+        if userInfo is error {
+            return <http:BadRequest>{
+                body: {
+                    message: "User information header not found!"
+                }
+            };
+        }
+
+        if !authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups) {
+            return <http:Forbidden>{
+                body: {
+                    message: "Insufficient privileges!"
+                }
+            };
+        }
+
+        entity:Employee|error loggedInUser = entity:fetchEmployeesBasicInfo(userInfo.email);
+        if loggedInUser is error {
+            string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
+            log:printError(customError, loggedInUser);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        string[] newRecordDates = [];
+        foreach var newRecord in recordPayload {
+            newRecordDates.push(newRecord.recordDate);
+        }
+
+        database:TimesheetCommonFilter filter = {
+            employeeEmail: employeeEmail,
+            leadEmail: loggedInUser.managerEmail,
+            status: (),
+            recordsLimit: (),
+            recordOffset: (),
+            rangeStart: (),
+            rangeEnd: (),
+            recordDates: newRecordDates
+        };
+
+        database:TimeSheetRecord[]|error? existingRecords = database:getTimeSheetRecords(filter);
+        if existingRecords is error {
+            string customError = string `Error occurred while retrieving the existing timesheet records!`;
+            log:printError(customError, existingRecords);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        string[] duplicateRecords = [];
+        if existingRecords !is () && existingRecords.length() > 0 {
+            foreach var existingRecord in existingRecords {
+                duplicateRecords.push(existingRecord.recordDate);
+            }
+            string customError =
+                string `Duplicated dates found ${string:'join(", ", ...duplicateRecords.map(d => d.toString()))}`;
+            log:printError(customError);
+            return <http:BadRequest>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        sql:Error|sql:ExecutionResult[] timesheetInsertResult = database:insertTimesheetRecords(recordPayload,
+                loggedInUser.workEmail, loggedInUser.company, loggedInUser.managerEmail);
+
+        if timesheetInsertResult is error {
+            string customError = string `Error occurred while saving the records for ${loggedInUser.workEmail}!`;
+            log:printError(customError, timesheetInsertResult);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        return http:CREATED;
+    }
+
     # Endpoint to get timesheet records using filters.
     #
     # + 'limit - Limit of the response
@@ -202,12 +296,12 @@ service http:InterceptableService / on new http:Listener(9091) {
         };
     }
 
-    # Endpoint to save timesheet records of an employee.
+        # Endpoint to save timesheet records of an employee.
     #
     # + recordPayload - Timesheet records payload
     # + employeeEmail - Email of the employee to filter timesheet records
     # + return - A work policy or an error
-    isolated resource function post timesheet\-records/[string employeeEmail](http:RequestContext ctx,
+    isolated resource function patch timesheet\-records/[string employeeEmail](http:RequestContext ctx,
             database:TimeSheetRecord[] recordPayload)
         returns http:InternalServerError|http:Created|http:BadRequest|http:Forbidden {
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -295,4 +389,5 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
         return http:CREATED;
     }
+
 }

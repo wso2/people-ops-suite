@@ -34,7 +34,7 @@ isolated function getWorkPolicyQuery(string companyName) returns sql:Parameteriz
 # Query to retrieve the timesheet records of an employee.
 #
 # + filter - Filter type for the  records
-# + return - Select query for the work policies
+# + return - Select query timesheet records
 isolated function getTimeSheetRecordsOfEmployee(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
     SELECT
@@ -82,7 +82,7 @@ isolated function getTimeSheetRecordsOfEmployee(TimesheetCommonFilter filter) re
 # Query to retrieve the timesheet records count of an employee.
 #
 # + filter - Filter type for the records
-# + return - Select query for the work policies
+# + return - Select query total count of timesheet records
 isolated function getTotalRecordCountQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
         SELECT
@@ -114,9 +114,10 @@ isolated function getTotalRecordCountQuery(TimesheetCommonFilter filter) returns
 # + return - Insert query for the timesheet records
 isolated function insertTimesheetRecordsQuery(TimeSheetRecord[] timesheetRecords, string employeeEmail,
         string companyName, string leadEmail) returns sql:ParameterizedQuery[] =>
+
             from TimeSheetRecord timesheetRecord in timesheetRecords
 let TimeSheetRecord {recordDate, clockInTime, clockOutTime, isLunchIncluded, overtimeDuration, overtimeReason,
-            overtimeStatus} = timesheetRecord
+overtimeStatus} = timesheetRecord
 select `
         INSERT INTO hris_timesheet_records (
             ts_employee_email,
@@ -200,3 +201,29 @@ isolated function getTimesheetInfoQuery(TimesheetCommonFilter filter) returns sq
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
     return mainQuery;
 }
+
+# Query to update a timesheet record.
+#
+# + updateRecord - Update record type of the timesheet record
+# + invokerEmail - Email of the invoker
+# + return - Update query for a timesheet record
+isolated function updateTimesheetRecordQuery(TimesheetUpdate updateRecord, string invokerEmail)
+    returns sql:ParameterizedQuery {
+
+    sql:ParameterizedQuery updateQuery = `
+    UPDATE hris_timesheet_records SET
+`;
+    updateQuery = sql:queryConcat(updateQuery, `ts_clock_in = COALESCE(${updateRecord.clockInTime}, ts_clock_in),`);
+    updateQuery = sql:queryConcat(updateQuery, `ts_clock_out = COALESCE(${updateRecord.clockOutTime}, ts_clock_out),`);
+    updateQuery = sql:queryConcat(updateQuery, `ts_lunch_included = COALESCE(${updateRecord.isLunchIncluded},
+            ts_lunch_included),`);
+    updateQuery = sql:queryConcat(updateQuery, `ts_ot_hours = COALESCE(${updateRecord.overtimeDuration}, ts_ot_hours),`);
+    updateQuery = sql:queryConcat(updateQuery, `ts_ot_reason = COALESCE(${updateRecord.overtimeReason}, ts_ot_reason),`);
+    updateQuery = sql:queryConcat(updateQuery, `ts_ot_rejection_reason = COALESCE(${updateRecord.overtimeRejectReason},
+            ts_ot_rejection_reason),`);
+    updateQuery = sql:queryConcat(updateQuery, `ts_ot_status = COALESCE(${updateRecord.overtimeStatus}, ts_ot_status)`);
+    updateQuery = sql:queryConcat(updateQuery, `ts_updated_by = COALESCE(${invokerEmail}, ts_updated_by)
+            WHERE ts_record_date = ${updateRecord.recordId}`);
+    return updateQuery;
+}
+
