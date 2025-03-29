@@ -96,9 +96,7 @@ const TimesheetDataGrid = () => {
   const [errors, setErrors] = useState<Partial<Record<keyof TimesheetRecord, string>>>({});
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
-  const totalRecordCount = useAppSelector(
-    (state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0
-  );
+  const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
@@ -208,17 +206,6 @@ const TimesheetDataGrid = () => {
               </IconButton>
             </span>
           </Tooltip>
-          {/* TODO - Finalize the use of this */}
-          {/* <Tooltip title="Delete">
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => handleDeleteEntry(params.row.recordId)}
-              disabled={params.row.overtimeStatus === TimesheetStatus.APPROVED}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip> */}
         </Stack>
       ),
     },
@@ -469,27 +456,13 @@ const TimesheetDataGrid = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1, pr: 1 }}>
-        <Stack direction="row" justifyContent="space-end" alignItems="right">
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenDialog}
-            sx={{
-              boxShadow: "none",
-              "&:hover": { boxShadow: "none" },
-            }}
-          >
-            New Entry
-          </Button>
-        </Stack>
-
         {timesheetInfo && workPolicies && (
           <Box sx={{ width: "100%", height: "auto" }}>
             <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} />
           </Box>
         )}
 
-        <Box sx={{ mb: 2 }}>
+        <Stack direction="row" justifyContent="space-end" alignItems="right" mb={1} spacing={1}>
           <Button
             variant="outlined"
             startIcon={<TuneIcon />}
@@ -528,7 +501,7 @@ const TimesheetDataGrid = () => {
               },
             }}
           >
-            <Stack direction="row" justifyContent="space-between" alignItems="center" >
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography variant="subtitle2">FILTERS</Typography>
               <Button size="small" startIcon={<AddIcon />} onClick={handleAddFilter}>
                 Add Filter
@@ -590,7 +563,19 @@ const TimesheetDataGrid = () => {
               </>
             )}
           </Menu>
-        </Box>
+
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenDialog}
+            sx={{
+              boxShadow: "none",
+              "&:hover": { boxShadow: "none" },
+            }}
+          >
+            ADD NEW
+          </Button>
+        </Stack>
         <Paper
           elevation={0}
           sx={{
@@ -659,7 +644,7 @@ const TimesheetDataGrid = () => {
         </Paper>
 
         <CustomModal open={openDialog} onClose={handleCloseDialog}>
-          <SubmitRecordModal onClose={handleCloseDialog}  regularWorkHoursPerDay={workPolicies?.workingHoursPerDay}/>
+          <SubmitRecordModal onClose={handleCloseDialog} regularWorkHoursPerDay={workPolicies?.workingHoursPerDay} />
         </CustomModal>
 
         <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>

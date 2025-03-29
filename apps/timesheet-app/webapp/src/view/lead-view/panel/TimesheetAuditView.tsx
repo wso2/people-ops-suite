@@ -16,11 +16,9 @@
 import {
   Box,
   Chip,
-  Grid,
   Menu,
   Stack,
   Paper,
-  Dialog,
   Button,
   Tooltip,
   useTheme,
@@ -44,7 +42,6 @@ import {
 } from "@mui/x-data-grid";
 import { useEffect, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
 import TuneIcon from "@mui/icons-material/Tune";
 import CloseIcon from "@mui/icons-material/Close";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -56,9 +53,8 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { ConfirmationType, State, TimesheetRecord, TimesheetStatus } from "@utils/types";
-import { differenceInMinutes, format, isWeekend, parseISO } from "date-fns";
-import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
-import React from "react";
+import { parseISO } from "date-fns";
+import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { fetchTimesheetRecords } from "@slices/recordSlice/record";
 import PersonIcon from "@mui/icons-material/Person";
@@ -214,7 +210,7 @@ const TimesheetAuditView = () => {
                 size="small"
                 color="info"
                 onClick={() => openEditDialog(params.row)}
-                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING}
+                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 0}
                 sx={{ mr: 1 }}
               >
                 <ThumbUpIcon fontSize="small" />
@@ -226,7 +222,7 @@ const TimesheetAuditView = () => {
               <IconButton
                 size="small"
                 color="error"
-                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING}
+                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 0}
                 // onClick={() => handleDeleteEntry(params.row.recordId)}
               >
                 <ThumbDownIcon fontSize="small" />
@@ -395,7 +391,7 @@ const TimesheetAuditView = () => {
     setSelectionModel(newSelectionModel);
   };
 
-  const handleBatchSubmit = () => {
+  const handleBatchApprove = () => {
     // User confirmation handler.
     dialogContext.showConfirmation(
       "Do you want to approve the selected overtime records?",
@@ -408,35 +404,21 @@ const TimesheetAuditView = () => {
       "Approve",
       "Cancel"
     );
+  };
 
-    // title: string,
-    //   message: string | JSX.Element,
-    //   type: ConfirmationType,
-    //   action: () => void,
-    //   okText?: string,
-    //   cancelText?: string,
-    //   inputObj?: InputObj
-
-    // const confirm = window.confirm(`Are you sure you want to approve ${selectionModel.length} selected records?`);
-
-    // if (!confirm) return;
-
-    // try {
-    //   // Assuming there's a dispatch action to batch approve records
-    //   await dispatch(
-    //     fetchTimesheetRecords({
-    //       action: "approve",
-    //       recordIds: selectionModel,
-    //     })
-    //   );
-
-    //   alert("Selected records have been approved successfully.");
-    //   setSelectionModel([]); // Clear selection after successful approval
-    //   fetchData(); // Refresh the data grid
-    // } catch (error) {
-    //   console.error("Error approving records:", error);
-    //   alert("An error occurred while approving the records. Please try again.");
-    // }
+  const handleBatchDecline = () => {
+    // User confirmation handler.
+    dialogContext.showConfirmation(
+      "Do you want to decline the selected overtime records?",
+      "Please note that once done, this cannot be undone.",
+      ConfirmationType.send,
+      () => {
+        // Trigger function.
+        console.log("selectionmodel", selectionModel);
+      },
+      "Decline",
+      "Cancel"
+    );
   };
 
   return (
@@ -448,7 +430,7 @@ const TimesheetAuditView = () => {
           </Box>
         )}
 
-        <Box sx={{ mb: 2 }}>
+        <Stack direction="row" justifyContent="space-end" alignItems="right" mb={1} spacing={1}>
           <Button
             variant="outlined"
             startIcon={<TuneIcon />}
@@ -549,7 +531,29 @@ const TimesheetAuditView = () => {
               </>
             )}
           </Menu>
-        </Box>
+
+          <Button
+            variant="contained"
+            onClick={handleBatchApprove}
+            sx={{ width: "160px", mx: 1 }}
+            startIcon={<ThumbUpIcon />}
+            disabled={selectionModel.length === 0}
+          >
+            Batch Approve
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={handleBatchDecline}
+            color="error"
+            sx={{ width: "160px", mx: 1 }}
+            startIcon={<ThumbDownIcon />}
+            disabled={selectionModel.length === 0}
+          >
+            Batch Reject
+          </Button>
+        </Stack>
+
         <Paper
           elevation={0}
           sx={{
@@ -561,17 +565,6 @@ const TimesheetAuditView = () => {
             overflow: "auto",
           }}
         >
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={handleBatchSubmit}
-            sx={{ width: "160px", mx: 1 }}
-            // startIcon={<PublishIcon />}
-            disabled={selectionModel.length === 0}
-          >
-            Batch Approve{" "}
-          </Button>
-
           {records && (
             <DataGrid
               pagination

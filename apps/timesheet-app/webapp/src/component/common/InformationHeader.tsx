@@ -37,6 +37,7 @@ import {
   FreeBreakfast,
   PendingActions,
   HourglassBottom,
+  RunningWithErrors,
 } from "@mui/icons-material";
 import { TimesheetInfo, WorkPolicies } from "@utils/types";
 
@@ -91,6 +92,11 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
       icon: <Cancel fontSize="small" />,
       color: "error" as const,
     },
+    {
+      label: `Total Records ${totalRecords}`,
+      icon: <AccessTime fontSize="small" />,
+      color: "info" as const,
+    }
   ];
 
   // Stats cards data
@@ -136,17 +142,7 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
       color: pendingRate > 30 ? "warning" : "info",
       progress: pendingRate,
     },
-    {
-      title: "Work Policy",
-      value: `${dailyWorkingHours}h day`,
-      subtitle: `${dailyWorkingHoursWithoutLunch}h net`,
-      icon: <Work />,
-      color: "secondary",
-      progress: 100,
-    },
   ];
-
-  const filteredStats = isLeadView ? stats : stats.filter((stat) => stat.title !== "OT Utilization");
 
   return (
     <Card
@@ -162,7 +158,7 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
           direction="row"
           spacing={1}
           sx={{
-            mb: 2,
+
             flexWrap: "wrap",
             gap: 1,
             justifyContent: "center",
@@ -182,28 +178,48 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
               }}
             />
           ))}
-          <Chip
-            icon={<AccessTime fontSize="small" />}
-            label={`Total: ${totalRecords} records`}
-            color="info"
-            variant="outlined"
-            size="medium"
-            sx={{
-              borderWidth: 2,
-              px: 1,
-            }}
-          />
-          <Chip icon={<FreeBreakfast />} label={`${workPolicies.lunchHoursPerDay}h Lunch Policy`} variant="outlined" />
-          <Chip label={`OT Annual Allowance: ${workPolicies.otHoursPerYear}h`} color="primary" variant="outlined" />
+          {!isLeadView && (
+            <>
+              <Chip
+                icon={<FreeBreakfast />}
+                label={`Lunch Time: ${workPolicies.lunchHoursPerDay}h`}
+                variant="outlined"
+                sx={{
+                  borderWidth: 2,
+                  px: 1,
+                }}
+              />
+              <Chip
+                icon={<RunningWithErrors />}
+                label={`OT Annual Allowance: ${workPolicies.otHoursPerYear}h`}
+                color="primary"
+                variant="outlined"
+                sx={{
+                  borderWidth: 2,
+                  px: 1,
+                }}
+              />
+               <Chip
+                icon={<Work />}
+                label={ `Work TIme ${dailyWorkingHours}`}
+                color="secondary"
+                variant="outlined"
+                sx={{
+                  borderWidth: 2,
+                  px: 1,
+                }}
+              />
+            </>
+          )}
         </Stack>
 
         {/* Main Stats Grid */}
         {!isLeadView && (
           <>
-            <Divider sx={{ my: 2 }} />
+            <Divider sx={{ my: 1 }} />
             <Grid container spacing={3}>
               {stats.map((stat, index) => (
-                <Grid item xs={12} sm={6} md={4} lg={2} key={index}>
+                <Grid item xs={12} sm={4} md={3} lg={2.4} key={index}>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                     <Box>
                       <Typography variant="body2" color="text.secondary">
