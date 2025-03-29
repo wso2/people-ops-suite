@@ -219,7 +219,7 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
             <Divider sx={{ my: 1 }} />
             <Grid container spacing={3}>
               {stats.map((stat, index) => (
-                <Grid item xs={12} sm={4} md={3} lg={2.4} key={index}>
+                <Grid item xs={12} sm={2.4} md={2.4} lg={2.4} key={index}>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                     <Box>
                       <Typography variant="body2" color="text.secondary">

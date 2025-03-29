@@ -573,7 +573,7 @@ const TimesheetDataGrid = () => {
               "&:hover": { boxShadow: "none" },
             }}
           >
-            ADD NEW
+            ADD NEW ENTRIES
           </Button>
         </Stack>
         <Paper
