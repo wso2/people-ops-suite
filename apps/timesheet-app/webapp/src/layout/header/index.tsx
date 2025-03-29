@@ -103,8 +103,8 @@ const Header = () => {
                 <Avatar
                   onClick={handleOpenUserMenu}
                   sx={{
-                    width: 56,
-                    height: 56,
+                    width: 40,
+                    height: 40,
                     boxShadow: (theme) =>
                       `0 0 0 2px ${theme.palette.background.paper}, 0 0 0 4px ${alpha(
                         theme.palette.primary.main,

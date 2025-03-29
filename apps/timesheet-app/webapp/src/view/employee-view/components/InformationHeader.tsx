@@ -1,53 +1,53 @@
-import React from "react";
+// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.import React from "react";
 import {
+  Box,
   Card,
+  Chip,
+  Grid,
+  Stack,
+  Tooltip,
+  Divider,
+  useTheme,
+  Typography,
   CardContent,
   LinearProgress,
-  Tooltip,
-  Typography,
-  Grid,
-  Box,
-  Divider,
-  Chip,
-  Avatar,
-  useTheme,
-  Stack,
 } from "@mui/material";
 import {
-  CheckCircle,
-  PendingActions,
-  Cancel,
   Work,
-  FreeBreakfast,
-  HourglassTop,
-  HourglassBottom,
+  Cancel,
   TrendingUp,
-  TrendingDown,
   AccessTime,
+  CheckCircle,
+  HourglassTop,
+  TrendingDown,
+  FreeBreakfast,
+  PendingActions,
+  HourglassBottom,
 } from "@mui/icons-material";
-
-interface TimesheetInfo {
-  approvedRecords?: number;
-  overTimeLeft: number;
-  pendingRecords?: number;
-  rejectedRecords?: number;
-  totalOverTimeTaken?: number;
-  totalRecords?: number;
-}
+import { TimesheetInfo, WorkPolicies } from "@utils/types";
 
 interface InformationHeaderProps {
   timesheetInfo: TimesheetInfo;
-  workPolicies: {
-    otHoursPerYear: number;
-    workingHoursPerDay: number;
-    lunchHoursPerDay: number;
-  };
+  workPolicies: WorkPolicies;
 }
 
 const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, workPolicies }) => {
   const theme = useTheme();
 
-  // Destructure with defaults
   const {
     approvedRecords = 0,
     overTimeLeft = 0,
@@ -57,9 +57,7 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
     totalRecords = 0,
   } = timesheetInfo;
 
-  // Calculations
   const otUtilizationPercentage = Math.min(100, (totalOverTimeTaken / workPolicies.otHoursPerYear) * 100);
-  const otTrend = totalOverTimeTaken > workPolicies.otHoursPerYear * 0.5 ? "high" : "low";
 
   const approvalRate = totalRecords > 0 ? (approvedRecords / totalRecords) * 100 : 0;
 

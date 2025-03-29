@@ -17,6 +17,7 @@ import {
   Box,
   Chip,
   Grid,
+  Menu,
   Stack,
   Paper,
   Dialog,
@@ -46,12 +47,13 @@ import EditIcon from "@mui/icons-material/Edit";
 import TuneIcon from "@mui/icons-material/Tune";
 import CloseIcon from "@mui/icons-material/Close";
 import CancelIcon from "@mui/icons-material/Cancel";
-import DeleteIcon from "@mui/icons-material/Delete";
 import PendingIcon from "@mui/icons-material/Pending";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useAppDispatch, useAppSelector } from "@slices/store";
+import InformationHeader from "../components/InformationHeader";
 import SubmitRecordModal from "../components/SubmitRecordModal";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { fetchTimesheetRecords } from "@slices/recordSlice/record";
@@ -60,7 +62,6 @@ import { CustomModal } from "@component/common/CustomComponentModal";
 import { State, TimesheetRecord, TimesheetStatus } from "@utils/types";
 import { differenceInMinutes, format, isWeekend, parseISO } from "date-fns";
 import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
-import InformationHeader from "../components/InformationHeader";
 
 const statusChipStyles = {
   [TimesheetStatus.APPROVED]: {
@@ -100,6 +101,7 @@ const TimesheetDataGrid = () => {
   );
   const timesheetInfo = useAppSelector((state) => state.user.userInfo?.timesheetInfo);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
+  const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
 
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
@@ -380,7 +382,6 @@ const TimesheetDataGrid = () => {
 
   const getFilterComponent = (filter: Filter) => {
     const fieldConfig = availableFields.find((f) => f.field === filter.field);
-    console.log(fieldConfig);
     if (!fieldConfig) return null;
 
     switch (fieldConfig.type) {
@@ -389,7 +390,9 @@ const TimesheetDataGrid = () => {
           <TextField
             select
             size="small"
+            required
             value={filter.value}
+            fullWidth
             onChange={(e) => handleFilterChange(filter.id, "value", e.target.value)}
             sx={{ minWidth: 150 }}
           >
@@ -412,7 +415,10 @@ const TimesheetDataGrid = () => {
         return (
           <TextField
             size="small"
+            fullWidth
             value={filter.value}
+            required
+            type="email"
             onChange={(e) => handleFilterChange(filter.id, "value", e.target.value)}
           />
         );
@@ -465,9 +471,6 @@ const TimesheetDataGrid = () => {
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1, pr: 1 }}>
         <Stack direction="row" justifyContent="space-end" alignItems="right">
-          {/* <Typography variant="h5" fontWeight="bold" color="text.primary">
-            Timesheet Entries
-          </Typography> */}
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -480,70 +483,115 @@ const TimesheetDataGrid = () => {
             New Entry
           </Button>
         </Stack>
+
         {timesheetInfo && workPolicies && (
-          <Box sx={{ width: "100%", height: "auto",}}>
-            <InformationHeader
-              timesheetInfo={timesheetInfo}
-              workPolicies={workPolicies}
-            />
+          <Box sx={{ width: "100%", height: "auto" }}>
+            <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} />
           </Box>
         )}
 
-        <Paper sx={{ p: 2, border: "1px solid", borderColor: "divider", mb: 1 }}>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <TuneIcon color="action" />
-            <Typography variant="subtitle1">Filters</Typography>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={handleAddFilter}
-              sx={{ mr: "auto" }}
-            >
-              Add Filter
-            </Button>
-          </Stack>
+        <Box sx={{ mb: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<TuneIcon />}
+            endIcon={<ExpandMoreIcon />}
+            onClick={(e) => setFilterAnchorEl(e.currentTarget)}
+            sx={{
+              borderColor: "divider",
+              "&:hover": { borderColor: "divider" },
+            }}
+          >
+            Filters
+            {filters.length > 0 && (
+              <Chip
+                label={filters.length}
+                size="small"
+                sx={{
+                  ml: 1,
+                  height: 20,
+                  fontSize: "0.75rem",
+                }}
+              />
+            )}
+          </Button>
 
-          {filters.length > 0 && (
-            <>
-              <Stack spacing={2} m={1}>
-                {filters.map((filter) => {
-                  const fieldConfig = availableFields.find((f) => f.field === filter.field);
-                  return (
-                    <Stack key={filter.id} direction="row" spacing={2} alignItems="center">
-                      <TextField
-                        select
-                        size="small"
-                        value={filter.field}
-                        onChange={(e) => handleFilterChange(filter.id, "field", e.target.value)}
-                        sx={{ minWidth: 150 }}
-                      >
-                        {availableFields.map((field) => (
-                          <MenuItem key={field.field} value={field.field}>
-                            {field.label}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                      {getFilterComponent(filter)}
-                      <IconButton onClick={() => handleRemoveFilter(filter.id)}>
-                        <CloseIcon />
-                      </IconButton>
-                    </Stack>
-                  );
-                })}
-              </Stack>
-              <Stack direction="row" spacing={2}>
-                <Button variant="contained" onClick={applyFilters}>
-                  Apply Filters
-                </Button>
-                <Button variant="outlined" onClick={resetFilters}>
-                  Reset
-                </Button>
-              </Stack>
-            </>
-          )}
-        </Paper>
+          <Menu
+            anchorEl={filterAnchorEl}
+            open={Boolean(filterAnchorEl)}
+            onClose={() => setFilterAnchorEl(null)}
+            PaperProps={{
+              sx: {
+                p: 2,
+                width: 400,
+                maxWidth: "90vw",
+                maxHeight: "80vh",
+                overflow: "auto",
+              },
+            }}
+          >
+            <Stack direction="row" justifyContent="space-between" alignItems="center" >
+              <Typography variant="subtitle2">FILTERS</Typography>
+              <Button size="small" startIcon={<AddIcon />} onClick={handleAddFilter}>
+                Add Filter
+              </Button>
+            </Stack>
 
+            {filters.length > 0 && (
+              <>
+                <Stack spacing={2}>
+                  {filters.map((filter) => (
+                    <Paper key={filter.id} variant="outlined" sx={{ p: 1.5, position: "relative" }}>
+                      <Stack spacing={1.5} direction={"row"}>
+                        <Box width={"45%"}>
+                          <TextField
+                            select
+                            size="small"
+                            fullWidth
+                            label="Field"
+                            value={filter.field}
+                            onChange={(e) => handleFilterChange(filter.id, "field", e.target.value)}
+                          >
+                            {availableFields.map((field) => (
+                              <MenuItem key={field.field} value={field.field}>
+                                {field.label}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        </Box>
+
+                        <Box width={"50%"}>{getFilterComponent(filter)}</Box>
+                        <Box width={"5%"} alignContent={"center"} display={"flex"}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRemoveFilter(filter.id)}
+                            sx={{ color: "text.secondary" }}
+                          >
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </Stack>
+                    </Paper>
+                  ))}
+                  <Stack direction="row" spacing={1} justifyContent="flex-end">
+                    <Button size="small" onClick={resetFilters}>
+                      Reset
+                    </Button>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() => {
+                        applyFilters();
+                        setFilterAnchorEl(null);
+                      }}
+                    >
+                      Apply
+                    </Button>
+                  </Stack>
+                </Stack>
+              </>
+            )}
+          </Menu>
+        </Box>
         <Paper
           elevation={0}
           sx={{

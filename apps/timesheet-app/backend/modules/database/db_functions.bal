@@ -95,12 +95,15 @@ public isolated function getTimeSheetRecords(TimesheetCommonFilter filter) retur
 #
 # + filter - Filter type for the records
 # + return - Timesheet record count of the employee or an error
-public isolated function getTimesheetMetaData(TimesheetCommonFilter filter)
-    returns TimesheetCount|error? {
+public isolated function getTotalRecordCount(TimesheetCommonFilter filter)
+    returns int|error? {
 
-    TimesheetCount|sql:Error count = databaseClient->queryRow(getTotalRecordCountQuery(filter));
+    int|sql:Error count = databaseClient->queryRow(getTotalRecordCountQuery(filter));
 
-    if count is sql:Error && count is sql:NoRowsError {
+    if count is sql:NoRowsError {
+        return 0;
+    }
+    if count is sql:Error {
         return;
     }
     return count;

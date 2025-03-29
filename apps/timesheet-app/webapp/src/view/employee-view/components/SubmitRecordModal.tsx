@@ -32,7 +32,6 @@ import {
   TextField,
   IconButton,
   CardHeader,
-  Typography,
   FormControl,
   CardContent,
   DialogTitle,
@@ -42,20 +41,24 @@ import {
   InputAdornment,
   FormControlLabel,
 } from "@mui/material";
+import { Messages } from "@config/constant";
 import AddIcon from "@mui/icons-material/Add";
 import { TimesheetStatus } from "@utils/types";
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PublishIcon from "@mui/icons-material/Publish";
+import { HourglassBottom } from "@mui/icons-material";
 import { CreateUITimesheetRecord } from "@utils/types";
 import React, { useState, useEffect, useRef } from "react";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { useAppDispatch, useAppSelector } from "@slices/store";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import { addTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { format, differenceInMinutes, isWeekend, startOfDay } from "date-fns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 
@@ -76,6 +79,8 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
   const totalOvertimeHours = entries.reduce((sum, entry) => sum + entry.overtimeDuration, 0);
   const totalDays = entries.length;
   const userEmail = useAppSelector((state) => state.user.userInfo!.workEmail);
+  const timesheetInfo = useAppSelector((state) => state.user.userInfo?.timesheetInfo);
+  const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
 
   function createNewEntry(): CreateUITimesheetRecord {
     return {
@@ -172,12 +177,20 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
   };
 
   const handleDataSubmit = async () => {
-    const cleanedEntries = cleanTimeEntries(entries);
-
-    const resultAction = await dispatch(addTimesheetRecords({ employeeEmail: userEmail, payload: cleanedEntries }));
-
-    if (addTimesheetRecords.fulfilled.match(resultAction)) {
-      // onClose?.();
+    if (timesheetInfo && totalOvertimeHours > timesheetInfo?.overTimeLeft) {
+      dispatch(
+        enqueueSnackbarMessage({
+          message: Messages.error.otExceeds,
+          type: "error",
+        })
+      );
+      return;
+    } else {
+      const cleanedEntries = cleanTimeEntries(entries);
+      const resultAction = await dispatch(addTimesheetRecords({ employeeEmail: userEmail, payload: cleanedEntries }));
+      if (addTimesheetRecords.fulfilled.match(resultAction)) {
+        onClose?.();
+      }
     }
   };
 
@@ -449,7 +462,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                 <Divider sx={{ mb: 2 }}>
                   <Chip label="Entries to Submit" />
                 </Divider>
-
                 <TableContainer component={Paper} elevation={2}>
                   <Table size="small">
                     <TableHead>
@@ -509,13 +521,37 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
                     </TableBody>
                   </Table>
                 </TableContainer>
-
                 <Box sx={{ mt: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Typography variant="body2">
-                    Total: {totalDays} day{totalDays !== 1 ? "s" : ""}
-                    {totalOvertimeHours > 0 &&
-                      ` with ${totalOvertimeHours.toFixed(2)} overtime hour${totalOvertimeHours !== 1 ? "s" : ""}`}
-                  </Typography>
+                  <Chip
+                    title="OT Remaining"
+                    label={
+                      <>
+                        Total: {totalDays} day{totalDays !== 1 ? "s" : ""}
+                        {totalOvertimeHours > 0 &&
+                          ` with ${totalOvertimeHours.toFixed(2)} overtime hour${totalOvertimeHours !== 1 ? "s" : ""}`}
+                      </>
+                    }
+                    color="success"
+                    icon={<ReceiptLongIcon />}
+                    variant="outlined"
+                    size="medium"
+                    sx={{
+                      borderWidth: 2,
+                      px: 1,
+                    }}
+                  />
+                  <Chip
+                    title="OT Remaining"
+                    label={`OT Remaining ${timesheetInfo?.overTimeLeft.toFixed(1)}h`}
+                    color="success"
+                    icon={<HourglassBottom />}
+                    variant="outlined"
+                    size="medium"
+                    sx={{
+                      borderWidth: 2,
+                      px: 1,
+                    }}
+                  />
                 </Box>
               </Box>
             )}
@@ -625,7 +661,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
             </Button>
           </DialogActions>
         </Dialog>
-
       </LocalizationProvider>
     </Box>
   );

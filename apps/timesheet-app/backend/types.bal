@@ -59,7 +59,7 @@ public type EmployeeInformation record {
 # Timesheet records collection type.
 public type TimeSheetRecords record {
     # Overtime information from the database
-    database:TimesheetCount? totalRecordCount;
+    int? totalRecordCount;
     # List of timesheet records
     database:TimeSheetRecord[]? timesheetRecords;
 };

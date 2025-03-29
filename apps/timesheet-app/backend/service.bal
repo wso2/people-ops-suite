@@ -336,7 +336,7 @@ service http:InterceptableService / on new http:Listener(9091) {
             recordDates: ()
         };
 
-        database:TimesheetCount|error? totalRecordCount = database:getTimesheetMetaData(filter);
+        int|error? totalRecordCount = database:getTotalRecordCount(filter);
 
         if totalRecordCount is error {
             string customError = string `Error occurred while retrieving the record count!`;

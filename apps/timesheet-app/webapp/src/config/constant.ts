@@ -25,6 +25,7 @@ export const Messages = {
     addCollections: "Unable to create the Collection",
     fetchTimesheetRecords: "Unable to retrieve timesheet records",
     sendTimesheetRecords: "Unable to save timesheet records",
+    otExceeds : "This entries exceeds the available overtime quota"
   },
   warning: {},
 };
