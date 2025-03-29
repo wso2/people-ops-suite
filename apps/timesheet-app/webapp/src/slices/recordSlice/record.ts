@@ -193,7 +193,7 @@ const TimesheetRecordSlice = createSlice({
     builder
       .addCase(fetchTimesheetRecords.pending, (state) => {
         state.retrievingState = State.loading;
-        state.stateMessage = "Fetching collections...";
+        state.stateMessage = "Fetching records...";
       })
       .addCase(fetchTimesheetRecords.fulfilled, (state, action) => {
         state.retrievingState = State.success;
@@ -206,7 +206,7 @@ const TimesheetRecordSlice = createSlice({
       })
       .addCase(addTimesheetRecords.pending, (state) => {
         state.submitState = State.loading;
-        state.stateMessage = "Creating collections...";
+        state.stateMessage = "Creating records...";
       })
       .addCase(addTimesheetRecords.fulfilled, (state) => {
         state.submitState = State.success;

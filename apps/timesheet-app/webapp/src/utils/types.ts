@@ -15,7 +15,6 @@
 // under the License.
 
 import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
-import { Collection } from "@slices/collectionSlice/collection";
 
 export interface AuthState {
   status: State;
@@ -73,12 +72,6 @@ export enum ConfirmationType {
   send = "send",
   upload = "upload",
   accept = "accept",
-}
-
-export interface CommonCardProps {
-  collection: Collection;
-  actions: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
-  dataCardIndex: number;
 }
 
 export enum Roles {
