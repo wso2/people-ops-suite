@@ -153,19 +153,19 @@ public type TimesheetUpdate record {|
     # Time sheet record id
     int recordId;
     # Record date
-    string? recordDate;
+    string recordDate?;
     # Clock in time
-    string? clockInTime;
+    string clockInTime?;
     # Clock out time
-    string? clockOutTime;
+    string clockOutTime?;
     # Total work duration
-    int? isLunchIncluded;
+    int isLunchIncluded?;
     # Overtime duration
-    decimal? overtimeDuration;
+    decimal overtimeDuration?;
     # Overtime reason
-    string? overtimeReason;
+    string overtimeReason?;
     # Overtime rejection reason
-    string? overtimeRejectReason;
+    string overtimeRejectReason?;
     # Overtime status
-    TimeSheetStatus? overtimeStatus;
+    TimeSheetStatus overtimeStatus?;
 |};

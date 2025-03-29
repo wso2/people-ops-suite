@@ -26,10 +26,6 @@ import {
   TextField,
   Typography,
   IconButton,
-  DialogTitle,
-  DialogActions,
-  DialogContent,
-  InputAdornment,
 } from "@mui/material";
 import {
   DataGrid,
@@ -45,23 +41,22 @@ import AddIcon from "@mui/icons-material/Add";
 import TuneIcon from "@mui/icons-material/Tune";
 import CloseIcon from "@mui/icons-material/Close";
 import CancelIcon from "@mui/icons-material/Cancel";
+import PersonIcon from "@mui/icons-material/Person";
 import PendingIcon from "@mui/icons-material/Pending";
+import ThumbUpIcon from "@mui/icons-material/ThumbUp";
+import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { ConfirmationType, State, TimesheetRecord, TimesheetStatus } from "@utils/types";
-import { parseISO } from "date-fns";
-import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { useAppDispatch, useAppSelector } from "@slices/store";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { fetchTimesheetRecords } from "@slices/recordSlice/record";
-import PersonIcon from "@mui/icons-material/Person";
-import ThumbUpIcon from "@mui/icons-material/ThumbUp";
-import ThumbDownIcon from "@mui/icons-material/ThumbDown";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import InformationHeader from "@component/common/InformationHeader";
 import { useConfirmationModalContext } from "@context/DialogContext";
+import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { ConfirmationType, State, TimesheetRecord, TimesheetStatus } from "@utils/types";
 
 const statusChipStyles = {
   [TimesheetStatus.APPROVED]: {
@@ -89,8 +84,6 @@ const TimesheetAuditView = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const dialogContext = useConfirmationModalContext();
-  const [openDialog, setOpenDialog] = useState(false);
-  const handleCloseDialog = () => setOpenDialog(false);
   const leadEmail = useAppSelector((state) => state.auth.userInfo?.email);
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
@@ -99,13 +92,10 @@ const TimesheetAuditView = () => {
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
   const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
-
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 5,
   });
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<any | null>(null);
 
   const columns = [
     {
@@ -209,7 +199,7 @@ const TimesheetAuditView = () => {
               <IconButton
                 size="small"
                 color="info"
-                onClick={() => openEditDialog(params.row)}
+                onClick={() => handleApproveRecords(params.row.recordId)}
                 disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
                 sx={{ mr: 1 }}
               >
@@ -223,7 +213,7 @@ const TimesheetAuditView = () => {
                 size="small"
                 color="error"
                 disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
-                // onClick={() => handleDeleteEntry(params.row.recordId)}
+                onClick={() => handleDeclineRecords(params.row.recordId)}
               >
                 <ThumbDownIcon fontSize="small" />
               </IconButton>
@@ -234,16 +224,6 @@ const TimesheetAuditView = () => {
     },
   ];
 
-  const openEditDialog = (entry: TimesheetRecord) => {
-    setEditingEntry({
-      ...entry,
-      recordDate: parseISO(entry.recordDate.toString()),
-      clockInTime: parseISO(`1970-01-01T${entry.clockInTime}`),
-      clockOutTime: parseISO(`1970-01-01T${entry.clockOutTime}`),
-    });
-    setEditDialogOpen(true);
-  };
-
   useEffect(() => {
     if (!leadEmail) return;
     fetchData();
@@ -251,12 +231,12 @@ const TimesheetAuditView = () => {
 
   const [filters, setFilters] = useState<Filter[]>([]);
 
-  const [availableFields, setAvailableFields] = useState([
+  const availableFields = [
     { field: "status", label: "Status", type: "select", options: Object.values(TimesheetStatus) },
     { field: "leadEmail", label: "Lead Email", type: "text" },
     { field: "rangeStart", label: "Start Date", type: "date" },
     { field: "rangeEnd", label: "End Date", type: "date" },
-  ]);
+  ];
 
   const [filterModel, setFilterModel] = useState<GridFilterModel>({
     items: [],
@@ -391,14 +371,12 @@ const TimesheetAuditView = () => {
     setSelectionModel(newSelectionModel);
   };
 
-  const handleBatchApprove = () => {
-    // User confirmation handler.
+  const handleApproveRecords = (recordID?: number) => {
     dialogContext.showConfirmation(
-      "Do you want to approve the selected overtime records?",
+      "Do you want to approve the selected?",
       "Please note that once done, this cannot be undone.",
       ConfirmationType.send,
       () => {
-        // Trigger function.
         console.log("selectionmodel", selectionModel);
       },
       "Approve",
@@ -406,18 +384,21 @@ const TimesheetAuditView = () => {
     );
   };
 
-  const handleBatchDecline = () => {
-    // User confirmation handler.
+  const handleDeclineRecords = (recordID?: number) => {
     dialogContext.showConfirmation(
-      "Do you want to decline the selected overtime records?",
+      "Do you want to decline the selected?",
       "Please note that once done, this cannot be undone.",
       ConfirmationType.send,
-      () => {
-        // Trigger function.
-        console.log("selectionmodel", selectionModel);
+      (comment) => {
+        console.log("selectionmodel", selectionModel, "comment", comment);
       },
       "Decline",
-      "Cancel"
+      "Cancel",
+      {
+        label: "Reason for decline",
+        mandatory: true,
+        type: "textarea",
+      }
     );
   };
 
@@ -534,7 +515,7 @@ const TimesheetAuditView = () => {
 
           <Button
             variant="contained"
-            onClick={handleBatchApprove}
+            onClick={() => handleApproveRecords()}
             sx={{ width: "160px", mx: 1 }}
             startIcon={<ThumbUpIcon />}
             disabled={selectionModel.length <= 1}
@@ -544,7 +525,7 @@ const TimesheetAuditView = () => {
 
           <Button
             variant="contained"
-            onClick={handleBatchDecline}
+            onClick={() => handleDeclineRecords()}
             color="error"
             sx={{ width: "160px", mx: 1 }}
             startIcon={<ThumbDownIcon />}
@@ -575,6 +556,7 @@ const TimesheetAuditView = () => {
               rowCount={totalRecordCount}
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
+              disableRowSelectionOnClick
               loading={recordLoadingState === State.loading}
               getRowId={(row) => row.recordId}
               filterModel={filterModel}
@@ -622,96 +604,6 @@ const TimesheetAuditView = () => {
             />
           )}
         </Paper>
-
-        {/* <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-          <DialogTitle>Edit Time Entry</DialogTitle>
-          <DialogContent>
-            {editingEntry && (
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12} md={6}>
-                  <DatePicker
-                    label="Date"
-                    value={editingEntry.recordDate}
-                    onChange={(newDate) => handleEditFieldChange("recordDate", newDate)}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        variant: "outlined",
-                        error: !!errors.recordDate,
-                        helperText: errors.recordDate,
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TimePicker
-                    label="Clock In"
-                    value={editingEntry.clockInTime}
-                    onChange={(newTime) => handleEditFieldChange("clockInTime", newTime)}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        variant: "outlined",
-                        error: !!errors.clockInTime,
-                        helperText: errors.clockInTime,
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TimePicker
-                    label="Clock Out"
-                    value={editingEntry.clockOutTime}
-                    onChange={(newTime) => handleEditFieldChange("clockOutTime", newTime)}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        variant: "outlined",
-                        error: !!errors.clockOutTime,
-                        helperText: errors.clockOutTime,
-                      },
-                    }}
-                  />
-                </Grid>
-                {editingEntry.overtimeDuration > 0 && (
-                  <Grid item xs={12}>
-                    <TextField
-                      label="Overtime Reason"
-                      value={editingEntry.overtimeReason}
-                      onChange={(e) => handleEditFieldChange("overtimeReason", e.target.value)}
-                      variant="outlined"
-                      fullWidth
-                      multiline
-                      rows={3}
-                      required={editingEntry.overtimeDuration > 0}
-                      error={!!errors.overtimeReason}
-                      helperText={errors.overtimeReason}
-                      InputProps={{
-                        startAdornment: editingEntry.overtimeDuration > 0 && (
-                          <InputAdornment position="start">
-                            <Chip
-                              label={`OT: ${editingEntry.overtimeDuration.toFixed(2)} hrs`}
-                              color="primary"
-                              size="small"
-                            />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Grid>
-                )}
-              </Grid>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEditDialogOpen(false)} color="secondary">
-              Cancel
-            </Button>
-            <Button onClick={handleSaveEditedEntry} color="primary">
-              Save Changes
-            </Button>
-          </DialogActions>
-        </Dialog> */}
       </Box>
     </LocalizationProvider>
   );

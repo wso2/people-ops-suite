@@ -76,7 +76,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
   const [entries, setEntries] = useState<CreateUITimesheetRecord[]>([]);
   const totalDays = entries.length;
   const userEmail = useAppSelector((state) => state.user.userInfo!.workEmail);
-  const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
   const [editingEntry, setEditingEntry] = useState<CreateUITimesheetRecord | null>(null);
   const totalOvertimeHours = entries.reduce((sum, entry) => sum + entry.overtimeDuration, 0);

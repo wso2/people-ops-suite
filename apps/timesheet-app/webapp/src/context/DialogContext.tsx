@@ -62,7 +62,7 @@ type ConfirmationDialogContextType = {
     title: string,
     message: string | JSX.Element,
     type: ConfirmationType,
-    action: () => void,
+    action: (value?: string) => void,
     okText?: string,
     cancelText?: string,
     inputObj?: InputObj
@@ -124,6 +124,7 @@ const ConfirmationDialogContextProvider: React.FC<ConfirmationModalContextProvid
 
   const handleOk = (value?: string) => {
     content && content.action(value);
+    Reset();
     onHide();
   };
 
@@ -140,8 +141,8 @@ const ConfirmationDialogContextProvider: React.FC<ConfirmationModalContextProvid
       action: () => {},
       okText: undefined,
       cancelText: undefined,
+      inputObj: undefined
     });
-
     setComment("");
   };
 
