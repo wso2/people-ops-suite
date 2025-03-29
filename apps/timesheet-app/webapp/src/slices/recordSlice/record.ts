@@ -21,7 +21,7 @@ import { APIService } from "@utils/apiService";
 import { createSlice } from "@reduxjs/toolkit";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { enqueueSnackbarMessage } from "../commonSlice/common";
-import { State, TimesheetData, TimesheetStatus } from "@utils/types";
+import { State, TimesheetData, TimesheetStatus, TimesheetUpdate } from "@utils/types";
 
 interface TimesheetRecordState {
   retrievingState: State;
@@ -132,52 +132,56 @@ export const updateTimesheetRecords = createAsyncThunk(
   "timesheet/updateTimesheetRecords",
   async (
     params: {
-      employeeEmail?: string;
-      status?: TimesheetStatus;
-      limit?: number;
-      offset?: number;
-      rangeStart?: string;
-      rangeEnd?: string;
-      leadEmail?: string;
+      timesheetRecords: TimesheetUpdate[];
     },
     { dispatch, rejectWithValue }
   ) => {
-    APIService.getCancelToken().cancel();
-    const newCancelTokenSource = APIService.updateCancelToken();
+    try {
+      APIService.getCancelToken().cancel();
+      const newCancelTokenSource = APIService.updateCancelToken();
 
-    const queryParams = new URLSearchParams();
-    if (params.employeeEmail) queryParams.append("employeeEmail", params.employeeEmail);
-    if (params.status) queryParams.append("status", params.status);
-    if (params.limit) queryParams.append("limit", params.limit.toString());
-    if (params.offset) queryParams.append("offset", params.offset.toString());
-    if (params.rangeStart) queryParams.append("rangeStart", params.rangeStart);
-    if (params.rangeEnd) queryParams.append("rangeEnd", params.rangeEnd);
-    if (params.leadEmail) queryParams.append("leadEmail", params.leadEmail);
-
-    return new Promise<TimesheetData>((resolve, reject) => {
-      APIService.getInstance()
-        .get(`${AppConfig.serviceUrls.timesheetRecords}?${queryParams.toString()}`, {
+      const response = await APIService.getInstance().patch(
+        `${AppConfig.serviceUrls.timesheetRecords}`,
+        params.timesheetRecords,
+        {
           cancelToken: newCancelTokenSource.token,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.code === "ERR_CANCELED") {
+          return rejectWithValue("Request canceled");
+        }
+
+        const errorMessage =
+          error.response?.status === HttpStatusCode.InternalServerError
+            ? Messages.error.updateRecords
+            : String(error.response?.data?.message || error.message);
+
+        dispatch(
+          enqueueSnackbarMessage({
+            message: errorMessage,
+            type: "error",
+          })
+        );
+
+        return rejectWithValue(errorMessage);
+      }
+
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      dispatch(
+        enqueueSnackbarMessage({
+          message: errorMessage,
+          type: "error",
         })
-        .then((response) => {
-          resolve(response.data);
-        })
-        .catch((error) => {
-          if (axios.isCancel(error)) {
-            return rejectWithValue("Request canceled");
-          }
-          dispatch(
-            enqueueSnackbarMessage({
-              message:
-                error.response?.status === HttpStatusCode.InternalServerError
-                  ? Messages.error.fetchRecords
-                  : String(error.response?.data?.message || error.message),
-              type: "error",
-            })
-          );
-          reject(error.response?.data?.message || error.message);
-        });
-    });
+      );
+      return rejectWithValue(errorMessage);
+    }
   }
 );
 
@@ -215,6 +219,18 @@ const TimesheetRecordSlice = createSlice({
       .addCase(addTimesheetRecords.rejected, (state) => {
         state.submitState = State.failed;
         state.stateMessage = "Failed to create!";
+      })
+      .addCase(updateTimesheetRecords.pending, (state) => {
+        state.submitState = State.loading;
+        state.stateMessage = "Updating records...";
+      })
+      .addCase(updateTimesheetRecords.fulfilled, (state) => {
+        state.submitState = State.success;
+        state.stateMessage = "Successfully updated!";
+      })
+      .addCase(updateTimesheetRecords.rejected, (state) => {
+        state.submitState = State.failed;
+        state.stateMessage = "Failed to update!";
       });
   },
 });

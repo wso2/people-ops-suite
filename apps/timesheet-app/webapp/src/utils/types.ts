@@ -132,3 +132,15 @@ export interface TimesheetInfo {
   totalOverTimeTaken?: number;
   totalRecords?: number;
 }
+
+export interface TimesheetUpdate {
+  recordId: number;
+  recordDate?: string;
+  clockInTime?: number;
+  clockOutTime?: number;
+  isLunchIncluded?: boolean;
+  overtimeDuration?: string;
+  overtimeReason?: string;
+  overtimeRejectReason?: string;
+  overtimeStatus?: TimesheetStatus;
+}

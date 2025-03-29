@@ -51,12 +51,12 @@ import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import { fetchTimesheetRecords } from "@slices/recordSlice/record";
+import { fetchTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import InformationHeader from "@component/common/InformationHeader";
 import { useConfirmationModalContext } from "@context/DialogContext";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
-import { ConfirmationType, State, TimesheetRecord, TimesheetStatus } from "@utils/types";
+import { ConfirmationType, State, TimesheetRecord, TimesheetStatus, TimesheetUpdate } from "@utils/types";
 
 const statusChipStyles = {
   [TimesheetStatus.APPROVED]: {
@@ -264,6 +264,7 @@ const TimesheetAuditView = () => {
 
   const fetchDefaultData = async () => {
     if (!leadEmail) return;
+    resetFilters();
     dispatch(
       fetchTimesheetRecords({
         status: TimesheetStatus.PENDING,
@@ -371,20 +372,44 @@ const TimesheetAuditView = () => {
     setSelectionModel(newSelectionModel);
   };
 
-  const handleApproveRecords = (recordID?: number) => {
+  const handleApproveRecords = (recordId?: number) => {
+    // const timesheetRecords: TimesheetUpdate[] = [
+    //   {
+    //     recordId: 5,
+    //     overtimeStatus: TimesheetStatus.APPROVED,
+    //   },
+    //   {
+    //     recordId: 10,
+    //     overtimeStatus: TimesheetStatus.APPROVED,
+    //   },
+    // ];
+
+    const timesheetRecords: TimesheetUpdate[] = [];
+
+    if (recordId) {
+      timesheetRecords.push({ recordId: recordId, overtimeStatus: TimesheetStatus.APPROVED });
+    }
+
     dialogContext.showConfirmation(
       "Do you want to approve the selected?",
       "Please note that once done, this cannot be undone.",
       ConfirmationType.send,
       () => {
-        console.log("selectionmodel", selectionModel);
+        // console.log("selectionmodel", selectionModel);
+        // console.log("Payload:", { timesheetRecords: timesheetRecords });
+        updateRecords(timesheetRecords);
       },
       "Approve",
       "Cancel"
     );
   };
 
-  const handleDeclineRecords = (recordID?: number) => {
+  const updateRecords = async (records: TimesheetUpdate[]) => {
+    await dispatch(updateTimesheetRecords({ timesheetRecords: records }));
+    fetchData()
+  };
+
+  const handleDeclineRecords = (recordId?: number) => {
     dialogContext.showConfirmation(
       "Do you want to decline the selected?",
       "Please note that once done, this cannot be undone.",
