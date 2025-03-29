@@ -122,6 +122,7 @@ export interface CreateUITimesheetRecord {
 export interface TimesheetData {
   totalRecordCount: number;
   timesheetRecords: TimesheetRecord[];
+  timesheetInfo: TimesheetInfo;
 }
 
 export interface WorkPolicies {

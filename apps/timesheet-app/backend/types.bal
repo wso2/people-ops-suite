@@ -46,14 +46,12 @@ public type EmployeeInformation record {
     string company;
     # Manager email of the employee
     string managerEmail;
-    # Job band of the employee
-    int? jobBand;
+    # Indicator of lead or not
+    boolean lead;
     # Privileges of the employee
     int[] privileges;
     # Work policies of the employee
     database:WorkPolicies workPolicies;
-    # Timesheet information of employee
-    database:TimesheetInfo? timesheetInfo;
 };
 
 # Timesheet records collection type.
@@ -62,4 +60,6 @@ public type TimeSheetRecords record {
     int? totalRecordCount;
     # List of timesheet records
     database:TimeSheetRecord[]? timesheetRecords;
+    # Timesheet information for leads
+    database:TimesheetInfo? timesheetInfo;
 };

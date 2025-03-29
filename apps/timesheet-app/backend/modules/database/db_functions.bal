@@ -122,6 +122,7 @@ public isolated function insertTimesheetRecords(TimeSheetRecord[] timesheetRecor
         databaseClient->batchExecute(insertTimesheetRecordsQuery(timesheetRecords, employeeEmail, companyName,
             leadEmail));
 
+
     if executionResult is error {
         return executionResult;
     }
@@ -132,8 +133,8 @@ public isolated function insertTimesheetRecords(TimeSheetRecord[] timesheetRecor
 #
 # + filter - Filter type for the records
 # + return - Timesheet info record or an error
-public isolated function getEmployeeTimesheetInfo(TimesheetCommonFilter filter) returns TimesheetInfo|error? {
-    TimesheetInfo|sql:Error policy = databaseClient->queryRow(getEmployeeTimesheetInfoQuery(filter));
+public isolated function getTimesheetInfo(TimesheetCommonFilter filter) returns TimesheetInfo|error? {
+    TimesheetInfo|sql:Error policy = databaseClient->queryRow(getTimesheetInfoQuery(filter));
 
     if policy is sql:Error && policy is sql:NoRowsError {
         return;

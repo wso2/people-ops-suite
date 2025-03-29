@@ -252,39 +252,15 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        database:TimesheetCommonFilter filter = {
-            employeeEmail: userInfo.email,
-            leadEmail: (),
-            status: (),
-            recordsLimit: (),
-            recordOffset: (),
-            rangeStart: (),
-            rangeEnd: (),
-            recordDates: ()
-        };
-
-        database:TimesheetInfo|error? employeeTimesheetInfo = database:getEmployeeTimesheetInfo(filter);
-        if employeeTimesheetInfo is error {
-            string customError =
-                string `Error occurred while retrieving timesheet information for ${userInfo.email}!`;
-            log:printError(customError, employeeTimesheetInfo);
-            return <http:InternalServerError>{
-                body: {
-                    message: customError
-                }
-            };
-        }
-
         int[] privileges = [EMPLOYEE_PRIVILEGE];
-
         if authorization:checkPermissions([authorization:authorizedRoles.adminRole], userInfo.groups) {
             privileges.push(HR_ADMIN_PRIVILEGE);
         }
-        if loggedInUser.jobBand !is () && loggedInUser.jobBand >= 7 {
+        if loggedInUser.lead == true {
             privileges.push(LEAD_PRIVILEGE);
         }
 
-        EmployeeInformation employee = {
+        return {
             employeeId: loggedInUser.employeeId,
             workEmail: loggedInUser.workEmail,
             firstName: loggedInUser.firstName,
@@ -293,13 +269,10 @@ service http:InterceptableService / on new http:Listener(9091) {
             employeeThumbnail: loggedInUser.employeeThumbnail,
             company: loggedInUser.company,
             managerEmail: loggedInUser.managerEmail,
-            jobBand: loggedInUser.jobBand,
+            lead: loggedInUser.lead,
             privileges: privileges,
-            workPolicies: workPolicies,
-            timesheetInfo: employeeTimesheetInfo
+            workPolicies: workPolicies
         };
-
-        return employee;
     }
 
     # Endpoint to get timesheet records using filters.
@@ -332,7 +305,7 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        database:TimesheetCommonFilter filter = {
+        database:TimesheetCommonFilter commonFilter = {
             employeeEmail: employeeEmail,
             leadEmail: leadEmail,
             status: status,
@@ -343,7 +316,7 @@ service http:InterceptableService / on new http:Listener(9091) {
             recordDates: ()
         };
 
-        int|error? totalRecordCount = database:getTotalRecordCount(filter);
+        int|error? totalRecordCount = database:getTotalRecordCount(commonFilter);
         if totalRecordCount is error {
             string customError = string `Error occurred while retrieving the record count!`;
             log:printError(customError, totalRecordCount);
@@ -354,7 +327,7 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        database:TimeSheetRecord[]|error? timesheetRecords = database:getTimeSheetRecords(filter);
+        database:TimeSheetRecord[]|error? timesheetRecords = database:getTimeSheetRecords(commonFilter);
         if timesheetRecords is error {
             string customError = string `Error occurred while retrieving the timesheetRecords!`;
             log:printError(customError, timesheetRecords);
@@ -365,13 +338,38 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        if employeeEmail is string && authorization:checkPermissions([authorization:authorizedRoles.leadRole], userInfo.groups) {
+        string|null leadEmailToFilter = ();
+        if authorization:checkPermissions([authorization:authorizedRoles.leadRole], userInfo.groups) {
+            if userInfo.email !== employeeEmail {
+                leadEmailToFilter = userInfo.email;
+            }
+        }
 
+        database:TimesheetCommonFilter infoFilter = {
+            employeeEmail: leadEmailToFilter is string ? () : employeeEmail,
+            leadEmail: leadEmailToFilter is string ? leadEmailToFilter : (),
+            status: (),
+            recordsLimit: (),
+            recordOffset: (),
+            rangeStart: (),
+            rangeEnd: (),
+            recordDates: ()
+        };
+        database:TimesheetInfo|error? timesheetInfo = database:getTimesheetInfo(infoFilter);
+        if timesheetInfo is error {
+            string customError = string `Error occurred while retrieving the timesheet information!`;
+            log:printError(customError, timesheetInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
         }
 
         return {
             totalRecordCount: totalRecordCount,
-            timesheetRecords: timesheetRecords
+            timesheetRecords: timesheetRecords,
+            timesheetInfo: timesheetInfo ?: ()
         };
     }
 

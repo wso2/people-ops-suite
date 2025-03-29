@@ -30,7 +30,7 @@ public isolated function fetchEmployeesBasicInfo(string workEmail) returns Emplo
                 employeeThumbnail,
                 company,
                 managerEmail,
-                jobBand
+                lead
             }
         }
     `;

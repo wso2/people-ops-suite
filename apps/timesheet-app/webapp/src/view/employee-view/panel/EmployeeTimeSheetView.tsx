@@ -99,7 +99,7 @@ const TimesheetDataGrid = () => {
   const totalRecordCount = useAppSelector(
     (state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0
   );
-  const timesheetInfo = useAppSelector((state) => state.user.userInfo?.timesheetInfo);
+  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({

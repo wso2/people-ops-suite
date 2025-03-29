@@ -28,7 +28,6 @@ const initialState: UserState = {
   roles: [],
   privileges: [],
   workPolicies: {} as WorkPolicies,
-  timesheetInfo: {} as TimesheetInfo,
 };
 
 interface UserState {
@@ -39,7 +38,6 @@ interface UserState {
   roles: Roles[];
   privileges: number[];
   workPolicies: WorkPolicies;
-  timesheetInfo: TimesheetInfo;
 }
 
 interface UserInfoInterface {
@@ -51,7 +49,6 @@ interface UserInfoInterface {
   jobRole: string;
   privileges: number[];
   workPolicies: WorkPolicies;
-  timesheetInfo: TimesheetInfo;
 }
 
 export const getUserInfo = createAsyncThunk("User/getUserInfo", async () => {

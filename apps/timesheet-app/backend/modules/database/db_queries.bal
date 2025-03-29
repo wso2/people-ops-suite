@@ -184,7 +184,6 @@ isolated function getTotalRecordCountQuery(TimesheetCommonFilter filter) returns
         filters.push(sql:queryConcat(`ts_lead_email =  `, `${filter.leadEmail}`));
     }
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
-    mainQuery = sql:queryConcat(mainQuery, `GROUP BY ts_employee_email, ts_company_name, ts_lead_email;`);
     return mainQuery;
 }
 
@@ -235,12 +234,12 @@ select `
 #
 # + filter - Filter type for the  records
 # + return - Select query for the timesheet information
-isolated function getEmployeeTimesheetInfoQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
+isolated function getTimesheetInfoQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
     SELECT
         COUNT(*) AS totalRecords,
         SUM(CASE
-            WHEN ts_ot_status = ${APPROVED} THEN 1
+            WHEN ts_ot_status = ${PENDING} THEN 1
             ELSE 0
         END) AS pendingRecords,
         SUM(CASE
