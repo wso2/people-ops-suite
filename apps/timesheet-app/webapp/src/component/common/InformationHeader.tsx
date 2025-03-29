@@ -69,8 +69,6 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
 
   const dailyWorkingHours = workPolicies.workingHoursPerDay;
 
-  const dailyWorkingHoursWithoutLunch = dailyWorkingHours - workPolicies.lunchHoursPerDay;
-
   const getTrendIcon = (value: number, threshold: number) => {
     return value > threshold ? <TrendingUp color="error" /> : <TrendingDown color="success" />;
   };

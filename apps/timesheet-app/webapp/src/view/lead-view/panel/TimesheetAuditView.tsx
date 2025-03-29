@@ -233,7 +233,7 @@ const TimesheetAuditView = () => {
 
   const availableFields = [
     { field: "status", label: "Status", type: "select", options: Object.values(TimesheetStatus) },
-    { field: "leadEmail", label: "Lead Email", type: "text" },
+    { field: "employeeEmail", label: "Employee Email", type: "text" },
     { field: "rangeStart", label: "Start Date", type: "date" },
     { field: "rangeEnd", label: "End Date", type: "date" },
   ];

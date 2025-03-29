@@ -16,16 +16,15 @@
 
 export const Messages = {
   success: {
-    addCollections: "Successfully added the Collection",
-    updateTimesheetRecords: "Successfully updated the record",
-    sendTimesheetRecords: "Successfully saved the records",
+    updateRecord : "Successfully updated the record",
+    saveRecords: "Successfully saved the records",
+    updateRecords : "Successfully updated the records"
   },
   error: {
-    fetchCollectionsMessage: "Unable to retrieve list of selected Collections",
-    addCollections: "Unable to create the Collection",
-    fetchTimesheetRecords: "Unable to retrieve timesheet records",
-    sendTimesheetRecords: "Unable to save timesheet records",
-    otExceeds : "This entries exceeds the available overtime quota"
+    fetchRecords: "Unable to retrieve timesheet records",
+    sendRecords: "Unable to save timesheet records",
+    otExceeds : "This entries exceeds the available overtime quota",
+    updateRecords : "Unable to update the records"
   },
   warning: {},
 };

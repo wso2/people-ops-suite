@@ -14,14 +14,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { createSlice } from "@reduxjs/toolkit";
-import { CreateUITimesheetRecord, State, TimesheetData, TimesheetStatus } from "../../utils/types";
-import { createAsyncThunk } from "@reduxjs/toolkit";
-import { APIService } from "../../utils/apiService";
-import { AppConfig } from "../../config/config";
-import { enqueueSnackbarMessage } from "../commonSlice/common";
-import { Messages } from "../../config/constant";
+import { AppConfig } from "@config/config";
+import { Messages } from "@config/constant";
 import axios, { HttpStatusCode } from "axios";
+import { APIService } from "@utils/apiService";
+import { createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk } from "@reduxjs/toolkit";
+import { enqueueSnackbarMessage } from "../commonSlice/common";
+import { State, TimesheetData, TimesheetStatus } from "@utils/types";
 
 interface TimesheetRecordState {
   retrievingState: State;
@@ -42,6 +42,38 @@ const initialState: TimesheetRecordState = {
   backgroundProcess: false,
   backgroundProcessMessage: null,
 };
+
+export const addTimesheetRecords = createAsyncThunk(
+  "timesheet/addTimesheetRecords",
+  async ({ payload, employeeEmail }: { payload: any[]; employeeEmail: string }, { dispatch }) => {
+    return new Promise((resolve, reject) => {
+      APIService.getInstance()
+        .post(`${AppConfig.serviceUrls.timesheetRecords}/${employeeEmail}`, payload)
+        .then((response) => {
+          dispatch(
+            enqueueSnackbarMessage({
+              message: Messages.success.saveRecords,
+              type: "success",
+            })
+          );
+          resolve(response.data);
+        })
+        .catch((error) => {
+          const errorMessage =
+            error.response?.status === HttpStatusCode.InternalServerError
+              ? Messages.error.sendRecords
+              : error.response?.data?.message || "An unexpected error occurred";
+          dispatch(
+            enqueueSnackbarMessage({
+              message: errorMessage,
+              type: "error",
+            })
+          );
+          reject(error);
+        });
+    });
+  }
+);
 
 export const fetchTimesheetRecords = createAsyncThunk(
   "timesheet/fetchTimesheetRecords",
@@ -85,7 +117,7 @@ export const fetchTimesheetRecords = createAsyncThunk(
             enqueueSnackbarMessage({
               message:
                 error.response?.status === HttpStatusCode.InternalServerError
-                  ? Messages.error.fetchCollectionsMessage
+                  ? Messages.error.fetchRecords
                   : String(error.response?.data?.message || error.message),
               type: "error",
             })
@@ -96,38 +128,54 @@ export const fetchTimesheetRecords = createAsyncThunk(
   }
 );
 
-export interface AddTimesheetRecordPayload {
-  employeeEmail: string;
-  records: CreateUITimesheetRecord[];
-}
+export const updateTimesheetRecords = createAsyncThunk(
+  "timesheet/updateTimesheetRecords",
+  async (
+    params: {
+      employeeEmail?: string;
+      status?: TimesheetStatus;
+      limit?: number;
+      offset?: number;
+      rangeStart?: string;
+      rangeEnd?: string;
+      leadEmail?: string;
+    },
+    { dispatch, rejectWithValue }
+  ) => {
+    APIService.getCancelToken().cancel();
+    const newCancelTokenSource = APIService.updateCancelToken();
 
-export const addTimesheetRecords = createAsyncThunk(
-  "timesheet/addTimesheetRecords",
-  async ({ payload, employeeEmail }: { payload: any[]; employeeEmail: string }, { dispatch }) => {
-    return new Promise((resolve, reject) => {
+    const queryParams = new URLSearchParams();
+    if (params.employeeEmail) queryParams.append("employeeEmail", params.employeeEmail);
+    if (params.status) queryParams.append("status", params.status);
+    if (params.limit) queryParams.append("limit", params.limit.toString());
+    if (params.offset) queryParams.append("offset", params.offset.toString());
+    if (params.rangeStart) queryParams.append("rangeStart", params.rangeStart);
+    if (params.rangeEnd) queryParams.append("rangeEnd", params.rangeEnd);
+    if (params.leadEmail) queryParams.append("leadEmail", params.leadEmail);
+
+    return new Promise<TimesheetData>((resolve, reject) => {
       APIService.getInstance()
-        .post(`${AppConfig.serviceUrls.timesheetRecords}/${employeeEmail}`, payload)
+        .get(`${AppConfig.serviceUrls.timesheetRecords}?${queryParams.toString()}`, {
+          cancelToken: newCancelTokenSource.token,
+        })
         .then((response) => {
-          dispatch(
-            enqueueSnackbarMessage({
-              message: Messages.success.sendTimesheetRecords,
-              type: "success",
-            })
-          );
           resolve(response.data);
         })
         .catch((error) => {
-          const errorMessage =
-            error.response?.status === HttpStatusCode.InternalServerError
-              ? Messages.error.sendTimesheetRecords
-              : error.response?.data?.message || "An unexpected error occurred";
+          if (axios.isCancel(error)) {
+            return rejectWithValue("Request canceled");
+          }
           dispatch(
             enqueueSnackbarMessage({
-              message: errorMessage,
+              message:
+                error.response?.status === HttpStatusCode.InternalServerError
+                  ? Messages.error.fetchRecords
+                  : String(error.response?.data?.message || error.message),
               type: "error",
             })
           );
-          reject(error);
+          reject(error.response?.data?.message || error.message);
         });
     });
   }
