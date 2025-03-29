@@ -14,9 +14,9 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-import authReducer from "./authSlice/auth";
-import userReducer from "./userSlice/user";
-import commonReducer from "./commonSlice/common";
+import authReducer from "@slices/authSlice/auth";
+import userReducer from "@slices/userSlice/user";
+import commonReducer from "@slices/commonSlice/common";
 import meetingReducer from "@slices/meetingSlice/meeting";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";

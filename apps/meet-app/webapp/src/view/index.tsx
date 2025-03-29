@@ -16,7 +16,7 @@
 
 import { lazy } from "react";
 
-const meetings = lazy(() => import("./meetings/meetings"));
+const meetings = lazy(() => import("@view/meetings/meetings"));
 
 export const View = {
   meetings,

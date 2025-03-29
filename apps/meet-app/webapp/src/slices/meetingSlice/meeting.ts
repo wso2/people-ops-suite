@@ -15,7 +15,7 @@
 // under the License. 
 
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { State } from "../../types/types";
+import { State } from "@/types/types";
 import { APIService } from "@utils/apiService";
 import { AppConfig } from "@config/config";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";

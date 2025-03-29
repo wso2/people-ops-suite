@@ -19,12 +19,12 @@ import { useSelector } from "react-redux";
 import { Box, alpha } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
-import Header from "./header";
-import Sidebar from "./sidebar";
+import Header from "@layout/header";
+import Sidebar from "@layout/sidebar";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { selectRoles } from "@slices/authSlice/auth";
 import { useSnackbar } from "notistack";
-import pJson from "../../package.json";
+import pJson from "@root/package.json";
 import { RootState, useAppSelector } from "@slices/store";
 import { Typography } from "@mui/material";
 
