@@ -112,8 +112,8 @@ service http:InterceptableService / on new http:Listener(9091) {
     isolated resource function post timesheet\-records/[string employeeEmail](http:RequestContext ctx,
             database:TimeSheetRecord[] recordPayload)
         returns http:InternalServerError|http:Created|http:BadRequest|http:Forbidden {
-        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
 
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
             return <http:BadRequest>{
                 body: {
@@ -299,13 +299,12 @@ service http:InterceptableService / on new http:Listener(9091) {
     # Endpoint to save timesheet records of an employee.
     #
     # + recordPayload - Timesheet records payload
-    # + employeeEmail - Email of the employee to filter timesheet records
     # + return - A work policy or an error
-    isolated resource function patch timesheet\-records/[string employeeEmail](http:RequestContext ctx,
+    isolated resource function patch timesheet\-records(http:RequestContext ctx,
             database:TimesheetUpdate[] recordPayload)
         returns http:InternalServerError|http:Ok|http:BadRequest|http:Forbidden {
-        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
 
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
             return <http:BadRequest>{
                 body: {
@@ -324,7 +323,7 @@ service http:InterceptableService / on new http:Listener(9091) {
 
         error? timesheetRecords = database:updateTimesheetRecords(userInfo.email, recordPayload);
         if timesheetRecords is error {
-            string customError = string `Error occurred while retrieving the timesheet information!`;
+            string customError = string `Error occurred while updating the timesheet records!`;
             log:printError(customError, timesheetRecords);
             return <http:InternalServerError>{
                 body: {

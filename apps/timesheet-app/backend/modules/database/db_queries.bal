@@ -221,9 +221,9 @@ isolated function updateTimesheetRecordQuery(TimesheetUpdate updateRecord, strin
     updateQuery = sql:queryConcat(updateQuery, `ts_ot_reason = COALESCE(${updateRecord.overtimeReason}, ts_ot_reason),`);
     updateQuery = sql:queryConcat(updateQuery, `ts_ot_rejection_reason = COALESCE(${updateRecord.overtimeRejectReason},
             ts_ot_rejection_reason),`);
-    updateQuery = sql:queryConcat(updateQuery, `ts_ot_status = COALESCE(${updateRecord.overtimeStatus}, ts_ot_status)`);
+    updateQuery = sql:queryConcat(updateQuery, `ts_ot_status = COALESCE(${updateRecord.overtimeStatus}, ts_ot_status),`);
     updateQuery = sql:queryConcat(updateQuery, `ts_updated_by = COALESCE(${invokerEmail}, ts_updated_by)
-            WHERE ts_record_date = ${updateRecord.recordId}`);
+        WHERE ts_record_id = ${updateRecord.recordId}`);
     return updateQuery;
 }
 
