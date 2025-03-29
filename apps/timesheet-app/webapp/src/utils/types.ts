@@ -120,7 +120,7 @@ export interface CreateUITimesheetRecord {
 }
 
 export interface TimesheetData {
-  totalRecordCount: TimesheetRecordCount;
+  totalRecordCount: number;
   timesheetRecords: TimesheetRecord[];
 }
 
@@ -128,10 +128,6 @@ export interface WorkPolicies {
   otHoursPerYear: number;
   workingHoursPerDay: number;
   lunchHoursPerDay: number;
-}
-
-export interface TimesheetRecordCount {
-  totalRecords: number;
 }
 
 export interface TimesheetInfo {

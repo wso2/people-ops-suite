@@ -16,10 +16,11 @@
 
 import React from "react";
 import { View } from "./view/Index";
-import { isIncludedRole } from "./utils/utils";
-import AttachEmailIcon from "@mui/icons-material/AttachEmail";
-import { RouteObject, NonIndexRouteObject } from "react-router-dom";
 import { Roles } from "@utils/types";
+import { isIncludedRole } from "./utils/utils";
+import Groups3Icon from '@mui/icons-material/Groups3';
+import LeaderboardIcon from '@mui/icons-material/Leaderboard';
+import { RouteObject, NonIndexRouteObject } from "react-router-dom";
 
 export interface RouteObjectWithRole extends NonIndexRouteObject {
   allowRoles: string[];
@@ -39,10 +40,17 @@ interface RouteDetail {
 
 export const routes: RouteObjectWithRole[] = [
   {
-    path: "/",
+    path: "/employee-portal",
     text: "Employee Portal",
-    icon: React.createElement(AttachEmailIcon),
+    icon: React.createElement(LeaderboardIcon),
     element: React.createElement(View.employeeView),
+    allowRoles: [Roles.ADMIN],
+  },
+  {
+    path: "/lead-portal",
+    text: "Lead Portal",
+    icon: React.createElement(Groups3Icon),
+    element: React.createElement(View.leadView),
     allowRoles: [Roles.ADMIN],
   },
 ];

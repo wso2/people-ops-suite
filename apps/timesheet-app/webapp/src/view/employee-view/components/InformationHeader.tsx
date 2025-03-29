@@ -66,6 +66,7 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
   const pendingRate = totalRecords > 0 ? (pendingRecords / totalRecords) * 100 : 0;
 
   const dailyWorkingHours = workPolicies.workingHoursPerDay;
+
   const dailyWorkingHoursWithoutLunch = dailyWorkingHours - workPolicies.lunchHoursPerDay;
 
   const getTrendIcon = (value: number, threshold: number) => {

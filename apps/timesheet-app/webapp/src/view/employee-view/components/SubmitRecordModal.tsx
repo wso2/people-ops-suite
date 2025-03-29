@@ -68,19 +68,19 @@ interface TimeTrackingFormProps {
 }
 
 const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPerDay = 8, onClose }) => {
-  const regularWorkMinutes = regularWorkHoursPerDay * 60;
-  const newRecordId = useRef<number>(0);
   const dispatch = useAppDispatch();
-  const [entries, setEntries] = useState<CreateUITimesheetRecord[]>([]);
-  const [currentEntry, setCurrentEntry] = useState<CreateUITimesheetRecord>(createNewEntry());
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const newRecordId = useRef<number>(0);
+  const regularWorkMinutes = regularWorkHoursPerDay * 60;
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<CreateUITimesheetRecord | null>(null);
-  const totalOvertimeHours = entries.reduce((sum, entry) => sum + entry.overtimeDuration, 0);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [entries, setEntries] = useState<CreateUITimesheetRecord[]>([]);
   const totalDays = entries.length;
   const userEmail = useAppSelector((state) => state.user.userInfo!.workEmail);
-  const timesheetInfo = useAppSelector((state) => state.user.userInfo?.timesheetInfo);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
+  const timesheetInfo = useAppSelector((state) => state.user.userInfo?.timesheetInfo);
+  const [editingEntry, setEditingEntry] = useState<CreateUITimesheetRecord | null>(null);
+  const totalOvertimeHours = entries.reduce((sum, entry) => sum + entry.overtimeDuration, 0);
+  const [currentEntry, setCurrentEntry] = useState<CreateUITimesheetRecord>(createNewEntry());
 
   function createNewEntry(): CreateUITimesheetRecord {
     return {
@@ -212,7 +212,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
 
       let overtimeMinutes = 0;
       if (isWeekend(entry.recordDate)) {
-        overtimeMinutes = workMinutes;
+        overtimeMinutes = workMinutes + lunchBreakMinutes;
       } else {
         overtimeMinutes = Math.max(0, workMinutes - regularWorkMinutes);
       }

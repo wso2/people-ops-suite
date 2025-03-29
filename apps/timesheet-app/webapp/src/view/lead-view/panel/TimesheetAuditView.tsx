@@ -52,16 +52,15 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { useAppDispatch, useAppSelector } from "@slices/store";
-import InformationHeader from "../components/InformationHeader";
-import SubmitRecordModal from "../components/SubmitRecordModal";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import { fetchTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { CustomModal } from "@component/common/CustomComponentModal";
 import { State, TimesheetRecord, TimesheetStatus } from "@utils/types";
 import { differenceInMinutes, format, isWeekend, parseISO } from "date-fns";
 import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
+import React from "react";
+import { useAppDispatch, useAppSelector } from "@slices/store";
+import { fetchTimesheetRecords } from "@slices/recordSlice/record";
+import PersonIcon from "@mui/icons-material/Person";
 
 const statusChipStyles = {
   [TimesheetStatus.APPROVED]: {
@@ -85,23 +84,19 @@ interface Filter {
   value: any;
 }
 
-const TimesheetDataGrid = () => {
+const TimesheetAuditView = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const handleOpenDialog = () => setOpenDialog(true);
   const [openDialog, setOpenDialog] = useState(false);
   const handleCloseDialog = () => setOpenDialog(false);
-  const userEmail = useAppSelector((state) => state.auth.userInfo?.email);
-  const leadEmail = useAppSelector((state) => state.auth.userInfo?.leadEmail);
-  const [errors, setErrors] = useState<Partial<Record<keyof TimesheetRecord, string>>>({});
+  const leadEmail = useAppSelector((state) => state.auth.userInfo?.email);
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
-  const totalRecordCount = useAppSelector(
-    (state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0
-  );
+  const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
   const timesheetInfo = useAppSelector((state) => state.user.userInfo?.timesheetInfo);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
+
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 5,
@@ -110,6 +105,17 @@ const TimesheetDataGrid = () => {
   const [editingEntry, setEditingEntry] = useState<any | null>(null);
 
   const columns = [
+    {
+      field: "employeeEmail",
+      headerName: "Employee",
+      flex: 1,
+      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
+        <Stack direction="row" alignItems="center" gap={1}>
+          <PersonIcon fontSize="small" color="action" />
+          <Typography variant="body2">{params.row.employeeEmail}</Typography>
+        </Stack>
+      ),
+    },
     {
       field: "recordDate",
       headerName: "Date",
@@ -234,57 +240,8 @@ const TimesheetDataGrid = () => {
     setEditDialogOpen(true);
   };
 
-  const handleSaveEditedEntry = async () => {
-    if (!editingEntry) return;
-
-    const newErrors: Partial<Record<keyof TimesheetRecord, string>> = {};
-
-    if (!editingEntry.recordDate) {
-      newErrors.recordDate = "Date is required";
-    }
-
-    if (!editingEntry.clockInTime) {
-      newErrors.clockInTime = "Clock in time is required";
-    }
-
-    if (!editingEntry.clockOutTime) {
-      newErrors.clockOutTime = "Clock out time is required";
-    }
-
-    if (editingEntry.clockInTime && editingEntry.clockOutTime && editingEntry.clockOutTime < editingEntry.clockInTime) {
-      newErrors.clockOutTime = "Clock out time must be after clock in time";
-    }
-
-    if (editingEntry.overtimeDuration > 0 && !editingEntry.overtimeReason) {
-      newErrors.overtimeReason = "Overtime reason is required when there is overtime";
-    }
-
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length > 0) {
-      return;
-    }
-
-    try {
-      const formattedEntry = {
-        ...editingEntry,
-        recordDate: format(editingEntry.recordDate, "yyyy-MM-dd"),
-        clockInTime: format(editingEntry.clockInTime, "HH:mm:ss"),
-        clockOutTime: format(editingEntry.clockOutTime, "HH:mm:ss"),
-      };
-
-      //   await dispatch(updateTimesheetRecord(formattedEntry)).unwrap();
-      setEditDialogOpen(false);
-      setEditingEntry(null);
-      setErrors({});
-      fetchData(); // Refresh the data after update
-    } catch (error) {
-      console.error("Failed to update record:", error);
-    }
-  };
-
   useEffect(() => {
-    if (!userEmail) return;
+    if (!leadEmail) return;
     fetchData();
   }, [paginationModel]);
 
@@ -304,7 +261,7 @@ const TimesheetDataGrid = () => {
   });
 
   const fetchData = async () => {
-    if (!userEmail) return;
+    if (!leadEmail) return;
 
     const filterParams = filters.reduce((acc, filter) => {
       return { ...acc, [filter.field]: filter.value };
@@ -312,7 +269,8 @@ const TimesheetDataGrid = () => {
 
     dispatch(
       fetchTimesheetRecords({
-        employeeEmail: userEmail,
+        leadEmail: leadEmail,
+        status: TimesheetStatus.PENDING,
         limit: paginationModel.pageSize,
         offset: paginationModel.page * paginationModel.pageSize,
         ...filterParams,
@@ -321,10 +279,10 @@ const TimesheetDataGrid = () => {
   };
 
   const fetchDefaultData = async () => {
-    if (!userEmail) return;
+    if (!leadEmail) return;
     dispatch(
       fetchTimesheetRecords({
-        employeeEmail: userEmail,
+        status: TimesheetStatus.PENDING,
         limit: paginationModel.pageSize,
         offset: paginationModel.page * paginationModel.pageSize,
         leadEmail: leadEmail,
@@ -424,21 +382,6 @@ const TimesheetDataGrid = () => {
     }
   };
 
-  const handleEditFieldChange = (field: keyof TimesheetRecord, value: any) => {
-    if (editingEntry) {
-      const updatedEntry = {
-        ...editingEntry,
-        [field]: value,
-      };
-
-      if (["recordDate", "clockInTime", "clockOutTime", "isLunchIncluded"].includes(field)) {
-        setEditingEntry(calculateOvertime(updatedEntry));
-      } else {
-        setEditingEntry(updatedEntry);
-      }
-    }
-  };
-
   const calculateOvertime = (entry: TimesheetRecord): TimesheetRecord => {
     if (entry.clockInTime && entry.clockOutTime && entry.recordDate) {
       const totalMinutes = differenceInMinutes(entry.clockOutTime, entry.clockInTime);
@@ -469,25 +412,11 @@ const TimesheetDataGrid = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1, pr: 1 }}>
-        <Stack direction="row" justifyContent="space-end" alignItems="right">
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenDialog}
-            sx={{
-              boxShadow: "none",
-              "&:hover": { boxShadow: "none" },
-            }}
-          >
-            New Entry
-          </Button>
-        </Stack>
-
-        {timesheetInfo && workPolicies && (
+        {/* {timesheetInfo && workPolicies && (
           <Box sx={{ width: "100%", height: "auto" }}>
             <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} />
           </Box>
-        )}
+        )} */}
 
         <Box sx={{ mb: 2 }}>
           <Button
@@ -528,7 +457,7 @@ const TimesheetDataGrid = () => {
               },
             }}
           >
-            <Stack direction="row" justifyContent="space-between" alignItems="center" >
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography variant="subtitle2">FILTERS</Typography>
               <Button size="small" startIcon={<AddIcon />} onClick={handleAddFilter}>
                 Add Filter
@@ -658,11 +587,7 @@ const TimesheetDataGrid = () => {
           )}
         </Paper>
 
-        <CustomModal open={openDialog} onClose={handleCloseDialog}>
-          <SubmitRecordModal onClose={handleCloseDialog}  regularWorkHoursPerDay={workPolicies?.workingHoursPerDay}/>
-        </CustomModal>
-
-        <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
+        {/* <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
           <DialogTitle>Edit Time Entry</DialogTitle>
           <DialogContent>
             {editingEntry && (
@@ -750,9 +675,9 @@ const TimesheetDataGrid = () => {
               Save Changes
             </Button>
           </DialogActions>
-        </Dialog>
+        </Dialog> */}
       </Box>
     </LocalizationProvider>
   );
 };
-export default TimesheetDataGrid;
+export default TimesheetAuditView;

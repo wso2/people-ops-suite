@@ -121,6 +121,7 @@ isolated function getTimeSheetRecordsOfEmployee(TimesheetCommonFilter filter) re
     sql:ParameterizedQuery mainQuery = `
     SELECT
         tr.ts_record_id AS recordId,
+        tr.ts_employee_email AS employeeEmail,
         tr.ts_record_date AS recordDate,
         tr.ts_clock_in AS clockInTime,
         tr.ts_clock_out AS clockOutTime,
@@ -164,13 +165,12 @@ isolated function getTimeSheetRecordsOfEmployee(TimesheetCommonFilter filter) re
 #
 # + filter - Filter type for the records
 # + return - Select query for the work policies
-isolated function getTotalRecordCountQuery(TimesheetCommonFilter filter)
-    returns sql:ParameterizedQuery {
+isolated function getTotalRecordCountQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
-    SELECT
-        COUNT(*) AS totalRecords
-    FROM
-        hris_timesheet_records
+        SELECT
+            COUNT(*) AS totalRecords
+        FROM
+            hris_timesheet_records
     `;
 
     sql:ParameterizedQuery[] filters = [];
@@ -233,10 +233,10 @@ select `
 
 # Query to retrieve timesheet information of employee.
 #
-# + employeeEmail - Email of the employee
+# + filter - Filter type for the  records
 # + return - Select query for the timesheet information
-isolated function getEmployeeTimesheetInfoQuery(string employeeEmail) returns sql:ParameterizedQuery =>
-`
+isolated function getEmployeeTimesheetInfoQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
+    sql:ParameterizedQuery mainQuery = `
     SELECT
         COUNT(*) AS totalRecords,
         SUM(CASE
@@ -272,7 +272,14 @@ isolated function getEmployeeTimesheetInfoQuery(string employeeEmail) returns sq
                 0) AS overtimeLeft
     FROM
         hris_timesheet_records
-    WHERE
-        hris_timesheet_records.ts_employee_email = ${employeeEmail}
 `;
-
+    sql:ParameterizedQuery[] filters = [];
+    if filter.employeeEmail is string {
+        filters.push(sql:queryConcat(`hris_timesheet_records.ts_employee_email = `, `${filter.employeeEmail}`));
+    }
+    if filter.leadEmail is string {
+        filters.push(sql:queryConcat(`hris_timesheet_records.ts_lead_email =  `, `${filter.leadEmail}`));
+    }
+    mainQuery = buildSqlSelectQuery(mainQuery, filters);
+    return mainQuery;
+}

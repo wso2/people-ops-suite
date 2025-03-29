@@ -130,10 +130,10 @@ public isolated function insertTimesheetRecords(TimeSheetRecord[] timesheetRecor
 
 # Function to fetch employee timesheet info.
 #
-# + employeeEmail - Employee email to filter
+# + filter - Filter type for the records
 # + return - Timesheet info record or an error
-public isolated function getEmployeeTimesheetInfo(string employeeEmail) returns TimesheetInfo|error? {
-    TimesheetInfo|sql:Error policy = databaseClient->queryRow(getEmployeeTimesheetInfoQuery(employeeEmail));
+public isolated function getEmployeeTimesheetInfo(TimesheetCommonFilter filter) returns TimesheetInfo|error? {
+    TimesheetInfo|sql:Error policy = databaseClient->queryRow(getEmployeeTimesheetInfoQuery(filter));
 
     if policy is sql:Error && policy is sql:NoRowsError {
         return;

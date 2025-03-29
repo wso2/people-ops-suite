@@ -14,20 +14,23 @@
 // specific language governing permissions and limitations
 // under the License.
 
-# User info custom type for Asgardeo token.
-public type CustomJwtPayload record {
-    # User email
-    string email;
-    # User groups
-    string[] groups;
-};
+import React from "react";
+import CommonPage from "../../layout/pages/CommonPage";
+import TimesheetAuditView from "./panel/TimesheetAuditView";
+import AttachEmailIcon from "@mui/icons-material/AttachEmail";
 
-# Application specific role mapping.
-public type AppRoles record {
-    # Role for the employee
-    string employeeRole;
-    # Role for the people operations admins
-    string adminRole;
-    # Role for the lead of a team
-    string leadRole;
-};
+export default function OfferLetter() {
+  return (
+    <CommonPage
+      title="Menu 1"
+      commonPageTabs={[
+        {
+          tabTitle: "Audit Timesheet",
+          tabPath: "timesheet-audit",
+          icon: <AttachEmailIcon />,
+          page: <TimesheetAuditView />,
+        },
+      ]}
+    />
+  );
+}

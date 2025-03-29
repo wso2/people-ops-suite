@@ -18,7 +18,6 @@ import React from "react";
 import CommonPage from "../../layout/pages/CommonPage";
 import TimesheetDataGrid from "./panel/EmployeeTimeSheetView";
 import AttachEmailIcon from "@mui/icons-material/AttachEmail";
-import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
 
 export default function OfferLetter() {
   return (
@@ -30,13 +29,7 @@ export default function OfferLetter() {
           tabPath: "timesheet-records",
           icon: <AttachEmailIcon />,
           page: <TimesheetDataGrid />,
-        },
-        // {
-        //   tabTitle: "Tab 2",
-        //   tabPath: "tab-two",
-        //   icon: <MarkEmailReadIcon />,
-        //   page: <TimesheetDataGrid/>,
-        // },
+        }
       ]}
     />
   );

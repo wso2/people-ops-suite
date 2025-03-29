@@ -230,7 +230,6 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
 
         entity:Employee|error loggedInUser = entity:fetchEmployeesBasicInfo(userInfo.email);
-
         if loggedInUser is error {
             string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
             log:printError(customError, loggedInUser);
@@ -242,7 +241,6 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
 
         database:WorkPolicies|error workPolicies = database:getWorkPolicy(loggedInUser.company).ensureType();
-
         if workPolicies is error {
             string customError =
                 string `Error occurred while retrieving work policy for ${userInfo.email} and ${loggedInUser.company}!`;
@@ -254,8 +252,18 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        database:TimesheetInfo|error? employeeTimesheetInfo = database:getEmployeeTimesheetInfo(userInfo.email);
+        database:TimesheetCommonFilter filter = {
+            employeeEmail: userInfo.email,
+            leadEmail: (),
+            status: (),
+            recordsLimit: (),
+            recordOffset: (),
+            rangeStart: (),
+            rangeEnd: (),
+            recordDates: ()
+        };
 
+        database:TimesheetInfo|error? employeeTimesheetInfo = database:getEmployeeTimesheetInfo(filter);
         if employeeTimesheetInfo is error {
             string customError =
                 string `Error occurred while retrieving timesheet information for ${userInfo.email}!`;
@@ -317,7 +325,6 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
 
         if !authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups) {
-
             return <http:Forbidden>{
                 body: {
                     message: "Insufficient privileges!"
@@ -337,7 +344,6 @@ service http:InterceptableService / on new http:Listener(9091) {
         };
 
         int|error? totalRecordCount = database:getTotalRecordCount(filter);
-
         if totalRecordCount is error {
             string customError = string `Error occurred while retrieving the record count!`;
             log:printError(customError, totalRecordCount);
@@ -349,7 +355,6 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
 
         database:TimeSheetRecord[]|error? timesheetRecords = database:getTimeSheetRecords(filter);
-
         if timesheetRecords is error {
             string customError = string `Error occurred while retrieving the timesheetRecords!`;
             log:printError(customError, timesheetRecords);
@@ -358,6 +363,10 @@ service http:InterceptableService / on new http:Listener(9091) {
                     message: customError
                 }
             };
+        }
+
+        if employeeEmail is string && authorization:checkPermissions([authorization:authorizedRoles.leadRole], userInfo.groups) {
+
         }
 
         return {
@@ -385,7 +394,6 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
 
         if !authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups) {
-
             return <http:Forbidden>{
                 body: {
                     message: "Insufficient privileges!"
@@ -394,7 +402,6 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
 
         entity:Employee|error loggedInUser = entity:fetchEmployeesBasicInfo(userInfo.email);
-
         if loggedInUser is error {
             string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
             log:printError(customError, loggedInUser);
@@ -422,7 +429,6 @@ service http:InterceptableService / on new http:Listener(9091) {
         };
 
         database:TimeSheetRecord[]|error? existingRecords = database:getTimeSheetRecords(filter);
-
         if existingRecords is error {
             string customError = string `Error occurred while retrieving the existing timesheet records!`;
             log:printError(customError, existingRecords);
@@ -438,7 +444,8 @@ service http:InterceptableService / on new http:Listener(9091) {
             foreach var existingRecord in existingRecords {
                 duplicateRecords.push(existingRecord.recordDate);
             }
-            string customError = string `Duplicated dates found ${string:'join(", ", ...duplicateRecords.map(d => d.toString()))}`;
+            string customError =
+                string `Duplicated dates found ${string:'join(", ", ...duplicateRecords.map(d => d.toString()))}`;
             log:printError(customError);
             return <http:BadRequest>{
                 body: {
@@ -447,9 +454,8 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        sql:Error|sql:ExecutionResult[] timesheetInsertResult =
-            database:insertTimesheetRecords(recordPayload, loggedInUser.workEmail,
-                loggedInUser.company, loggedInUser.managerEmail);
+        sql:Error|sql:ExecutionResult[] timesheetInsertResult = database:insertTimesheetRecords(recordPayload,
+                loggedInUser.workEmail, loggedInUser.company, loggedInUser.managerEmail);
 
         if timesheetInsertResult is error {
             string customError = string `Error occurred while saving the records for ${loggedInUser.workEmail}!`;
