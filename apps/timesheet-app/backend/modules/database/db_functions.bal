@@ -15,10 +15,10 @@
 // under the License.
 import ballerina/sql;
 
-# Fetch work policy.
+# Fetch work policies of a company.
 #
 # + companyName - Company name to filter
-# + return - A work policy or an error
+# + return - Work policies or an error
 public isolated function getWorkPolicy(string companyName) returns WorkPolicies|error? {
     WorkPolicies|sql:Error policy = databaseClient->queryRow(getWorkPolicyQuery(companyName));
 
@@ -31,7 +31,7 @@ public isolated function getWorkPolicy(string companyName) returns WorkPolicies|
 # Function to get timesheet records using filters.
 #
 # + filter - Filter type for the records
-# + return - A work policy or an error
+# + return - Timesheet records or an error
 public isolated function getTimeSheetRecords(TimesheetCommonFilter filter) returns TimeSheetRecord[]|error? {
     stream<TimeSheetRecord, error?> recordsResult =
         databaseClient->query(getTimeSheetRecordsOfEmployee(filter));
@@ -45,15 +45,14 @@ public isolated function getTimeSheetRecords(TimesheetCommonFilter filter) retur
     return timesheetRecords;
 }
 
-# Function to retrieve the timesheet records count of an employee.
+# Function to retrieve the timesheet records count.
 #
 # + filter - Filter type for the records
-# + return - Timesheet record count of the employee or an error
+# + return - Timesheet record count or an error
 public isolated function getTotalRecordCount(TimesheetCommonFilter filter)
     returns int|error? {
 
     int|sql:Error count = databaseClient->queryRow(getTotalRecordCountQuery(filter));
-
     if count is sql:NoRowsError {
         return 0;
     }
@@ -72,10 +71,10 @@ public isolated function getTotalRecordCount(TimesheetCommonFilter filter)
 # + return - Id of the timesheet records|Error
 public isolated function insertTimesheetRecords(TimeSheetRecord[] timesheetRecords, string employeeEmail,
         string companyName, string leadEmail) returns sql:Error|sql:ExecutionResult[] {
+
     sql:ExecutionResult[]|sql:Error executionResult =
         databaseClient->batchExecute(insertTimesheetRecordsQuery(timesheetRecords, employeeEmail, companyName,
             leadEmail));
-
 
     if executionResult is error {
         return executionResult;
@@ -86,7 +85,7 @@ public isolated function insertTimesheetRecords(TimeSheetRecord[] timesheetRecor
 # Function to fetch employee timesheet info.
 #
 # + filter - Filter type for the records
-# + return - Timesheet info record or an error
+# + return - Timesheet info or an error
 public isolated function getTimesheetInfo(TimesheetCommonFilter filter) returns TimesheetInfo|error? {
     TimesheetInfo|sql:Error policy = databaseClient->queryRow(getTimesheetInfoQuery(filter));
 
@@ -94,4 +93,22 @@ public isolated function getTimesheetInfo(TimesheetCommonFilter filter) returns 
         return;
     }
     return policy;
+}
+
+# Function to update timesheet records.
+#
+# + updateRecords - Records to be updated
+# + invokerEmail - Email of the invoker
+# + return - Timesheet info or an error
+public isolated function updateTimesheetRecords(string invokerEmail, TimesheetUpdate[] updateRecords) returns error? {
+    do {
+        transaction {
+            foreach TimesheetUpdate updateRecord in updateRecords {
+                _ = check databaseClient->execute(updateTimesheetRecordQuery(updateRecord, invokerEmail));
+            }
+            check commit;
+        }
+    } on fail error e {
+        return e;
+    }
 }
