@@ -165,7 +165,6 @@ const ConfirmationDialogContextProvider: React.FC<ConfirmationModalContextProvid
             }}
           >
             <DialogTitle
-              variant="h5"
               sx={{
                 fontWeight: "bold",
                 borderBottom: 1,
@@ -209,9 +208,6 @@ const ConfirmationDialogContextProvider: React.FC<ConfirmationModalContextProvid
               <Stack flexDirection={"row"} sx={{ mt: 1 }} gap={1}>
                 {/* Cancel button */}
                 <Button
-                  sx={{
-                    borderRadius: 2,
-                  }}
                   onClick={handleCancel}
                   variant="outlined"
                   size="small"
@@ -222,12 +218,6 @@ const ConfirmationDialogContextProvider: React.FC<ConfirmationModalContextProvid
                 {/* Ok button */}
                 <LoadingButton
                   type="submit"
-                  sx={{
-                    borderRadius: 2,
-                    boxShadow: "none",
-                    border: 0.5,
-                    borderColor: "divider",
-                  }}
                   variant="contained"
                   size="small"
                   disabled={content?.inputObj?.mandatory && comment === ""}

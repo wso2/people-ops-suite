@@ -40,6 +40,7 @@ import {
   GridLogicOperator,
   GridPaginationModel,
   GridRenderCellParams,
+  GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { useEffect, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
@@ -54,13 +55,17 @@ import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { State, TimesheetRecord, TimesheetStatus } from "@utils/types";
+import { ConfirmationType, State, TimesheetRecord, TimesheetStatus } from "@utils/types";
 import { differenceInMinutes, format, isWeekend, parseISO } from "date-fns";
 import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
 import React from "react";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { fetchTimesheetRecords } from "@slices/recordSlice/record";
 import PersonIcon from "@mui/icons-material/Person";
+import ThumbUpIcon from "@mui/icons-material/ThumbUp";
+import ThumbDownIcon from "@mui/icons-material/ThumbDown";
+import InformationHeader from "@component/common/InformationHeader";
+import { useConfirmationModalContext } from "@context/DialogContext";
 
 const statusChipStyles = {
   [TimesheetStatus.APPROVED]: {
@@ -87,6 +92,7 @@ interface Filter {
 const TimesheetAuditView = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
+  const dialogContext = useConfirmationModalContext();
   const [openDialog, setOpenDialog] = useState(false);
   const handleCloseDialog = () => setOpenDialog(false);
   const leadEmail = useAppSelector((state) => state.auth.userInfo?.email);
@@ -96,6 +102,7 @@ const TimesheetAuditView = () => {
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
 
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
@@ -201,30 +208,31 @@ const TimesheetAuditView = () => {
       width: 120,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row">
-          <Tooltip title="Edit">
+          <Tooltip title="Approve OT">
             <span>
               <IconButton
                 size="small"
-                color="primary"
+                color="info"
                 onClick={() => openEditDialog(params.row)}
+                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING}
                 sx={{ mr: 1 }}
-                disabled={params.row.overtimeStatus === TimesheetStatus.APPROVED}
               >
-                <EditIcon fontSize="small" />
+                <ThumbUpIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>
-          {/* TODO - Finalize the use of this */}
-          {/* <Tooltip title="Delete">
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => handleDeleteEntry(params.row.recordId)}
-              disabled={params.row.overtimeStatus === TimesheetStatus.APPROVED}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip> */}
+          <Tooltip title="Decline OT">
+            <span>
+              <IconButton
+                size="small"
+                color="error"
+                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING}
+                // onClick={() => handleDeleteEntry(params.row.recordId)}
+              >
+                <ThumbDownIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
         </Stack>
       ),
     },
@@ -382,41 +390,63 @@ const TimesheetAuditView = () => {
     }
   };
 
-  const calculateOvertime = (entry: TimesheetRecord): TimesheetRecord => {
-    if (entry.clockInTime && entry.clockOutTime && entry.recordDate) {
-      const totalMinutes = differenceInMinutes(entry.clockOutTime, entry.clockInTime);
-      const lunchBreakMinutes = entry.isLunchIncluded ? 60 : 0;
-      const workMinutes = Math.max(0, totalMinutes - lunchBreakMinutes);
+  const handleSelectionChange = (newSelectionModel: GridRowSelectionModel) => {
+    newSelectionModel[newSelectionModel.length - 1] as number;
+    setSelectionModel(newSelectionModel);
+  };
 
-      let overtimeMinutes = 0;
-      if (isWeekend(entry.recordDate)) {
-        overtimeMinutes = workMinutes;
-      } else {
-        // overtimeMinutes = Math.max(0, workMinutes - regularWorkMinutes);
-      }
+  const handleBatchSubmit = () => {
+    // User confirmation handler.
+    dialogContext.showConfirmation(
+      "Do you want to approve the selected overtime records?",
+      "Please note that once done, this cannot be undone.",
+      ConfirmationType.send,
+      () => {
+        // Trigger function.
+        console.log("selectionmodel", selectionModel);
+      },
+      "Approve",
+      "Cancel"
+    );
 
-      const overtimeDuration = parseFloat((overtimeMinutes / 60).toFixed(2));
+    // title: string,
+    //   message: string | JSX.Element,
+    //   type: ConfirmationType,
+    //   action: () => void,
+    //   okText?: string,
+    //   cancelText?: string,
+    //   inputObj?: InputObj
 
-      const overtimeReason =
-        overtimeDuration > 0 ? entry.overtimeReason || (isWeekend(entry.recordDate) ? "Weekend work" : "") : "";
+    // const confirm = window.confirm(`Are you sure you want to approve ${selectionModel.length} selected records?`);
 
-      return {
-        ...entry,
-        overtimeDuration,
-        overtimeReason,
-      };
-    }
-    return entry;
+    // if (!confirm) return;
+
+    // try {
+    //   // Assuming there's a dispatch action to batch approve records
+    //   await dispatch(
+    //     fetchTimesheetRecords({
+    //       action: "approve",
+    //       recordIds: selectionModel,
+    //     })
+    //   );
+
+    //   alert("Selected records have been approved successfully.");
+    //   setSelectionModel([]); // Clear selection after successful approval
+    //   fetchData(); // Refresh the data grid
+    // } catch (error) {
+    //   console.error("Error approving records:", error);
+    //   alert("An error occurred while approving the records. Please try again.");
+    // }
   };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1, pr: 1 }}>
-        {/* {timesheetInfo && workPolicies && (
+        {timesheetInfo && workPolicies && (
           <Box sx={{ width: "100%", height: "auto" }}>
-            <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} />
+            <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} isLeadView={true} />
           </Box>
-        )} */}
+        )}
 
         <Box sx={{ mb: 2 }}>
           <Button
@@ -531,6 +561,17 @@ const TimesheetAuditView = () => {
             overflow: "auto",
           }}
         >
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handleBatchSubmit}
+            sx={{ width: "160px", mx: 1 }}
+            // startIcon={<PublishIcon />}
+            disabled={selectionModel.length === 0}
+          >
+            Batch Approve{" "}
+          </Button>
+
           {records && (
             <DataGrid
               pagination
@@ -545,7 +586,9 @@ const TimesheetAuditView = () => {
               getRowId={(row) => row.recordId}
               filterModel={filterModel}
               onFilterModelChange={setFilterModel}
+              onRowSelectionModelChange={handleSelectionChange}
               slots={{ toolbar: GridToolbar }}
+              checkboxSelection
               slotProps={{
                 toolbar: {
                   showQuickFilter: true,

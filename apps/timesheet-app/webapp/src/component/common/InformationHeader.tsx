@@ -43,9 +43,10 @@ import { TimesheetInfo, WorkPolicies } from "@utils/types";
 interface InformationHeaderProps {
   timesheetInfo: TimesheetInfo;
   workPolicies: WorkPolicies;
+  isLeadView?: boolean;
 }
 
-const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, workPolicies }) => {
+const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, workPolicies, isLeadView }) => {
   const theme = useTheme();
 
   const {
@@ -145,6 +146,8 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
     },
   ];
 
+  const filteredStats = isLeadView ? stats : stats.filter((stat) => stat.title !== "OT Utilization");
+
   return (
     <Card
       sx={{
@@ -194,41 +197,44 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
           <Chip label={`OT Annual Allowance: ${workPolicies.otHoursPerYear}h`} color="primary" variant="outlined" />
         </Stack>
 
-        <Divider sx={{ my: 2 }} />
-
         {/* Main Stats Grid */}
-        <Grid container spacing={3}>
-          {stats.map((stat, index) => (
-            <Grid item xs={12} sm={6} md={4} lg={2} key={index}>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    {stat.title}
+        {!isLeadView && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            <Grid container spacing={3}>
+              {stats.map((stat, index) => (
+                <Grid item xs={12} sm={6} md={4} lg={2} key={index}>
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        {stat.title}
+                      </Typography>
+                      <Typography variant="h6">
+                        {stat.value} {stat.trend}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">
+                    {stat.subtitle}
                   </Typography>
-                  <Typography variant="h6">
-                    {stat.value} {stat.trend}
-                  </Typography>
-                </Box>
-              </Box>
-              <Typography variant="caption" color="text.secondary">
-                {stat.subtitle}
-              </Typography>
-              <Tooltip title={`${stat.progress.toFixed(0)}%`}>
-                <LinearProgress
-                  variant="determinate"
-                  value={stat.progress}
-                  color={stat.color as any}
-                  sx={{
-                    height: 6,
-                    borderRadius: 3,
-                    mt: 1,
-                    backgroundColor: theme.palette.grey[200],
-                  }}
-                />
-              </Tooltip>
+                  <Tooltip title={`${stat.progress.toFixed(0)}%`}>
+                    <LinearProgress
+                      variant="determinate"
+                      value={stat.progress}
+                      color={stat.color as any}
+                      sx={{
+                        height: 6,
+                        borderRadius: 3,
+                        mt: 1,
+                        backgroundColor: theme.palette.grey[200],
+                      }}
+                    />
+                  </Tooltip>
+                </Grid>
+              ))}
             </Grid>
-          ))}
-        </Grid>
+          </>
+        )}
       </CardContent>
     </Card>
   );
