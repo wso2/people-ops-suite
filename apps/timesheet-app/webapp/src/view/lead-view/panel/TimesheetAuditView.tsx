@@ -155,7 +155,13 @@ const TimesheetAuditView = () => {
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Box>
           {params.row.overtimeDuration > 0 && (
-            <Chip label={`${params.row.overtimeDuration}h`} color="primary" size="small" sx={{ mr: 2 }} />
+            <Chip
+              label={`${params.row.overtimeDuration}h`}
+              color="primary"
+              size="small"
+              sx={{ mr: 2 }}
+              variant="outlined"
+            />
           )}
           {params.row.overtimeDuration > 0 && (
             <Tooltip title={params.row.overtimeReason}>
@@ -222,6 +228,8 @@ const TimesheetAuditView = () => {
   useEffect(() => {
     if (!leadEmail) return;
     fetchData();
+
+    //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginationModel]);
 
   const fetchDefaultData = async () => {
@@ -313,7 +321,7 @@ const TimesheetAuditView = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1, pr: 1 }}>
+      <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
         {timesheetInfo && workPolicies && (
           <Box sx={{ width: "100%", height: "auto" }}>
             <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} isLeadView={true} />
@@ -354,7 +362,7 @@ const TimesheetAuditView = () => {
         <Paper
           elevation={0}
           sx={{
-            height: "60%",
+            height: "85%",
             width: "100%",
             borderRadius: 2,
             border: "1px solid",

@@ -100,6 +100,7 @@ export const UserSlice = createSlice({
       })
       .addCase(getUserInfo.rejected, (state) => {
         state.state = State.failed;
+        state.stateMessage = "Failed to retrieve user Info";
       });
   },
 });

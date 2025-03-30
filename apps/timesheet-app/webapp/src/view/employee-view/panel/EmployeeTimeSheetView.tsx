@@ -21,6 +21,7 @@ import {
   Paper,
   Dialog,
   Button,
+  Switch,
   Tooltip,
   useTheme,
   TextField,
@@ -31,7 +32,6 @@ import {
   DialogContent,
   InputAdornment,
   FormControlLabel,
-  Switch,
 } from "@mui/material";
 import {
   DataGrid,
@@ -91,12 +91,14 @@ const TimesheetDataGrid = () => {
   const handleCloseDialog = () => setOpenDialog(false);
   const userEmail = useAppSelector((state) => state.auth.userInfo?.email);
   const leadEmail = useAppSelector((state) => state.auth.userInfo?.leadEmail);
+  const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const [errors, setErrors] = useState<Partial<Record<keyof TimesheetRecord, string>>>({});
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
+  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
-  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
-  const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
+  const regularLunchHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.lunchHoursPerDay);
+  const regularWorkHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.workingHoursPerDay);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 5,
@@ -109,7 +111,7 @@ const TimesheetDataGrid = () => {
     {
       field: "recordDate",
       headerName: "Date",
-      flex: 1,
+      flex: 0.5,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row" alignItems="center" gap={1}>
           <CalendarMonthIcon fontSize="small" color="action" />
@@ -120,7 +122,7 @@ const TimesheetDataGrid = () => {
     {
       field: "clockInTime",
       headerName: "Clock In",
-      flex: 1,
+      flex: 0.5,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row" alignItems="center" gap={1}>
           <AccessTimeIcon fontSize="small" color="action" />
@@ -131,7 +133,7 @@ const TimesheetDataGrid = () => {
     {
       field: "clockOutTime",
       headerName: "Clock Out",
-      flex: 1,
+      flex: 0.5,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row" alignItems="center" gap={1}>
           <AccessTimeIcon fontSize="small" color="action" />
@@ -142,7 +144,7 @@ const TimesheetDataGrid = () => {
     {
       field: "isLunchIncluded",
       headerName: "Lunch",
-      flex: 0.5,
+      flex: 0.3,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row" alignItems="center" gap={1}>
           <LunchDiningIcon fontSize="small" color={params.row.isLunchIncluded ? "success" : "error"} />
@@ -155,13 +157,19 @@ const TimesheetDataGrid = () => {
       headerName: "Overtime",
       flex: 2,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
-        <Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
           {params.row.overtimeDuration > 0 && (
-            <Chip label={`${params.row.overtimeDuration}h`} color="primary" size="small" sx={{ mr: 2 }} />
+            <Chip
+              label={`${params.row.overtimeDuration}h`}
+              color="primary"
+              size="small"
+              sx={{ mr: 2 }}
+              variant="outlined"
+            />
           )}
           {params.row.overtimeDuration > 0 && (
             <Tooltip title={params.row.overtimeReason}>
-              <Typography variant="caption" color="text.secondary" noWrap>
+              <Typography color="text.secondary" variant="body2" noWrap>
                 {params.row.overtimeReason}
               </Typography>
             </Tooltip>
@@ -183,6 +191,20 @@ const TimesheetDataGrid = () => {
           variant="outlined"
           size="small"
         />
+      ),
+    },
+    {
+      field: "overtimeRejectReason",
+      headerName: "",
+      flex: 2,
+      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
+        <Box>
+          <Tooltip title={params.row.overtimeReason}>
+            <Typography color="text.secondary" noWrap variant="body2">
+              {params.row.overtimeRejectReason}
+            </Typography>
+          </Tooltip>
+        </Box>
       ),
     },
     {
@@ -218,6 +240,7 @@ const TimesheetDataGrid = () => {
   useEffect(() => {
     if (!userEmail) return;
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginationModel]);
 
   const [filterModel, setFilterModel] = useState<GridFilterModel>({
@@ -266,7 +289,6 @@ const TimesheetDataGrid = () => {
         ...editingEntry,
         [field]: value,
       };
-
       if (["recordDate", "clockInTime", "clockOutTime", "isLunchIncluded"].includes(field)) {
         setEditingEntry(calculateOvertime(updatedEntry));
       } else {
@@ -276,30 +298,20 @@ const TimesheetDataGrid = () => {
   };
 
   const calculateOvertime = (entry: TimesheetRecord): TimesheetRecord => {
-    if (entry.clockInTime && entry.clockOutTime && entry.recordDate) {
-      const totalMinutes = differenceInMinutes(entry.clockOutTime, entry.clockInTime);
-      const lunchBreakMinutes = entry.isLunchIncluded ? 60 : 0;
-      const workMinutes = Math.max(0, totalMinutes - lunchBreakMinutes);
+    if (!(entry.clockInTime && entry.clockOutTime && entry.recordDate)) return entry;
 
-      let overtimeMinutes = 0;
-      if (isWeekend(entry.recordDate)) {
-        overtimeMinutes = workMinutes;
-      } else {
-        // overtimeMinutes = Math.max(0, workMinutes - regularWorkMinutes);
-      }
+    const totalMinutes = differenceInMinutes(entry.clockOutTime, entry.clockInTime);
+    const lunchBreakMinutes = entry.isLunchIncluded ? (regularLunchHoursPerDay ?? 0) * 60 : 0;
+    const regularWorkMinutes = (regularWorkHoursPerDay ?? 8) * 60;
+    const workMinutes = Math.max(0, totalMinutes - lunchBreakMinutes);
+    const overtimeMinutes = isWeekend(entry.recordDate) ? totalMinutes : Math.max(0, workMinutes - regularWorkMinutes);
 
-      const overtimeDuration = parseFloat((overtimeMinutes / 60).toFixed(2));
-
-      const overtimeReason =
-        overtimeDuration > 0 ? entry.overtimeReason || (isWeekend(entry.recordDate) ? "Weekend work" : "") : "";
-
-      return {
-        ...entry,
-        overtimeDuration,
-        overtimeReason,
-      };
-    }
-    return entry;
+    return {
+      ...entry,
+      overtimeDuration: parseFloat((overtimeMinutes / 60).toFixed(2)),
+      overtimeReason:
+        overtimeMinutes > 0 ? entry.overtimeReason ?? (isWeekend(entry.recordDate) ? "Weekend work" : "") : "",
+    };
   };
 
   const openEditDialog = (entry: TimesheetRecord) => {
@@ -351,7 +363,7 @@ const TimesheetDataGrid = () => {
         clockOutTime: format(editingEntry.clockOutTime, "HH:mm:ss"),
       };
 
-      console.log("formatted entry", formattedEntry)
+      console.log("formatted entry", formattedEntry);
 
       //   await dispatch(updateTimesheetRecord(formattedEntry)).unwrap();
       setEditDialogOpen(false);
@@ -365,7 +377,7 @@ const TimesheetDataGrid = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1, pr: 1 }}>
+      <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
         {timesheetInfo && workPolicies && (
           <Box sx={{ width: "100%", height: "auto" }}>
             <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} />
@@ -396,7 +408,7 @@ const TimesheetDataGrid = () => {
         <Paper
           elevation={0}
           sx={{
-            height: "60%",
+            height: "72%",
             width: "100%",
             borderRadius: 2,
             border: "1px solid",
@@ -462,7 +474,7 @@ const TimesheetDataGrid = () => {
         </Paper>
 
         <CustomModal open={openDialog} onClose={handleCloseDialog}>
-          <SubmitRecordModal onClose={handleCloseDialog} regularWorkHoursPerDay={workPolicies?.workingHoursPerDay} />
+          <SubmitRecordModal onClose={handleCloseDialog} />
         </CustomModal>
 
         <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
@@ -474,6 +486,7 @@ const TimesheetDataGrid = () => {
                   <DatePicker
                     label="Date"
                     value={editingEntry.recordDate}
+                    disabled
                     onChange={(newDate) => handleEditFieldChange("recordDate", newDate)}
                     slotProps={{
                       textField: {

@@ -63,23 +63,24 @@ import { format, differenceInMinutes, isWeekend, startOfDay } from "date-fns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 
 interface TimeTrackingFormProps {
-  regularWorkHoursPerDay?: number;
   onClose?: () => void;
 }
 
-const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPerDay = 8, onClose }) => {
+const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   const dispatch = useAppDispatch();
+  const regularLunchHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.lunchHoursPerDay);
+  const regularWorkHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.workingHoursPerDay);
   const newRecordId = useRef<number>(0);
-  const regularWorkMinutes = regularWorkHoursPerDay * 60;
+  const regularWorkMinutes = (regularWorkHoursPerDay ?? 8) * 60;
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [entries, setEntries] = useState<CreateUITimesheetRecord[]>([]);
   const totalDays = entries.length;
   const userEmail = useAppSelector((state) => state.user.userInfo!.workEmail);
-  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
   const [editingEntry, setEditingEntry] = useState<CreateUITimesheetRecord | null>(null);
   const totalOvertimeHours = entries.reduce((sum, entry) => sum + entry.overtimeDuration, 0);
   const [currentEntry, setCurrentEntry] = useState<CreateUITimesheetRecord>(createNewEntry());
+  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
 
   function createNewEntry(): CreateUITimesheetRecord {
     return {
@@ -96,6 +97,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
 
   useEffect(() => {
     setCurrentEntry(calculateOvertime(currentEntry));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     currentEntry.clockInTime,
     currentEntry.clockOutTime,
@@ -204,30 +206,19 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
   };
 
   const calculateOvertime = (entry: CreateUITimesheetRecord): CreateUITimesheetRecord => {
-    if (entry.clockInTime && entry.clockOutTime && entry.recordDate) {
-      const totalMinutes = differenceInMinutes(entry.clockOutTime, entry.clockInTime);
-      const lunchBreakMinutes = entry.isLunchIncluded ? 60 : 0;
-      const workMinutes = Math.max(0, totalMinutes - lunchBreakMinutes);
+    if (!(entry.clockInTime && entry.clockOutTime && entry.recordDate)) return entry;
 
-      let overtimeMinutes = 0;
-      if (isWeekend(entry.recordDate)) {
-        overtimeMinutes = workMinutes + lunchBreakMinutes;
-      } else {
-        overtimeMinutes = Math.max(0, workMinutes - regularWorkMinutes);
-      }
+    const totalMinutes = differenceInMinutes(entry.clockOutTime, entry.clockInTime);
+    const lunchBreakMinutes = entry.isLunchIncluded ? (regularLunchHoursPerDay ?? 0) * 60 : 0;
+    const workMinutes = Math.max(0, totalMinutes - lunchBreakMinutes);
+    const overtimeMinutes = isWeekend(entry.recordDate) ? totalMinutes : Math.max(0, workMinutes - regularWorkMinutes);
 
-      const overtimeDuration = parseFloat((overtimeMinutes / 60).toFixed(2));
-
-      const overtimeReason =
-        overtimeDuration > 0 ? entry.overtimeReason || (isWeekend(entry.recordDate) ? "Weekend work" : "") : "";
-
-      return {
-        ...entry,
-        overtimeDuration,
-        overtimeReason,
-      };
-    }
-    return entry;
+    return {
+      ...entry,
+      overtimeDuration: parseFloat((overtimeMinutes / 60).toFixed(2)),
+      overtimeReason:
+        overtimeMinutes > 0 ? entry.overtimeReason ?? (isWeekend(entry.recordDate) ? "Weekend work" : "") : "",
+    };
   };
 
   const handleSaveEditedEntry = () => {
@@ -659,7 +650,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
             </Button>
           </DialogActions>
         </Dialog>
-
       </LocalizationProvider>
     </Box>
   );
