@@ -192,6 +192,10 @@ const TimesheetRecordSlice = createSlice({
     resetSubmitSate(state) {
       state.submitState = State.idle;
     },
+    resetTimesheetRecords(state) {
+      state.timesheetData = null;
+      state.submitState = State.idle;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -235,5 +239,5 @@ const TimesheetRecordSlice = createSlice({
   },
 });
 
-export const { resetSubmitSate } = TimesheetRecordSlice.actions;
+export const { resetSubmitSate, resetTimesheetRecords } = TimesheetRecordSlice.actions;
 export default TimesheetRecordSlice.reducer;

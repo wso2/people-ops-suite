@@ -13,58 +13,30 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import {
-  DataGrid,
-  GridToolbar,
-  GridFilterModel,
-  GridLogicOperator,
-  GridPaginationModel,
-  GridRenderCellParams,
-  GridRowSelectionModel,
-} from "@mui/x-data-grid";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import PersonIcon from "@mui/icons-material/Person";
-import ThumbUpIcon from "@mui/icons-material/ThumbUp";
-import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import { fetchTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import InformationHeader from "@component/common/InformationHeader";
 import { useConfirmationModalContext } from "@context/DialogContext";
-import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
-import {
-  ConfirmationType,
-  Filter,
-  State,
-  statusChipStyles,
-  TimesheetRecord,
-  TimesheetStatus,
-  TimesheetUpdate,
-} from "@utils/types";
-import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton } from "@mui/material";
+import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography } from "@mui/material";
+import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus } from "@utils/types";
+import { DataGrid, GridToolbar, GridFilterModel, GridLogicOperator, GridRenderCellParams } from "@mui/x-data-grid";
 
-const TimesheetAuditView = () => {
+const ReportView = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const dialogContext = useConfirmationModalContext();
-  const leadEmail = useAppSelector((state) => state.auth.userInfo?.email);
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
-  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
-  const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
-  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
-    page: 0,
-    pageSize: 5,
-  });
   const [filters, setFilters] = useState<Filter[]>([]);
   const availableFields = [
-    { field: "status", label: "Status", type: "select", options: Object.values(TimesheetStatus) },
     { field: "employeeEmail", label: "Employee Email", type: "text" },
     { field: "rangeStart", label: "Start Date", type: "date" },
     { field: "rangeEnd", label: "End Date", type: "date" },
@@ -173,152 +145,27 @@ const TimesheetAuditView = () => {
         />
       ),
     },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 120,
-      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
-        <Stack direction="row">
-          <Tooltip title="Approve OT">
-            <span>
-              <IconButton
-                size="small"
-                color="info"
-                onClick={() => handleApproveRecords(params.row.recordId)}
-                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
-                sx={{ mr: 1 }}
-              >
-                <ThumbUpIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title="Decline OT">
-            <span>
-              <IconButton
-                size="small"
-                color="error"
-                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
-                onClick={() => handleDeclineRecords(params.row.recordId)}
-              >
-                <ThumbDownIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-        </Stack>
-      ),
-    },
   ];
 
-  useEffect(() => {
-    if (!leadEmail) return;
-    fetchData();
-
-    //eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paginationModel]);
-
-  const fetchDefaultData = async () => {
-    if (!leadEmail) return;
-    dispatch(
-      fetchTimesheetRecords({
-        status: TimesheetStatus.PENDING,
-        limit: paginationModel.pageSize,
-        offset: paginationModel.page * paginationModel.pageSize,
-        leadEmail: leadEmail,
-      })
-    );
-  };
-
-  const handleSelectionChange = (newSelectionModel: GridRowSelectionModel) => {
-    newSelectionModel[newSelectionModel.length - 1] as number;
-    setSelectionModel(newSelectionModel);
-  };
-
-  const handleApproveRecords = (recordId?: number) => {
-    dialogContext.showConfirmation(
-      "Do you want to approve the selected?",
-      "Please note that once done, this cannot be undone.",
-      ConfirmationType.send,
-      () => {
-        handleUpdateRecords(TimesheetStatus.APPROVED, recordId);
-      },
-      "Approve",
-      "Cancel"
-    );
-  };
-
-  const handleDeclineRecords = (recordId?: number) => {
-    dialogContext.showConfirmation(
-      "Do you want to decline the selected?",
-      "Please note that once done, this cannot be undone.",
-      ConfirmationType.send,
-      (comment) => {
-        handleUpdateRecords(TimesheetStatus.REJECTED, recordId, comment);
-      },
-      "Decline",
-      "Cancel",
-      {
-        label: "Reason for decline",
-        mandatory: true,
-        type: "textarea",
-      }
-    );
-  };
-
-  const handleUpdateRecords = async (status: TimesheetStatus, recordId?: number, comment?: string) => {
-    const timesheetRecords: TimesheetUpdate[] = [];
-
-    if (recordId) {
-      timesheetRecords.push({ recordId: recordId, overtimeStatus: status });
-    }
-
-    if (selectionModel.length > 1) {
-      selectionModel.forEach((recordId) => {
-        timesheetRecords.push({ recordId: recordId as number, overtimeStatus: status, overtimeRejectReason: comment });
-      });
-    }
-    await dispatch(updateTimesheetRecords({ timesheetRecords: timesheetRecords }));
-    fetchData();
-  };
-
   const fetchData = async () => {
-    if (!leadEmail) return;
-
     const filterParams = filters.reduce((acc, filter) => {
       return { ...acc, [filter.field]: filter.value };
     }, {});
 
     dispatch(
       fetchTimesheetRecords({
-        leadEmail: leadEmail,
-        status: TimesheetStatus.PENDING,
-        limit: paginationModel.pageSize,
-        offset: paginationModel.page * paginationModel.pageSize,
         ...filterParams,
       })
     );
   };
 
   const handleResetFilters = () => {
-    fetchDefaultData();
     setFilters([]);
   };
-
-  useEffect(() => {
-    return () => {
-      dispatch(resetTimesheetRecords());
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    };
-  }, []);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
-        {timesheetInfo && workPolicies && (
-          <Box sx={{ width: "100%", height: "auto" }}>
-            <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} isLeadView={true} />
-          </Box>
-        )}
-
         <Stack direction="row" justifyContent="space-end" alignItems="right" mb={1} spacing={1}>
           <FilterComponent
             availableFields={availableFields}
@@ -327,33 +174,12 @@ const TimesheetAuditView = () => {
             onApply={fetchData}
             onReset={handleResetFilters}
           />
-
-          <Button
-            variant="contained"
-            onClick={() => handleApproveRecords()}
-            sx={{ width: "160px", mx: 1 }}
-            startIcon={<ThumbUpIcon />}
-            disabled={selectionModel.length <= 1}
-          >
-            Batch Approve
-          </Button>
-
-          <Button
-            variant="contained"
-            onClick={() => handleDeclineRecords()}
-            color="error"
-            sx={{ width: "160px", mx: 1 }}
-            startIcon={<ThumbDownIcon />}
-            disabled={selectionModel.length <= 1}
-          >
-            Batch Reject
-          </Button>
         </Stack>
 
         <Paper
           elevation={0}
           sx={{
-            height: "85%",
+            height: "95%",
             width: "100%",
             borderRadius: 2,
             border: "1px solid",
@@ -369,16 +195,12 @@ const TimesheetAuditView = () => {
               disableDensitySelector
               paginationMode="server"
               rowCount={totalRecordCount}
-              paginationModel={paginationModel}
-              onPaginationModelChange={setPaginationModel}
               disableRowSelectionOnClick
               loading={recordLoadingState === State.loading}
               getRowId={(row) => row.recordId}
               filterModel={filterModel}
               onFilterModelChange={setFilterModel}
-              onRowSelectionModelChange={handleSelectionChange}
               slots={{ toolbar: GridToolbar }}
-              checkboxSelection
               slotProps={{
                 toolbar: {
                   showQuickFilter: true,
@@ -423,4 +245,4 @@ const TimesheetAuditView = () => {
     </LocalizationProvider>
   );
 };
-export default TimesheetAuditView;
+export default ReportView;

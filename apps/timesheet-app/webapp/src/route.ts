@@ -21,6 +21,7 @@ import { isIncludedRole } from "./utils/utils";
 import Groups3Icon from '@mui/icons-material/Groups3';
 import LeaderboardIcon from '@mui/icons-material/Leaderboard';
 import { RouteObject, NonIndexRouteObject } from "react-router-dom";
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 export interface RouteObjectWithRole extends NonIndexRouteObject {
   allowRoles: string[];
@@ -44,13 +45,20 @@ export const routes: RouteObjectWithRole[] = [
     text: "Employee Portal",
     icon: React.createElement(LeaderboardIcon),
     element: React.createElement(View.employeeView),
-    allowRoles: [Roles.ADMIN],
+    allowRoles: [Roles.EMPLOYEE],
   },
   {
     path: "/lead-portal",
     text: "Lead Portal",
     icon: React.createElement(Groups3Icon),
     element: React.createElement(View.leadView),
+    allowRoles: [Roles.ADMIN],
+  },
+  {
+    path: "/admin-portal",
+    text: "Admin Portal",
+    icon: React.createElement(AdminPanelSettingsIcon),
+    element: React.createElement(View.ReportView),
     allowRoles: [Roles.ADMIN],
   },
 ];

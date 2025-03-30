@@ -73,7 +73,6 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
     return value > threshold ? <TrendingUp color="error" /> : <TrendingDown color="success" />;
   };
 
-  // Status chips data
   const statusChips = [
     {
       label: `Approved: ${approvedRecords}`,
@@ -97,7 +96,6 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
     }
   ];
 
-  // Stats cards data
   const stats = [
     {
       title: "OT Utilization",
@@ -151,7 +149,6 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
       }}
     >
       <CardContent>
-        {/* Status Summary Chips */}
         <Stack
           direction="row"
           spacing={1}
@@ -199,7 +196,7 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
               />
                <Chip
                 icon={<Work />}
-                label={ `Work TIme ${dailyWorkingHours}`}
+                label={ `Work TIme ${dailyWorkingHours}h`}
                 color="secondary"
                 variant="outlined"
                 sx={{
@@ -211,7 +208,6 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
           )}
         </Stack>
 
-        {/* Main Stats Grid */}
         {!isLeadView && (
           <>
             <Divider sx={{ my: 1 }} />

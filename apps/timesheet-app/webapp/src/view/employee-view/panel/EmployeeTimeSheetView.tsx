@@ -44,19 +44,18 @@ import {
 import { useEffect, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
-
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import SubmitRecordModal from "../components/SubmitRecordModal";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import { fetchTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
 import InformationHeader from "@component/common/InformationHeader";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { CustomModal } from "@component/common/CustomComponentModal";
 import { differenceInMinutes, format, isWeekend, parseISO } from "date-fns";
 import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
+import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
 import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus, TimesheetUpdate } from "@utils/types";
 
 const TimesheetDataGrid = () => {
@@ -139,7 +138,7 @@ const TimesheetDataGrid = () => {
               label={`${params.row.overtimeDuration}h`}
               color="primary"
               size="small"
-              sx={{ mr: 2 }}
+              sx={{ mr: 2, width: "50px" }}
               variant="outlined"
             />
           )}
@@ -355,6 +354,13 @@ const TimesheetDataGrid = () => {
     setEditingEntry(null);
     setErrors({});
   };
+
+  useEffect(() => {
+    return () => {
+      dispatch(resetTimesheetRecords());
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    };
+  }, []);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
