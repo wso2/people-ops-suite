@@ -39,28 +39,6 @@ type DatabaseClientConfig record {|
     mysql:Options? options;
 |};
 
-# [Database]SampleCollection type.
-public type SampleCollection record {|
-    # Id of the collection
-    int id;
-    # Name
-    string name;
-    # Timestamp, when created
-    string createdOn;
-    # Person, who created
-    string createdBy;
-    # Timestamp, when updated
-    string updatedOn;
-    # Person, who updates
-    string updatedBy;
-|};
-
-# [Database]Collection insert type.
-public type AddSampleCollection record {|
-    # Name of the collection
-    string name;
-|};
-
 # Work policies record.
 public type WorkPolicies record {|
     # Number of OT hours per year

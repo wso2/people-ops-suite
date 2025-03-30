@@ -22,8 +22,6 @@ import {
   Button,
   Tooltip,
   useTheme,
-  MenuItem,
-  TextField,
   Typography,
   IconButton,
 } from "@mui/material";
@@ -37,16 +35,12 @@ import {
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { useEffect, useState } from "react";
-import AddIcon from "@mui/icons-material/Add";
-import TuneIcon from "@mui/icons-material/Tune";
-import CloseIcon from "@mui/icons-material/Close";
 import CancelIcon from "@mui/icons-material/Cancel";
 import PersonIcon from "@mui/icons-material/Person";
 import PendingIcon from "@mui/icons-material/Pending";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useAppDispatch, useAppSelector } from "@slices/store";
@@ -57,6 +51,7 @@ import InformationHeader from "@component/common/InformationHeader";
 import { useConfirmationModalContext } from "@context/DialogContext";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { ConfirmationType, State, TimesheetRecord, TimesheetStatus, TimesheetUpdate } from "@utils/types";
+import FilterComponent from "@component/common/FilterModal";
 
 const statusChipStyles = {
   [TimesheetStatus.APPROVED]: {
@@ -90,11 +85,22 @@ const TimesheetAuditView = () => {
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
-  const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
   const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 5,
+  });
+  const [filters, setFilters] = useState<Filter[]>([]);
+  const availableFields = [
+    { field: "status", label: "Status", type: "select", options: Object.values(TimesheetStatus) },
+    { field: "employeeEmail", label: "Employee Email", type: "text" },
+    { field: "rangeStart", label: "Start Date", type: "date" },
+    { field: "rangeEnd", label: "End Date", type: "date" },
+  ];
+  const [filterModel, setFilterModel] = useState<GridFilterModel>({
+    items: [],
+    logicOperator: GridLogicOperator.And,
+    quickFilterValues: [],
   });
 
   const columns = [
@@ -229,42 +235,8 @@ const TimesheetAuditView = () => {
     fetchData();
   }, [paginationModel]);
 
-  const [filters, setFilters] = useState<Filter[]>([]);
-
-  const availableFields = [
-    { field: "status", label: "Status", type: "select", options: Object.values(TimesheetStatus) },
-    { field: "employeeEmail", label: "Employee Email", type: "text" },
-    { field: "rangeStart", label: "Start Date", type: "date" },
-    { field: "rangeEnd", label: "End Date", type: "date" },
-  ];
-
-  const [filterModel, setFilterModel] = useState<GridFilterModel>({
-    items: [],
-    logicOperator: GridLogicOperator.And,
-    quickFilterValues: [],
-  });
-
-  const fetchData = async () => {
-    if (!leadEmail) return;
-
-    const filterParams = filters.reduce((acc, filter) => {
-      return { ...acc, [filter.field]: filter.value };
-    }, {});
-
-    dispatch(
-      fetchTimesheetRecords({
-        leadEmail: leadEmail,
-        status: TimesheetStatus.PENDING,
-        limit: paginationModel.pageSize,
-        offset: paginationModel.page * paginationModel.pageSize,
-        ...filterParams,
-      })
-    );
-  };
-
   const fetchDefaultData = async () => {
     if (!leadEmail) return;
-    resetFilters();
     dispatch(
       fetchTimesheetRecords({
         status: TimesheetStatus.PENDING,
@@ -273,98 +245,6 @@ const TimesheetAuditView = () => {
         leadEmail: leadEmail,
       })
     );
-  };
-
-  const handleAddFilter = () => {
-    if (filters.some((f) => f.field === "status")) {
-      const defaultField = availableFields.find((f) => f.field !== "status")?.field || availableFields[0].field;
-      setFilters([
-        ...filters,
-        {
-          id: Date.now().toString(),
-          field: defaultField,
-          operator: "equals",
-          value: defaultField.includes("Date") ? new Date() : "",
-        },
-      ]);
-    } else {
-      const defaultField = availableFields[0].field;
-      setFilters([
-        ...filters,
-        {
-          id: Date.now().toString(),
-          field: defaultField,
-          operator: "equals",
-          value: defaultField.includes("Date") ? new Date() : "",
-        },
-      ]);
-    }
-  };
-
-  const handleFilterChange = (id: string, field: string, value: any) => {
-    if (field === "field" && value === "status" && filters.some((f) => f.field === "status" && f.id !== id)) {
-      return;
-    }
-
-    setFilters(filters.map((filter) => (filter.id === id ? { ...filter, [field]: value } : filter)));
-  };
-
-  const handleRemoveFilter = (id: string) => {
-    setFilters(filters.filter((filter) => filter.id !== id));
-  };
-
-  const applyFilters = () => {
-    fetchData();
-  };
-
-  const resetFilters = () => {
-    setFilters([]);
-    fetchDefaultData();
-  };
-
-  const getFilterComponent = (filter: Filter) => {
-    const fieldConfig = availableFields.find((f) => f.field === filter.field);
-    if (!fieldConfig) return null;
-
-    switch (fieldConfig.type) {
-      case "select":
-        return (
-          <TextField
-            select
-            size="small"
-            required
-            value={filter.value}
-            fullWidth
-            onChange={(e) => handleFilterChange(filter.id, "value", e.target.value)}
-            sx={{ minWidth: 150 }}
-          >
-            {fieldConfig.options?.map((option) => (
-              <MenuItem key={option} value={option}>
-                {option}
-              </MenuItem>
-            ))}
-          </TextField>
-        );
-      case "date":
-        return (
-          <DatePicker
-            value={filter.value}
-            onChange={(newValue) => handleFilterChange(filter.id, "value", newValue)}
-            slotProps={{ textField: { size: "small" } }}
-          />
-        );
-      default:
-        return (
-          <TextField
-            size="small"
-            fullWidth
-            value={filter.value}
-            required
-            type="email"
-            onChange={(e) => handleFilterChange(filter.id, "value", e.target.value)}
-          />
-        );
-    }
   };
 
   const handleSelectionChange = (newSelectionModel: GridRowSelectionModel) => {
@@ -373,17 +253,6 @@ const TimesheetAuditView = () => {
   };
 
   const handleApproveRecords = (recordId?: number) => {
-    // const timesheetRecords: TimesheetUpdate[] = [
-    //   {
-    //     recordId: 5,
-    //     overtimeStatus: TimesheetStatus.APPROVED,
-    //   },
-    //   {
-    //     recordId: 10,
-    //     overtimeStatus: TimesheetStatus.APPROVED,
-    //   },
-    // ];
-
     const timesheetRecords: TimesheetUpdate[] = [];
 
     if (recordId) {
@@ -395,8 +264,6 @@ const TimesheetAuditView = () => {
       "Please note that once done, this cannot be undone.",
       ConfirmationType.send,
       () => {
-        // console.log("selectionmodel", selectionModel);
-        // console.log("Payload:", { timesheetRecords: timesheetRecords });
         updateRecords(timesheetRecords);
       },
       "Approve",
@@ -406,7 +273,7 @@ const TimesheetAuditView = () => {
 
   const updateRecords = async (records: TimesheetUpdate[]) => {
     await dispatch(updateTimesheetRecords({ timesheetRecords: records }));
-    fetchData()
+    fetchData();
   };
 
   const handleDeclineRecords = (recordId?: number) => {
@@ -427,6 +294,29 @@ const TimesheetAuditView = () => {
     );
   };
 
+  const fetchData = async () => {
+    if (!leadEmail) return;
+
+    const filterParams = filters.reduce((acc, filter) => {
+      return { ...acc, [filter.field]: filter.value };
+    }, {});
+
+    dispatch(
+      fetchTimesheetRecords({
+        leadEmail: leadEmail,
+        status: TimesheetStatus.PENDING,
+        limit: paginationModel.pageSize,
+        offset: paginationModel.page * paginationModel.pageSize,
+        ...filterParams,
+      })
+    );
+  };
+
+  const handleResetFilters = () => {
+    fetchDefaultData();
+    setFilters([]);
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1, pr: 1 }}>
@@ -437,106 +327,13 @@ const TimesheetAuditView = () => {
         )}
 
         <Stack direction="row" justifyContent="space-end" alignItems="right" mb={1} spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<TuneIcon />}
-            endIcon={<ExpandMoreIcon />}
-            onClick={(e) => setFilterAnchorEl(e.currentTarget)}
-            sx={{
-              borderColor: "divider",
-              "&:hover": { borderColor: "divider" },
-            }}
-          >
-            Filters
-            {filters.length > 0 && (
-              <Chip
-                label={filters.length}
-                size="small"
-                sx={{
-                  ml: 1,
-                  height: 20,
-                  fontSize: "0.75rem",
-                }}
-              />
-            )}
-          </Button>
-
-          <Menu
-            anchorEl={filterAnchorEl}
-            open={Boolean(filterAnchorEl)}
-            onClose={() => setFilterAnchorEl(null)}
-            PaperProps={{
-              sx: {
-                p: 2,
-                width: 400,
-                maxWidth: "90vw",
-                maxHeight: "80vh",
-                overflow: "auto",
-              },
-            }}
-          >
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography variant="subtitle2">FILTERS</Typography>
-              <Button size="small" startIcon={<AddIcon />} onClick={handleAddFilter}>
-                Add Filter
-              </Button>
-            </Stack>
-
-            {filters.length > 0 && (
-              <>
-                <Stack spacing={2}>
-                  {filters.map((filter) => (
-                    <Paper key={filter.id} variant="outlined" sx={{ p: 1.5, position: "relative" }}>
-                      <Stack spacing={1.5} direction={"row"}>
-                        <Box width={"45%"}>
-                          <TextField
-                            select
-                            size="small"
-                            fullWidth
-                            label="Field"
-                            value={filter.field}
-                            onChange={(e) => handleFilterChange(filter.id, "field", e.target.value)}
-                          >
-                            {availableFields.map((field) => (
-                              <MenuItem key={field.field} value={field.field}>
-                                {field.label}
-                              </MenuItem>
-                            ))}
-                          </TextField>
-                        </Box>
-
-                        <Box width={"50%"}>{getFilterComponent(filter)}</Box>
-                        <Box width={"5%"} alignContent={"center"} display={"flex"}>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleRemoveFilter(filter.id)}
-                            sx={{ color: "text.secondary" }}
-                          >
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      </Stack>
-                    </Paper>
-                  ))}
-                  <Stack direction="row" spacing={1} justifyContent="flex-end">
-                    <Button size="small" onClick={resetFilters}>
-                      Reset
-                    </Button>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={() => {
-                        applyFilters();
-                        setFilterAnchorEl(null);
-                      }}
-                    >
-                      Apply
-                    </Button>
-                  </Stack>
-                </Stack>
-              </>
-            )}
-          </Menu>
+          <FilterComponent
+            availableFields={availableFields}
+            filters={filters}
+            setFilters={setFilters}
+            onApply={fetchData}
+            onReset={handleResetFilters}
+          />
 
           <Button
             variant="contained"

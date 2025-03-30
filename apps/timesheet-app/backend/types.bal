@@ -15,14 +15,6 @@
 // under the License.
 import timesheet_app.database;
 
-# Collection type.
-public type SampleCollection record {
-    # Number of total records
-    int count;
-    # List of collections
-    database:SampleCollection[] collections;
-};
-
 # Application Privileges
 const EMPLOYEE_PRIVILEGE = 987;
 const LEAD_PRIVILEGE = 862;
