@@ -14,17 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { Collection } from "@slices/collectionSlice/collection";
-
-export interface PreLoaderProps {
-  message: string | null;
-  hideLogo?: boolean;
-  isLoading?: boolean;
-}
-
-export interface ErrorHandlerProps {
-  message: string | null;
-}
+import { Meeting } from "@slices/meetingSlice/meeting";
 
 export enum State {
   failed = "failed",
@@ -41,7 +31,7 @@ export enum ConfirmationType {
 }
 
 export interface CommonCardProps {
-  collection: Collection;
+  meeting: Meeting;
   actions: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
   dataCardIndex: number;
 }

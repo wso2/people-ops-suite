@@ -14,30 +14,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-//-------React Imports---------
 import React from "react";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-
-//-------MUI Imports---------
-import {
-  Box,
-  IconButton,
-  InputAdornment,
-  Popper,
-  Stack,
-  Tab,
-  Tabs,
-  TextField,
-  Typography,
-} from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import SendIcon from "@mui/icons-material/Send";
-import SearchIcon from "@mui/icons-material/Search";
-import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
-
-//-------App Imports---------
-import SearchFilter from "@component/ui/SearchFilter";
+import DuoIcon from "@mui/icons-material/Duo";
+import { useSearchParams } from "react-router-dom";
+import { Box, Stack, Tab, Tabs, Typography } from "@mui/material";
 
 interface CommonPageProps {
   title: string;
@@ -55,7 +37,6 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [value, setValue] = useState<number>(0);
   const tabs = commonPageTabs.map((tab) => tab.tabPath);
-  const [searchContent, setSearchContent] = useState("");
 
   useEffect(() => {
     const currentTab = searchParams.get("tab");
@@ -65,15 +46,10 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
       searchParams.set("tab", tabs[0]);
       setSearchParams(searchParams);
     }
-  }, [searchParams]);
+  }, [searchParams, setSearchParams, tabs]);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
-  };
-
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(anchorEl ? null : event.currentTarget);
   };
 
   return (
@@ -86,70 +62,29 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
         sx={{
           display: "flex",
           flexDirection: "row",
-          gap: 2,
-          p: 0,
+          gap: 0.5,
           alignItems: "center",
         }}
       >
-        <SendIcon color="primary" />
-        <Stack flexDirection="row" gap={1}>
+        <DuoIcon />
+        <Stack
+          sx={{
+            p: 0.8,
+          }}
+          flexDirection="row"
+          gap={1}
+        >
           <Typography variant="h5" fontWeight="bold">
             {title}
           </Typography>
-          <Typography variant="h6" color={"secondary.dark"}>
+          <Typography variant="h6" color={"secondary.main"}>
             /{searchParams.get("tab")}
           </Typography>
         </Stack>
-        <Stack
-          sx={{ ml: "auto" }}
-          flexDirection={"row"}
-          gap={1.2}
-          alignItems={"center"}
-        >
-          {/* Search */}
-          <TextField
-            size="small"
-            label="Search"
-            variant="outlined"
-            value={searchContent}
-            onChange={(e) => setSearchContent(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              width: 250,
-              "& .MuiInputBase-input": {
-                borderColor: "secondary.dark",
-              },
-            }}
-          />
-          <IconButton
-            sx={{
-              border: 1,
-              borderColor: "secondary.dark",
-              borderRadius: 1.2,
-              p: 0.8,
-            }}
-            onClick={handleClick}
-          >
-            <FilterAltOutlinedIcon />
-          </IconButton>
-        </Stack>
-        <Popper
-          open={Boolean(anchorEl)}
-          anchorEl={anchorEl}
-          placement="bottom-start"
-        >
-          <SearchFilter />
-        </Popper>
       </Box>
 
       {/* -------Tabs--------- */}
-      <Stack flexDirection="row" sx={{ mt: 1 }}>
+      <Stack flexDirection="row" sx={{ mt: 0.7 }}>
         <Tabs
           value={value}
           onChange={handleChange}
@@ -170,43 +105,33 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
         >
           {commonPageTabs.map((tab, index) => (
             <Tab
+              key={index}
               icon={tab.icon}
               label={tab.tabTitle}
               onClick={() => setSearchParams({ tab: tabs[index] })}
               iconPosition="start"
-              sx={{
+              sx={(theme) => ({
                 minHeight: 0,
                 lineHeight: 0,
+                py: 0.7,
                 background:
                   tabs[index] === searchParams.get("tab")
-                    ? (theme) =>
-                        alpha(
-                          theme.palette.primary.main,
-                          theme.palette.action.activatedOpacity
-                        )
+                    ? alpha(theme.palette.primary.light, 0.2)
                     : "inherit",
-              }}
+              })}
             />
           ))}
         </Tabs>
-        <Box
-          sx={{
-            ml: "auto",
-            alignSelf: "center",
-            display:
-              searchParams.get("tab") === "send-offer" ? "block" : "none",
-          }}
-        ></Box>
       </Stack>
-
       {commonPageTabs.map((tab, index) => (
-        <TabPanel value={value} index={index}>
+        <TabPanel key={tab.tabPath || index} value={value} index={index}>
           {tab.page}
         </TabPanel>
       ))}
     </Box>
   );
 };
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -223,23 +148,23 @@ function TabPanel(props: TabPanelProps) {
       id={`simple-tabpanel-${index}`}
       aria-labelledby={`simple-tab-${index}`}
       {...other}
-      style={{ height: `calc(100% - 85px)` }}
+      style={{ height: `calc(100% - 70px)` }}
     >
       {value === index && (
         <Box
-          sx={{
-            p: 2,
+          sx={(theme) => ({
+            boxShadow:
+              theme.palette.mode === "dark"
+                ? "0px 3px 10px rgba(120, 125, 129, 0.5)"
+                : 10,
             overflow: "auto",
             height: "100%",
-            borderTop: "none",
-            background: (theme) =>
-              alpha(
-                theme.palette.primary.main,
-                theme.palette.action.activatedOpacity
-              ),
-            borderRadius: 3,
-            borderTopLeftRadius: 0,
-          }}
+            background: "background.paper",
+            borderTopRightRadius: 12,
+            borderTopLeftRadius: value === 0 ? 0 : 12,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 12,
+          })}
         >
           {children}
         </Box>

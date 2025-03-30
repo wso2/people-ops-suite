@@ -12,12 +12,12 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License.
+// under the License. 
 
-import authReducer from "./authSlice";
+import authReducer from "./authSlice/auth";
 import userReducer from "./userSlice/user";
 import commonReducer from "./commonSlice/common";
-import collectionReducer from "@slices/collectionSlice/collection";
+import meetingReducer from "@slices/meetingSlice/meeting";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import { enableMapSet } from "immer";
@@ -26,7 +26,7 @@ enableMapSet();
 
 export const store = configureStore({
   reducer: {
-    collection: collectionReducer,
+    meeting: meetingReducer,
     auth: authReducer,
     user: userReducer,
     common: commonReducer,

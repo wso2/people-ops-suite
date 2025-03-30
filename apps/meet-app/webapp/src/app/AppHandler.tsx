@@ -14,18 +14,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import Error from "../layout/pages/404";
-import MaintenancePage from "../layout/pages/Maintenance";
-import { getActiveRoutesV2, routes } from "../route";
-import Layout from "../layout/Layout";
-import { RootState, useAppSelector } from "@slices/store";
+import Layout from "@layout/Layout";
+import Error from "@layout/pages/404";
 import PreLoader from "@component/common/PreLoader";
+import { getActiveRoutesV2, routes } from "@src/route";
+import MaintenancePage from "@layout/pages/Maintenance";
+import { RootState, useAppSelector } from "@slices/store";
 import ErrorHandler from "@component/common/ErrorHandler";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 
 const AppHandler = () => {
   const auth = useAppSelector((state: RootState) => state.auth);
-
   const router = createBrowserRouter([
     {
       path: "/",
@@ -38,7 +37,7 @@ const AppHandler = () => {
   return (
     <>
       {auth.status === "loading" && (
-        <PreLoader isLoading={true} message={auth.statusMessage}></PreLoader>
+        <PreLoader isLoading={true} message={auth.statusMessage} />
       )}
       {auth.status === "success" && auth.mode === "active" && (
         <RouterProvider router={router} />
@@ -48,7 +47,7 @@ const AppHandler = () => {
       )}
       {auth.status === "failed" && (
         <ErrorHandler
-          message={"Sometimes went wrong while authenticating the user :("}
+          message={"Something went wrong while authenticating the user."}
         />
       )}
     </>

@@ -15,29 +15,19 @@
 // under the License.
 
 import Grid from "@mui/material/Grid";
-import { Container, alpha, Paper, useTheme } from "@mui/material";
-import { ErrorHandlerProps } from "../../types/types";
+import { Container, Box } from "@mui/material";
 import StateWithImage from "@component/ui/StateWithImage";
 
+interface ErrorHandlerProps {
+  message: string | null;
+}
+
 const ErrorHandler = (props: ErrorHandlerProps) => {
-  const theme = useTheme();
   return (
-    <Paper
-      variant="elevation"
-      elevation={4}
+    <Box
       sx={{
-        background: alpha(
-          theme.palette.primary.main,
-          theme.palette.action.hoverOpacity
-        ),
-        display: "flex",
-        justifyContent: "center",
-        borderRadius: 2,
+        paddingX: 2,
         paddingY: 5,
-        position: "relative",
-        top: "15vh",
-        m: "auto",
-        maxWidth: "40vw",
       }}
     >
       <Container maxWidth="md">
@@ -53,20 +43,20 @@ const ErrorHandler = (props: ErrorHandlerProps) => {
               alt="logo"
               width="150"
               height="auto"
-              src={require("../../assets/images/wso2-logo.svg").default}
-            ></img>
+              src={require("@assets/images/wso2-logo.svg").default}
+            />
           </Grid>
           <Grid item xs={12}>
             <StateWithImage
               message={
                 props.message || "Something went wrong! Please try again later."
               }
-              imageUrl={require("../../assets/images/not-found.svg").default}
+              imageUrl={require("@assets/images/not-found.svg").default}
             />
           </Grid>
         </Grid>
       </Container>
-    </Paper>
+    </Box>
   );
 };
 

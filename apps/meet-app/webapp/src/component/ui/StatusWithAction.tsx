@@ -49,16 +49,14 @@ const StatusWithAction = (props: PreLoaderProps) => {
                 alt="logo"
                 width="150"
                 height="auto"
-                src="https://wso2.cachefly.net/wso2/sites/images/brand/downloads/wso2-logo.png"
+                src={require("@assets/images/wso2-logo.svg").default}
               ></img>
             </Grid>
             <Grid item xs={12}></Grid>
-
             <Grid item xs={12}>
               <Typography variant="h5">{props.message}</Typography>
             </Grid>
             <Grid item xs={12}></Grid>
-
             <Grid item xs={12}>
               <Button
                 size="large"
