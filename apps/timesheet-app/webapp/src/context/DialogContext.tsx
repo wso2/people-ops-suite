@@ -200,7 +200,6 @@ const ConfirmationDialogContextProvider: React.FC<ConfirmationModalContextProvid
                 size="small"
                 multiline
                 rows={2}
-                maxRows={6}
                 onChange={onChange}
               />
             )}

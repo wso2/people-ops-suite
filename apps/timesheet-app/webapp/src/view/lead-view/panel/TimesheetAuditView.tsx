@@ -13,7 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import { Box, Chip, Menu, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton } from "@mui/material";
 import {
   DataGrid,
   GridToolbar,
@@ -29,18 +28,19 @@ import PersonIcon from "@mui/icons-material/Person";
 import PendingIcon from "@mui/icons-material/Pending";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
+import { LocalizationProvider } from "@mui/x-date-pickers";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import FilterComponent from "@component/common/FilterModal";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import { fetchTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import InformationHeader from "@component/common/InformationHeader";
 import { useConfirmationModalContext } from "@context/DialogContext";
-import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { fetchTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
 import { ConfirmationType, State, TimesheetRecord, TimesheetStatus, TimesheetUpdate } from "@utils/types";
-import FilterComponent from "@component/common/FilterModal";
+import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton } from "@mui/material";
 
 const statusChipStyles = {
   [TimesheetStatus.APPROVED]: {
@@ -260,9 +260,7 @@ const TimesheetAuditView = () => {
       "Please note that once done, this cannot be undone.",
       ConfirmationType.send,
       (comment) => {
-        {
-          handleUpdateRecords(TimesheetStatus.REJECTED, recordId, comment);
-        }
+        handleUpdateRecords(TimesheetStatus.REJECTED, recordId, comment);
       },
       "Decline",
       "Cancel",

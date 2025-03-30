@@ -557,7 +557,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
           </CardContent>
         </Card>
 
-        {/* Dialog for editing entries */}
         <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
           <DialogTitle>Edit Time Entry</DialogTitle>
           <DialogContent>
@@ -660,6 +659,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ regularWorkHoursPe
             </Button>
           </DialogActions>
         </Dialog>
+
       </LocalizationProvider>
     </Box>
   );

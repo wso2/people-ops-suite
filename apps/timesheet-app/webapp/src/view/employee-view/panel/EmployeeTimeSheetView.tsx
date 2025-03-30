@@ -30,6 +30,8 @@ import {
   DialogActions,
   DialogContent,
   InputAdornment,
+  FormControlLabel,
+  Switch,
 } from "@mui/material";
 import {
   DataGrid,
@@ -95,7 +97,6 @@ const TimesheetDataGrid = () => {
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
-  const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 5,
@@ -103,7 +104,6 @@ const TimesheetDataGrid = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any | null>(null);
   const [filters, setFilters] = useState<Filter[]>([]);
-
 
   const columns = [
     {
@@ -215,71 +215,10 @@ const TimesheetDataGrid = () => {
     { field: "rangeEnd", label: "End Date", type: "date" },
   ];
 
-  const openEditDialog = (entry: TimesheetRecord) => {
-    setEditingEntry({
-      ...entry,
-      recordDate: parseISO(entry.recordDate.toString()),
-      clockInTime: parseISO(`1970-01-01T${entry.clockInTime}`),
-      clockOutTime: parseISO(`1970-01-01T${entry.clockOutTime}`),
-    });
-    setEditDialogOpen(true);
-  };
-
-  const handleSaveEditedEntry = async () => {
-    if (!editingEntry) return;
-
-    const newErrors: Partial<Record<keyof TimesheetRecord, string>> = {};
-
-    if (!editingEntry.recordDate) {
-      newErrors.recordDate = "Date is required";
-    }
-
-    if (!editingEntry.clockInTime) {
-      newErrors.clockInTime = "Clock in time is required";
-    }
-
-    if (!editingEntry.clockOutTime) {
-      newErrors.clockOutTime = "Clock out time is required";
-    }
-
-    if (editingEntry.clockInTime && editingEntry.clockOutTime && editingEntry.clockOutTime < editingEntry.clockInTime) {
-      newErrors.clockOutTime = "Clock out time must be after clock in time";
-    }
-
-    if (editingEntry.overtimeDuration > 0 && !editingEntry.overtimeReason) {
-      newErrors.overtimeReason = "Overtime reason is required when there is overtime";
-    }
-
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length > 0) {
-      return;
-    }
-
-    try {
-      const formattedEntry = {
-        ...editingEntry,
-        recordDate: format(editingEntry.recordDate, "yyyy-MM-dd"),
-        clockInTime: format(editingEntry.clockInTime, "HH:mm:ss"),
-        clockOutTime: format(editingEntry.clockOutTime, "HH:mm:ss"),
-      };
-
-      //   await dispatch(updateTimesheetRecord(formattedEntry)).unwrap();
-      setEditDialogOpen(false);
-      setEditingEntry(null);
-      setErrors({});
-      fetchData(); // Refresh the data after update
-    } catch (error) {
-      console.error("Failed to update record:", error);
-    }
-  };
-
   useEffect(() => {
     if (!userEmail) return;
     fetchData();
   }, [paginationModel]);
-
-
 
   const [filterModel, setFilterModel] = useState<GridFilterModel>({
     items: [],
@@ -363,6 +302,67 @@ const TimesheetDataGrid = () => {
     return entry;
   };
 
+  const openEditDialog = (entry: TimesheetRecord) => {
+    setEditingEntry({
+      ...entry,
+      recordDate: parseISO(entry.recordDate.toString()),
+      clockInTime: parseISO(`1970-01-01T${entry.clockInTime}`),
+      clockOutTime: parseISO(`1970-01-01T${entry.clockOutTime}`),
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEditedEntry = async () => {
+    if (!editingEntry) return;
+
+    const newErrors: Partial<Record<keyof TimesheetRecord, string>> = {};
+
+    if (!editingEntry.recordDate) {
+      newErrors.recordDate = "Date is required";
+    }
+
+    if (!editingEntry.clockInTime) {
+      newErrors.clockInTime = "Clock in time is required";
+    }
+
+    if (!editingEntry.clockOutTime) {
+      newErrors.clockOutTime = "Clock out time is required";
+    }
+
+    if (editingEntry.clockInTime && editingEntry.clockOutTime && editingEntry.clockOutTime < editingEntry.clockInTime) {
+      newErrors.clockOutTime = "Clock out time must be after clock in time";
+    }
+
+    if (editingEntry.overtimeDuration > 0 && !editingEntry.overtimeReason) {
+      newErrors.overtimeReason = "Overtime reason is required when there is overtime";
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      return;
+    }
+
+    try {
+      const formattedEntry = {
+        ...editingEntry,
+        recordDate: format(editingEntry.recordDate, "yyyy-MM-dd"),
+        clockInTime: format(editingEntry.clockInTime, "HH:mm:ss"),
+        clockOutTime: format(editingEntry.clockOutTime, "HH:mm:ss"),
+      };
+
+      console.log("formatted entry", formattedEntry)
+
+      //   await dispatch(updateTimesheetRecord(formattedEntry)).unwrap();
+      setEditDialogOpen(false);
+      setEditingEntry(null);
+      setErrors({});
+      fetchData(); // Refresh the data after update
+    } catch (error) {
+      console.error("Failed to update record:", error);
+    }
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1, pr: 1 }}>
@@ -413,6 +413,7 @@ const TimesheetDataGrid = () => {
               paginationMode="server"
               rowCount={totalRecordCount}
               paginationModel={paginationModel}
+              pageSizeOptions={[5]}
               onPaginationModelChange={setPaginationModel}
               loading={recordLoadingState === State.loading}
               getRowId={(row) => row.recordId}
@@ -485,6 +486,19 @@ const TimesheetDataGrid = () => {
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={editingEntry.isLunchIncluded}
+                        onChange={(e) => handleEditFieldChange("isLunchIncluded", e.target.checked)}
+                        name="isLunchIncluded"
+                        color="primary"
+                      />
+                    }
+                    label="Lunch Break Taken"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
                   <TimePicker
                     label="Clock In"
                     value={editingEntry.clockInTime}
@@ -520,13 +534,13 @@ const TimesheetDataGrid = () => {
                       label="Overtime Reason"
                       value={editingEntry.overtimeReason}
                       onChange={(e) => handleEditFieldChange("overtimeReason", e.target.value)}
+                      error={!!errors.overtimeReason}
+                      helperText={errors.overtimeReason}
                       variant="outlined"
                       fullWidth
                       multiline
                       rows={3}
                       required={editingEntry.overtimeDuration > 0}
-                      error={!!errors.overtimeReason}
-                      helperText={errors.overtimeReason}
                       InputProps={{
                         startAdornment: editingEntry.overtimeDuration > 0 && (
                           <InputAdornment position="start">
