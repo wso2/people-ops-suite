@@ -61,7 +61,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + ctx - Request object
     # + return - User information | Error
-    resource function get user\-info(http:RequestContext ctx) returns http:Ok|http:InternalServerError {
+    resource function get user\-info(http:RequestContext ctx) returns UserInfoResponse|http:InternalServerError {
 
         // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -93,11 +93,8 @@ service http:InterceptableService / on new http:Listener(9090) {
         if authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups) {
             privileges.push(authorization:SALES_ADMIN_PRIVILEGE);
         }
-        UserInfoResponse userInfoResponse = {...loggedInUser, privileges};
 
-        return <http:Ok>{
-            body: userInfoResponse
-        };
+        return {...loggedInUser, privileges};
     }
 
     # Fetch meeting types from the database.
@@ -156,7 +153,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + return - Created meeting | Error
     isolated resource function post meetings(http:RequestContext ctx,
             calendar:CreateCalendarEventRequest createCalendarEventRequest)
-        returns http:Created|http:Forbidden|http:InternalServerError {
+        returns MeetingCreationResponse|http:Forbidden|http:InternalServerError {
 
         // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -215,14 +212,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        MeetingCreationResponse meetingCreationResponse = {
-            message: "Calendar event created successfully.",
-            meetingId
-        };
-
-        return <http:Created>{
-            body: meetingCreationResponse
-        };
+        return {message: "Meeting created successfully.", meetingId};
     }
 
     # Fetch meetings from the database.
@@ -237,7 +227,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + return - Meetings | Error
     isolated resource function get meetings(http:RequestContext ctx, string? title, string? host,
             string? startTime, string? endTime, string? wso2Participants, int? 'limit, int? offset)
-        returns http:Ok|http:Forbidden|http:InternalServerError {
+        returns MeetingListResponse|http:Forbidden|http:InternalServerError {
 
         // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -272,8 +262,8 @@ service http:InterceptableService / on new http:Listener(9090) {
         string? filteredHost = isAdmin ? (host != () ? host : ()) : userInfo.email;
 
         // Fetch the meetings from the database.
-        database:Meeting[]|error meetings = database:fetchMeetings(
-                title, filteredHost, startTime, endTime, wso2Participants, 'limit, offset);
+        database:Meeting[]|error meetings = database:fetchMeetings(title, filteredHost, startTime, endTime,
+            wso2Participants, 'limit, offset);
         if meetings is error {
             string customError = string `Error occurred while retrieving the meetings!`;
             log:printError(customError, meetings);
@@ -284,10 +274,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        int count = (meetings.length() > 0) ? meetings[0].totalCount : 0;
-
-        MeetingListResponse meetingListResponse = {
-            count,
+        return {
+            count: (meetings.length() > 0) ? meetings[0].totalCount : 0,
             meetings: from var meeting in meetings
                 select {
                     meetingId: meeting.meetingId,
@@ -301,10 +289,6 @@ service http:InterceptableService / on new http:Listener(9090) {
                     timeStatus: meeting.timeStatus
                 }
         };
-
-        return <http:Ok>{
-            body: meetingListResponse
-        };
     }
 
     # Get attachments of a meeting.
@@ -312,7 +296,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + meetingId - meetingId to get attachments 
     # + return - Attachments|Error
     isolated resource function get meetings/[int meetingId]/attachments(http:RequestContext ctx)
-        returns http:Ok|http:InternalServerError|http:Forbidden {
+        returns AttachmentListResponse|http:InternalServerError|http:Forbidden {
 
         // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -377,11 +361,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        AttachmentListResponse attachmentListResponse = {attachments: calendarEventAttachments ?: []};
-
-        return <http:Ok>{
-            body: attachmentListResponse
-        };
+        return {attachments: calendarEventAttachments ?: []};
     }
 
     # Delete meeting.
@@ -389,7 +369,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + meetingId - meetingId to delete  
     # + return - Ok|InternalServerError|Forbidden
     isolated resource function delete meetings/[int meetingId](http:RequestContext ctx)
-        returns http:Ok|http:InternalServerError|http:Forbidden {
+        returns MeetingDeletionResponse|http:InternalServerError|http:Forbidden {
 
         // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -445,7 +425,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 body: {message: "Cannot delete a meeting that is not active!"}
             };
         }
-        if (meeting.timeStatus != "UPCOMING") {
+        if (meeting.timeStatus != database:UPCOMING) {
             return <http:Forbidden>{
                 body: {message: "Cannot delete a past meeting!"}
             };
@@ -476,12 +456,6 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        MeetingDeletionResponse meetingDeletionResponse = {
-            message: deleteCalendarEventResponse.message
-        };
-
-        return <http:Ok>{
-            body: meetingDeletionResponse
-        };
+        return {message: deleteCalendarEventResponse.message};
     }
 }

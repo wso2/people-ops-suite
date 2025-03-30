@@ -57,7 +57,7 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         ${meeting.startTime}, 
         ${meeting.endTime}, 
         ${meeting.wso2Participants},
-        'ACTIVE',
+        ${ACTIVE},
         ${createdBy}, 
         ${createdBy}
     )
@@ -92,8 +92,8 @@ isolated function getMeetingsQuery(string? title, string? host, string? startTim
                 updated_by AS 'updatedBy',
                 COUNT(*) OVER() AS totalCount,
                 CASE
-                    WHEN start_time < UTC_TIMESTAMP() THEN 'PAST'
-                    ELSE 'UPCOMING'
+                    WHEN start_time < UTC_TIMESTAMP() THEN ${PAST}
+                    ELSE ${UPCOMING}
                 END AS timeStatus
             FROM 
                 sales.meeting
@@ -156,8 +156,8 @@ isolated function getMeetingQuery(int meetingId) returns sql:ParameterizedQuery 
         updated_on AS 'updatedOn',
         updated_by AS 'updatedBy',
         CASE
-            WHEN start_time < UTC_TIMESTAMP() THEN 'PAST'
-            ELSE 'UPCOMING'
+            WHEN start_time < UTC_TIMESTAMP() THEN ${PAST}
+            ELSE ${UPCOMING}
         END AS timeStatus
     FROM 
         sales.meeting
@@ -174,7 +174,7 @@ isolated function cancelMeetingStatusQuery(int meetingId) returns sql:Parameteri
     UPDATE 
         sales.meeting
     SET 
-        meeting_status = 'CANCELLED'
+        meeting_status = ${CANCELLED}
     WHERE 
         meeting_id = ${meetingId};
 `;

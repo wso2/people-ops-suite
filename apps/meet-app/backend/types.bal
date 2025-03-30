@@ -21,6 +21,12 @@ public enum MeetingStatus {
     CANCELLED = "CANCELLED"
 };
 
+# Enum representing the time status of a meeting.
+public enum TimeStatus {
+    PAST = "PAST",
+    UPCOMING = "UPCOMING"
+};
+
 # Represents the details of a scheduled meeting.
 public type Meeting record {|
     # Auto-increment meeting ID
@@ -39,8 +45,8 @@ public type Meeting record {|
     string wso2Participants;
     # Meeting status (e.g., 'ACTIVE', 'CANCELLED')
     MeetingStatus meetingStatus;
-    # Time Status (e.g., 'PAST', 'FUTURE')
-    string timeStatus;
+    # Time Status (e.g., 'PAST', 'UPCOMING')
+    TimeStatus timeStatus;
 |};
 
 # Represents the response structure for retrieving user information.

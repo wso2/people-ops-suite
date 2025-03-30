@@ -78,8 +78,8 @@ public type Meeting record {|
     string updatedBy;
     # Total Count of Meeting
     int totalCount;
-    # Time Status (e.g., 'PAST', 'FUTURE')
-    string timeStatus;
+    # Time Status (e.g., 'PAST', 'UPCOMING')
+    TimeStatus timeStatus;
 |};
 
 # [Database]RawMeetingTypes type.
@@ -102,4 +102,10 @@ public type MeetingTypes record {|
 public enum MeetingStatus {
     ACTIVE = "ACTIVE",
     CANCELLED = "CANCELLED"
+};
+
+# [Database]TimeStatus enum.
+public enum TimeStatus {
+    PAST = "PAST",
+    UPCOMING = "UPCOMING"
 };
