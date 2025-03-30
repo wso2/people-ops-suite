@@ -44,6 +44,7 @@ export const APP_NAME = window.config?.APP_NAME ?? "";
 export const AppConfig = {
   serviceUrls: {
     getUserInfo: ServiceBaseUrl + "/user-info",
-    timesheetRecords : ServiceBaseUrl + "/timesheet-records",
+    timesheetRecords: ServiceBaseUrl + "/timesheet-records",
+    metaData: ServiceBaseUrl + "/meta-employees",
   },
 };

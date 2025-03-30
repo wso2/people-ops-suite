@@ -16,6 +16,7 @@
 
 import authReducer from "./authSlice";
 import { enableMapSet } from "immer";
+import metaReducer from "./metaSlice/meta";
 import userReducer from "./userSlice/user";
 import commonReducer from "./commonSlice/common";
 import { configureStore } from "@reduxjs/toolkit";
@@ -29,7 +30,8 @@ export const store = configureStore({
     auth: authReducer,
     user: userReducer,
     common: commonReducer,
-    timesheetRecord: timesheetRecordReducer
+    meteInfo: metaReducer,
+    timesheetRecord: timesheetRecordReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

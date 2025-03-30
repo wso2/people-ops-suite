@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 import timesheet_app.database;
+import timesheet_app.entity;
 
 # Application Privileges
 const EMPLOYEE_PRIVILEGE = 987;
@@ -22,24 +23,8 @@ const HR_ADMIN_PRIVILEGE = 762;
 
 # Employee record with permissions
 public type EmployeeInformation record {
-    # Id of the employee
-    string employeeId;
-    # Email of the employee
-    string workEmail;
-    # First name of the employee
-    string firstName;
-    # Last name of the employee
-    string lastName;
-    # Job role
-    string jobRole;
-    # Thumbnail of the employee
-    string? employeeThumbnail;
-    # Company of the employee
-    string company;
-    # Manager email of the employee
-    string managerEmail;
-    # Indicator of lead or not
-    boolean lead;
+    # Entity employee type record
+    entity:Employee employeeInfo;
     # Privileges of the employee
     int[] privileges;
     # Work policies of the employee

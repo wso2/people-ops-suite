@@ -28,6 +28,7 @@ import DialogActions from "@mui/material/DialogActions";
 import LoadingScreen from "@component/common/LoadingScreen";
 import StatusWithAction from "@component/ui/StatusWithAction";
 import React, { useContext, useEffect, useState } from "react";
+import { fetchEmployeeMetaData } from "@slices/metaSlice/meta";
 import DialogContentText from "@mui/material/DialogContentText";
 import { useAuthContext, SecureApp } from "@asgardeo/auth-react";
 import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
@@ -92,7 +93,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
     if (appState === "active") {
       if (state.isAuthenticated) {
         if (userInfo.state !== "loading") {
-          Promise.all([dispatch(getUserInfo())]).catch((error) => {
+          Promise.all([dispatch(getUserInfo()), dispatch(fetchEmployeeMetaData())]).catch((error) => {
             if (isMounted) {
               console.error("Error fetching data:", error);
             }

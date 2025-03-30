@@ -15,10 +15,10 @@
 // under the License.
 
 import {
-    Add as AddIcon,
-    Tune as TuneIcon,
-    Close as CloseIcon,
-    ExpandMore as ExpandMoreIcon,
+  Add as AddIcon,
+  Tune as TuneIcon,
+  Close as CloseIcon,
+  ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
 import React, { useState } from "react";
 import { DatePicker } from "@mui/x-date-pickers";
@@ -127,6 +127,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
             value={filter.value}
             onChange={(newValue) => handleFilterChange(filter.id, "value", newValue)}
             slotProps={{ textField: { size: "small" } }}
+            maxDate={new Date()}
           />
         );
       default:

@@ -15,27 +15,16 @@
 // under the License.
 
 import React from "react";
-import Typography from "@mui/material/Typography";
-import Toolbar from "@mui/material/Toolbar";
-import {
-  alpha,
-  AppBar,
-  Avatar,
-  Box,
-  Menu,
-  MenuItem,
-  Stack,
-  Tooltip,
-} from "@mui/material";
-import { useAppAuthContext } from "@context/AuthContext";
 import { APP_NAME } from "@config/config";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import { useAppAuthContext } from "@context/AuthContext";
 import { RootState, useAppSelector } from "@slices/store";
+import { alpha, AppBar, Avatar, Box, Menu, MenuItem, Stack, Tooltip } from "@mui/material";
 
 const Header = () => {
   const authContext = useAppAuthContext();
-  const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(
-    null
-  );
+  const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
   const user = useAppSelector((state: RootState) => state.user);
 
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -53,10 +42,7 @@ const Header = () => {
         zIndex: (theme) => theme.zIndex.drawer + 1,
         color: "black",
 
-        background: (theme) =>
-          theme.palette.mode === "light"
-            ? theme.palette.common.white
-            : "#0d0d0d",
+        background: (theme) => (theme.palette.mode === "light" ? theme.palette.common.white : "#0d0d0d"),
         boxShadow: 1,
       }}
     >
@@ -95,7 +81,7 @@ const Header = () => {
             <Stack flexDirection={"row"} alignItems={"center"} gap={2}>
               <Box>
                 <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                  {user.userInfo?.firstName + " " + user.userInfo?.lastName}
+                  {user.userInfo?.employeeInfo.firstName + " " + user.userInfo?.employeeInfo.lastName}
                 </Typography>
                 <Typography variant="body2">{user.userInfo?.jobRole}</Typography>
               </Box>
@@ -111,10 +97,10 @@ const Header = () => {
                         0.3
                       )}`,
                   }}
-                  src={user.userInfo?.employeeThumbnail || ""}
-                  alt={user.userInfo?.firstName || "Avatar"}
+                  src={user.userInfo?.employeeInfo.employeeThumbnail || ""}
+                  alt={user.userInfo?.employeeInfo.firstName || "Avatar"}
                 >
-                  {user.userInfo?.firstName?.charAt(0)}
+                  {user.userInfo?.employeeInfo.firstName?.charAt(0)}
                 </Avatar>
               </Tooltip>
             </Stack>

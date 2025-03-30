@@ -90,18 +90,49 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
 
         return {
-            employeeId: loggedInUser.employeeId,
-            workEmail: loggedInUser.workEmail,
-            firstName: loggedInUser.firstName,
-            lastName: loggedInUser.lastName,
-            jobRole: loggedInUser.jobRole,
-            employeeThumbnail: loggedInUser.employeeThumbnail,
-            company: loggedInUser.company,
-            managerEmail: loggedInUser.managerEmail,
-            lead: loggedInUser.lead,
+            employeeInfo: loggedInUser,
             privileges: privileges,
             workPolicies: workPolicies
         };
+    }
+
+    # The resource function to get all employees information.
+    #
+    # + ctx - The request context
+    # + return - The employees information or an error
+    resource function get meta\-employees(http:RequestContext ctx)
+        returns entity:Employee[]|http:InternalServerError|http:BadRequest|http:Forbidden {
+
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            return <http:BadRequest>{
+                body: {
+                    message: "User information header not found!"
+                }
+            };
+        }
+
+        if !authorization:checkPermissions([authorization:authorizedRoles.employeeRole],
+                userInfo.groups) {
+
+            return <http:Forbidden>{
+                body: {
+                    message: "Insufficient privileges!"
+                }
+            };
+        }
+
+        entity:Employee[]|error employees = entity:getAllActiveEmployees();
+        if employees is error {
+            string customError = string `Error occurred while retrieving employees meta data!`;
+            log:printError(customError, employees);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        return employees;
     }
 
     # Endpoint to save timesheet records of an employee.
@@ -184,7 +215,7 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
 
         sql:Error|sql:ExecutionResult[] timesheetInsertResult = database:insertTimesheetRecords(recordPayload,
-                loggedInUser.workEmail, loggedInUser.company, loggedInUser.managerEmail);
+                loggedInUser.workEmail, loggedInUser.company, <string>loggedInUser.managerEmail);
 
         if timesheetInsertResult is error {
             string customError = string `Error occurred while saving the records for ${loggedInUser.workEmail}!`;

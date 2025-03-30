@@ -40,12 +40,20 @@ interface UserState {
   workPolicies: WorkPolicies;
 }
 
-interface UserInfoInterface {
+interface EmployeeInfo {
   employeeId: string;
   firstName: string;
   lastName: string;
   workEmail: string;
-  employeeThumbnail: string;
+  employeeThumbnail: string | null;
+  managerEmail: string;
+  jobRole: string;
+  company: string;
+  lead: boolean;
+}
+
+interface UserInfoInterface {
+  employeeInfo: EmployeeInfo;
   jobRole: string;
   privileges: number[];
   workPolicies: WorkPolicies;

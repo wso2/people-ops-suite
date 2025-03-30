@@ -65,9 +65,9 @@ const TimesheetDataGrid = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const handleCloseDialog = () => setOpenDialog(false);
   const userEmail = useAppSelector((state) => state.auth.userInfo?.email);
-  const leadEmail = useAppSelector((state) => state.auth.userInfo?.leadEmail);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const [errors, setErrors] = useState<Partial<Record<keyof TimesheetRecord, string>>>({});
+  const leadEmail = useAppSelector((state) => state.user.userInfo?.employeeInfo.managerEmail);
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
@@ -239,6 +239,7 @@ const TimesheetDataGrid = () => {
         employeeEmail: userEmail,
         limit: paginationModel.pageSize,
         offset: paginationModel.page * paginationModel.pageSize,
+        leadEmail: leadEmail,
         ...filterParams,
       })
     );
