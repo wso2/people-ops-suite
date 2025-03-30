@@ -15,6 +15,10 @@
 // under the License.
 
 import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
+import CancelIcon from "@mui/icons-material/Cancel";
+import PendingIcon from "@mui/icons-material/Pending";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import React from "react";
 
 export interface AuthState {
   status: State;
@@ -143,4 +147,26 @@ export interface TimesheetUpdate {
   overtimeReason?: string;
   overtimeRejectReason?: string;
   overtimeStatus?: TimesheetStatus;
+}
+
+export const statusChipStyles = {
+  [TimesheetStatus.APPROVED]: {
+    icon: React.createElement(CheckCircleIcon, { fontSize: "small" }),
+    color: "success",
+  },
+  [TimesheetStatus.PENDING]: {
+    icon: React.createElement(PendingIcon, { fontSize: "small" }),
+    color: "warning",
+  },
+  [TimesheetStatus.REJECTED]: {
+    icon: React.createElement(CancelIcon, { fontSize: "small" }),
+    color: "error",
+  },
+};
+
+export interface Filter {
+  id: string;
+  field: string;
+  operator: string;
+  value: any;
 }

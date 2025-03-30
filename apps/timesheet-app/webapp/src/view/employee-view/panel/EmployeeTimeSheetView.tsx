@@ -44,44 +44,20 @@ import {
 import { useEffect, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
-import CancelIcon from "@mui/icons-material/Cancel";
-import PendingIcon from "@mui/icons-material/Pending";
+
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import SubmitRecordModal from "../components/SubmitRecordModal";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import { fetchTimesheetRecords } from "@slices/recordSlice/record";
+import { fetchTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
 import InformationHeader from "@component/common/InformationHeader";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { CustomModal } from "@component/common/CustomComponentModal";
-import { State, TimesheetRecord, TimesheetStatus } from "@utils/types";
 import { differenceInMinutes, format, isWeekend, parseISO } from "date-fns";
 import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
-
-const statusChipStyles = {
-  [TimesheetStatus.APPROVED]: {
-    icon: <CheckCircleIcon fontSize="small" />,
-    color: "success",
-  },
-  [TimesheetStatus.PENDING]: {
-    icon: <PendingIcon fontSize="small" />,
-    color: "warning",
-  },
-  [TimesheetStatus.REJECTED]: {
-    icon: <CancelIcon fontSize="small" />,
-    color: "error",
-  },
-};
-
-interface Filter {
-  id: string;
-  field: string;
-  operator: string;
-  value: any;
-}
+import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus, TimesheetUpdate } from "@utils/types";
 
 const TimesheetDataGrid = () => {
   const theme = useTheme();
@@ -190,6 +166,7 @@ const TimesheetDataGrid = () => {
           }
           variant="outlined"
           size="small"
+          sx={{ width: "110px" }}
         />
       ),
     },
@@ -198,13 +175,15 @@ const TimesheetDataGrid = () => {
       headerName: "",
       flex: 2,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
-        <Box>
-          <Tooltip title={params.row.overtimeReason}>
-            <Typography color="text.secondary" noWrap variant="body2">
-              {params.row.overtimeRejectReason}
-            </Typography>
-          </Tooltip>
-        </Box>
+        <>
+          {params.row.overtimeStatus === TimesheetStatus.REJECTED && (
+            <Tooltip title={params.row.overtimeRejectReason}>
+              <Typography color="text.secondary" noWrap variant="body2">
+                {params.row.overtimeRejectReason}
+              </Typography>
+            </Tooltip>
+          )}
+        </>
       ),
     },
     {
@@ -355,24 +334,26 @@ const TimesheetDataGrid = () => {
       return;
     }
 
-    try {
-      const formattedEntry = {
-        ...editingEntry,
-        recordDate: format(editingEntry.recordDate, "yyyy-MM-dd"),
-        clockInTime: format(editingEntry.clockInTime, "HH:mm:ss"),
-        clockOutTime: format(editingEntry.clockOutTime, "HH:mm:ss"),
-      };
+    const formattedEntry: TimesheetUpdate = {
+      ...editingEntry,
+      recordDate: format(editingEntry.recordDate, "yyyy-MM-dd"),
+      clockInTime: format(editingEntry.clockInTime, "HH:mm:ss"),
+      clockOutTime: format(editingEntry.clockOutTime, "HH:mm:ss"),
+      overtimeStatus: editingEntry.overtimeDuration > 0 ? TimesheetStatus.PENDING : TimesheetStatus.APPROVED,
+      overtimeRejectReason: editingEntry.overtimeRejectReason ?? "",
+    };
 
-      console.log("formatted entry", formattedEntry);
+    console.log("formatted entry", formattedEntry);
 
-      //   await dispatch(updateTimesheetRecord(formattedEntry)).unwrap();
-      setEditDialogOpen(false);
-      setEditingEntry(null);
-      setErrors({});
-      fetchData(); // Refresh the data after update
-    } catch (error) {
-      console.error("Failed to update record:", error);
-    }
+    const timesheetRecords: TimesheetUpdate[] = [];
+
+    timesheetRecords.push(formattedEntry);
+
+    await dispatch(updateTimesheetRecords({ timesheetRecords: timesheetRecords }));
+    fetchData();
+    setEditDialogOpen(false);
+    setEditingEntry(null);
+    setErrors({});
   };
 
   return (
@@ -502,7 +483,7 @@ const TimesheetDataGrid = () => {
                   <FormControlLabel
                     control={
                       <Switch
-                        checked={editingEntry.isLunchIncluded}
+                        checked={editingEntry.isLunchIncluded === 1 || editingEntry.isLunchIncluded === true}
                         onChange={(e) => handleEditFieldChange("isLunchIncluded", e.target.checked)}
                         name="isLunchIncluded"
                         color="primary"
@@ -552,7 +533,6 @@ const TimesheetDataGrid = () => {
                       variant="outlined"
                       fullWidth
                       multiline
-                      rows={3}
                       required={editingEntry.overtimeDuration > 0}
                       InputProps={{
                         startAdornment: editingEntry.overtimeDuration > 0 && (

@@ -141,7 +141,7 @@ const ConfirmationDialogContextProvider: React.FC<ConfirmationModalContextProvid
       action: () => {},
       okText: undefined,
       cancelText: undefined,
-      inputObj: undefined
+      inputObj: undefined,
     });
     setComment("");
   };
@@ -206,16 +206,10 @@ const ConfirmationDialogContextProvider: React.FC<ConfirmationModalContextProvid
 
             <DialogActions sx={{ pb: 2, pt: 0, mt: 0, paddingX: 2 }}>
               <Stack flexDirection={"row"} sx={{ mt: 1 }} gap={1}>
-                {/* Cancel button */}
-                <Button
-                  onClick={handleCancel}
-                  variant="outlined"
-                  size="small"
-                >
+                <Button onClick={handleCancel} variant="outlined" size="small">
                   {content?.cancelText ? content.cancelText : "No"}
                 </Button>
 
-                {/* Ok button */}
                 <LoadingButton
                   type="submit"
                   variant="contained"

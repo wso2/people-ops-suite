@@ -39,30 +39,16 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import InformationHeader from "@component/common/InformationHeader";
 import { useConfirmationModalContext } from "@context/DialogContext";
 import { fetchTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
-import { ConfirmationType, State, TimesheetRecord, TimesheetStatus, TimesheetUpdate } from "@utils/types";
+import {
+  ConfirmationType,
+  Filter,
+  State,
+  statusChipStyles,
+  TimesheetRecord,
+  TimesheetStatus,
+  TimesheetUpdate,
+} from "@utils/types";
 import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton } from "@mui/material";
-
-const statusChipStyles = {
-  [TimesheetStatus.APPROVED]: {
-    icon: <CheckCircleIcon fontSize="small" />,
-    color: "success",
-  },
-  [TimesheetStatus.PENDING]: {
-    icon: <PendingIcon fontSize="small" />,
-    color: "warning",
-  },
-  [TimesheetStatus.REJECTED]: {
-    icon: <CancelIcon fontSize="small" />,
-    color: "error",
-  },
-};
-
-interface Filter {
-  id: string;
-  field: string;
-  operator: string;
-  value: any;
-}
 
 const TimesheetAuditView = () => {
   const theme = useTheme();
@@ -186,6 +172,7 @@ const TimesheetAuditView = () => {
           }
           variant="outlined"
           size="small"
+          sx={{ width: "110px" }}
         />
       ),
     },

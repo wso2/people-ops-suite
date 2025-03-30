@@ -398,7 +398,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                         helperText={errors.overtimeReason}
                         variant="outlined"
                         multiline
-                        rows={2}
                         required
                         sx={{ textAlign: "center" }}
                         InputProps={{

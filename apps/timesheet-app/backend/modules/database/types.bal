@@ -130,6 +130,8 @@ public type TimesheetCount record {|
 public type TimesheetUpdate record {|
     # Time sheet record id
     int recordId;
+    # Email of the employee
+    string employeeEmail?;
     # Record date
     string recordDate?;
     # Clock in time
