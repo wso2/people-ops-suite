@@ -29,6 +29,7 @@ import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -45,7 +46,7 @@ import {
   TimesheetStatus,
   TimesheetUpdate,
 } from "@utils/types";
-import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton } from "@mui/material";
+import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton, Avatar } from "@mui/material";
 
 const TimesheetAuditView = () => {
   const theme = useTheme();
@@ -58,6 +59,7 @@ const TimesheetAuditView = () => {
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
+  const employeeMap = useAppSelector((state) => state.meteInfo.employeeMap);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 5,
@@ -79,12 +81,63 @@ const TimesheetAuditView = () => {
     {
       field: "employeeEmail",
       headerName: "Employee",
-      flex: 1,
+      flex: 2,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
-        <Stack direction="row" alignItems="center" gap={1}>
-          <PersonIcon fontSize="small" color="action" />
-          <Typography variant="body2">{params.row.employeeEmail}</Typography>
-        </Stack>
+        // <Stack direction="row" alignItems="center" gap={1}>
+        //   <PersonIcon fontSize="small" color="action" />
+        //   <Typography variant="body2">{params.row.employeeEmail}</Typography>
+        // </Stack>
+        <Box display="flex" alignItems="center" position="relative">
+          <Avatar
+            src={employeeMap[params.row?.employeeEmail]?.employeeThumbnail}
+            alt={employeeMap[params.row?.employeeEmail]?.employeeName || params.row?.employeeEmail}
+            sx={{ marginRight: 2, height: "2.2rem", width: "2.2rem" }}
+          />
+          <Box
+            sx={{
+              position: "relative",
+              transition: "transform 0.3s ease",
+              "&:hover": {
+                transform: "translateY(-10px)",
+              },
+              "&:hover > div": {
+                opacity: 1,
+              },
+            }}
+          >
+            <Typography variant="body2">
+              {employeeMap[params.row?.employeeEmail]?.employeeName || params.row?.employeeEmail}
+            </Typography>
+            <Box
+              sx={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                display: "flex",
+                alignItems: "center",
+                padding: "1px 0",
+                borderRadius: "4px",
+                opacity: 0,
+                transition: "opacity 0.3s",
+              }}
+            >
+              <Typography color={"GrayText"} variant="caption" mr={1}>
+                {params.row?.employeeEmail}
+              </Typography>
+              <Tooltip title="Copy Email">
+                <IconButton
+                  size="small"
+                  aria-label="Copy Email"
+                  onClick={() => {
+                    navigator.clipboard.writeText(params.row?.employeeEmail);
+                  }}
+                >
+                  <ContentCopyIcon sx={{ fontSize: "15px" }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+        </Box>
       ),
     },
     {
@@ -171,6 +224,22 @@ const TimesheetAuditView = () => {
           size="small"
           sx={{ width: "110px" }}
         />
+      ),
+    },
+    {
+      field: "overtimeRejectReason",
+      headerName: "",
+      flex: 2,
+      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
+        <>
+          {params.row.overtimeStatus === TimesheetStatus.REJECTED && (
+            <Tooltip title={params.row.overtimeRejectReason}>
+              <Typography color="text.secondary" noWrap variant="body2">
+                {params.row.overtimeRejectReason}
+              </Typography>
+            </Tooltip>
+          )}
+        </>
       ),
     },
     {
@@ -326,6 +395,7 @@ const TimesheetAuditView = () => {
             setFilters={setFilters}
             onApply={fetchData}
             onReset={handleResetFilters}
+            isLead={true}
           />
 
           <Button

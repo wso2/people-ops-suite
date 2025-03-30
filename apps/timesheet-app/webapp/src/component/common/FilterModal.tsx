@@ -20,16 +20,23 @@ import {
   Close as CloseIcon,
   ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
+import { Filter } from "@utils/types";
 import React, { useState } from "react";
 import { DatePicker } from "@mui/x-date-pickers";
-import { Stack, Button, Menu, Typography, TextField, MenuItem, Paper, IconButton, Chip, Box } from "@mui/material";
-
-interface Filter {
-  id: string;
-  field: string;
-  operator: string;
-  value: any;
-}
+import {
+  Stack,
+  Button,
+  Menu,
+  Typography,
+  TextField,
+  MenuItem,
+  Paper,
+  IconButton,
+  Chip,
+  Box,
+  Autocomplete,
+} from "@mui/material";
+import { useAppSelector } from "@slices/store";
 
 interface FieldConfig {
   field: string;
@@ -44,6 +51,7 @@ interface FilterComponentProps {
   setFilters: (filters: Filter[]) => void;
   onApply: () => void;
   onReset: () => void;
+  isLead?: boolean;
 }
 
 const FilterComponent: React.FC<FilterComponentProps> = ({
@@ -52,8 +60,14 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
   setFilters,
   onApply,
   onReset,
+  isLead,
 }) => {
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
+  const employeeArray = useAppSelector((state) => state.meteInfo.employeeArray);
+  const userEmail = useAppSelector((state) => state.auth.userInfo!.email);
+  const employees = isLead
+    ? employeeArray.filter((employee) => employee.managerEmail?.toLowerCase() === userEmail?.toLowerCase())
+    : employeeArray;
 
   const handleAddFilter = () => {
     const availableFieldOptions = availableFields.filter((field) => !filters.some((f) => f.field === field.field));
@@ -132,13 +146,14 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
         );
       default:
         return (
-          <TextField
-            size="small"
-            fullWidth
-            value={filter.value}
-            required
-            type="email"
-            onChange={(e) => handleFilterChange(filter.id, "value", e.target.value)}
+          <Autocomplete
+            loading={employees.length === 0}
+            loadingText="No subordinates found"
+            options={employees}
+            getOptionLabel={(option) => option.workEmail}
+            renderOption={(props, option) => <li {...props}>{option.workEmail}</li>}
+            renderInput={(params) => <TextField {...params} label="Employee Email*" size="small" />}
+            onChange={(_, value) => handleFilterChange(filter.id, "value", value?.workEmail)}
           />
         );
     }
@@ -177,7 +192,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
         PaperProps={{
           sx: {
             p: 2,
-            width: 400,
+            width: 600,
             maxWidth: "90vw",
             maxHeight: "80vh",
             overflow: "auto",

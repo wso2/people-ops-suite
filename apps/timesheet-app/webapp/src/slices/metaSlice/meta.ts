@@ -94,7 +94,7 @@ const metaSlice = createSlice({
         state.employeeMap = employees.reduce(
           (acc, employee) => {
             acc[employee.workEmail] = {
-              employeeName: employee.firstName + employee.lastName,
+              employeeName: [employee.firstName, employee.lastName].join(" "),
               employeeThumbnail: employee.employeeThumbnail,
             };
             return acc;
