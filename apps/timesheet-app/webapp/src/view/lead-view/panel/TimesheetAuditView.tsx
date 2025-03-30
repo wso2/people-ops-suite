@@ -13,18 +13,7 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import {
-  Box,
-  Chip,
-  Menu,
-  Stack,
-  Paper,
-  Button,
-  Tooltip,
-  useTheme,
-  Typography,
-  IconButton,
-} from "@mui/material";
+import { Box, Chip, Menu, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton } from "@mui/material";
 import {
   DataGrid,
   GridToolbar,
@@ -253,27 +242,16 @@ const TimesheetAuditView = () => {
   };
 
   const handleApproveRecords = (recordId?: number) => {
-    const timesheetRecords: TimesheetUpdate[] = [];
-
-    if (recordId) {
-      timesheetRecords.push({ recordId: recordId, overtimeStatus: TimesheetStatus.APPROVED });
-    }
-
     dialogContext.showConfirmation(
       "Do you want to approve the selected?",
       "Please note that once done, this cannot be undone.",
       ConfirmationType.send,
       () => {
-        updateRecords(timesheetRecords);
+        handleUpdateRecords(TimesheetStatus.APPROVED, recordId);
       },
       "Approve",
       "Cancel"
     );
-  };
-
-  const updateRecords = async (records: TimesheetUpdate[]) => {
-    await dispatch(updateTimesheetRecords({ timesheetRecords: records }));
-    fetchData();
   };
 
   const handleDeclineRecords = (recordId?: number) => {
@@ -282,7 +260,9 @@ const TimesheetAuditView = () => {
       "Please note that once done, this cannot be undone.",
       ConfirmationType.send,
       (comment) => {
-        console.log("selectionmodel", selectionModel, "comment", comment);
+        {
+          handleUpdateRecords(TimesheetStatus.REJECTED, recordId, comment);
+        }
       },
       "Decline",
       "Cancel",
@@ -292,6 +272,22 @@ const TimesheetAuditView = () => {
         type: "textarea",
       }
     );
+  };
+
+  const handleUpdateRecords = async (status: TimesheetStatus, recordId?: number, comment?: string) => {
+    const timesheetRecords: TimesheetUpdate[] = [];
+
+    if (recordId) {
+      timesheetRecords.push({ recordId: recordId, overtimeStatus: status });
+    }
+
+    if (selectionModel.length > 1) {
+      selectionModel.forEach((recordId) => {
+        timesheetRecords.push({ recordId: recordId as number, overtimeStatus: status, overtimeRejectReason: comment });
+      });
+    }
+    await dispatch(updateTimesheetRecords({ timesheetRecords: timesheetRecords }));
+    fetchData();
   };
 
   const fetchData = async () => {
