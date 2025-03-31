@@ -19,14 +19,19 @@ import ballerina/sql;
 #
 # + domain - meeting domain
 # + return - Meeting | Error, if not found
-public isolated function fetchMeetingTypes(string domain) returns MeetingTypes|error? {
+public isolated function fetchMeetingTypes(string domain) returns MeetingTypes|error {
     RawMeetingTypes|sql:Error meetingTypes = databaseClient->queryRow(getMeetingTypesQuery(domain));
 
     if meetingTypes is sql:NoRowsError {
-        return;
+        return {
+            domain: domain,
+            types: []
+        };
     }
+
     if meetingTypes is sql:Error {
-        return meetingTypes;
+        return meetingTypes
+;
     }
 
     // Convert the types field (comma-separated) into a string array.
