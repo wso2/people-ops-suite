@@ -73,7 +73,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // Custom Resource level authorization.
+        // Fetch the user information from the entity service.
         entity:Employee|error loggedInUser = entity:fetchEmployeesBasicInfo(userInfo.email);
         if loggedInUser is error {
             string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
@@ -103,25 +103,6 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + return - Meeting types | Error
     isolated resource function get meetings/types(http:RequestContext ctx, string domain)
         returns database:MeetingTypes|http:Forbidden|http:InternalServerError {
-
-        // User information header.
-        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
-        if userInfo is error {
-            return <http:InternalServerError>{
-                body: {
-                    message: "User information header not found!"
-                }
-            };
-        }
-
-        // Custom Resource level authorization.
-        if !authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups) {
-            return <http:Forbidden>{
-                body: {
-                    message: "Insufficient privileges!"
-                }
-            };
-        }
 
         // Fetch the meeting types from the database.
         database:MeetingTypes|error? meetingTypes = database:fetchMeetingTypes(domain);
@@ -161,15 +142,6 @@ service http:InterceptableService / on new http:Listener(9090) {
             return <http:InternalServerError>{
                 body: {
                     message: "User information header not found!"
-                }
-            };
-        }
-
-        // Custom Resource level authorization.
-        if !authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups) {
-            return <http:Forbidden>{
-                body: {
-                    message: "Insufficient privileges!"
                 }
             };
         }
