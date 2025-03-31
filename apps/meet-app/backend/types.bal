@@ -41,8 +41,8 @@ public type Meeting record {|
     string startTime;
     # Meeting end time
     string endTime;
-    # WSO2 participants' email list
-    string wso2Participants;
+    # Internal participants' email list
+    string internalParticipants;
     # Meeting status (e.g., 'ACTIVE', 'CANCELLED')
     MeetingStatus meetingStatus;
     # Time Status (e.g., 'PAST', 'UPCOMING')

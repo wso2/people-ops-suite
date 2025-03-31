@@ -56,15 +56,15 @@ public isolated function addMeeting(AddMeetingPayload addMeetingPayload, string 
 # + host - Host email filter  
 # + startTime - Start time filter  
 # + endTime - End time filter  
-# + wso2Participants - WSO2 participants filter
+# + internalParticipants - Internal participants filter
 # + 'limit - Limit of the response
 # + offset - Offset of the number of meetings to retrieve  
 # + return - List of meetings | Error
 public isolated function fetchMeetings(string? title, string? host, string? startTime, string? endTime,
-        string? wso2Participants, int? 'limit, int? offset) returns Meeting[]|error {
+        string? internalParticipants, int? 'limit, int? offset) returns Meeting[]|error {
 
     stream<Meeting, error?> resultStream = databaseClient->
-                query(getMeetingsQuery(title, host, startTime, endTime, wso2Participants, 'limit, offset));
+                query(getMeetingsQuery(title, host, startTime, endTime, internalParticipants, 'limit, offset));
 
     Meeting[] meetings = [];
 

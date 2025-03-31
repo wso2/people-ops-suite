@@ -28,9 +28,9 @@ configurable string disclaimerMessage = ?;
 public isolated function createCalendarEvent(CreateCalendarEventRequest createCalendarEventRequest,
         string creatorEmail) returns CreateCalendarEventResponse|error {
 
-    // WSO2 participants validation.
-    string:RegExp wso2EmailDomainRegex = re `^([a-zA-Z0-9_\-\.]+)(@wso2\.com|@ws02\.com)$`;
-    foreach string participant in createCalendarEventRequest.wso2Participants {
+    // Internal participants validation.
+    string:RegExp wso2EmailDomainRegex = re `(?i:^([a-z0-9_\-\.]+)@wso2\.com$)`;
+    foreach string participant in createCalendarEventRequest.internalParticipants {
         if !wso2EmailDomainRegex.isFullMatch(participant.trim()) {
             return error(string `Invalid WSO2 participant email: ${participant}`);
         }
@@ -53,7 +53,7 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
             timeZone: createCalendarEventRequest.timeZone
         },
         attendees: [
-            ...createCalendarEventRequest.wso2Participants.map((email) => ({email: email.trim()})),
+            ...createCalendarEventRequest.internalParticipants.map((email) => ({email: email.trim()})),
             ...createCalendarEventRequest.externalParticipants.map((email) => ({email: email.trim()}))
         ],
         guestsCanModify: true,

@@ -87,7 +87,7 @@ export interface AddMeetingPayload {
   startTime: string;
   endTime: string;
   timeZone: string;
-  wso2Participants: string[];
+  internalParticipants: string[];
   externalParticipants: string[];
 }
 
@@ -140,7 +140,7 @@ export interface Meeting {
   host: string;
   startTime: string;
   endTime: string;
-  wso2Participants: string;
+  internalParticipants: string;
   meetingStatus: string;
 }
 

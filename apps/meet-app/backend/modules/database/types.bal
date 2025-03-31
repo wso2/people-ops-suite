@@ -42,8 +42,8 @@ public type AddMeetingPayload record {|
     string googleEventId;
     # Host of the meeting
     string host;
-    # WSO2 participants' email list
-    string wso2Participants;
+    # Internal participants' email list
+    string internalParticipants;
     # Meeting start time in ISO format
     string startTime;
     # Meeting end time in ISO format
@@ -64,8 +64,8 @@ public type Meeting record {|
     string startTime;
     # Meeting end time
     string endTime;
-    # WSO2 participants' email list
-    string wso2Participants;
+    # Internal participants' email list
+    string internalParticipants;
     # Meeting status (e.g., 'ACTIVE', 'CANCELLED')
     MeetingStatus meetingStatus;
     # Timestamp when created

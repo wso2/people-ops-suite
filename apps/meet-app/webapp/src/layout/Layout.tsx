@@ -14,19 +14,19 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { Suspense, useEffect, useState, useCallback } from "react";
+import Header from "@layout/header";
+import Sidebar from "@layout/sidebar";
+import pJson from "@root/package.json";
+import { useSnackbar } from "notistack";
 import { useSelector } from "react-redux";
+import { Typography } from "@mui/material";
 import { Box, alpha } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
-import Header from "@layout/header";
-import Sidebar from "@layout/sidebar";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { selectRoles } from "@slices/authSlice/auth";
-import { useSnackbar } from "notistack";
-import pJson from "@root/package.json";
+import { Suspense, useEffect, useState, useCallback } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { RootState, useAppSelector } from "@slices/store";
-import { Typography } from "@mui/material";
 
 export default function Layout() {
   const { enqueueSnackbar } = useSnackbar();

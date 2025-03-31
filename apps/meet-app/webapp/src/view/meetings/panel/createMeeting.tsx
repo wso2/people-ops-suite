@@ -1,24 +1,24 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import {
-  Autocomplete,
   Box,
-  Button,
-  CircularProgress,
   Stack,
+  Button,
   TextField,
   Typography,
+  Autocomplete,
+  CircularProgress,
   createFilterOptions,
 } from "@mui/material";
 import {
-  LocalizationProvider,
   DatePicker,
   TimePicker,
+  LocalizationProvider,
 } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import { useAppDispatch, useAppSelector } from "@slices/store";
-import { addMeetings, fetchMeetingTypes } from "@slices/meetingSlice/meeting";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
+import { addMeetings, fetchMeetingTypes } from "@slices/meetingSlice/meeting";
 
 // Meeting Request data type
 interface MeetingRequest {
@@ -30,18 +30,18 @@ interface MeetingRequest {
   startTime: Dayjs | null;
   endTime: Dayjs | null;
   timeZone: string;
-  wso2Attendees: string;
-  externalAttendees: string;
+  internalParticipants: string;
+  externalParticipants: string;
 }
 
 // Email validation function
 const isValidEmail = (
   email: string,
-  isWso2Attendee: boolean = false
+  isInternalParticipant: boolean = false
 ): boolean => {
-  const regex = /^[a-zA-Z0-9._%+-]+@[a-zAZ0-9.-]+\.[a-zA-Z]{2,}$/;
-  return isWso2Attendee
-    ? /^[a-zA-Z0-9._%+-]+@wso2\.com$/.test(email)
+  const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return isInternalParticipant
+    ? /^[a-z0-9._%+-]+@wso2\.com$/i.test(email)
     : regex.test(email);
 };
 
@@ -59,17 +59,17 @@ function useMeetingForm() {
     startTime: null,
     endTime: null,
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    wso2Attendees: "",
-    externalAttendees: "",
+    internalParticipants: "",
+    externalParticipants: "",
   });
 
   // Participants email error states
-  const [externalAttendeesError, setExternalAttendeesError] = useState<
+  const [externalParticipantsError, setExternalParticipantsError] = useState<
     string | null
   >(null);
-  const [wso2AttendeesError, setWso2AttendeesError] = useState<string | null>(
-    null
-  );
+  const [internalParticipantsError, setInternalParticipantsError] = useState<
+    string | null
+  >(null);
 
   // Meeting form event handlers
   const handleTextChange = (
@@ -77,20 +77,20 @@ function useMeetingForm() {
   ) => {
     const { name, value } = e.target;
     setMeetingRequest((prev) => ({ ...prev, [name]: value }));
-    if (name === "wso2Attendees") {
+    if (name === "internalParticipants") {
       const wso2Emails = value.split(",").map((email) => email.trim());
       const allValidWso2Emails = wso2Emails.every(
         (email) => isValidEmail(email, true) || email === ""
       );
-      setWso2AttendeesError(
+      setInternalParticipantsError(
         allValidWso2Emails ? null : "One or more emails are invalid."
       );
-    } else if (name === "externalAttendees") {
+    } else if (name === "externalParticipants") {
       const externalEmails = value.split(",").map((email) => email.trim());
       const allValidExternalEmails = externalEmails.every(
         (email) => isValidEmail(email) || email === ""
       );
-      setExternalAttendeesError(
+      setExternalParticipantsError(
         allValidExternalEmails ? null : "One or more emails are invalid."
       );
     }
@@ -156,7 +156,7 @@ function useMeetingForm() {
       );
       return;
     }
-    if (wso2AttendeesError || externalAttendeesError) {
+    if (internalParticipantsError || externalParticipantsError) {
       dispatch(
         enqueueSnackbarMessage({
           message: "One or more email addresses are invalid.",
@@ -165,7 +165,10 @@ function useMeetingForm() {
       );
       return;
     }
-    if (!meetingRequest.wso2Attendees && !meetingRequest.externalAttendees) {
+    if (
+      !meetingRequest.internalParticipants &&
+      !meetingRequest.externalParticipants
+    ) {
       dispatch(
         enqueueSnackbarMessage({
           message: "Please add at least one attendee.",
@@ -197,10 +200,10 @@ function useMeetingForm() {
               .toISOString()
           : "",
       timeZone: meetingRequest.timeZone,
-      wso2Participants: meetingRequest.wso2Attendees
+      internalParticipants: meetingRequest.internalParticipants
         .split(",")
         .map((email) => email.trim()),
-      externalParticipants: meetingRequest.externalAttendees
+      externalParticipants: meetingRequest.externalParticipants
         .split(",")
         .map((email) => email.trim()),
     };
@@ -215,8 +218,8 @@ function useMeetingForm() {
     handleEndTimeChange,
     handleSubmit,
     meetingRequest,
-    externalAttendeesError,
-    wso2AttendeesError,
+    internalParticipantsError,
+    externalParticipantsError,
     submitState,
   };
 }
@@ -244,8 +247,8 @@ function MeetingForm() {
     handleEndTimeChange,
     handleSubmit,
     meetingRequest,
-    externalAttendeesError,
-    wso2AttendeesError,
+    internalParticipantsError,
+    externalParticipantsError,
     submitState,
   } = useMeetingForm();
 
@@ -393,31 +396,31 @@ function MeetingForm() {
         </Box>
 
         <TextField
-          name="wso2Attendees"
-          label="WSO2 Attendees (comma-separated emails)"
+          name="internalParticipants"
+          label="WSO2 Participants (comma-separated emails)"
           autoCorrect="off"
           autoCapitalize="none"
           spellCheck={false}
-          value={meetingRequest.wso2Attendees}
+          value={meetingRequest.internalParticipants}
           onChange={handleTextChange}
           required
           fullWidth
-          error={!!wso2AttendeesError}
-          helperText={wso2AttendeesError || " "}
+          error={!!internalParticipantsError}
+          helperText={internalParticipantsError || " "}
         />
 
         <TextField
-          name="externalAttendees"
-          label="External Attendees (comma-separated emails)"
+          name="externalParticipants"
+          label="External Participants (comma-separated emails)"
           autoCorrect="off"
           autoCapitalize="none"
           spellCheck={false}
-          value={meetingRequest.externalAttendees}
+          value={meetingRequest.externalParticipants}
           onChange={handleTextChange}
           required
           fullWidth
-          error={!!externalAttendeesError}
-          helperText={externalAttendeesError || " "}
+          error={!!externalParticipantsError}
+          helperText={externalParticipantsError || " "}
         />
 
         <Button

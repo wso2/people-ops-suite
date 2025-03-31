@@ -192,8 +192,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             title: createCalendarEventRequest.title,
             googleEventId: calendarCreateEventResponse.id,
             host: userInfo.email,
-            wso2Participants: string:'join(", ", ...createCalendarEventRequest.wso2Participants
-                    .map(wso2Participant => wso2Participant.trim())),
+            internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
+            .map(internalParticipant => internalParticipant.trim())),
             startTime: createCalendarEventRequest.startTime
             .substring(0, createCalendarEventRequest.startTime.length() - 5),
             endTime: createCalendarEventRequest.endTime
@@ -221,12 +221,12 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + host - Host to filter
     # + startTime - Start time to filter
     # + endTime - End time to filter
-    # + wso2Participants - Participants to filter
+    # + internalParticipants - Participants to filter
     # + 'limit - Limit of the data  
     # + offset - Offset of the data
     # + return - Meetings | Error
     isolated resource function get meetings(http:RequestContext ctx, string? title, string? host,
-            string? startTime, string? endTime, string? wso2Participants, int? 'limit, int? offset)
+            string? startTime, string? endTime, string? internalParticipants, int? 'limit, int? offset)
         returns MeetingListResponse|http:Forbidden|http:InternalServerError {
 
         // User information header.
@@ -263,7 +263,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         // Fetch the meetings from the database.
         database:Meeting[]|error meetings = database:fetchMeetings(title, filteredHost, startTime, endTime,
-            wso2Participants, 'limit, offset);
+            internalParticipants, 'limit, offset);
         if meetings is error {
             string customError = string `Error occurred while retrieving the meetings!`;
             log:printError(customError, meetings);
@@ -284,7 +284,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     host: meeting.host,
                     startTime: meeting.startTime,
                     endTime: meeting.endTime,
-                    wso2Participants: meeting.wso2Participants,
+                    internalParticipants: meeting.internalParticipants,
                     meetingStatus: meeting.meetingStatus,
                     timeStatus: meeting.timeStatus
                 }

@@ -14,14 +14,14 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
-import { RootState } from "@slices/store";
-import { AuthState, AuthData, Role } from "@utils/types";
 import { State } from "@/types/types";
+import { RootState } from "@slices/store";
 import { AppConfig } from "@config/config";
 import { APIService } from "@utils/apiService";
-import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { SnackMessage } from "@config/constant"
+import { AuthState, AuthData, Role } from "@utils/types";
+import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
+import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 
 const initialState: AuthState = {
   status: State.idle,
