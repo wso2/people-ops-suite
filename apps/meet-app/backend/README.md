@@ -1,4 +1,4 @@
-# Internal App Backend
+# Meet App Backend
 
 ## Version: 1
 
@@ -36,7 +36,11 @@ Retrieve the logged in user's details.
     "firstName": "Jon",
     "lastName": "Smith",
     "jobRole": "Software Engineer",
-    "employeeThumbnail": "https://abc.com"
+    "employeeThumbnail": "https://abc.com",
+    "privileges": [
+      123,
+      456
+    ]
   }
   ```
   </td>
@@ -52,34 +56,22 @@ Retrieve the logged in user's details.
   </td>
     </tr>
     </tr>
-    <tr>
-      <td> 400 </td><td> Bad Request <br/>
-  
-  ```json
-  {
-    "message": "assertion header does not exist!"
-  }
-  ```
-  </td>
-    </tr>
   </tbody>
 </table>
 
-### /collections
+### /meetings/types
 
 #### GET
 
 ##### Summary:
 
-Fetch all the collections based on the filter criteria.
+Fetch the meeting types.
 
 ##### Parameters
 
-| Name   | Located in | Description             | Required | Schema |
-| ------ | ---------- | ----------------------- | -------- | ------ |
-| name   | query      | Name of the collection. | No       | string |
-| limit  | query      | Limit for the list.     | No       | int    |
-| offset | query      | Offset for the list.    | No       | int    |
+| Name   | Located in | Description         | Required | Schema |
+| ------ | ---------- | ------------------- | -------- | ------ |
+| domain | query      | Name of the domain. | Yes      | string |
 
 ##### Responses
 
@@ -96,26 +88,17 @@ Fetch all the collections based on the filter criteria.
   
   ```json
   {
-    "count": 2,
-    "collections": [
-        {
-            "id": 1,
-            "name": "Collection 1",
-            "createdOn": "2024-07-03 10:19:09.236415",
-            "createdBy": "user@wso2.com",
-            "updatedOn": "2024-07-11 06:10:24.148038",
-            "updatedBy": "user@wso2.com"
-        },
-        {
-            "id": 2,
-            "name": "Collection 2",
-            "createdOn": "2024-07-03 10:19:09.238862",
-            "createdBy": "user@wso2.com",
-            "updatedOn": "2024-07-03 10:19:09.238862",
-            "updatedBy": "user@wso2.com"
-        }
+    "domain": "Sales",
+    "types": [
+        "Discovery Call",
+        "Technical Call",
+        "Demo Call",
+        "POC Call",
+        "Legal Chat",
+        "Procurement Chat",
+        "Pricing chat"
     ]
-}
+  }
   ```
   </td>
     <tr>
@@ -123,21 +106,11 @@ Fetch all the collections based on the filter criteria.
   
   ```json
   {
-    "message": "Error occurred while retrieving user data: user@wso2.com"
+    "message": "Error occurred while retrieving the meeting types!"
   }
   ```
   </td>
     </tr>
-    </tr>
-    <tr>
-      <td> 400 </td><td> Bad Request <br/>
-  
-  ```json
-  {
-    "message": "assertion header does not exist!"
-  }
-  ```
-  </td>
     </tr>
     <tr>
       <td> 403 </td><td> Forbidden <br/>
@@ -152,13 +125,102 @@ Fetch all the collections based on the filter criteria.
   </tbody>
 </table>
 
-### /collections
+### /meetings
+
+#### GET
+
+##### Summary:
+
+Fetch meetings based on filters.
+
+##### Parameters
+
+| Name                 | Located in | Description                          | Required | Schema |
+| -------------------- | ---------- | ------------------------------------ | -------- | ------ |
+| title                | query      | Title of the meeting to filter       | No       | string |
+| host                 | query      | Host of the meeting                  | No       | string |
+| startTime            | query      | Start time to filter                 | No       | string |
+| endTime              | query      | End time to filter                   | No       | string |
+| internalParticipants | query      | Participants to filter               | No       | string |
+| limit                | query      | Limit the number of records returned | No       | int    |
+| offset               | query      | Offset for pagination                | No       | int    |
+
+##### Responses
+
+<table>
+  <thead>
+    <tr>
+      <th>Code</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td> 200 </td><td> Ok <br/>
+  
+  ```json
+  {
+  "count": 2,
+  "meetings": [
+    {
+      "meetingId": 1,
+      "title": "Sales Discovery Call",
+      "googleEventId": "abcd1234",
+      "host": "user@wso2.com",
+      "startTime": "2025-04-01 05:00:00",
+      "endTime": "2025-04-01 06:00:00",
+      "internalParticipants": ["user1@wso2.com", "user2@wso2.com"],
+      "meetingStatus": "Active",
+      "timeStatus": "Upcoming"
+    },
+    {
+      "meetingId": 2,
+      "title": "Technical Demo",
+      "googleEventId": "abcd5678",
+      "host": "user@wso2.com",
+      "startTime": "2025-04-01 06:00:00",
+      "endTime": "2025-04-01 07:00:00",
+      "internalParticipants": "user3@wso2.com",
+      "meetingStatus": "ACTIVE",
+      "timeStatus": "UPCOMING"
+    }
+  ]
+  }
+  ````
+</td>
+  <tr>
+    <td> 500 </td><td> Internal Server Error <br/>
+
+```json
+{
+  "message": "Error occurred while retrieving the meetings!"
+}
+```
+
+  </td>
+    </tr>
+    </tr>
+    <tr>
+      <td> 403 </td><td> Forbidden <br/>
+
+```json
+{
+  "message": "Insufficient privileges!"
+}
+```
+
+  </td>
+    </tr>
+  </tbody>
+</table>
+
+### /meetings
 
 #### POST
 
 ##### Summary:
 
-Create a new collection in the system.
+Create a new meeting.
 
 ##### Parameters
 
@@ -174,15 +236,21 @@ Create a new collection in the system.
 </thead>
 <tbody>
   <tr>
-    <td>Input</td>
-    <td>Payload</td>
-    <td>Collection create type.</td>
+    <td>createCalendarEventRequest</td>
+    <td>body</td>
+    <td>Calendar event details</td>
     <td>Yes</td>
     <td>
 
 ```json
 {
-  "name": "Collection 5"
+  "title": "Sample Meet",
+  "description": "Sample Meet Description",
+  "startTime": "2025-03-31T12:00:00.000Z",
+  "endTime": "2025-03-31T13:00:00.000Z",
+  "timeZone": "Asia/Colombo",
+  "internalParticipants": ["patric@wso2.com"],
+  "externalParticipants": ["cptap2n@gmail.com"]
 }
 ```
 
@@ -202,41 +270,27 @@ Create a new collection in the system.
   </thead>
   <tbody>
     <tr>
-      <td>201</td>
-      <td>Created<br/>
-  
-  ```json
-  {
-    "id": 6,
-    "name": "Collection 5",
-    "createdOn": "2024-07-11 06:37:03.190918",
-    "createdBy": "user@wso2.com",
-    "updatedOn": "2024-07-11 06:37:03.190918",
-    "updatedBy": "user@wso2.com"
-  }
-  ```
+      <td> 200 </td><td> Ok <br/>
+
+```json
+{
+  "message": "Meeting created successfully.",
+  "meetingId": 123
+}
+```
+
+</td>
+  <tr>
+    <td> 500 </td><td> Internal Server Error <br/>
+
+```json
+{
+  "message": "Error occurred while creating the calendar event!"
+}
+```
+
   </td>
     </tr>
-    <tr>
-      <td> 500 </td><td> Internal Server Error <br/>
-  
-  ```json
-  {
-    "message": "Error occurred while adding sample collection!"
-  }
-  ```
-  </td>
-    </tr>
-    </tr>
-    <tr>
-      <td> 400 </td><td> Bad Request <br/>
-  
-  ```json
-  {
-    "message": "assertion header does not exist!"
-  }
-  ```
-  </td>
     </tr>
     <tr>
       <td> 403 </td><td> Forbidden <br/>
@@ -246,6 +300,140 @@ Create a new collection in the system.
     "message": "Insufficient privileges!"
   }
   ```
+
+  </td>
+    </tr>
+  </tbody>
+</table>
+
+### /meetings/{meetingId}/attachments
+
+#### GET
+
+##### Summary:
+
+Get attachments for a specific meeting.
+
+##### Parameters
+
+| Name      | Located in | Description           | Required | Schema |
+| --------- | ---------- | --------------------- | -------- | ------ |
+| meetingId | path       | The ID of the meeting | Yes      | int    |
+
+##### Responses
+
+<table>
+  <thead>
+    <tr>
+      <th>Code</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td> 200 </td><td> Ok <br/>
+  
+  ```json
+  {
+    "attachments": [
+      {
+        "fileUrl": "https://drive.google.com/open?id=exampleid1",
+        "title": "Sales Discovery Call - Patric - 2025/03/06 13:00 GMT+05:30 - Recording",
+        "mimeType": "video/mp4",
+        "iconLink": "https://drive-thirdparty.googleusercontent.com/32/type/video/mp4",
+        "fileId": "fileId1"
+      },
+      {
+        "fileUrl": "https://drive.google.com/open?id=https://drive.google.com/open?id=exampleid2",
+        "title": "Technical Demo - Patric - 2025/03/06 13:00 GMT+05:30 - Notes by Gemini",
+        "mimeType": "application/vnd.google-apps.document",
+        "iconLink": "https://drive-thirdparty.googleusercontent.com/32/type/application/vnd.google-apps.document",
+        "fileId": "fileId2"
+      }
+    ]
+  }
+  ````
+
+</td>
+  <tr>
+    <td> 500 </td><td> Internal Server Error <br/>
+
+```json
+{
+  "message": "Error occurred while fetching the attachments!"
+}
+```
+
+  </td>
+    </tr>
+    </tr>
+    <tr>
+      <td> 403 </td><td> Forbidden <br/>
+  
+  ```json
+  {
+    "message": "Insufficient privileges!"
+  }
+  ```
+
+  </td>
+    </tr>
+  </tbody>
+</table>
+
+### /meetings/{meetingId}
+
+#### DELETE
+
+##### Summary:
+
+Delete a meeting by its ID.
+
+##### Parameters
+
+| Name      | Located in | Description                     | Required | Schema |
+| --------- | ---------- | ------------------------------- | -------- | ------ |
+| meetingId | path       | The ID of the meeting to delete | Yes      | int    |
+
+##### Responses
+
+<table>
+  <thead>
+    <tr>
+      <th>Code</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td> 200 </td><td> Ok <br/>
+  
+  ```json
+      "message": "Calendar event deleted successfully."
+````
+
+</td>
+  <tr>
+    <td> 500 </td><td> Internal Server Error <br/>
+
+```json
+{
+  "message": "Error occurred while deleting the meeting!"
+}
+```
+
+  </td>
+    </tr>
+    </tr>
+    <tr>
+      <td> 403 </td><td> Forbidden <br/>
+  
+  ```json
+  {
+    "message": "Insufficient privileges!"
+  }
+  ```
+  
   </td>
     </tr>
   </tbody>
