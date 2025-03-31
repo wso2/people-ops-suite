@@ -66,14 +66,8 @@ public isolated function fetchMeetings(string? title, string? host, string? star
     stream<Meeting, error?> resultStream = databaseClient->
                 query(getMeetingsQuery(title, host, startTime, endTime, internalParticipants, 'limit, offset));
 
-    Meeting[] meetings = [];
-
-    check from Meeting meeting in resultStream
-        do {
-            meetings.push(meeting);
-        };
-
-    return meetings;
+    return from Meeting meeting in resultStream
+        select meeting;
 }
 
 # Fetch specific meeting.
@@ -94,6 +88,9 @@ public isolated function fetchMeeting(int meetingId) returns Meeting|error? {
 # + meetingId - The ID of the meeting to cancel
 # + return - Id of the cancelled meeting|Error
 public isolated function cancelMeeting(int meetingId) returns int|error {
-    sql:ExecutionResult _ = check databaseClient->execute(cancelMeetingStatusQuery(meetingId));
-    return meetingId.ensureType(int);
+    sql:ExecutionResult result = check databaseClient->execute(cancelMeetingStatusQuery(meetingId));
+    if result.affectedRowCount < 1 {
+        return error("Error while cancelling the meeting");
+    }
+    return meetingId;
 }

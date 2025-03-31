@@ -13,19 +13,9 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License. 
+import meet_app.database;
+
 import ballerinax/googleapis.calendar as gcalendar;
-
-# Enum representing the possible statuses of a meeting.
-public enum MeetingStatus {
-    ACTIVE = "ACTIVE",
-    CANCELLED = "CANCELLED"
-};
-
-# Enum representing the time status of a meeting.
-public enum TimeStatus {
-    PAST = "PAST",
-    UPCOMING = "UPCOMING"
-};
 
 # Represents the details of a scheduled meeting.
 public type Meeting record {|
@@ -44,9 +34,9 @@ public type Meeting record {|
     # Internal participants' email list
     string internalParticipants;
     # Meeting status (e.g., 'ACTIVE', 'CANCELLED')
-    MeetingStatus meetingStatus;
+    database:MeetingStatus meetingStatus;
     # Time Status (e.g., 'PAST', 'UPCOMING')
-    TimeStatus timeStatus;
+    database:TimeStatus timeStatus;
 |};
 
 # Represents the response structure for retrieving user information.

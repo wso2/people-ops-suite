@@ -128,17 +128,3 @@ public isolated function getCalendarEventAttachments(string eventId) returns gca
     json? errorResponseBody = check response.getJsonPayload();
     return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
 }
-
-# Replace the ${creatorEmail} placeholder with a mailto link.
-#
-# + message - Message with the creator email placeholder
-# + creatorEmail - Event creator Email
-# + return - Updated message with the creator email replaced by a mailto link
-isolated function replaceCreatorEmail(string message, string creatorEmail) returns string {
-    // Regex pattern to find the ${creatorEmail} placeholder
-    string:RegExp pattern = re `\$\{creatorEmail\}`;
-
-    // Replace ${creatorEmail} with <a href="mailto:creatorEmail">creatorEmail</a>
-    string result = pattern.replace(message, string `<a href="mailto:${creatorEmail}">${creatorEmail}</a>`);
-    return result;
-}
