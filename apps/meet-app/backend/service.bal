@@ -211,17 +211,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // Custom Resource level authorization.
-        if !authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups) {
-            return <http:Forbidden>{
-                body: {
-                    message: "Insufficient privileges!"
-                }
-            };
-        }
-
-        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN],
-                userInfo.groups);
+        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
 
         // Return Forbidden if a non-admin user provides a host query parameter.
         if (!isAdmin && (host != ()) && (host != userInfo.email)) {
@@ -280,15 +270,6 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // Custom Resource level authorization.
-        if !authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups) {
-            return <http:Forbidden>{
-                body: {
-                    message: "Insufficient privileges!"
-                }
-            };
-        }
-
         // Fetch the meeting from the database.
         database:Meeting|error? meeting = database:fetchMeeting(meetingId);
         if meeting is error {
@@ -310,8 +291,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN],
-                userInfo.groups);
+        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
 
         // Return Forbidden if a non-admin user views attachments of a meeting they did not host.
         if !isAdmin && (meeting.host != userInfo.email) {
@@ -353,15 +333,6 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // Custom Resource level authorization.
-        if !authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups) {
-            return <http:Forbidden>{
-                body: {
-                    message: "Insufficient privileges!"
-                }
-            };
-        }
-
         // Fetch meeting details.
         database:Meeting|error? meeting = database:fetchMeeting(meetingId);
         if meeting is error {
@@ -383,8 +354,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN],
-                userInfo.groups);
+        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
 
         // Check if the user has sufficient privileges to delete and ensure the meeting is active and upcoming.
         if !isAdmin && (meeting.host != userInfo.email) {
