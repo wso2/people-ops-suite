@@ -25,7 +25,7 @@ isolated function getMeetingTypesQuery(string domain) returns sql:ParameterizedQ
         domain,
         types
     FROM 
-        sales.meeting_type
+        meeting_type
     WHERE
         domain = ${domain}
 `;
@@ -37,7 +37,7 @@ isolated function getMeetingTypesQuery(string domain) returns sql:ParameterizedQ
 # + return - sql:ParameterizedQuery - Insert query for the meeting table
 isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) returns sql:ParameterizedQuery =>
 `
-    INSERT INTO sales.meeting
+    INSERT INTO meeting
     (
         title, 
         google_event_id, 
@@ -96,7 +96,7 @@ isolated function getMeetingsQuery(string? title, string? host, string? startTim
                     ELSE 'UPCOMING'
                 END AS timeStatus
             FROM 
-                sales.meeting
+                meeting
     `;
 
     // Setting the filters based on the meeting object.
@@ -160,7 +160,7 @@ isolated function getMeetingQuery(int meetingId) returns sql:ParameterizedQuery 
             ELSE 'UPCOMING'
         END AS timeStatus
     FROM 
-        sales.meeting
+        meeting
     WHERE
         meeting_id = ${meetingId}
 `;
@@ -172,7 +172,7 @@ isolated function getMeetingQuery(int meetingId) returns sql:ParameterizedQuery 
 isolated function cancelMeetingStatusQuery(int meetingId) returns sql:ParameterizedQuery =>
 `
     UPDATE 
-        sales.meeting
+        meeting
     SET 
         meeting_status = 'CANCELLED'
     WHERE 
