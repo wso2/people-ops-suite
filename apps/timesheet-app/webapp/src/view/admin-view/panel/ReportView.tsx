@@ -15,8 +15,9 @@
 // under the License.
 import "jspdf-autotable";
 import jsPDF from "jspdf";
-import { useEffect, useState } from "react";
 import autoTable from "jspdf-autotable";
+import { useEffect, useState } from "react";
+import { Messages } from "@config/constant";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
@@ -26,7 +27,8 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { fetchTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, Alert } from "@mui/material";
+import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
+import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography } from "@mui/material";
 import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus } from "@utils/types";
 import { DataGrid, GridFilterModel, GridLogicOperator, GridRenderCellParams } from "@mui/x-data-grid";
 
@@ -227,11 +229,14 @@ const ReportView = () => {
     doc.save("timesheet_records.pdf");
   };
 
-  const [showAlert, setShowAlert] = useState(true);
-
   useEffect(() => {
-    const timer = setTimeout(() => setShowAlert(false), 5000);
-    return () => clearTimeout(timer);
+    dispatch(
+      enqueueSnackbarMessage({
+        message: Messages.info.adminHelperAlert,
+        type: "info",
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -245,18 +250,6 @@ const ReportView = () => {
             onApply={fetchData}
             onReset={handleResetFilters}
           />
-          {showAlert && (
-            <Alert
-              variant="outlined"
-              severity="info"
-              sx={{ width: "50%", height: "auto" }}
-              onClose={() => {
-                setShowAlert(false);
-              }}
-            >
-              Use the filter to get employee timesheet information
-            </Alert>
-          )}
           <Button
             variant="contained"
             startIcon={<PictureAsPdfIcon />}

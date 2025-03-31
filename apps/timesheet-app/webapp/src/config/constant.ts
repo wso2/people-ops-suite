@@ -16,15 +16,18 @@
 
 export const Messages = {
   success: {
-    updateRecord : "Successfully updated the record",
+    updateRecord: "Successfully updated the record",
     saveRecords: "Successfully saved the records",
-    updateRecords : "Successfully updated the records"
+    updateRecords: "Successfully updated the records",
   },
   error: {
     fetchRecords: "Unable to retrieve timesheet records",
     sendRecords: "Unable to save timesheet records",
-    otExceeds : "This entries exceeds the available overtime quota",
-    updateRecords : "Unable to update the records"
+    otExceeds: "This entries exceeds the available overtime quota",
+    updateRecords: "Unable to update the records",
   },
   warning: {},
+  info: {
+    adminHelperAlert: " Use the filter to get employee timesheet information",
+  },
 };
