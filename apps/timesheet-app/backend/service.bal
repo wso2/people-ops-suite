@@ -34,10 +34,10 @@ service http:InterceptableService / on new http:Listener(9091) {
     # + return - authorization:JwtInterceptor
     public function createInterceptors() returns http:Interceptor[] => [new authorization:JwtInterceptor()];
 
-    # Get the authorization levels of the invoker
+    # Get the user information of the invoker
     #
     # + ctx - Request Context
-    # + return - Internal Server Error or Employee info object
+    # + return - Internal Server Error or Employee information object
     resource function get user\-info(http:RequestContext ctx) returns EmployeeInformation|http:InternalServerError|
         http:BadRequest|http:Forbidden {
 
@@ -69,7 +69,7 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        database:WorkPolicies|error workPolicies = database:getWorkPolicy(loggedInUser.company).ensureType();
+        database:WorkPolicies|error workPolicies = database:getWorkPolicies(loggedInUser.company).ensureType();
         if workPolicies is error {
             string customError =
                 string `Error occurred while retrieving work policy for ${userInfo.email} and ${loggedInUser.company}!`;
@@ -112,9 +112,7 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        if !authorization:checkPermissions([authorization:authorizedRoles.employeeRole],
-                userInfo.groups) {
-
+        if !authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups) {
             return <http:Forbidden>{
                 body: {
                     message: "Insufficient privileges!"
@@ -139,7 +137,7 @@ service http:InterceptableService / on new http:Listener(9091) {
     #
     # + recordPayload - Timesheet records payload
     # + employeeEmail - Email of the employee to filter timesheet records
-    # + return - A work policy or an error
+    # + return - Created status or error status's
     isolated resource function post timesheet\-records/[string employeeEmail](http:RequestContext ctx,
             database:TimeSheetRecord[] recordPayload)
         returns http:InternalServerError|http:Created|http:BadRequest|http:Forbidden {
@@ -173,7 +171,16 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
 
         string[] newRecordDates = [];
-        foreach var newRecord in recordPayload {
+        foreach database:TimeSheetRecord newRecord in recordPayload {
+            if newRecord.overtimeStatus == database:APPROVED && newRecord.overtimeDuration > 0d {
+                string customError = string `You can not save approved timesheet entries with overtime!`;
+                log:printError(customError);
+                return <http:InternalServerError>{
+                    body: {
+                        message: customError
+                    }
+                };
+            }
             newRecordDates.push(newRecord.recordDate);
         }
 
@@ -199,13 +206,9 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        string[] duplicateRecords = [];
         if existingRecords !is () && existingRecords.length() > 0 {
-            foreach var existingRecord in existingRecords {
-                duplicateRecords.push(existingRecord.recordDate);
-            }
             string customError =
-                string `Duplicated dates found ${string:'join(", ", ...duplicateRecords.map(d => d.toString()))}`;
+                string `Duplicated dates found ${string:'join(", ", ...existingRecords.map(d => d.recordDate))}`;
             log:printError(customError);
             return <http:BadRequest>{
                 body: {
@@ -216,7 +219,6 @@ service http:InterceptableService / on new http:Listener(9091) {
 
         sql:Error|sql:ExecutionResult[] timesheetInsertResult = database:insertTimesheetRecords(recordPayload,
                 loggedInUser.workEmail, loggedInUser.company, <string>loggedInUser.managerEmail);
-
         if timesheetInsertResult is error {
             string customError = string `Error occurred while saving the records for ${loggedInUser.workEmail}!`;
             log:printError(customError, timesheetInsertResult);
@@ -229,15 +231,15 @@ service http:InterceptableService / on new http:Listener(9091) {
         return http:CREATED;
     }
 
-    # Endpoint to get timesheet records using filters.
+    # Endpoint to get timesheet records using the common filter.
     #
     # + 'limit - Limit of the response
     # + status - Status of the timesheet records
     # + rangeStart - Start date of the timesheet records
     # + rangeEnd - End date of the timesheet records
-    # + offset - Offset of the number of timesheet records to retrieve
+    # + offset - Offset of timesheet records to retrieve
     # + employeeEmail - Email of the employee to filter timesheet records
-    # + return - A work policy or an error
+    # + return - Timesheet records or an error
     isolated resource function get timesheet\-records(http:RequestContext ctx, string? employeeEmail, int? 'limit,
             string? leadEmail, database:TimeSheetStatus? status, int? offset, string? rangeStart, string? rangeEnd)
         returns TimeSheetRecords|http:Forbidden|http:BadRequest|http:InternalServerError {
@@ -327,10 +329,10 @@ service http:InterceptableService / on new http:Listener(9091) {
         };
     }
 
-    # Endpoint to save timesheet records of an employee.
+    # Endpoint to patch timesheet records of an employee.
     #
-    # + recordPayload - Timesheet records payload
-    # + return - A work policy or an error
+    # + recordPayload - TimesheetUpdate record payload
+    # + return - Ok status or error status's
     isolated resource function patch timesheet\-records(http:RequestContext ctx,
             database:TimesheetUpdate[] recordPayload)
         returns http:InternalServerError|http:Ok|http:BadRequest|http:Forbidden {
@@ -350,6 +352,16 @@ service http:InterceptableService / on new http:Listener(9091) {
                     message: "Insufficient privileges!"
                 }
             };
+        }
+
+        if !authorization:checkPermissions([authorization:authorizedRoles.leadRole], userInfo.groups) {
+            if recordPayload.some(r => (r.overtimeStatus == database:APPROVED) && (r.overtimeDuration > 0d)) {
+                return <http:Forbidden>{
+                    body: {
+                        message: "Employees can not approve overtime records!"
+                    }
+                };
+            }
         }
 
         error? timesheetRecords = database:updateTimesheetRecords(userInfo.email, recordPayload);

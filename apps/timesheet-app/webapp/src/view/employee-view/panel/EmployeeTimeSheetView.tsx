@@ -489,7 +489,7 @@ const TimesheetDataGrid = () => {
                     control={
                       <Switch
                         checked={editingEntry.isLunchIncluded === 1 || editingEntry.isLunchIncluded === true}
-                        onChange={(e) => handleEditFieldChange("isLunchIncluded", e.target.checked)}
+                        onChange={(e) => handleEditFieldChange("isLunchIncluded", e.target.checked ? 1 : 0)}
                         name="isLunchIncluded"
                         color="primary"
                       />

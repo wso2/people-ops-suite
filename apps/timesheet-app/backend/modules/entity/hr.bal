@@ -108,12 +108,3 @@ public isolated function getAllActiveEmployees() returns Employee[]|error {
         return employees.cloneReadOnly();
     }
 }
-
-# This function clears the cache.
-#
-# + return - An error if the cache clearing is unsuccessful or nil if the cache is cleared successfully
-public isolated function clearCache() returns error? {
-    lock {
-        _ = check cache.invalidateAll();
-    }
-}

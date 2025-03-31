@@ -49,7 +49,7 @@ public type WorkPolicies record {|
     decimal lunchHoursPerDay;
 |};
 
-# Enum for time sheet status.
+# Enum type for the timesheet status.
 public enum TimeSheetStatus {
     PENDING = "PENDING",
     APPROVED = "APPROVED",
@@ -73,13 +73,13 @@ public type TimeSheetRecord record {|
     # Total work duration
     int isLunchIncluded;
     # Overtime duration
-    decimal? overtimeDuration?;
+    decimal overtimeDuration?;
     # Overtime reason
-    string? overtimeReason?;
-    # Leads email
-    string? leadEmail?;
+    string overtimeReason?;
+    # Email of the lead
+    string leadEmail?;
     # Overtime rejection reason
-    string? overtimeRejectReason?;
+    string overtimeRejectReason?;
     # Overtime status
     TimeSheetStatus overtimeStatus;
 |};
@@ -88,7 +88,7 @@ public type TimeSheetRecord record {|
 public type TimesheetCommonFilter record {|
     # Employee email
     string? employeeEmail;
-    # Lead emails
+    # Email of the lead
     string? leadEmail;
     # TimeSheetStatus
     TimeSheetStatus? status;
@@ -118,12 +118,6 @@ public type TimesheetInfo record {|
     decimal? totalOverTimeTaken;
     # Count of overtime left from yearly quota
     decimal? overTimeLeft;
-|};
-
-# Timesheet record count type.
-public type TimesheetCount record {|
-    # Total count of the records
-    int totalRecords;
 |};
 
 # Update type for the timesheet record.

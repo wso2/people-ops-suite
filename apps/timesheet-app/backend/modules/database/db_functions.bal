@@ -19,8 +19,8 @@ import ballerina/sql;
 #
 # + companyName - Company name to filter
 # + return - Work policies or an error
-public isolated function getWorkPolicy(string companyName) returns WorkPolicies|error? {
-    WorkPolicies|sql:Error policy = databaseClient->queryRow(getWorkPolicyQuery(companyName));
+public isolated function getWorkPolicies(string companyName) returns WorkPolicies|error? {
+    WorkPolicies|sql:Error policy = databaseClient->queryRow(getWorkPoliciesQuery(companyName));
 
     if policy is sql:Error && policy is sql:NoRowsError {
         return;
@@ -68,7 +68,7 @@ public isolated function getTotalRecordCount(TimesheetCommonFilter filter)
 # + employeeEmail - Email of the employee
 # + leadEmail - Email of the employee's lead
 # + companyName - Name of the company of the employee
-# + return - Id of the timesheet records|Error
+# + return - Execution result or an error
 public isolated function insertTimesheetRecords(TimeSheetRecord[] timesheetRecords, string employeeEmail,
         string companyName, string leadEmail) returns sql:Error|sql:ExecutionResult[] {
 
@@ -84,7 +84,7 @@ public isolated function insertTimesheetRecords(TimeSheetRecord[] timesheetRecor
 
 # Function to fetch employee timesheet info.
 #
-# + filter - Filter type for the records
+# + filter - Filter type for the timesheet information
 # + return - Timesheet info or an error
 public isolated function getTimesheetInfo(TimesheetCommonFilter filter) returns TimesheetInfo|error? {
     TimesheetInfo|sql:Error policy = databaseClient->queryRow(getTimesheetInfoQuery(filter));
@@ -99,7 +99,7 @@ public isolated function getTimesheetInfo(TimesheetCommonFilter filter) returns 
 #
 # + updateRecords - Records to be updated
 # + invokerEmail - Email of the invoker
-# + return - Timesheet info or an error
+# + return - An error if occurred
 public isolated function updateTimesheetRecords(string invokerEmail, TimesheetUpdate[] updateRecords) returns error? {
     do {
         transaction {

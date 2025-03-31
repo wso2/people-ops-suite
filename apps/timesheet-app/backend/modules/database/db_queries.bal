@@ -19,7 +19,7 @@ import ballerina/sql;
 #
 # + companyName - Company name to filter
 # + return - Select query for the work policies
-isolated function getWorkPolicyQuery(string companyName) returns sql:ParameterizedQuery =>
+isolated function getWorkPoliciesQuery(string companyName) returns sql:ParameterizedQuery =>
 `
     SELECT
         ot_hours_per_year AS 'otHoursPerYear',
@@ -79,10 +79,10 @@ isolated function getTimeSheetRecordsOfEmployee(TimesheetCommonFilter filter) re
     return mainQuery;
 }
 
-# Query to retrieve the timesheet records count of an employee.
+# Query to retrieve the timesheet record count of an employee.
 #
 # + filter - Filter type for the records
-# + return - Select query total count of timesheet records
+# + return - Select query to get total count of timesheet records
 isolated function getTotalRecordCountQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
         SELECT
@@ -90,7 +90,6 @@ isolated function getTotalRecordCountQuery(TimesheetCommonFilter filter) returns
         FROM
             hris_timesheet_records
     `;
-
     sql:ParameterizedQuery[] filters = [];
     if filter.employeeEmail is string {
         filters.push(sql:queryConcat(`ts_employee_email = `, `${filter.employeeEmail}`));
@@ -149,7 +148,7 @@ select `
         );
     `;
 
-# Query to retrieve timesheet information of employee.
+# Query to retrieve timesheet information.
 #
 # + filter - Filter type for the  records
 # + return - Select query for the timesheet information
