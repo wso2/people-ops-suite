@@ -1,3 +1,3 @@
 # Module Overview
 
-Contains authorization related functions, types, enums, and constants.
+Contains authorization related functions, types and constants.

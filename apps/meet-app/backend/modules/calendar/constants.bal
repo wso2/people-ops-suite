@@ -12,13 +12,19 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License.
-import sample_app.database;
+// under the License. 
 
-# Collection type.
-public type SampleCollection record {
-    # Number of total records
-    int count;
-    # List of collections
-    database:SampleCollection[] collections;
-};
+# client retry configuration for max retry attempts.
+public const int RETRY_COUNT = 3;
+
+# client retry configuration for wait interval in seconds.
+public const decimal RETRY_INTERVAL = 3.0;
+
+# client retry configuration for interval increment in seconds.
+public const float RETRY_BACKOFF_FACTOR = 2.0;
+
+# client retry configuration for maximum wait interval in seconds.
+public const decimal RETRY_MAX_INTERVAL = 20.0;
+
+# Conference solution type used for Google Meet integration.
+const string CONFERENCE_SOLUTION_TYPE = "hangoutsMeet";

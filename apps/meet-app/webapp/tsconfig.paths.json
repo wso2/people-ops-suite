@@ -2,13 +2,39 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@config/*": ["./src/config/*"],
-      "@component/*": ["./src/component/*"],
-      "@app/*": ["./src/app/*"],
-      "@view/*": ["./src/view/*"],
-      "@utils/*": ["./src/utils/*"],
-      "@context/*": ["./src/context/*"],
-      "@slices/*": ["./src/slices/*"]
+      "@src/*": [
+        "./src/*"
+      ],
+      "@app/*": [
+        "./src/app/*"
+      ],
+      "@assets/*": [
+        "./src/assets/*"
+      ],
+      "@component/*": [
+        "./src/component/*"
+      ],
+      "@config/*": [
+        "./src/config/*"
+      ],
+      "@context/*": [
+        "./src/context/*"
+      ],
+      "@layout/*": [
+        "./src/layout/*"
+      ],
+      "@slices/*": [
+        "./src/slices/*"
+      ],
+      "@view/*": [
+        "./src/view/*"
+      ],
+      "@utils/*": [
+        "./src/utils/*"
+      ],
+      "@/types/*": [
+        "./src/types/*"
+      ]
     }
   }
 }

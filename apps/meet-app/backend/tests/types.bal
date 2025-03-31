@@ -12,20 +12,13 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License.
+// under the License. 
 
-# Response type of post collection.
-type PostCollectionResponseData record {|
-    # Id of the collection
-    int id;
-    # Name
-    string name;
-    # Timestamp, when created
-    string createdOn;
-    # Person, who created
-    string createdBy;
-    # Timestamp, when updated
-    string updatedOn;
-    # Person, who updates
-    string updatedBy;
+# CreateCalendarEvent Response.
+#
+# + message - Success message 
+# + id - Created event ID
+public type CreateCalendarEventResponse record {|
+    string message;
+    string id;
 |};

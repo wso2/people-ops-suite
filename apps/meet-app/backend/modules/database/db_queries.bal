@@ -12,58 +12,116 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License.
+// under the License. 
 import ballerina/sql;
 
-# Build query to add a sample collection.
+# Build query to retrieve meeting types.
 #
-# + sampleCollection - sample collection to be added
-# + createdBy - The user who is adding the sample collection
-# + return - sql:ParameterizedQuery - Insert query for the sample collection table
-isolated function addSampleCollectionQuery(AddSampleCollection sampleCollection, string createdBy)
-    returns sql:ParameterizedQuery =>
+# + domain - Domain of the meeting
+# + return - sql:ParameterizedQuery - Select query for the meeting_types table
+isolated function getMeetingTypesQuery(string domain) returns sql:ParameterizedQuery =>
 `
-    INSERT INTO sample_collection
+    SELECT 
+        domain,
+        types
+    FROM 
+        sales.meeting_type
+    WHERE
+        domain = ${domain}
+`;
+
+# Build query to add a meeting.
+#
+# + meeting - Meeting to be added
+# + createdBy - User who is creating the meeting
+# + return - sql:ParameterizedQuery - Insert query for the meeting table
+isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) returns sql:ParameterizedQuery =>
+`
+    INSERT INTO sales.meeting
     (
-        sample_collection_name, 
-        sample_collection_created_by, 
-        sample_collection_updated_by
+        title, 
+        google_event_id, 
+        host, 
+        start_time, 
+        end_time, 
+        wso2_participants,
+        meeting_status,
+        created_by, 
+        updated_by
     )
     VALUES
     (
-        ${sampleCollection.name}, 
+        ${meeting.title}, 
+        ${meeting.googleEventId}, 
+        ${meeting.host}, 
+        ${meeting.startTime}, 
+        ${meeting.endTime}, 
+        ${meeting.wso2Participants},
+        'ACTIVE',
         ${createdBy}, 
         ${createdBy}
     )
 `;
 
-# Build query to retrieve sample collections.
+# Build query to retrieve meetings.
 #
-# + name - Name to filter  
+# + title - Title to filter  
+# + host - Host filter  
+# + startTime - Start time filter  
+# + endTime - End time filter  
+# + wso2Participants - Participants filter
 # + 'limit - Limit of the data  
-# + offset - offset of the query
-# + return - sql:ParameterizedQuery - Select query for the sample_collection table
-isolated function getSampleCollectionsQuery(string? name, int? 'limit, int? offset) returns sql:ParameterizedQuery {
+# + offset - offset of the query  
+# + return - sql:ParameterizedQuery - Select query for the meeting table
+isolated function getMeetingsQuery(string? title, string? host, string? startTime, string? endTime,
+        string? wso2Participants, int? 'limit, int? offset) returns sql:ParameterizedQuery {
+
     sql:ParameterizedQuery mainQuery = `
             SELECT 
-                sample_collection_id AS 'id',
-                sample_collection_name AS 'name',
-                sample_collection_created_on AS 'createdOn',
-                sample_collection_created_by AS 'createdBy',
-                sample_collection_updated_on AS 'updatedOn',
-                sample_collection_updated_by AS 'updatedBy'
+                meeting_id AS 'meetingId',
+                title, 
+                google_event_id AS 'googleEventId',
+                host, 
+                DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS 'startTime',
+                DATE_FORMAT(end_time, '%Y-%m-%d %H:%i:%s') AS 'endTime',
+                wso2_participants as wso2Participants, 
+                meeting_status as meetingStatus,
+                created_on AS 'createdOn',
+                created_by AS 'createdBy',
+                updated_on AS 'updatedOn',
+                updated_by AS 'updatedBy',
+                COUNT(*) OVER() AS totalCount,
+                CASE
+                    WHEN start_time < UTC_TIMESTAMP() THEN 'PAST'
+                    ELSE 'UPCOMING'
+                END AS timeStatus
             FROM 
-                sample_schema.sample_collection
+                sales.meeting
     `;
 
-    // Setting the filters based on the sample collection object.
+    // Setting the filters based on the meeting object.
     sql:ParameterizedQuery[] filters = [];
 
-    if name is string {
-        filters.push(sql:queryConcat(`sample_collection_name LIKE `, `${name}`));
+    if title is string {
+        filters.push(sql:queryConcat(`title LIKE ${"%" + title + "%"}`));
+    }
+    if startTime is string {
+        filters.push(sql:queryConcat(`start_time >= ${startTime}`));
+    }
+    if endTime is string {
+        filters.push(sql:queryConcat(`end_time <= ${endTime}`));
+    }
+    if host is string {
+        filters.push(sql:queryConcat(`host = `, `${host}`));
+    }
+    if wso2Participants is string {
+        filters.push(sql:queryConcat(`wso2_participants LIKE ${"%" + wso2Participants + "%"}`));
     }
 
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
+
+    // Sorting the result by created_on.
+    mainQuery = sql:queryConcat(mainQuery, ` ORDER BY created_on DESC`);
 
     // Setting the limit and offset.
     if 'limit is int {
@@ -72,27 +130,52 @@ isolated function getSampleCollectionsQuery(string? name, int? 'limit, int? offs
             mainQuery = sql:queryConcat(mainQuery, ` OFFSET ${offset}`);
         }
     } else {
-        mainQuery = sql:queryConcat(mainQuery, ` LIMIT 1000`);
+        mainQuery = sql:queryConcat(mainQuery, ` LIMIT 100`);
     }
 
     return mainQuery;
 }
 
-# Build query to retrieve sample collection.
+# Build query to retrieve a specific meeting.
 #
-# + id - Identification of the sample collection
-# + return - sql:ParameterizedQuery - Select query for the sample_collection table
-isolated function getSampleCollectionQuery(int id) returns sql:ParameterizedQuery =>
+# + meetingId - ID of the meeting to retrieve
+# + return - sql:ParameterizedQuery - Select query for the meeting table
+isolated function getMeetingQuery(int meetingId) returns sql:ParameterizedQuery =>
 `
-    SELECT 
-        sample_collection_id AS 'id',
-        sample_collection_name AS 'name',
-        sample_collection_created_on AS 'createdOn',
-        sample_collection_created_by AS 'createdBy',
-        sample_collection_updated_on AS 'updatedOn',
-        sample_collection_updated_by AS 'updatedBy'
+    SELECT
+        meeting_id AS 'meetingId',
+        title, 
+        google_event_id AS 'googleEventId',
+        host, 
+        DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS 'startTime',
+        DATE_FORMAT(end_time, '%Y-%m-%d %H:%i:%s') AS 'endTime',
+        wso2_participants as wso2Participants, 
+        meeting_status as meetingStatus,
+        created_on AS 'createdOn',
+        created_by AS 'createdBy',
+        updated_on AS 'updatedOn',
+        updated_by AS 'updatedBy',
+        CASE
+            WHEN start_time < UTC_TIMESTAMP() THEN 'PAST'
+            ELSE 'UPCOMING'
+        END AS timeStatus
     FROM 
-        sample_schema.sample_collection
+        sales.meeting
     WHERE
-        sample_collection_id = ${id}
+        meeting_id = ${meetingId}
 `;
+
+# Build query to update the meetingStatus.
+#
+# + meetingId - ID of the meeting to cancel
+# + return - sql:ParameterizedQuery - Update query for the meeting table
+isolated function cancelMeetingStatusQuery(int meetingId) returns sql:ParameterizedQuery =>
+`
+    UPDATE 
+        sales.meeting
+    SET 
+        meeting_status = 'CANCELLED'
+    WHERE 
+        meeting_id = ${meetingId};
+`;
+

@@ -12,26 +12,16 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License.
+// under the License. 
 import ballerinax/java.jdbc;
 import ballerinax/mysql;
 import ballerinax/mysql.driver as _;
 
 # Database Client Configuration.
-configurable DatabaseConfig databaseConfig = ?;
+configurable DatabaseConfig dbConfig = ?;
 
-DatabaseClientConfig databaseClientConfig = {
-    ...databaseConfig,
-    options: {
-        ssl: {
-            mode: mysql:SSL_REQUIRED
-        },
-        connectTimeout: 10
-    }
-};
-
-function initSampleDbClient() returns mysql:Client|error
-=> new (...databaseClientConfig);
+function initPeopleOpsDbClient() returns mysql:Client|error
+=> new (...dbConfig);
 
 # Database Client.
-final jdbc:Client databaseClient = check initSampleDbClient();
+final jdbc:Client databaseClient = check initPeopleOpsDbClient();

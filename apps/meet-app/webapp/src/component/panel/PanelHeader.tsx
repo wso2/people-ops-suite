@@ -15,8 +15,8 @@
 // under the License.
 
 import React from "react";
-import { Box, ButtonGroup, IconButton, Tooltip } from "@mui/material";
 import { Cached } from "@mui/icons-material";
+import { Box, ButtonGroup, IconButton, Tooltip } from "@mui/material";
 
 function PanelHeader(props: {
   refresh?: () => void;
@@ -36,7 +36,6 @@ function PanelHeader(props: {
       }}
     >
       {props.header && <div>{props.header}</div>}
-
       <ButtonGroup>
         {props.refresh && (
           <Tooltip title={"Refresh Page"}>

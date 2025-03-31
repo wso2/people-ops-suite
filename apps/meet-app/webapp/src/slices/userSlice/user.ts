@@ -12,12 +12,12 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License.
+// under the License. 
 
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { APIService } from "../../utils/apiService";
-import { AppConfig } from "../../config/config";
-import { State } from "../../types/types";
+import { APIService } from "@utils/apiService";
+import { AppConfig } from "@config/config";
+import { State } from "@/types/types";
 
 const initialState: UserState = {
   state: State.idle,
@@ -47,7 +47,7 @@ export const getUserInfo = createAsyncThunk("User/getUserInfo", async () => {
     UserInfo: UserInfoInterface;
   }>((resolve, reject) => {
     APIService.getInstance()
-      .get(AppConfig.serviceUrls.getUserInfo)
+      .get(AppConfig.serviceUrls.userInfo)
       .then((resp) => {
         resolve({
           UserInfo: resp.data,

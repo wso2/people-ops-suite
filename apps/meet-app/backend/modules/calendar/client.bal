@@ -12,21 +12,26 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License.
+// under the License. 
+import ballerina/http;
 
-import { Backdrop, CircularProgress, useTheme } from "@mui/material";
-import React from "react";
+configurable string calendarBaseUrl = ?;
+configurable CalendarRetryConfig retryConfig = ?;
+configurable Oauth2Config oauthConfig = ?;
 
-const BackdropProgress = ({ open }: any) => {
-  const theme = useTheme();
-  return (
-    <Backdrop
-      sx={{ zIndex: 500 + 1, color: theme.palette.secondary.contrastText }}
-      open={open}
-    >
-      <CircularProgress />
-    </Backdrop>
-  );
-};
+# Hr Entity -> HRIS Calendar Event Service Credentials.
+@display {
+    label: "Google Meet Scheduler Service",
+    id: "hris/google-meet-scheduler-service"
+}
 
-export default BackdropProgress;
+final http:Client calendarClient = check new (calendarBaseUrl, {
+    auth: {
+        ...oauthConfig
+    },
+    httpVersion: http:HTTP_1_1,
+    http1Settings: {keepAlive: http:KEEPALIVE_NEVER},
+    retryConfig: {
+        ...retryConfig
+    }
+});

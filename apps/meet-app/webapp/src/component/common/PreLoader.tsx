@@ -14,15 +14,20 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { PreLoaderProps } from "../../types/types";
 import Grid from "@mui/material/Grid";
+import { APP_NAME } from "@config/config";
+import StateWithImage from "@component/ui/StateWithImage";
 import { Box, Container, Paper, alpha, useTheme } from "@mui/material";
 import CircularProgress, {
   circularProgressClasses,
   CircularProgressProps,
 } from "@mui/material/CircularProgress";
-import { APP_NAME } from "@config/config";
-import StateWithImage from "@component/ui/StateWithImage";
+
+interface PreLoaderProps {
+  message: string | null;
+  hideLogo?: boolean;
+  isLoading?: boolean;
+}
 
 function CustomCircularProgress(props: CircularProgressProps) {
   return (
@@ -59,10 +64,8 @@ function CustomCircularProgress(props: CircularProgressProps) {
 
 const PreLoader = (props: PreLoaderProps) => {
   const theme = useTheme();
-
   return (
     <Paper
-      variant="outlined"
       elevation={4}
       sx={{
         background: alpha(
@@ -93,14 +96,14 @@ const PreLoader = (props: PreLoaderProps) => {
                 alt="logo"
                 width="150"
                 height="auto"
-                src={require("../../assets/images/wso2-logo.svg").default}
-              ></img>
+                src={require("@assets/images/wso2-logo.svg").default}
+              />
             )}
           </Grid>
           <Grid item xs={12}>
             <StateWithImage
               message={"Loading " + APP_NAME + " Data..."}
-              imageUrl={require("../../assets/images/loading.svg").default}
+              imageUrl={require("@assets/images/loading.svg").default}
             />
           </Grid>
           <Grid item xs={12}>

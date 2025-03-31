@@ -14,32 +14,31 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import React from "react";
-
 // MUI imports
-import AttachEmailIcon from "@mui/icons-material/AttachEmail";
-import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
+import VideoCallIcon from "@mui/icons-material/VideoCall";
+import HistoryIcon from "@mui/icons-material/History";
 
 // App imports
-import CommonPage from "../../layout/pages/CommonPage";
-import TabOnePanel from "./panel/TabOnePanel";
+import CommonPage from "@layout/pages/CommonPage";
+import CreateMeeting from "./panel/createMeeting";
+import MeetingHistory from "./panel/meetingHistory";
 
 export default function OfferLetter() {
   return (
     <CommonPage
-      title="Menu 1"
+      title="Meetings"
       commonPageTabs={[
         {
-          tabTitle: "Tab 1",
-          tabPath: "tab-one",
-          icon: <AttachEmailIcon />,
-          page: <TabOnePanel />,
+          tabTitle: "Create Meeting",
+          tabPath: "create-meeting",
+          icon: <VideoCallIcon />,
+          page: <CreateMeeting />,
         },
         {
-          tabTitle: "Tab 2",
-          tabPath: "tab-two",
-          icon: <MarkEmailReadIcon />,
-          page: <></>,
+          tabTitle: "Meeting History",
+          tabPath: "meeting-history",
+          icon: <HistoryIcon />,
+          page: <MeetingHistory />,
         },
       ]}
     />

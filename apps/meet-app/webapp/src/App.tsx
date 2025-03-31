@@ -23,7 +23,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 // APP imports
 import { store } from "./slices/store";
 import { ThemeMode } from "@utils/types";
-import { APP_NAME, AppConfig, AsgardeoConfig } from "./config/config";
+import { APP_NAME, AsgardeoConfig } from "./config/config";
 import AppHandler from "@app/AppHandler";
 import { themeSettings } from "./theme";
 import "./App.scss";

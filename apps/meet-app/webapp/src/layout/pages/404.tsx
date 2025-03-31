@@ -43,7 +43,7 @@ export default function Error() {
         404
       </Typography>
       <Typography variant="h6" style={{ color: "gray" }}>
-        The page you’re looking for doesn’t exist.
+        The page you're looking for doesn't exist..
       </Typography>
       <Button component={Link} to={"/"} variant="contained">
         Back Home

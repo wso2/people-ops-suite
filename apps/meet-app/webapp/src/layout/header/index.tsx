@@ -15,8 +15,11 @@
 // under the License.
 
 import React from "react";
-import Typography from "@mui/material/Typography";
+import { APP_NAME } from "@config/config";
 import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import { useAppAuthContext } from "@context/AuthContext";
+import { RootState, useAppSelector } from "@slices/store";
 import {
   AppBar,
   Avatar,
@@ -26,9 +29,6 @@ import {
   Stack,
   Tooltip,
 } from "@mui/material";
-import { useAppAuthContext } from "@context/AuthContext";
-import { APP_NAME } from "@config/config";
-import { RootState, useAppSelector } from "@slices/store";
 
 const Header = () => {
   const authContext = useAppAuthContext();
@@ -50,13 +50,16 @@ const Header = () => {
       position="fixed"
       sx={{
         zIndex: (theme) => theme.zIndex.drawer + 1,
-        color: "black",
+        color: (theme) =>
+          theme.palette.mode === "light"
+            ? theme.palette.primary.main
+            : theme.palette.common.white,
 
         background: (theme) =>
           theme.palette.mode === "light"
             ? theme.palette.common.white
-            : "#0d0d0d",
-        boxShadow: 1,
+            : theme.palette.primary.dark,
+        boxShadow: 2,
       }}
     >
       <Toolbar
@@ -71,11 +74,11 @@ const Header = () => {
         <img
           alt="wso2"
           style={{
-            height: "45px",
+            height: "40px",
             maxWidth: "100px",
           }}
           onClick={() => (window.location.href = "/")}
-          src={require("../../assets/images/wso2-logo.svg").default}
+          src={require("@assets/images/wso2-logo.svg").default}
         ></img>
         <Typography
           variant="h5"
@@ -89,7 +92,7 @@ const Header = () => {
         </Typography>
 
         <Box sx={{ flexGrow: 0 }}>
-          {user.userInfo?.employeeThumbnail && (
+          {user.userInfo && (
             <>
               <Stack flexDirection={"row"} alignItems={"center"} gap={2}>
                 <Box>
