@@ -49,17 +49,6 @@ const ReportView = () => {
 
   const columns = [
     {
-      field: "employeeEmail",
-      headerName: "Employee",
-      flex: 1,
-      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
-        <Stack direction="row" alignItems="center" gap={1}>
-          <PersonIcon fontSize="small" color="action" />
-          <Typography variant="body2">{params.row.employeeEmail}</Typography>
-        </Stack>
-      ),
-    },
-    {
       field: "recordDate",
       headerName: "Date",
       flex: 1,
@@ -151,7 +140,7 @@ const ReportView = () => {
     const filterParams = filters.reduce((acc, filter) => {
       return { ...acc, [filter.field]: filter.value };
     }, {});
-
+console.log(filterParams)
     dispatch(
       fetchTimesheetRecords({
         ...filterParams,

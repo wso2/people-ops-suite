@@ -13,7 +13,19 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
+import {
+  Box,
+  Menu,
+  Chip,
+  Stack,
+  Paper,
+  Button,
+  MenuItem,
+  TextField,
+  IconButton,
+  Typography,
+  Autocomplete,
+} from "@mui/material";
 import {
   Add as AddIcon,
   Tune as TuneIcon,
@@ -22,21 +34,8 @@ import {
 } from "@mui/icons-material";
 import { Filter } from "@utils/types";
 import React, { useState } from "react";
-import { DatePicker } from "@mui/x-date-pickers";
-import {
-  Stack,
-  Button,
-  Menu,
-  Typography,
-  TextField,
-  MenuItem,
-  Paper,
-  IconButton,
-  Chip,
-  Box,
-  Autocomplete,
-} from "@mui/material";
 import { useAppSelector } from "@slices/store";
+import { DatePicker } from "@mui/x-date-pickers";
 
 interface FieldConfig {
   field: string;
@@ -49,18 +48,18 @@ interface FilterComponentProps {
   availableFields: FieldConfig[];
   filters: Filter[];
   setFilters: (filters: Filter[]) => void;
-  onApply: () => void;
+  onApply: (employeeEmail?: string) => void;
   onReset: () => void;
   isLead?: boolean;
 }
 
 const FilterComponent: React.FC<FilterComponentProps> = ({
-  availableFields,
   filters,
-  setFilters,
+  isLead,
   onApply,
   onReset,
-  isLead,
+  setFilters,
+  availableFields,
 }) => {
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
   const employeeArray = useAppSelector((state) => state.meteInfo.employeeArray);
@@ -68,6 +67,23 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
   const employees = isLead
     ? employeeArray.filter((employee) => employee.managerEmail?.toLowerCase() === userEmail?.toLowerCase())
     : employeeArray;
+
+  const areAllFiltersValid = () => {
+    return filters.every((filter) => {
+      const fieldConfig = availableFields.find((f) => f.field === filter.field);
+      if (!fieldConfig) return false;
+
+      if (filter.value === null || filter.value === undefined || filter.value === "") {
+        return false;
+      }
+
+      if (fieldConfig.type === "select" && !fieldConfig.options?.includes(filter.value as string)) {
+        return false;
+      }
+
+      return true;
+    });
+  };
 
   const handleAddFilter = () => {
     const availableFieldOptions = availableFields.filter((field) => !filters.some((f) => f.field === field.field));
@@ -108,6 +124,9 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
   };
 
   const applyFilters = () => {
+    if (!areAllFiltersValid()) {
+      return;
+    }
     onApply();
     setFilterAnchorEl(null);
   };
@@ -127,6 +146,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
             fullWidth
             onChange={(e) => handleFilterChange(filter.id, "value", e.target.value)}
             sx={{ minWidth: 150 }}
+            error={!filter.value}
           >
             {fieldConfig.options?.map((option) => (
               <MenuItem key={option} value={option}>
@@ -140,7 +160,13 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
           <DatePicker
             value={filter.value}
             onChange={(newValue) => handleFilterChange(filter.id, "value", newValue)}
-            slotProps={{ textField: { size: "small" } }}
+            slotProps={{
+              textField: {
+                size: "small",
+                error: !filter.value,
+              },
+            }}
+            sx={{ width: "100%" }}
             maxDate={new Date()}
           />
         );
@@ -152,8 +178,17 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
             options={employees}
             getOptionLabel={(option) => option.workEmail}
             renderOption={(props, option) => <li {...props}>{option.workEmail}</li>}
-            renderInput={(params) => <TextField {...params} label="Employee Email*" size="small" />}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Employee Email*"
+                size="small"
+                required
+                error={!filter.value}
+              />
+            )}
             onChange={(_, value) => handleFilterChange(filter.id, "value", value?.workEmail)}
+            value={employees.find((emp) => emp.workEmail === filter.value) || null}
           />
         );
     }
@@ -246,7 +281,12 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
                 <Button size="small" onClick={resetFilters}>
                   Reset
                 </Button>
-                <Button variant="contained" size="small" onClick={applyFilters}>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={applyFilters}
+                  disabled={!areAllFiltersValid()}
+                >
                   Apply
                 </Button>
               </Stack>

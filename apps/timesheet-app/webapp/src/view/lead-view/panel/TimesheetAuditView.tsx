@@ -23,7 +23,6 @@ import {
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { useEffect, useState } from "react";
-import PersonIcon from "@mui/icons-material/Person";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -67,7 +66,7 @@ const TimesheetAuditView = () => {
   const [filters, setFilters] = useState<Filter[]>([]);
   const availableFields = [
     { field: "status", label: "Status", type: "select", options: Object.values(TimesheetStatus) },
-    { field: "employeeEmail", label: "Employee Email", type: "text" },
+    { field: "onApply", label: "Employee Email", type: "text" },
     { field: "rangeStart", label: "Start Date", type: "date" },
     { field: "rangeEnd", label: "End Date", type: "date" },
   ];
@@ -83,10 +82,6 @@ const TimesheetAuditView = () => {
       headerName: "Employee",
       flex: 2,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
-        // <Stack direction="row" alignItems="center" gap={1}>
-        //   <PersonIcon fontSize="small" color="action" />
-        //   <Typography variant="body2">{params.row.employeeEmail}</Typography>
-        // </Stack>
         <Box display="flex" alignItems="center" position="relative">
           <Avatar
             src={employeeMap[params.row?.employeeEmail]?.employeeThumbnail}
