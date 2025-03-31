@@ -377,6 +377,7 @@ function MeetingForm() {
           label="Meeting Date *"
           value={meetingRequest.date}
           onChange={handleDateChange}
+          minDate={dayjs()}
         />
 
         <Box sx={{ display: "flex", gap: 2, pb: 0.5 }}>
