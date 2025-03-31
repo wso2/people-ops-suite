@@ -15,7 +15,6 @@
 // under the License.
 import {
   DataGrid,
-  GridToolbar,
   GridFilterModel,
   GridLogicOperator,
   GridPaginationModel,
@@ -276,7 +275,6 @@ const TimesheetAuditView = () => {
   useEffect(() => {
     if (!leadEmail) return;
     fetchData();
-
     //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paginationModel]);
 
@@ -370,8 +368,8 @@ const TimesheetAuditView = () => {
   useEffect(() => {
     return () => {
       dispatch(resetTimesheetRecords());
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -383,7 +381,7 @@ const TimesheetAuditView = () => {
           </Box>
         )}
 
-        <Stack direction="row" justifyContent="space-end" alignItems="right" mb={1} spacing={1}>
+        <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
           <FilterComponent
             availableFields={availableFields}
             filters={filters}
@@ -392,27 +390,28 @@ const TimesheetAuditView = () => {
             onReset={handleResetFilters}
             isLead={true}
           />
+          <Box>
+            <Button
+              variant="contained"
+              onClick={() => handleApproveRecords()}
+              sx={{ width: "160px", mx: 1 }}
+              startIcon={<ThumbUpIcon />}
+              disabled={selectionModel.length <= 1}
+            >
+              Batch Approve
+            </Button>
 
-          <Button
-            variant="contained"
-            onClick={() => handleApproveRecords()}
-            sx={{ width: "160px", mx: 1 }}
-            startIcon={<ThumbUpIcon />}
-            disabled={selectionModel.length <= 1}
-          >
-            Batch Approve
-          </Button>
-
-          <Button
-            variant="contained"
-            onClick={() => handleDeclineRecords()}
-            color="error"
-            sx={{ width: "160px", mx: 1 }}
-            startIcon={<ThumbDownIcon />}
-            disabled={selectionModel.length <= 1}
-          >
-            Batch Reject
-          </Button>
+            <Button
+              variant="contained"
+              onClick={() => handleDeclineRecords()}
+              color="error"
+              sx={{ width: "160px", mx: 1 }}
+              startIcon={<ThumbDownIcon />}
+              disabled={selectionModel.length <= 1}
+            >
+              Batch Reject
+            </Button>
+          </Box>
         </Stack>
 
         <Paper
@@ -442,7 +441,6 @@ const TimesheetAuditView = () => {
               filterModel={filterModel}
               onFilterModelChange={setFilterModel}
               onRowSelectionModelChange={handleSelectionChange}
-              slots={{ toolbar: GridToolbar }}
               checkboxSelection
               slotProps={{
                 toolbar: {

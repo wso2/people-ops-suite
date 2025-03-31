@@ -13,28 +13,31 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import { useState } from "react";
-import PersonIcon from "@mui/icons-material/Person";
+import "jspdf-autotable";
+import jsPDF from "jspdf";
+import { useEffect, useState } from "react";
+import autoTable from "jspdf-autotable";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import { useAppDispatch, useAppSelector } from "@slices/store";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { fetchTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { useConfirmationModalContext } from "@context/DialogContext";
-import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography } from "@mui/material";
+import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, Alert } from "@mui/material";
 import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus } from "@utils/types";
-import { DataGrid, GridToolbar, GridFilterModel, GridLogicOperator, GridRenderCellParams } from "@mui/x-data-grid";
+import { DataGrid, GridFilterModel, GridLogicOperator, GridRenderCellParams } from "@mui/x-data-grid";
 
 const ReportView = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const dialogContext = useConfirmationModalContext();
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
+  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
+
   const [filters, setFilters] = useState<Filter[]>([]);
   const availableFields = [
     { field: "employeeEmail", label: "Employee Email", type: "text" },
@@ -118,6 +121,22 @@ const ReportView = () => {
       ),
     },
     {
+      field: "overtimeRejectReason",
+      headerName: "Rejected Reason",
+      flex: 2,
+      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
+        <>
+          {params.row.overtimeStatus === TimesheetStatus.REJECTED && (
+            <Tooltip title={params.row.overtimeRejectReason}>
+              <Typography color="text.secondary" noWrap variant="body2">
+                {params.row.overtimeRejectReason}
+              </Typography>
+            </Tooltip>
+          )}
+        </>
+      ),
+    },
+    {
       field: "recordStatus",
       headerName: "Status",
       flex: 1,
@@ -140,7 +159,7 @@ const ReportView = () => {
     const filterParams = filters.reduce((acc, filter) => {
       return { ...acc, [filter.field]: filter.value };
     }, {});
-console.log(filterParams)
+
     dispatch(
       fetchTimesheetRecords({
         ...filterParams,
@@ -152,10 +171,73 @@ console.log(filterParams)
     setFilters([]);
   };
 
+  const downloadPDF = () => {
+    if (!records.length) return;
+
+    const doc = new jsPDF();
+
+    doc.setFontSize(16);
+    doc.text(`Timesheet Report - ${records[0].employeeEmail}`, 14, 10);
+
+    if (timesheetInfo) {
+      doc.setFontSize(12);
+      const summaryY = 20;
+      const lineSpacing = 6;
+
+      doc.text(`Total Records: ${timesheetInfo.totalRecords}`, 14, summaryY);
+      doc.text(
+        `Pending: ${timesheetInfo.pendingRecords} | Approved: ${timesheetInfo.approvedRecords} | Rejected: ${timesheetInfo.rejectedRecords}`,
+        14,
+        summaryY + lineSpacing
+      );
+      doc.text(`Total Overtime Taken: ${timesheetInfo.totalOverTimeTaken}h`, 14, summaryY + lineSpacing * 2);
+      doc.text(`Overtime Left: ${timesheetInfo.overTimeLeft}h`, 14, summaryY + lineSpacing * 3);
+    }
+
+    const tableColumn = ["Date", "Clock In", "Clock Out", "Lunch", "Overtime", "Reason", "Status", "Rejected Reason"];
+
+    const tableRows = records.map(
+      ({
+        recordDate,
+        clockInTime,
+        clockOutTime,
+        isLunchIncluded,
+        overtimeDuration,
+        overtimeReason,
+        overtimeStatus,
+        overtimeRejectReason,
+      }) => [
+        recordDate,
+        clockInTime,
+        clockOutTime,
+        isLunchIncluded ? "Yes" : "No",
+        overtimeDuration > 0 ? `${overtimeDuration}h` : "-",
+        overtimeDuration > 0 ? overtimeReason || "N/A" : "-",
+        overtimeStatus,
+        overtimeRejectReason ?? "-",
+      ]
+    );
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 44,
+    });
+
+    doc.save("timesheet_records.pdf");
+  };
+
+  const [showAlert, setShowAlert] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowAlert(false), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
-        <Stack direction="row" justifyContent="space-end" alignItems="right" mb={1} spacing={1}>
+        <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
           <FilterComponent
             availableFields={availableFields}
             filters={filters}
@@ -163,6 +245,30 @@ console.log(filterParams)
             onApply={fetchData}
             onReset={handleResetFilters}
           />
+          {showAlert && (
+            <Alert
+              variant="outlined"
+              severity="info"
+              sx={{ width: "50%", height: "auto" }}
+              onClose={() => {
+                setShowAlert(false);
+              }}
+            >
+              Use the filter to get employee timesheet information
+            </Alert>
+          )}
+          <Button
+            variant="contained"
+            startIcon={<PictureAsPdfIcon />}
+            onClick={downloadPDF}
+            disabled={records.length === 0}
+            sx={{
+              boxShadow: "none",
+              "&:hover": { boxShadow: "none" },
+            }}
+          >
+            DOWNLOAD REPORT
+          </Button>
         </Stack>
 
         <Paper
@@ -189,7 +295,6 @@ console.log(filterParams)
               getRowId={(row) => row.recordId}
               filterModel={filterModel}
               onFilterModelChange={setFilterModel}
-              slots={{ toolbar: GridToolbar }}
               slotProps={{
                 toolbar: {
                   showQuickFilter: true,

@@ -62,6 +62,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
     } else {
       setAppState("active");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -85,6 +86,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
       localStorage.setItem("signInInitiated", "true");
       signIn();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.isAuthenticated]);
 
   useEffect(() => {
@@ -109,6 +111,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
     return () => {
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.userInfo]);
 
   useEffect(() => {
@@ -120,6 +123,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userInfo]);
 
   const refreshTokens = async () => {

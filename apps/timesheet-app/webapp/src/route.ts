@@ -52,7 +52,7 @@ export const routes: RouteObjectWithRole[] = [
     text: "Lead Portal",
     icon: React.createElement(Groups3Icon),
     element: React.createElement(View.leadView),
-    allowRoles: [Roles.ADMIN],
+    allowRoles: [Roles.LEAD],
   },
   {
     path: "/admin-portal",

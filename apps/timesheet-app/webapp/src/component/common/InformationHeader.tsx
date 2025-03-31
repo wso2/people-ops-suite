@@ -45,9 +45,15 @@ interface InformationHeaderProps {
   timesheetInfo: TimesheetInfo;
   workPolicies: WorkPolicies;
   isLeadView?: boolean;
+  isAdminView?: boolean;
 }
 
-const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, workPolicies, isLeadView }) => {
+const InformationHeader: React.FC<InformationHeaderProps> = ({
+  timesheetInfo,
+  workPolicies,
+  isLeadView,
+  isAdminView,
+}) => {
   const theme = useTheme();
 
   const {
@@ -93,7 +99,7 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
       label: `Total Records ${totalRecords}`,
       icon: <AccessTime fontSize="small" />,
       color: "info" as const,
-    }
+    },
   ];
 
   const stats = [
@@ -153,7 +159,6 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
           direction="row"
           spacing={1}
           sx={{
-
             flexWrap: "wrap",
             gap: 1,
             justifyContent: "center",
@@ -173,7 +178,7 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
               }}
             />
           ))}
-          {!isLeadView && (
+          {!isLeadView && !isAdminView && (
             <>
               <Chip
                 icon={<FreeBreakfast />}
@@ -194,9 +199,9 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({ timesheetInfo, wo
                   px: 1,
                 }}
               />
-               <Chip
+              <Chip
                 icon={<Work />}
-                label={ `Work TIme ${dailyWorkingHours}h`}
+                label={`Work TIme ${dailyWorkingHours}h`}
                 color="secondary"
                 variant="outlined"
                 sx={{

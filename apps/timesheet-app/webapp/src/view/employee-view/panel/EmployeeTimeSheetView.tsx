@@ -35,7 +35,6 @@ import {
 } from "@mui/material";
 import {
   DataGrid,
-  GridToolbar,
   GridFilterModel,
   GridLogicOperator,
   GridPaginationModel,
@@ -359,8 +358,8 @@ const TimesheetDataGrid = () => {
   useEffect(() => {
     return () => {
       dispatch(resetTimesheetRecords());
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -372,7 +371,7 @@ const TimesheetDataGrid = () => {
           </Box>
         )}
 
-        <Stack direction="row" justifyContent="space-end" alignItems="right" mb={1} spacing={1}>
+        <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
           <FilterComponent
             availableFields={availableFields}
             filters={filters}
@@ -419,7 +418,6 @@ const TimesheetDataGrid = () => {
               getRowId={(row) => row.recordId}
               filterModel={filterModel}
               onFilterModelChange={setFilterModel}
-              slots={{ toolbar: GridToolbar }}
               slotProps={{
                 toolbar: {
                   showQuickFilter: true,

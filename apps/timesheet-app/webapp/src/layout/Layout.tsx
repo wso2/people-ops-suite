@@ -19,12 +19,9 @@ import { useSelector } from "react-redux";
 import { Box, alpha } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
-
 import Header from "./header";
 import Sidebar from "./sidebar";
-import { Outlet, useLocation, useNavigate, matchRoutes } from "react-router-dom";
-import { routes } from "../route";
-
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import ConfirmationModalContextProvider from "@context/DialogContext";
 import { useSnackbar } from "notistack";
 import pJson from "../../package.json";
@@ -45,6 +42,7 @@ export default function Layout() {
         anchorOrigin: { horizontal: "right", vertical: "bottom" },
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [common.timestamp]);
 
   useEffect(() => {
@@ -52,10 +50,10 @@ export default function Layout() {
       navigate(localStorage.getItem("hris-app-redirect-url") as string);
       localStorage.removeItem("hris-app-redirect-url");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const location = useLocation();
-  const matches = matchRoutes(routes, location.pathname);
   const theme = useTheme();
 
   const [open, setOpen] = useState(false);

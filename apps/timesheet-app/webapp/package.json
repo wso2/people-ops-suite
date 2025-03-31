@@ -52,6 +52,8 @@
     "export-from-json": "^1.7.2",
     "formik": "^2.2.9",
     "immer": "^9.0.19",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
     "lodash": "^4.17.21",
     "lucide-react": "^0.468.0",
     "material-ui-popup-state": "^5.0.4",

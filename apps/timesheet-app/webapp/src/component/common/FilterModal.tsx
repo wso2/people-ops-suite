@@ -181,7 +181,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Employee Email*"
+                label="Employee Email"
                 size="small"
                 required
                 error={!filter.value}
