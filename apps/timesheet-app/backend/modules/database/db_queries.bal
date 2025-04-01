@@ -35,7 +35,7 @@ isolated function getWorkPoliciesQuery(string companyName) returns sql:Parameter
 #
 # + filter - Filter type for the  records
 # + return - Select query timesheet records
-isolated function getTimeSheetRecordsOfEmployee(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
+isolated function getTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
     SELECT
         tr.ts_record_id AS recordId,

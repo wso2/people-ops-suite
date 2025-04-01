@@ -34,7 +34,7 @@ service http:InterceptableService / on new http:Listener(9091) {
     # + return - authorization:JwtInterceptor
     public function createInterceptors() returns http:Interceptor[] => [new authorization:JwtInterceptor()];
 
-    # Get the user information of the invoker
+    # Get the user information of the invoker.
     #
     # + ctx - Request Context
     # + return - Internal Server Error or Employee information object
@@ -85,7 +85,7 @@ service http:InterceptableService / on new http:Listener(9091) {
         if authorization:checkPermissions([authorization:authorizedRoles.adminRole], userInfo.groups) {
             privileges.push(HR_ADMIN_PRIVILEGE);
         }
-        if loggedInUser.lead == true {
+        if authorization:checkPermissions([authorization:authorizedRoles.leadRole], userInfo.groups) {
             privileges.push(LEAD_PRIVILEGE);
         }
 
@@ -96,7 +96,7 @@ service http:InterceptableService / on new http:Listener(9091) {
         };
     }
 
-    # The resource function to get all employees information.
+    # The resource function to get employees information.
     #
     # + ctx - The request context
     # + return - The employees information or an error
@@ -122,7 +122,7 @@ service http:InterceptableService / on new http:Listener(9091) {
 
         entity:Employee[]|error employees = entity:getAllActiveEmployees();
         if employees is error {
-            string customError = string `Error occurred while retrieving employees meta data!`;
+            string customError = string `Error occurred while retrieving employees!`;
             log:printError(customError, employees);
             return <http:InternalServerError>{
                 body: {
@@ -136,7 +136,7 @@ service http:InterceptableService / on new http:Listener(9091) {
     # Endpoint to save timesheet records of an employee.
     #
     # + recordPayload - Timesheet records payload
-    # + employeeEmail - Email of the employee to filter timesheet records
+    # + employeeEmail - Email of the employee
     # + return - Created status or error status's
     isolated resource function post timesheet\-records/[string employeeEmail](http:RequestContext ctx,
             database:TimeSheetRecord[] recordPayload)
@@ -195,7 +195,7 @@ service http:InterceptableService / on new http:Listener(9091) {
             recordDates: newRecordDates
         };
 
-        database:TimeSheetRecord[]|error? existingRecords = database:getTimeSheetRecords(filter);
+        database:TimeSheetRecord[]|error? existingRecords = database:getTimesheetRecords(filter);
         if existingRecords is error {
             string customError = string `Error occurred while retrieving the existing timesheet records!`;
             log:printError(customError, existingRecords);
@@ -283,7 +283,7 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        database:TimeSheetRecord[]|error? timesheetRecords = database:getTimeSheetRecords(commonFilter);
+        database:TimeSheetRecord[]|error? timesheetRecords = database:getTimesheetRecords(commonFilter);
         if timesheetRecords is error {
             string customError = string `Error occurred while retrieving the timesheetRecords!`;
             log:printError(customError, timesheetRecords);
@@ -294,16 +294,16 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        string|null leadEmailToFilter = ();
+        string|null emailToFilter = ();
         if authorization:checkPermissions([authorization:authorizedRoles.leadRole], userInfo.groups) {
             if userInfo.email !== employeeEmail {
-                leadEmailToFilter = userInfo.email;
+                emailToFilter = userInfo.email;
             }
         }
 
         database:TimesheetCommonFilter infoFilter = {
-            employeeEmail: leadEmailToFilter is string ? () : employeeEmail,
-            leadEmail: leadEmailToFilter is string ? leadEmailToFilter : (),
+            employeeEmail: emailToFilter is string ? () : employeeEmail,
+            leadEmail: emailToFilter is string ? emailToFilter : (),
             status: (),
             recordsLimit: (),
             recordOffset: (),

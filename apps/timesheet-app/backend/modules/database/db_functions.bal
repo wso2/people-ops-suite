@@ -32,9 +32,9 @@ public isolated function getWorkPolicies(string companyName) returns WorkPolicie
 #
 # + filter - Filter type for the records
 # + return - Timesheet records or an error
-public isolated function getTimeSheetRecords(TimesheetCommonFilter filter) returns TimeSheetRecord[]|error? {
+public isolated function getTimesheetRecords(TimesheetCommonFilter filter) returns TimeSheetRecord[]|error? {
     stream<TimeSheetRecord, error?> recordsResult =
-        databaseClient->query(getTimeSheetRecordsOfEmployee(filter));
+        databaseClient->query(getTimesheetRecordsOfEmployee(filter));
 
     TimeSheetRecord[] timesheetRecords = [];
     check from TimeSheetRecord timesheetRecord in recordsResult
