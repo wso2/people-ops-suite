@@ -55,6 +55,7 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
             timeZone: createCalendarEventRequest.timeZone
         },
         attendees: [
+            {email: creatorEmail},
             ...createCalendarEventRequest.internalParticipants.map((email) => ({email: email.trim()})),
             ...createCalendarEventRequest.externalParticipants.map((email) => ({email: email.trim()}))
         ],
