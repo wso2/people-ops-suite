@@ -22,6 +22,7 @@ import ballerina/time;
 import ballerina/uuid;
 
 configurable decimal allowedDaysToCancelLeave = 30;
+public configurable boolean isDebug = false;
 
 # Calculates and returns the leave details for a given leave request.
 #
@@ -149,8 +150,8 @@ isolated function createLeaveEventInCalendar(string email, LeaveResponse leave, 
     string|error? eventId = calendar_events:createEvent(
             email,
             {
-                summary: "On Leave",
-                description: "On Leave",
+                summary: isDebug ? "Test Leave" : "On Leave",
+                description: isDebug ? "Test Leave" : "On Leave",
                 colorId: "4",
                 'start: startTime,
                 end: endTime,
