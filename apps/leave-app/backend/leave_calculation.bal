@@ -146,12 +146,13 @@ isolated function createLeaveEventInCalendar(string email, LeaveResponse leave, 
         endTime.dateTime = string `${startDateString}T13:00:00.000`;
     }
 
+    string summary = isDebug ? "Test Leave" : "On Leave";
     log:printInfo(string `Creating event for leave id: ${id} email: ${email}.`);
     string|error? eventId = calendar_events:createEvent(
             email,
             {
-                summary: isDebug ? "Test Leave" : "On Leave",
-                description: isDebug ? "Test Leave" : "On Leave",
+                summary,
+                description: summary,
                 colorId: "4",
                 'start: startTime,
                 end: endTime,
