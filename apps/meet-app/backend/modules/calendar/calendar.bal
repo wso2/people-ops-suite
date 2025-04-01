@@ -37,7 +37,8 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
     }
 
     // Add hyperlink to the disclaimer message.
-    string updatedDisclaimer = re `\$\{creatorEmail\}`.replace(disclaimerMessage, string `<a href="mailto:${creatorEmail}">${creatorEmail}</a>`);
+    string updatedDisclaimer = re `\$\{creatorEmail\}`
+        .replace(disclaimerMessage, string `<a href="mailto:${creatorEmail}">${creatorEmail}</a>`);
     string separator = string `<hr style="border: none; border-top: 2px solid #ccc; margin: 15px 0;"><br>`;
     string updatedDescription = updatedDisclaimer + separator + createCalendarEventRequest.description;
 
