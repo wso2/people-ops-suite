@@ -105,19 +105,10 @@ service http:InterceptableService / on new http:Listener(9090) {
         returns database:MeetingTypes|http:Forbidden|http:InternalServerError {
 
         // Fetch the meeting types from the database.
-        database:MeetingTypes|error? meetingTypes = database:fetchMeetingTypes(domain);
+        database:MeetingTypes|error meetingTypes = database:fetchMeetingTypes(domain);
         if meetingTypes is error {
             string customError = string `Error occurred while retrieving the meeting types!`;
             log:printError(customError, meetingTypes);
-            return <http:InternalServerError>{
-                body: {
-                    message: customError
-                }
-            };
-        }
-        if meetingTypes is null {
-            string customError = string `No meeting types found for the domain: ${domain}!`;
-            log:printError(customError);
             return <http:InternalServerError>{
                 body: {
                     message: customError
@@ -148,7 +139,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         // Attempt to create the meeting.
         calendar:CreateCalendarEventResponse|error calendarCreateEventResponse = calendar:createCalendarEvent(
-            createCalendarEventRequest, userInfo.email);
+                createCalendarEventRequest, userInfo.email);
         if calendarCreateEventResponse is error {
             string customError = string `Error occurred while creating the calendar event!`;
             log:printError(customError, calendarCreateEventResponse);
