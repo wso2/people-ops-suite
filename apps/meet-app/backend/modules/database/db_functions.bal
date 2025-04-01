@@ -24,7 +24,7 @@ public isolated function fetchMeetingTypes(string domain) returns MeetingTypes|e
 
     if meetingTypes is sql:NoRowsError {
         return {
-            domain: domain,
+            domain,
             types: []
         };
     }
