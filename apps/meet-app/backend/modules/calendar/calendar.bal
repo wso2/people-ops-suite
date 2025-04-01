@@ -36,7 +36,9 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
         }
     }
 
-    string updatedDisclaimer = replaceCreatorEmail(disclaimerMessage, creatorEmail);
+    // Add hyperlink to the disclaimer message.
+    string updatedDisclaimer = re `\$\{creatorEmail\}`
+        .replace(disclaimerMessage, string `<a href="mailto:${creatorEmail}">${creatorEmail}</a>`);
     string separator = string `<hr style="border: none; border-top: 2px solid #ccc; margin: 15px 0;"><br>`;
     string updatedDescription = updatedDisclaimer + separator + createCalendarEventRequest.description;
 
@@ -53,6 +55,7 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
             timeZone: createCalendarEventRequest.timeZone
         },
         attendees: [
+            {email: creatorEmail},
             ...createCalendarEventRequest.internalParticipants.map((email) => ({email: email.trim()})),
             ...createCalendarEventRequest.externalParticipants.map((email) => ({email: email.trim()}))
         ],
@@ -67,13 +70,11 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
         }
     };
 
-    // Make the API call to create the event.
     http:Request req = new;
     json calendarEventPayloadJson = calendarEventPayload.toJson();
     req.setPayload(calendarEventPayloadJson);
     http:Response response = check calendarClient->post(string `/events/${calendarId}?sendUpdates=all`, req);
 
-    // Check if the event was created successfully.
     if response.statusCode == 201 {
         json responseJson = check response.getJsonPayload();
         CreateCalendarEventResponse createCalendarEventResponse = check responseJson
@@ -91,10 +92,8 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
 # + return - JSON response if successful, else an error
 public isolated function deleteCalendarEvent(string eventId) returns DeleteCalendarEventResponse|error {
 
-    // Make the API call to delete the event.
     http:Response response = check calendarClient->delete(string `/events/${calendarId}/${eventId}`);
 
-    // Check if the event was deleted successfully.
     if response.statusCode == 200 {
         json responseJson = check response.getJsonPayload();
         DeleteCalendarEventResponse deleteCalendarEventResponse = check responseJson
@@ -112,10 +111,8 @@ public isolated function deleteCalendarEvent(string eventId) returns DeleteCalen
 # + return - JSON response if successful, else an error
 public isolated function getCalendarEventAttachments(string eventId) returns gcalendar:Attachment[]|error? {
 
-    // Make the API call to get the event attachments.
     http:Response response = check calendarClient->get(string `/calendars/${calendarId}/events/${eventId}`);
 
-    // Check if the event attachments were fetched successfully.
     if response.statusCode == 200 {
         json responseJson = check response.getJsonPayload();
         gcalendar:Event calendarEvent = check responseJson.cloneWithType(gcalendar:Event);
