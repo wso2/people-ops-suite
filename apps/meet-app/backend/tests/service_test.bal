@@ -49,15 +49,14 @@ public function postMeetingsTest() returns error? {
         {
             "title": "Sample Meeting",
             "description": "Sample Meeting",
-            "startTime": "2025-03-25T07:15:00.000Z",
-            "endTime": "2025-03-25T07:30:00.000Z",
+            "startTime": "2025-04-01T07:15:00.000Z",
+            "endTime": "2025-04-01T07:30:00.000Z",
             "timeZone": "Asia/Colombo",
-            "wso2Participants": [
+            "internalParticipants": [
                 "patric@wso2.com"
             ],
             "externalParticipants": [
-                "cptap2n@gmail.com",
-                "kiltonmithun@gmail.com"
+                "cptap2n@gmail.com"
             ]
         }
     );
@@ -75,12 +74,11 @@ public function postMeetingsTest() returns error? {
             "startTime": "2025-03-25T07:15:00.000Z",
             "endTime": "2025-03-25T07:30:00.000Z",
             "timeZone": "Asia/Colombo",
-            "wso2Participants": [
+            "internalParticipants": [
                 "patric@wso2.com"
             ],
             "externalParticipants": [
-                "cptap2n@gmail.com",
-                "kiltonmithun@gmail.com"
+                "cptap2n@gmail.com"
             ]
         },
         headers = {"x-jwt-assertion": jwtKey}

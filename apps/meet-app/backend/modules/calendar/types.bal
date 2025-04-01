@@ -48,8 +48,8 @@ public type CreateCalendarEventRequest record {|
     string endTime;
     # Event time zone
     string timeZone;
-    # WSO2 participants
-    string[] wso2Participants;
+    # Internal participants
+    string[] internalParticipants;
     # External participants
     string[] externalParticipants;
 |};

@@ -24,7 +24,7 @@ public isolated function fetchMeetingTypes(string domain) returns MeetingTypes|e
 
     if meetingTypes is sql:NoRowsError {
         return {
-            domain: domain,
+            domain,
             types: []
         };
     }
@@ -61,24 +61,18 @@ public isolated function addMeeting(AddMeetingPayload addMeetingPayload, string 
 # + host - Host email filter  
 # + startTime - Start time filter  
 # + endTime - End time filter  
-# + wso2Participants - WSO2 participants filter
+# + internalParticipants - Internal participants filter
 # + 'limit - Limit of the response
 # + offset - Offset of the number of meetings to retrieve  
 # + return - List of meetings | Error
 public isolated function fetchMeetings(string? title, string? host, string? startTime, string? endTime,
-        string? wso2Participants, int? 'limit, int? offset) returns Meeting[]|error {
+        string? internalParticipants, int? 'limit, int? offset) returns Meeting[]|error {
 
     stream<Meeting, error?> resultStream = databaseClient->
-                query(getMeetingsQuery(title, host, startTime, endTime, wso2Participants, 'limit, offset));
+                query(getMeetingsQuery(title, host, startTime, endTime, internalParticipants, 'limit, offset));
 
-    Meeting[] meetings = [];
-
-    check from Meeting meeting in resultStream
-        do {
-            meetings.push(meeting);
-        };
-
-    return meetings;
+    return from Meeting meeting in resultStream
+        select meeting;
 }
 
 # Fetch specific meeting.
@@ -99,6 +93,9 @@ public isolated function fetchMeeting(int meetingId) returns Meeting|error? {
 # + meetingId - The ID of the meeting to cancel
 # + return - Id of the cancelled meeting|Error
 public isolated function cancelMeeting(int meetingId) returns int|error {
-    sql:ExecutionResult _ = check databaseClient->execute(cancelMeetingStatusQuery(meetingId));
-    return meetingId.ensureType(int);
+    sql:ExecutionResult result = check databaseClient->execute(cancelMeetingStatusQuery(meetingId));
+    if result.affectedRowCount < 1 {
+        return error("Error while cancelling the meeting");
+    }
+    return meetingId;
 }

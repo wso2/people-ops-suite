@@ -1,46 +1,46 @@
-import React, { useEffect, useState } from "react";
+import { State } from "@/types/types";
+import { useEffect, useState } from "react";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import {
-  Box,
-  CircularProgress,
-  Typography,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Backdrop,
-  Tooltip,
-} from "@mui/material";
-import {
-  DeleteForever,
-  Visibility,
-  CheckCircle,
-  Delete,
-} from "@mui/icons-material";
+import ErrorHandler from "@component/common/ErrorHandler";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import {
+  Box,
+  Button,
+  Dialog,
+  Tooltip,
+  Backdrop,
+  IconButton,
+  Typography,
+  DialogTitle,
+  DialogActions,
+  DialogContent,
+  CircularProgress,
+} from "@mui/material";
+import {
+  Delete,
+  Visibility,
+  CheckCircle,
+  DeleteForever,
+} from "@mui/icons-material";
+import {
   fetchMeetings,
-  fetchAttachments,
   deleteMeeting,
+  fetchAttachments,
 } from "@slices/meetingSlice/meeting";
-import { State } from "@/types/types";
-import ErrorHandler from "@component/common/ErrorHandler";
 
 interface Attachment {
-  fileUrl: string;
   title: string;
-  mimeType: string;
-  iconLink: string;
   fileId: string;
+  fileUrl: string;
+  iconLink: string;
+  mimeType: string;
 }
 
 const formatDateTime = (dateTimeStr: string) => {
   const utcDate = new Date(dateTimeStr + " UTC");
-  const year = utcDate.getFullYear();
-  const month = String(utcDate.getMonth() + 1).padStart(2, "0");
   const day = String(utcDate.getDate()).padStart(2, "0");
+  const month = String(utcDate.getMonth() + 1).padStart(2, "0");
+  const year = utcDate.getFullYear();
   const hours = String(utcDate.getHours()).padStart(2, "0");
   const minutes = String(utcDate.getMinutes()).padStart(2, "0");
   return `${day}/${month}/${year}, ${hours}:${minutes}`;
@@ -151,7 +151,7 @@ function MeetingHistory() {
       renderCell: (params) => formatDateTime(params.value),
     },
     {
-      field: "wso2Participants",
+      field: "internalParticipants",
       headerName: "WSO2 Participants",
       minWidth: 200,
       flex: 3,
