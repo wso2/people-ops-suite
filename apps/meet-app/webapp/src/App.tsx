@@ -21,12 +21,12 @@ import { Provider } from "react-redux";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 
 // APP imports
-import { store } from "./slices/store";
+import { store } from "@slices/store";
 import { ThemeMode } from "@utils/types";
-import { APP_NAME, AsgardeoConfig } from "./config/config";
+import { APP_NAME, AsgardeoConfig } from "@config/config";
 import AppHandler from "@app/AppHandler";
-import { themeSettings } from "./theme";
-import "./App.scss";
+import { themeSettings } from "@src/theme";
+import "@src/App.scss";
 import AppAuthProvider from "@context/AuthContext";
 
 // Other imports
@@ -38,15 +38,18 @@ export const ColorModeContext = createContext({ toggleColorMode: () => {} });
 function App() {
   document.title = APP_NAME;
   const processLocalThemeMode = (): ThemeMode => {
-    var localMode: ThemeMode | null = localStorage.getItem(
+    var savedTheme: ThemeMode | null = localStorage.getItem(
       "internal-app-theme"
     ) as ThemeMode;
 
-    if (localMode) {
-      return localMode;
+    if (savedTheme) {
+      return savedTheme;
     } else {
-      localStorage.setItem("internal-app-theme", ThemeMode.Dark);
-      return ThemeMode.Dark;
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? ThemeMode.Dark
+      : ThemeMode.Light;
+      localStorage.setItem("internal-app-theme", systemTheme);
+      return systemTheme;
     }
   };
 

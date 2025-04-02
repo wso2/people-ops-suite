@@ -16,7 +16,6 @@
 
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { VariantType } from "notistack";
-
 import { AppDispatch } from "@slices/store";
 
 export interface CommonState {

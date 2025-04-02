@@ -28,15 +28,17 @@ configurable string disclaimerMessage = ?;
 public isolated function createCalendarEvent(CreateCalendarEventRequest createCalendarEventRequest,
         string creatorEmail) returns CreateCalendarEventResponse|error {
 
-    // WSO2 participants validation.
-    string:RegExp wso2EmailDomainRegex = re `^([a-zA-Z0-9_\-\.]+)(@wso2\.com|@ws02\.com)$`;
-    foreach string participant in createCalendarEventRequest.wso2Participants {
+    // Internal participants validation.
+    string:RegExp wso2EmailDomainRegex = re `(?i:^([a-z0-9_\-\.]+)@wso2\.com$)`;
+    foreach string participant in createCalendarEventRequest.internalParticipants {
         if !wso2EmailDomainRegex.isFullMatch(participant.trim()) {
             return error(string `Invalid WSO2 participant email: ${participant}`);
         }
     }
 
-    string updatedDisclaimer = replaceCreatorEmail(disclaimerMessage, creatorEmail);
+    // Add hyperlink to the disclaimer message.
+    string updatedDisclaimer = re `\$\{creatorEmail\}`
+        .replace(disclaimerMessage, string `<a href="mailto:${creatorEmail}">${creatorEmail}</a>`);
     string separator = string `<hr style="border: none; border-top: 2px solid #ccc; margin: 15px 0;"><br>`;
     string updatedDescription = updatedDisclaimer + separator + createCalendarEventRequest.description;
 
@@ -53,7 +55,8 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
             timeZone: createCalendarEventRequest.timeZone
         },
         attendees: [
-            ...createCalendarEventRequest.wso2Participants.map((email) => ({email: email.trim()})),
+            {email: creatorEmail},
+            ...createCalendarEventRequest.internalParticipants.map((email) => ({email: email.trim()})),
             ...createCalendarEventRequest.externalParticipants.map((email) => ({email: email.trim()}))
         ],
         guestsCanModify: true,
@@ -67,13 +70,11 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
         }
     };
 
-    // Make the API call to create the event.
     http:Request req = new;
     json calendarEventPayloadJson = calendarEventPayload.toJson();
     req.setPayload(calendarEventPayloadJson);
     http:Response response = check calendarClient->post(string `/events/${calendarId}?sendUpdates=all`, req);
 
-    // Check if the event was created successfully.
     if response.statusCode == 201 {
         json responseJson = check response.getJsonPayload();
         CreateCalendarEventResponse createCalendarEventResponse = check responseJson
@@ -91,10 +92,8 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
 # + return - JSON response if successful, else an error
 public isolated function deleteCalendarEvent(string eventId) returns DeleteCalendarEventResponse|error {
 
-    // Make the API call to delete the event.
     http:Response response = check calendarClient->delete(string `/events/${calendarId}/${eventId}`);
 
-    // Check if the event was deleted successfully.
     if response.statusCode == 200 {
         json responseJson = check response.getJsonPayload();
         DeleteCalendarEventResponse deleteCalendarEventResponse = check responseJson
@@ -112,10 +111,8 @@ public isolated function deleteCalendarEvent(string eventId) returns DeleteCalen
 # + return - JSON response if successful, else an error
 public isolated function getCalendarEventAttachments(string eventId) returns gcalendar:Attachment[]|error? {
 
-    // Make the API call to get the event attachments.
     http:Response response = check calendarClient->get(string `/calendars/${calendarId}/events/${eventId}`);
 
-    // Check if the event attachments were fetched successfully.
     if response.statusCode == 200 {
         json responseJson = check response.getJsonPayload();
         gcalendar:Event calendarEvent = check responseJson.cloneWithType(gcalendar:Event);
@@ -127,18 +124,4 @@ public isolated function getCalendarEventAttachments(string eventId) returns gca
 
     json? errorResponseBody = check response.getJsonPayload();
     return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
-}
-
-# Replace the ${creatorEmail} placeholder with a mailto link.
-#
-# + message - Message with the creator email placeholder
-# + creatorEmail - Event creator Email
-# + return - Updated message with the creator email replaced by a mailto link
-isolated function replaceCreatorEmail(string message, string creatorEmail) returns string {
-    // Regex pattern to find the ${creatorEmail} placeholder
-    string:RegExp pattern = re `\$\{creatorEmail\}`;
-
-    // Replace ${creatorEmail} with <a href="mailto:creatorEmail">creatorEmail</a>
-    string result = pattern.replace(message, string `<a href="mailto:${creatorEmail}">${creatorEmail}</a>`);
-    return result;
 }

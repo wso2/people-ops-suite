@@ -15,7 +15,7 @@
 // under the License. 
 
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { State } from "../../types/types";
+import { State } from "@/types/types";
 import { APIService } from "@utils/apiService";
 import { AppConfig } from "@config/config";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
@@ -87,7 +87,7 @@ export interface AddMeetingPayload {
   startTime: string;
   endTime: string;
   timeZone: string;
-  wso2Participants: string[];
+  internalParticipants: string[];
   externalParticipants: string[];
 }
 
@@ -140,7 +140,7 @@ export interface Meeting {
   host: string;
   startTime: string;
   endTime: string;
-  wso2Participants: string;
+  internalParticipants: string;
   meetingStatus: string;
 }
 

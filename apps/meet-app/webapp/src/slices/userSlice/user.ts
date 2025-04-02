@@ -14,10 +14,10 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { APIService } from "@utils/apiService";
-import { AppConfig } from "@config/config";
 import { State } from "@/types/types";
+import { AppConfig } from "@config/config";
+import { APIService } from "@utils/apiService";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
 const initialState: UserState = {
   state: State.idle,
