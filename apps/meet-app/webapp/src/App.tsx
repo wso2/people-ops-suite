@@ -38,15 +38,18 @@ export const ColorModeContext = createContext({ toggleColorMode: () => {} });
 function App() {
   document.title = APP_NAME;
   const processLocalThemeMode = (): ThemeMode => {
-    var localMode: ThemeMode | null = localStorage.getItem(
+    var savedTheme: ThemeMode | null = localStorage.getItem(
       "internal-app-theme"
     ) as ThemeMode;
 
-    if (localMode) {
-      return localMode;
+    if (savedTheme) {
+      return savedTheme;
     } else {
-      localStorage.setItem("internal-app-theme", ThemeMode.Dark);
-      return ThemeMode.Dark;
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? ThemeMode.Dark
+      : ThemeMode.Light;
+      localStorage.setItem("internal-app-theme", systemTheme);
+      return systemTheme;
     }
   };
 
