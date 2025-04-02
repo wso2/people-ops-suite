@@ -34,9 +34,84 @@ export interface AuthData {
   decodedIdToken: DecodedIDTokenPayload;
 }
 
+export interface UserState {
+  state: State;
+  stateMessage: string | null;
+  errorMessage: string | null;
+  userInfo: UserInfoInterface | null;
+}
+
+export interface UserInfoInterface {
+  employeeId: string;
+  firstName: string;
+  lastName: string;
+  workEmail: string;
+  employeeThumbnail: string | null;
+  jobRole: string;
+  privileges: number[];
+}
+
 export enum Role {
   SALES_ADMIN = "SALES_ADMIN",
   SALES_TEAM = "SALES_TEAM",
+}
+
+export interface MeetingTypes {
+  domain: string;
+  types: string[];
+}
+
+export interface Meeting {
+  meetingId: number;
+  title: string;
+  googleEventId: string;
+  host: string;
+  startTime: string;
+  endTime: string;
+  internalParticipants: string;
+  meetingStatus: string;
+}
+
+export interface Meetings {
+  count: number;
+  meetings: Meeting[];
+}
+
+export interface MeetingState {
+  state: State;
+  submitState: State;
+  stateMessage: string | null;
+  errorMessage: string | null;
+  meetings: Meetings | null;
+  meetingTypes: string[] | null;
+  backgroundProcess: boolean;
+  backgroundProcessMessage: string | null;
+}
+
+export interface AddMeetingPayload {
+  title: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+  timeZone: string;
+  internalParticipants: string[];
+  externalParticipants: string[];
+}
+
+export interface DeleteMeeting {
+  message: string;
+}
+
+export interface Attachments {
+  attachments: Attachment[];
+}
+
+export interface Attachment {
+  fileUrl: string;
+  title: string;
+  mimeType: string;
+  iconLink: string;
+  fileId: string;
 }
 
 export interface Employee {

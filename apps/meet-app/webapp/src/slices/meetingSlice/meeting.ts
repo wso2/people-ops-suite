@@ -14,24 +14,16 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { State } from "@/types/types";
-import { APIService } from "@utils/apiService";
 import { AppConfig } from "@config/config";
-import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
-import { SnackMessage } from "@config/constant";
 import axios, { HttpStatusCode } from "axios";
+import { APIService } from "@utils/apiService";
+import { SnackMessage } from "@config/constant";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
+import { Meetings, MeetingState, MeetingTypes, DeleteMeeting, AddMeetingPayload, Attachments } from "@utils/types";
 
-interface MeetingState {
-  state: State;
-  submitState: State;
-  stateMessage: string | null;
-  errorMessage: string | null;
-  meetings: Meetings | null;
-  meetingTypes: string[] | null;
-  backgroundProcess: boolean;
-  backgroundProcessMessage: string | null;
-}
+
 
 const initialState: MeetingState = {
   state: State.idle,
@@ -44,10 +36,7 @@ const initialState: MeetingState = {
   backgroundProcessMessage: null,
 }
 
-export interface MeetingTypes {
-  domain: string;
-  types: string[];
-}
+
 
 export const fetchMeetingTypes = createAsyncThunk(
   "meeting/fetchMeetingTypes",
@@ -80,16 +69,6 @@ export const fetchMeetingTypes = createAsyncThunk(
     });
   }
 )
-
-export interface AddMeetingPayload {
-  title: string;
-  description: string;
-  startTime: string;
-  endTime: string;
-  timeZone: string;
-  internalParticipants: string[];
-  externalParticipants: string[];
-}
 
 export const addMeetings = createAsyncThunk(
   "meeting/addMeetings",
@@ -128,22 +107,6 @@ export const addMeetings = createAsyncThunk(
   }
 )
 
-interface Meetings {
-  count: number;
-  meetings: Meeting[];
-}
-
-export interface Meeting {
-  meetingId: number;
-  title: string;
-  googleEventId: string;
-  host: string;
-  startTime: string;
-  endTime: string;
-  internalParticipants: string;
-  meetingStatus: string;
-}
-
 export const fetchMeetings = createAsyncThunk(
   "meeting/fetchMeetings",
   async ({ limit, offset }: { limit: number; offset: number }, { dispatch }) => {
@@ -175,10 +138,6 @@ export const fetchMeetings = createAsyncThunk(
     });
   }
 );
-
-export interface DeleteMeeting {
-  message: string;
-}
 
 export const deleteMeeting = createAsyncThunk(
   "meeting/deleteMeeting",
@@ -216,18 +175,6 @@ export const deleteMeeting = createAsyncThunk(
     });
   }
 )
-
-interface Attachment {
-  fileUrl: string;
-  title: string;
-  mimeType: string;
-  iconLink: string;
-  fileId: string;
-}
-
-interface Attachments {
-  attachments: Attachment[];
-}
 
 export const fetchAttachments = createAsyncThunk(
   "meeting/fetchAttachments",

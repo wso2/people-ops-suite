@@ -23,6 +23,7 @@ export const SnackMessage = {
     addMeetings: "Unable to create the Meeting",
     deleteMeeting: "Unable to delete the Meeting",
     fetchPrivileges: "Failed to fetch Privileges",
+    insufficientPrivileges: "Insufficient Privileges",
     fetchMeetings: "Unable to retrieve list of Meetings",
     fetchAttachments: "Unable to retrieve list of Attachments",
     fetchMeetingTypes: "Unable to retrieve list of Meeting Types",

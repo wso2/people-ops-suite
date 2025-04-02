@@ -118,8 +118,9 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
     if (appState === "active") {
       if (state.isAuthenticated) {
         if (userInfo.state !== "loading") {
-          dispatch(getUserInfo());
-          dispatch(loadPrivileges());
+          dispatch(getUserInfo()).then(() => {
+            dispatch(loadPrivileges());
+          });
         }
       } else {
         signIn();
