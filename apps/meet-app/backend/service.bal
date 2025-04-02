@@ -23,7 +23,11 @@ import ballerina/http;
 import ballerina/log;
 import ballerinax/googleapis.calendar as gcalendar;
 
-final cache:Cache userInfoCache = new (capacity = 100, evictionFactor = 0.2);
+cache:Cache cache = new ({
+    capacity: 2000,
+    defaultMaxAge: 1800.0,
+    cleanupInterval: 900.0
+});
 
 @display {
     label: "Meet Backend Service",
@@ -95,6 +99,38 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         return {...loggedInUser, privileges};
+    }
+
+    # Fetch list of employees.
+    #
+    # + ctx - Request object
+    # + return - List  of employees | Error
+    resource function get employees(http:RequestContext ctx) returns entity:EmployeeBasic[]|http:InternalServerError {
+
+        // Check if the employees are already cached.
+        if cache.hasKey(EMPLOYEES_CACHE) {
+            entity:EmployeeBasic[]|error cachedEmployees = cache.get(EMPLOYEES_CACHE).ensureType();
+            if cachedEmployees is entity:EmployeeBasic[] {
+                return cachedEmployees;
+            }
+        }
+
+        entity:EmployeeBasic[]|error employees = entity:getEmployees();
+        if employees is error {
+            string customError = string `Error occurred while retrieving employees!`;
+            log:printError(customError, employees);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        error? cacheError = cache.put(EMPLOYEES_CACHE, employees);
+        if cacheError is error {
+            log:printError("An error occurred while writing to the cache", cacheError);
+        }
+        return employees;
     }
 
     # Fetch meeting types from the database.
