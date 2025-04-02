@@ -64,3 +64,35 @@ type EmployeeResponse record {
     # Employee data
     EmployeeData data;
 };
+
+# The EmployeeFilter record type represents the filter criteria for the employees.
+public type EmployeeFilter record {|
+    # The employee statuses
+    string[]? employeeStatus?;
+    # The employment types
+    string[]? employmentType?;
+|};
+
+# Basic employee information.
+public type EmployeeBasic record {|
+    # First name of the employee
+    string firstName;
+    # Last name of the employee
+    string lastName;
+    # Email of the employee
+    string workEmail;
+    # Thumbnail of the employee
+    string? employeeThumbnail = ();
+|};
+
+# Employees data.
+type EmployeesData record {
+    # Array of employees
+    EmployeeBasic[] employees;
+};
+
+# Employees response.
+type EmployeesResponse record {
+    # Employees data
+    EmployeesData data;
+};
