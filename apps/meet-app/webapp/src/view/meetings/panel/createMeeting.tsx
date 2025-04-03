@@ -1,4 +1,4 @@
-import { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Stack,
@@ -14,13 +14,13 @@ import {
   TimePicker,
   LocalizationProvider,
 } from "@mui/x-date-pickers";
+import * as yup from "yup";
+import { useFormik } from "formik";
 import dayjs, { Dayjs } from "dayjs";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { addMeetings, fetchMeetingTypes } from "@slices/meetingSlice/meeting";
 
-// Meeting Request data type
 interface MeetingRequest {
   meetingType: string;
   customerName: string;
@@ -34,229 +34,131 @@ interface MeetingRequest {
   externalParticipants: string;
 }
 
-// Email validation function
-const isValidEmail = (
-  email: string,
-  isInternalParticipant: boolean = false
-): boolean => {
-  const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  return isInternalParticipant
-    ? /^[a-z0-9._%+-]+@wso2\.com$/i.test(email)
-    : regex.test(email);
-};
+const validationSchema = yup.object({
+  meetingType: yup.string().trim().required("Meeting type is required"),
+  customerName: yup.string().trim().required("Customer name is required"),
+  customTitle: yup.string().trim().required("Title is required"),
+  description: yup.string().trim(),
+  date: yup.date().typeError("Invalid date").required("Date is required"),
+  startTime: yup
+    .mixed<Dayjs>()
+    .required("Start time is required")
+    .test("is-future-time", "Start time must be in the future", (value) => {
+      return value ? value.isAfter(dayjs()) : false;
+    }),
+  endTime: yup
+    .mixed<Dayjs>()
+    .required("End time is required")
+    .test(
+      "is-after-startTime",
+      "End time must be after start time",
+      function (value) {
+        return value && this.parent.startTime
+          ? value.isAfter(this.parent.startTime)
+          : false;
+      }
+    ),
+  timeZone: yup.string().required("Time zone is required"),
+  internalParticipants: yup
+    .string()
+    .required("Required")
+    .test("valid-internal-emails", "Only @wso2.com emails allowed", (value) => {
+      if (!value) return false;
+      const emails = value.split(",").map((email) => email.trim());
+      return emails.every(
+        (email) =>
+          yup.string().email().isValidSync(email) && email.endsWith("@wso2.com")
+      );
+    }),
+  externalParticipants: yup
+    .string()
+    .required("Required")
+    .test("valid-external-emails", "Invalid email format", (value) => {
+      if (!value) return false;
+      const emails = value.split(",").map((email) => email.trim());
+      return emails.every((email) => yup.string().email().isValidSync(email));
+    }),
+});
 
-// Custom hook for meeting form
-function useMeetingForm() {
-  const dispatch = useAppDispatch();
-  const submitState = useAppSelector((state) => state.meeting.submitState);
-
-  const [meetingRequest, setMeetingRequest] = useState<MeetingRequest>({
-    meetingType: "",
-    customerName: "",
-    customTitle: "",
-    description: "",
-    date: null,
-    startTime: null,
-    endTime: null,
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    internalParticipants: "",
-    externalParticipants: "",
-  });
-
-  // Participants email error states
-  const [externalParticipantsError, setExternalParticipantsError] = useState<
-    string | null
-  >(null);
-  const [internalParticipantsError, setInternalParticipantsError] = useState<
-    string | null
-  >(null);
-
-  // Meeting form event handlers
-  const handleTextChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setMeetingRequest((prev) => ({ ...prev, [name]: value }));
-    if (name === "internalParticipants") {
-      const wso2Emails = value.split(",").map((email) => email.trim());
-      const allValidWso2Emails = wso2Emails.every(
-        (email) => isValidEmail(email, true) || email === ""
-      );
-      setInternalParticipantsError(
-        allValidWso2Emails ? null : "One or more emails are invalid."
-      );
-    } else if (name === "externalParticipants") {
-      const externalEmails = value.split(",").map((email) => email.trim());
-      const allValidExternalEmails = externalEmails.every(
-        (email) => isValidEmail(email) || email === ""
-      );
-      setExternalParticipantsError(
-        allValidExternalEmails ? null : "One or more emails are invalid."
-      );
-    }
-  };
-  const handleDateChange = (newDate: Dayjs | null) =>
-    setMeetingRequest((prev) => ({ ...prev, date: newDate }));
-  const handleStartTimeChange = (newTime: Dayjs | null) =>
-    setMeetingRequest((prev) => ({ ...prev, startTime: newTime }));
-  const handleEndTimeChange = (newTime: Dayjs | null) =>
-    setMeetingRequest((prev) => ({ ...prev, endTime: newTime }));
-
-  // Meeting form submit handler
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    // Validate required fields
-    if (!meetingRequest.meetingType || !meetingRequest.customerName) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: "Please fill the meeting type and customer name.",
-          type: "error",
-        })
-      );
-      return;
-    }
-    if (!meetingRequest.customTitle) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: "Please fill the title.",
-          type: "error",
-        })
-      );
-      return;
-    }
-    if (
-      !meetingRequest.date ||
-      !meetingRequest.startTime ||
-      !meetingRequest.endTime
-    ) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: "Please select a date, start time, and end time.",
-          type: "error",
-        })
-      );
-      return;
-    }
-    if (meetingRequest.date.isBefore(dayjs(), "day")) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: "Meeting date cannot be in the past.",
-          type: "error",
-        })
-      );
-      return;
-    }
-    if (meetingRequest.startTime.isAfter(meetingRequest.endTime)) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: "Start time cannot be later than end time.",
-          type: "error",
-        })
-      );
-      return;
-    }
-    if (internalParticipantsError || externalParticipantsError) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: "One or more email addresses are invalid.",
-          type: "error",
-        })
-      );
-      return;
-    }
-    if (
-      !meetingRequest.internalParticipants &&
-      !meetingRequest.externalParticipants
-    ) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: "Please add at least one attendee.",
-          type: "error",
-        })
-      );
-      return;
-    }
-
-    // /Format meeting data and dispatch action
-    const formattedData = {
-      title:
-        `${meetingRequest.meetingType} - ${meetingRequest.customerName} - ${meetingRequest.customTitle}`.trim(),
-      description: meetingRequest.description,
-      startTime:
-        meetingRequest.date && meetingRequest.startTime
-          ? meetingRequest.date
-              .hour(meetingRequest.startTime.hour())
-              .minute(meetingRequest.startTime.minute())
-              .second(0)
-              .toISOString()
-          : "",
-      endTime:
-        meetingRequest.date && meetingRequest.endTime
-          ? meetingRequest.date
-              .hour(meetingRequest.endTime.hour())
-              .minute(meetingRequest.endTime.minute())
-              .second(0)
-              .toISOString()
-          : "",
-      timeZone: meetingRequest.timeZone,
-      internalParticipants: meetingRequest.internalParticipants
-        .split(",")
-        .map((email) => email.trim()),
-      externalParticipants: meetingRequest.externalParticipants
-        .split(",")
-        .map((email) => email.trim()),
-    };
-    dispatch(addMeetings(formattedData));
-  };
-
-  return {
-    setMeetingRequest,
-    handleTextChange,
-    handleDateChange,
-    handleStartTimeChange,
-    handleEndTimeChange,
-    handleSubmit,
-    meetingRequest,
-    internalParticipantsError,
-    externalParticipantsError,
-    submitState,
-  };
-}
-
-// Meeting form component
 function MeetingForm() {
-  // Fetch meeting types
   const dispatch = useAppDispatch();
+
   const meetingTypes =
     useAppSelector((state) => state.meeting.meetingTypes) || [];
-  useEffect(() => {
-    dispatch(fetchMeetingTypes());
-  }, [dispatch]);
 
-  // Autocomplete filter options
+  useEffect(() => {
+    if (!meetingTypes.length) {
+      dispatch(fetchMeetingTypes());
+    }
+  }, [dispatch, meetingTypes.length]);
+
+  const [loading, setLoading] = useState(false);
+
   const filter = createFilterOptions<string>();
   const [inputValue, setInputValue] = useState("");
 
-  // Meeting form hooks
-  const {
-    setMeetingRequest,
-    handleTextChange,
-    handleDateChange,
-    handleStartTimeChange,
-    handleEndTimeChange,
-    handleSubmit,
-    meetingRequest,
-    internalParticipantsError,
-    externalParticipantsError,
-    submitState,
-  } = useMeetingForm();
+  const formik = useFormik<MeetingRequest>({
+    initialValues: {
+      meetingType: "",
+      customerName: "",
+      customTitle: "",
+      description: "",
+      date: null,
+      startTime: null,
+      endTime: null,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      internalParticipants: "",
+      externalParticipants: "",
+    },
+    validationSchema: validationSchema,
+    validateOnChange: true,
 
+    onSubmit: async (values, { resetForm }) => {
+      setLoading(true);
+      try {
+        const formattedData = {
+          title:
+            `${values.meetingType} - ${values.customerName} - ${values.customTitle}`.trim(),
+          description: values.description,
+          startTime:
+            values.date && values.startTime
+              ? values.date
+                  .hour(values.startTime.hour())
+                  .minute(values.startTime.minute())
+                  .second(0)
+                  .toISOString()
+              : "",
+          endTime:
+            values.date && values.endTime
+              ? values.date
+                  .hour(values.endTime.hour())
+                  .minute(values.endTime.minute())
+                  .second(0)
+                  .toISOString()
+              : "",
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          internalParticipants: values.internalParticipants
+            .split(",")
+            .map((email) => email.trim())
+            .filter(Boolean),
+          externalParticipants: values.externalParticipants
+            .split(",")
+            .map((email) => email.trim())
+            .filter(Boolean),
+        };
+        await dispatch(addMeetings(formattedData));
+        resetForm();
+        setInputValue("");
+      } finally {
+        setLoading(false);
+      }
+    },
+  });
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Stack
         component="form"
-        onSubmit={handleSubmit}
+        onSubmit={formik.handleSubmit}
         spacing={1.5}
         sx={(theme) => ({
           width: "100%",
@@ -283,14 +185,18 @@ function MeetingForm() {
         >
           Create Meeting
         </Typography>
-
         <TextField
+          fullWidth
+          required
+          id="customTitle"
           name="customTitle"
           label="Title"
-          value={meetingRequest.customTitle}
-          onChange={handleTextChange}
-          required
-          fullWidth
+          value={formik.values.customTitle}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          error={
+            formik.touched.customTitle && Boolean(formik.errors.customTitle)
+          }
         />
 
         <Box sx={{ display: "flex", gap: 2 }}>
@@ -298,24 +204,21 @@ function MeetingForm() {
             sx={{ flex: 1 }}
             freeSolo
             clearOnEscape
-            options={meetingTypes}
+            options={[...new Set(meetingTypes)]}
             filterOptions={(options, params) => {
               const filtered = filter(options, params);
               const { inputValue } = params;
-              const isExisting = options.includes(inputValue);
-              if (inputValue !== "" && !isExisting) {
-                filtered.push(`Add "${inputValue}"`); // Add custom input option
+              if (inputValue !== "" && !options.includes(inputValue)) {
+                filtered.push(`Add "${inputValue}"`);
               }
               return filtered;
             }}
-            value={meetingRequest.meetingType}
-            inputValue={inputValue} // Bind inputValue to state
-            onInputChange={(_, newInputValue) => {
-              setInputValue(newInputValue); // Update inputValue as the user types
-              setMeetingRequest((prev) => ({
-                ...prev,
-                meetingType: newInputValue, // Immediately update meetingType in state
-              }));
+            value={formik.values.meetingType}
+            inputValue={inputValue}
+            onInputChange={(_, newInputValue, reason) => {
+              if (reason === "input") {
+                setInputValue(newInputValue);
+              }
             }}
             onChange={(_, newValue) => {
               let finalValue = newValue;
@@ -323,22 +226,24 @@ function MeetingForm() {
                 typeof newValue === "string" &&
                 newValue.startsWith('Add "')
               ) {
-                finalValue = newValue.slice(5, -1); // Extract custom input
+                finalValue = newValue.slice(5, -1);
               }
-              setMeetingRequest((prev) => ({
-                ...prev,
-                meetingType: finalValue || "", // Update state when user selects from options
-              }));
-              setInputValue(finalValue || ""); // Immediately update input field
+              setInputValue(finalValue || "");
+              formik.setFieldValue("meetingType", finalValue || "");
             }}
             renderInput={(params) => (
               <TextField
                 {...params}
+                id="meetingType"
                 name="meetingType"
                 label="Meeting Type"
-                autoCorrect="off"
-                autoCapitalize="none"
-                spellCheck={false}
+                value={formik.values.meetingType}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                error={
+                  formik.touched.meetingType &&
+                  Boolean(formik.errors.meetingType)
+                }
                 required
                 fullWidth
               />
@@ -346,96 +251,160 @@ function MeetingForm() {
           />
 
           <TextField
-            sx={{ flex: 1 }}
+            fullWidth
+            required
+            id="customerName"
             name="customerName"
             label="Customer Name"
-            value={meetingRequest.customerName}
-            onChange={handleTextChange}
             autoCorrect="off"
             autoCapitalize="none"
             spellCheck={false}
-            required
-            fullWidth
+            value={formik.values.customerName}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            error={
+              formik.touched.customerName && Boolean(formik.errors.customerName)
+            }
+            sx={{ flex: 1 }}
           />
         </Box>
 
         <TextField
+          fullWidth
+          id="description"
           name="description"
           label="Meeting Description"
-          value={meetingRequest.description}
-          onChange={handleTextChange}
           autoCorrect="off"
           autoCapitalize="none"
           spellCheck={false}
-          fullWidth
           multiline
           rows={2}
+          value={formik.values.description}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          error={
+            formik.touched.description && Boolean(formik.errors.description)
+          }
         />
 
         <DatePicker
+          name="date"
           format="DD/MM/YYYY"
           label="Meeting Date *"
-          value={meetingRequest.date}
-          onChange={handleDateChange}
+          value={formik.values.date}
           minDate={dayjs()}
+          onChange={(value) => {
+            formik.setFieldValue("date", value);
+            formik.setFieldTouched("date", true, false);
+          }}
+          onAccept={(value) => {
+            formik.setFieldValue("date", value);
+            formik.setFieldTouched("date", true, false);
+          }}
+          // onAccept={(value) => formik.setFieldValue("date", value)}
+          slotProps={{
+            textField: {
+              error: Boolean(formik.touched.date && formik.errors.date),
+            },
+          }}
         />
 
         <Box sx={{ display: "flex", gap: 2, pb: 0.5 }}>
           <TimePicker
+            name="startTime"
             label="Start Time *"
-            value={meetingRequest.startTime}
-            onChange={handleStartTimeChange}
+            value={formik.values.startTime}
+            onChange={(value) => {
+              formik.setFieldValue("startTime", value);
+              formik.setFieldTouched("startTime", true, false);
+            }}
+            onAccept={(value) => {
+              formik.setFieldValue("startTime", value);
+              formik.setFieldTouched("startTime", true, false);
+            }}
+            slotProps={{
+              textField: {
+                error: Boolean(
+                  formik.touched.startTime && formik.errors.startTime
+                ),
+              },
+            }}
             sx={{ flex: 1 }}
           />
 
           <TimePicker
+            name="endTime"
             label="End Time *"
-            value={meetingRequest.endTime}
-            onChange={handleEndTimeChange}
+            value={formik.values.endTime}
+            onChange={(value) => {
+              formik.setFieldValue("endTime", value);
+              formik.setFieldTouched("endTime", true, false);
+            }}
+            onAccept={(value) => {
+              formik.setFieldValue("endTime", value);
+              formik.setFieldTouched("endTime", true, false);
+            }}
+            slotProps={{
+              textField: {
+                error: Boolean(formik.touched.endTime && formik.errors.endTime),
+              },
+            }}
             sx={{ flex: 1 }}
           />
         </Box>
 
         <TextField
+          fullWidth
+          required
+          id="internalParticipants"
           name="internalParticipants"
           label="WSO2 Participants (comma-separated emails)"
+          value={formik.values.internalParticipants}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          error={
+            formik.touched.internalParticipants &&
+            Boolean(formik.errors.internalParticipants)
+          }
+          helperText={
+            formik.touched.internalParticipants &&
+            formik.errors.internalParticipants
+          }
           autoCorrect="off"
           autoCapitalize="none"
           spellCheck={false}
-          value={meetingRequest.internalParticipants}
-          onChange={handleTextChange}
-          required
-          fullWidth
-          error={!!internalParticipantsError}
-          helperText={internalParticipantsError || " "}
         />
 
         <TextField
+          fullWidth
+          required
+          id="externalParticipants"
           name="externalParticipants"
           label="External Participants (comma-separated emails)"
+          value={formik.values.externalParticipants}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          error={
+            formik.touched.externalParticipants &&
+            Boolean(formik.errors.externalParticipants)
+          }
+          helperText={
+            formik.touched.externalParticipants &&
+            formik.errors.externalParticipants
+          }
           autoCorrect="off"
           autoCapitalize="none"
           spellCheck={false}
-          value={meetingRequest.externalParticipants}
-          onChange={handleTextChange}
-          required
-          fullWidth
-          error={!!externalParticipantsError}
-          helperText={externalParticipantsError || " "}
         />
 
         <Button
           type="submit"
           variant="contained"
           fullWidth
-          disabled={submitState === "loading"}
+          disabled={loading || !formik.isValid || !formik.dirty}
           sx={{ position: "relative", height: 40 }}
         >
-          {submitState === "loading" ? (
-            <CircularProgress size={24} sx={{ color: "white" }} />
-          ) : (
-            "Create Meeting"
-          )}
+          {loading ? <CircularProgress size={24} /> : "Create Meeting"}
         </Button>
       </Stack>
     </LocalizationProvider>

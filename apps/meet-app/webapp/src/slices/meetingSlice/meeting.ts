@@ -212,7 +212,7 @@ const MeetingSlice = createSlice({
   name: "meeting",
   initialState,
   reducers: {
-    resetSubmitSate(state) {
+    resetSubmitState(state) {
       state.submitState = State.idle;
     },
   },
@@ -285,5 +285,5 @@ const MeetingSlice = createSlice({
   },
 });
 
-export const { resetSubmitSate } = MeetingSlice.actions;
+export const { resetSubmitState } = MeetingSlice.actions;
 export default MeetingSlice.reducer;
