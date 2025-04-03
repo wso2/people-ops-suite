@@ -64,7 +64,6 @@ const NoDataView: React.FC<NoDataViewProps> = ({
         p: 6,
         textAlign: "center",
         backgroundColor: "background.primary",
-        // border: "1px dashed rgba(0, 0, 0, 0.1)",
         height: "100%",
         width: "100%",
         display: "flex",
