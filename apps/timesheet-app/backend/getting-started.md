@@ -5,7 +5,6 @@
 2. Rename following files
 
    - `config.toml.local` -> `config.toml`
-   - `/tests/config.toml.local` -> `/tests/config.toml`
 
 3. Add relevant configurations.
 
@@ -19,12 +18,12 @@
 
 ```toml
 # App Configurations.
-[timesheet_app]
-    port = <Port number>
 
 # Entity Configurations.
 [timesheet_app.entity]
     hrEntityBaseUrl = "<Entity URL>"
+    employeeTypes = "<Allowed employee types : PERMANENT, INTERNSHIP>"
+    allowedEmployeeStatusTypes = "<Allowed employee status types: ACTIVE, MARKED LEAVER>"
     [timesheet_app.entity.oauthConfig]
         tokenUrl = "<Refresh URL>"
         clientId = "<Client ID of the Asgardeo app>"
@@ -55,7 +54,8 @@
 # Authorization Configurations.
 [timesheet_app.authorization.authorizedRoles]
     employeeRole  = "<Asgardeo role mapped to this application role>"
-    headPeopleOperationsRole = "<Asgardeo role mapped to this application role>"
+    adminRole = "<Asgardeo role mapped to this application role>"
+    leadRole = "<Asgardeo role mapped to this application role>"
 ```
 
 ## Execute

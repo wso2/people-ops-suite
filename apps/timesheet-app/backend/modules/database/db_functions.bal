@@ -45,7 +45,7 @@ public isolated function getTimesheetRecords(TimesheetCommonFilter filter) retur
     return timesheetRecords;
 }
 
-# Function to retrieve the timesheet records count.
+# Function to retrieve the timesheet record count.
 #
 # + filter - Filter type for the records
 # + return - Timesheet record count or an error
@@ -64,7 +64,7 @@ public isolated function getTotalRecordCount(TimesheetCommonFilter filter)
 
 # Function to insert timesheet records.
 #
-# + timesheetRecords - Timesheet records payload
+# + timesheetRecords - Timesheet record payload
 # + employeeEmail - Email of the employee
 # + leadEmail - Email of the employee's lead
 # + companyName - Name of the company of the employee

@@ -28,7 +28,7 @@ final cache:Cache userInfoCache = new (capacity = 100, evictionFactor = 0.2);
     label: "Timesheet Application",
     id: "hris/timesheet-application"
 }
-service http:InterceptableService / on new http:Listener(9091) {
+service http:InterceptableService / on new http:Listener(9090) {
 
     # Request interceptor.
     # + return - authorization:JwtInterceptor
@@ -135,7 +135,7 @@ service http:InterceptableService / on new http:Listener(9091) {
 
     # Endpoint to save timesheet records of an employee.
     #
-    # + recordPayload - Timesheet records payload
+    # + recordPayload - Timesheet record payload
     # + employeeEmail - Email of the employee
     # + return - Created status or error status's
     isolated resource function post timesheet\-records/[string employeeEmail](http:RequestContext ctx,
