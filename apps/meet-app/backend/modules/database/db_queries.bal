@@ -25,7 +25,7 @@ isolated function getMeetingTypesQuery(string domain) returns sql:ParameterizedQ
         domain,
         types
     FROM 
-        sales.meeting_type
+        meeting_type
     WHERE
         domain = ${domain}
 `;
@@ -37,7 +37,7 @@ isolated function getMeetingTypesQuery(string domain) returns sql:ParameterizedQ
 # + return - sql:ParameterizedQuery - Insert query for the meeting table
 isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) returns sql:ParameterizedQuery =>
 `
-    INSERT INTO sales.meeting
+    INSERT INTO meeting
     (
         title, 
         google_event_id, 
@@ -56,8 +56,8 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         ${meeting.host}, 
         ${meeting.startTime}, 
         ${meeting.endTime}, 
-        ${meeting.wso2Participants},
-        'ACTIVE',
+        ${meeting.internalParticipants},
+        ${ACTIVE},
         ${createdBy}, 
         ${createdBy}
     )
@@ -69,12 +69,12 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 # + host - Host filter  
 # + startTime - Start time filter  
 # + endTime - End time filter  
-# + wso2Participants - Participants filter
+# + internalParticipants - Participants filter
 # + 'limit - Limit of the data  
 # + offset - offset of the query  
 # + return - sql:ParameterizedQuery - Select query for the meeting table
 isolated function getMeetingsQuery(string? title, string? host, string? startTime, string? endTime,
-        string? wso2Participants, int? 'limit, int? offset) returns sql:ParameterizedQuery {
+        string? internalParticipants, int? 'limit, int? offset) returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery mainQuery = `
             SELECT 
@@ -84,7 +84,7 @@ isolated function getMeetingsQuery(string? title, string? host, string? startTim
                 host, 
                 DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS 'startTime',
                 DATE_FORMAT(end_time, '%Y-%m-%d %H:%i:%s') AS 'endTime',
-                wso2_participants as wso2Participants, 
+                wso2_participants as internalParticipants, 
                 meeting_status as meetingStatus,
                 created_on AS 'createdOn',
                 created_by AS 'createdBy',
@@ -92,11 +92,11 @@ isolated function getMeetingsQuery(string? title, string? host, string? startTim
                 updated_by AS 'updatedBy',
                 COUNT(*) OVER() AS totalCount,
                 CASE
-                    WHEN start_time < UTC_TIMESTAMP() THEN 'PAST'
-                    ELSE 'UPCOMING'
+                    WHEN start_time < UTC_TIMESTAMP() THEN ${PAST}
+                    ELSE ${UPCOMING}
                 END AS timeStatus
             FROM 
-                sales.meeting
+                meeting
     `;
 
     // Setting the filters based on the meeting object.
@@ -114,8 +114,8 @@ isolated function getMeetingsQuery(string? title, string? host, string? startTim
     if host is string {
         filters.push(sql:queryConcat(`host = `, `${host}`));
     }
-    if wso2Participants is string {
-        filters.push(sql:queryConcat(`wso2_participants LIKE ${"%" + wso2Participants + "%"}`));
+    if internalParticipants is string {
+        filters.push(sql:queryConcat(`wso2_participants LIKE ${"%" + internalParticipants + "%"}`));
     }
 
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
@@ -149,18 +149,18 @@ isolated function getMeetingQuery(int meetingId) returns sql:ParameterizedQuery 
         host, 
         DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS 'startTime',
         DATE_FORMAT(end_time, '%Y-%m-%d %H:%i:%s') AS 'endTime',
-        wso2_participants as wso2Participants, 
+        wso2_participants as internalParticipants, 
         meeting_status as meetingStatus,
         created_on AS 'createdOn',
         created_by AS 'createdBy',
         updated_on AS 'updatedOn',
         updated_by AS 'updatedBy',
         CASE
-            WHEN start_time < UTC_TIMESTAMP() THEN 'PAST'
-            ELSE 'UPCOMING'
+            WHEN start_time < UTC_TIMESTAMP() THEN ${PAST}
+            ELSE ${UPCOMING}
         END AS timeStatus
     FROM 
-        sales.meeting
+        meeting
     WHERE
         meeting_id = ${meetingId}
 `;
@@ -172,9 +172,9 @@ isolated function getMeetingQuery(int meetingId) returns sql:ParameterizedQuery 
 isolated function cancelMeetingStatusQuery(int meetingId) returns sql:ParameterizedQuery =>
 `
     UPDATE 
-        sales.meeting
+        meeting
     SET 
-        meeting_status = 'CANCELLED'
+        meeting_status = ${CANCELLED}
     WHERE 
         meeting_id = ${meetingId};
 `;

@@ -23,7 +23,11 @@ import ballerina/http;
 import ballerina/log;
 import ballerinax/googleapis.calendar as gcalendar;
 
-final cache:Cache userInfoCache = new (capacity = 100, evictionFactor = 0.2);
+cache:Cache cache = new ({
+    capacity: 2000,
+    defaultMaxAge: 1800.0,
+    cleanupInterval: 900.0
+});
 
 @display {
     label: "Meet Backend Service",
@@ -61,7 +65,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + ctx - Request object
     # + return - User information | Error
-    resource function get user\-info(http:RequestContext ctx) returns http:Ok|http:InternalServerError {
+    resource function get user\-info(http:RequestContext ctx) returns UserInfoResponse|http:InternalServerError {
 
         // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -73,7 +77,15 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // Custom Resource level authorization.
+        // Check if the employees are already cached.
+        if cache.hasKey(USER_INFO_CACHE_KEY) {
+            UserInfoResponse|error cachedUserInfo = cache.get(USER_INFO_CACHE_KEY).ensureType();
+            if cachedUserInfo is UserInfoResponse {
+                return cachedUserInfo;
+            }
+        }
+
+        // Fetch the user information from the entity service.
         entity:Employee|error loggedInUser = entity:fetchEmployeesBasicInfo(userInfo.email);
         if loggedInUser is error {
             string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
@@ -94,12 +106,45 @@ service http:InterceptableService / on new http:Listener(9090) {
             privileges.push(authorization:SALES_ADMIN_PRIVILEGE);
         }
 
-        return <http:Ok>{
-            body: {
-                ...loggedInUser,
-                privileges
+        UserInfoResponse userInfoResponse = {...loggedInUser, privileges};
+
+        error? cacheError = cache.put(USER_INFO_CACHE_KEY, userInfoResponse);
+        if cacheError is error {
+            log:printError("An error occurred while writing user info to the cache", cacheError);
+        }
+        return userInfoResponse;
+    }
+
+    # Fetch list of employees.
+    #
+    # + ctx - Request object
+    # + return - List  of employees | Error
+    resource function get employees(http:RequestContext ctx) returns entity:EmployeeBasic[]|http:InternalServerError {
+
+        // Check if the employees are already cached.
+        if cache.hasKey(EMPLOYEES_CACHE_KEY) {
+            entity:EmployeeBasic[]|error cachedEmployees = cache.get(EMPLOYEES_CACHE_KEY).ensureType();
+            if cachedEmployees is entity:EmployeeBasic[] {
+                return cachedEmployees;
             }
-        };
+        }
+
+        entity:EmployeeBasic[]|error employees = entity:getEmployees();
+        if employees is error {
+            string customError = string `Error occurred while retrieving employees!`;
+            log:printError(customError, employees);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        error? cacheError = cache.put(EMPLOYEES_CACHE_KEY, employees);
+        if cacheError is error {
+            log:printError("An error occurred while writing employees to the cache", cacheError);
+        }
+        return employees;
     }
 
     # Fetch meeting types from the database.
@@ -109,39 +154,11 @@ service http:InterceptableService / on new http:Listener(9090) {
     isolated resource function get meetings/types(http:RequestContext ctx, string domain)
         returns database:MeetingTypes|http:Forbidden|http:InternalServerError {
 
-        // User information header.
-        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
-        if userInfo is error {
-            return <http:InternalServerError>{
-                body: {
-                    message: "User information header not found!"
-                }
-            };
-        }
-
-        // Custom Resource level authorization.
-        if !authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups) {
-            return <http:Forbidden>{
-                body: {
-                    message: "Insufficient privileges!"
-                }
-            };
-        }
-
         // Fetch the meeting types from the database.
-        database:MeetingTypes|error? meetingTypes = database:fetchMeetingTypes(domain);
+        database:MeetingTypes|error meetingTypes = database:fetchMeetingTypes(domain);
         if meetingTypes is error {
             string customError = string `Error occurred while retrieving the meeting types!`;
             log:printError(customError, meetingTypes);
-            return <http:InternalServerError>{
-                body: {
-                    message: customError
-                }
-            };
-        }
-        if meetingTypes is null {
-            string customError = string `No meeting types found for the domain: ${domain}!`;
-            log:printError(customError);
             return <http:InternalServerError>{
                 body: {
                     message: customError
@@ -158,7 +175,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + return - Created meeting | Error
     isolated resource function post meetings(http:RequestContext ctx,
             calendar:CreateCalendarEventRequest createCalendarEventRequest)
-        returns http:Created|http:Forbidden|http:InternalServerError {
+        returns MeetingCreationResponse|http:Forbidden|http:InternalServerError {
 
         // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -170,18 +187,9 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // Custom Resource level authorization.
-        if !authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups) {
-            return <http:Forbidden>{
-                body: {
-                    message: "Insufficient privileges!"
-                }
-            };
-        }
-
         // Attempt to create the meeting.
         calendar:CreateCalendarEventResponse|error calendarCreateEventResponse = calendar:createCalendarEvent(
-            createCalendarEventRequest, userInfo.email);
+                createCalendarEventRequest, userInfo.email);
         if calendarCreateEventResponse is error {
             string customError = string `Error occurred while creating the calendar event!`;
             log:printError(customError, calendarCreateEventResponse);
@@ -197,8 +205,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             title: createCalendarEventRequest.title,
             googleEventId: calendarCreateEventResponse.id,
             host: userInfo.email,
-            wso2Participants: string:'join(", ", ...createCalendarEventRequest.wso2Participants
-                    .map(wso2Participant => wso2Participant.trim())),
+            internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
+            .map(internalParticipant => internalParticipant.trim())),
             startTime: createCalendarEventRequest.startTime
             .substring(0, createCalendarEventRequest.startTime.length() - 5),
             endTime: createCalendarEventRequest.endTime
@@ -217,12 +225,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        return <http:Created>{
-            body: {
-                message: "Calendar event created successfully.",
-                meetingId
-            }
-        };
+        return {message: "Meeting created successfully.", meetingId};
     }
 
     # Fetch meetings from the database.
@@ -231,13 +234,13 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + host - Host to filter
     # + startTime - Start time to filter
     # + endTime - End time to filter
-    # + wso2Participants - Participants to filter
+    # + internalParticipants - Participants to filter
     # + 'limit - Limit of the data  
     # + offset - Offset of the data
     # + return - Meetings | Error
     isolated resource function get meetings(http:RequestContext ctx, string? title, string? host,
-            string? startTime, string? endTime, string? wso2Participants, int? 'limit, int? offset)
-        returns http:Ok|http:Forbidden|http:InternalServerError {
+            string? startTime, string? endTime, string? internalParticipants, int? 'limit, int? offset)
+        returns MeetingListResponse|http:Forbidden|http:InternalServerError {
 
         // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -249,17 +252,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // Custom Resource level authorization.
-        if !authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups) {
-            return <http:Forbidden>{
-                body: {
-                    message: "Insufficient privileges!"
-                }
-            };
-        }
-
-        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN],
-                userInfo.groups);
+        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
 
         // Return Forbidden if a non-admin user provides a host query parameter.
         if (!isAdmin && (host != ()) && (host != userInfo.email)) {
@@ -272,8 +265,8 @@ service http:InterceptableService / on new http:Listener(9090) {
         string? filteredHost = isAdmin ? (host != () ? host : ()) : userInfo.email;
 
         // Fetch the meetings from the database.
-        database:Meeting[]|error meetings = database:fetchMeetings(
-                title, filteredHost, startTime, endTime, wso2Participants, 'limit, offset);
+        database:Meeting[]|error meetings = database:fetchMeetings(title, filteredHost, startTime, endTime,
+            internalParticipants, 'limit, offset);
         if meetings is error {
             string customError = string `Error occurred while retrieving the meetings!`;
             log:printError(customError, meetings);
@@ -284,24 +277,20 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        int count = (meetings.length() > 0) ? meetings[0].totalCount : 0;
-
-        return <http:Ok>{
-            body: {
-                count: count,
-                meetings: from var meeting in meetings
-                    select {
-                        meetingId: meeting.meetingId,
-                        title: meeting.title,
-                        googleEventId: meeting.googleEventId,
-                        host: meeting.host,
-                        startTime: meeting.startTime,
-                        endTime: meeting.endTime,
-                        wso2Participants: meeting.wso2Participants,
-                        meetingStatus: meeting.meetingStatus,
-                        timeStatus: meeting.timeStatus
-                    }
-            }
+        return {
+            count: (meetings.length() > 0) ? meetings[0].totalCount : 0,
+            meetings: from var meeting in meetings
+                select {
+                    meetingId: meeting.meetingId,
+                    title: meeting.title,
+                    googleEventId: meeting.googleEventId,
+                    host: meeting.host,
+                    startTime: meeting.startTime,
+                    endTime: meeting.endTime,
+                    internalParticipants: meeting.internalParticipants,
+                    meetingStatus: meeting.meetingStatus,
+                    timeStatus: meeting.timeStatus
+                }
         };
     }
 
@@ -310,7 +299,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + meetingId - meetingId to get attachments 
     # + return - Attachments|Error
     isolated resource function get meetings/[int meetingId]/attachments(http:RequestContext ctx)
-        returns http:Ok|http:InternalServerError|http:Forbidden {
+        returns AttachmentListResponse|http:InternalServerError|http:Forbidden {
 
         // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -318,15 +307,6 @@ service http:InterceptableService / on new http:Listener(9090) {
             return <http:InternalServerError>{
                 body: {
                     message: "User information header not found!"
-                }
-            };
-        }
-
-        // Custom Resource level authorization.
-        if !authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups) {
-            return <http:Forbidden>{
-                body: {
-                    message: "Insufficient privileges!"
                 }
             };
         }
@@ -352,8 +332,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN],
-                userInfo.groups);
+        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
 
         // Return Forbidden if a non-admin user views attachments of a meeting they did not host.
         if !isAdmin && (meeting.host != userInfo.email) {
@@ -375,11 +354,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        return <http:Ok>{
-            body: {
-                attachments: calendarEventAttachments
-            }
-        };
+        return {attachments: calendarEventAttachments ?: []};
     }
 
     # Delete meeting.
@@ -387,7 +362,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + meetingId - meetingId to delete  
     # + return - Ok|InternalServerError|Forbidden
     isolated resource function delete meetings/[int meetingId](http:RequestContext ctx)
-        returns http:Ok|http:InternalServerError|http:Forbidden {
+        returns MeetingDeletionResponse|http:InternalServerError|http:Forbidden {
 
         // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -395,15 +370,6 @@ service http:InterceptableService / on new http:Listener(9090) {
             return <http:InternalServerError>{
                 body: {
                     message: "User information header not found!"
-                }
-            };
-        }
-
-        // Custom Resource level authorization.
-        if !authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups) {
-            return <http:Forbidden>{
-                body: {
-                    message: "Insufficient privileges!"
                 }
             };
         }
@@ -429,8 +395,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN],
-                userInfo.groups);
+        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
 
         // Check if the user has sufficient privileges to delete and ensure the meeting is active and upcoming.
         if !isAdmin && (meeting.host != userInfo.email) {
@@ -443,7 +408,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 body: {message: "Cannot delete a meeting that is not active!"}
             };
         }
-        if (meeting.timeStatus != "UPCOMING") {
+        if (meeting.timeStatus != database:UPCOMING) {
             return <http:Forbidden>{
                 body: {message: "Cannot delete a past meeting!"}
             };
@@ -474,10 +439,6 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        return <http:Ok>{
-            body: {
-                message: deleteCalendarEventResponse.message
-            }
-        };
+        return {message: deleteCalendarEventResponse.message};
     }
 }

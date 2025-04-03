@@ -19,8 +19,8 @@ import { RouteObject, NonIndexRouteObject } from "react-router-dom";
 // MUI imports
 import DuoIcon from '@mui/icons-material/Duo';
 // APP imports
-import { View } from "./view/Index";
-import { isIncludedRole } from "./utils/utils";
+import { View } from "@view/index";
+import { isIncludedRole } from "@utils/utils";
 import { Role } from "@utils/types";
 
 export interface RouteObjectWithRole extends NonIndexRouteObject {

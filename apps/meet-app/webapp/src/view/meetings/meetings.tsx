@@ -20,8 +20,8 @@ import HistoryIcon from "@mui/icons-material/History";
 
 // App imports
 import CommonPage from "@layout/pages/CommonPage";
-import CreateMeeting from "./panel/createMeeting";
-import MeetingHistory from "./panel/meetingHistory";
+import CreateMeeting from "@view/meetings/panel/createMeeting";
+import MeetingHistory from "@view/meetings/panel/meetingHistory";
 
 export default function OfferLetter() {
   return (

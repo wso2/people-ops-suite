@@ -14,8 +14,8 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-import axios, { AxiosInstance, CancelTokenSource } from "axios";
 import * as rax from "retry-axios";
+import axios, { AxiosInstance, CancelTokenSource } from "axios";
 
 export class APIService {
   private static _instance: AxiosInstance;
