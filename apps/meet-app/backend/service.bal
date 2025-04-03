@@ -23,7 +23,11 @@ import ballerina/http;
 import ballerina/log;
 import ballerinax/googleapis.calendar as gcalendar;
 
-final cache:Cache userInfoCache = new (capacity = 100, evictionFactor = 0.2);
+cache:Cache cache = new ({
+    capacity: 2000,
+    defaultMaxAge: 1800.0,
+    cleanupInterval: 900.0
+});
 
 @display {
     label: "Meet Backend Service",
@@ -73,6 +77,14 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+        // Check if the employees are already cached.
+        if cache.hasKey(USER_INFO_CACHE_KEY) {
+            UserInfoResponse|error cachedUserInfo = cache.get(USER_INFO_CACHE_KEY).ensureType();
+            if cachedUserInfo is UserInfoResponse {
+                return cachedUserInfo;
+            }
+        }
+
         // Fetch the user information from the entity service.
         entity:Employee|error loggedInUser = entity:fetchEmployeesBasicInfo(userInfo.email);
         if loggedInUser is error {
@@ -94,7 +106,45 @@ service http:InterceptableService / on new http:Listener(9090) {
             privileges.push(authorization:SALES_ADMIN_PRIVILEGE);
         }
 
-        return {...loggedInUser, privileges};
+        UserInfoResponse userInfoResponse = {...loggedInUser, privileges};
+
+        error? cacheError = cache.put(USER_INFO_CACHE_KEY, userInfoResponse);
+        if cacheError is error {
+            log:printError("An error occurred while writing user info to the cache", cacheError);
+        }
+        return userInfoResponse;
+    }
+
+    # Fetch list of employees.
+    #
+    # + ctx - Request object
+    # + return - List  of employees | Error
+    resource function get employees(http:RequestContext ctx) returns entity:EmployeeBasic[]|http:InternalServerError {
+
+        // Check if the employees are already cached.
+        if cache.hasKey(EMPLOYEES_CACHE_KEY) {
+            entity:EmployeeBasic[]|error cachedEmployees = cache.get(EMPLOYEES_CACHE_KEY).ensureType();
+            if cachedEmployees is entity:EmployeeBasic[] {
+                return cachedEmployees;
+            }
+        }
+
+        entity:EmployeeBasic[]|error employees = entity:getEmployees();
+        if employees is error {
+            string customError = string `Error occurred while retrieving employees!`;
+            log:printError(customError, employees);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        error? cacheError = cache.put(EMPLOYEES_CACHE_KEY, employees);
+        if cacheError is error {
+            log:printError("An error occurred while writing employees to the cache", cacheError);
+        }
+        return employees;
     }
 
     # Fetch meeting types from the database.
