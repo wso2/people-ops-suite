@@ -38,3 +38,35 @@ public isolated function fetchEmployeesBasicInfo(string workEmail) returns Emplo
     }
     return response.data.employee;
 }
+
+# Retrieve Employee Data.
+#
+# + return - Employee Info Array
+public isolated function getEmployees() returns EmployeeBasic[]|error {
+
+    EmployeeFilter filter = {
+        employeeStatus: [Active, Marked\ leaver],
+        employmentType: [PERMANENT, CONSULTANCY, PART\ TIME\ CONSULTANCY]
+    };
+
+    string document = string `query getAllEmployees($filter: EmployeeFilter!, $limit: Int, $offset: Int) {
+        employees(filter: $filter, limit: $limit, offset: $offset) {
+            workEmail
+            firstName
+            lastName
+            employeeThumbnail
+        }
+    }`;
+
+    EmployeeBasic[] employees = [];
+    boolean fetchMore = true;
+    while fetchMore {
+        EmployeesResponse response = check hrClient->execute(
+            document,
+            {filter: filter, 'limit: DEFAULT_LIMIT, offset: employees.length()}
+        );
+        employees.push(...response.data.employees);
+        fetchMore = response.data.employees.length() > 0;
+    }
+    return employees;
+}
