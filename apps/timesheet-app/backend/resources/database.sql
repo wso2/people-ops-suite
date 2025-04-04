@@ -1,4 +1,7 @@
-CREATE TABLE hris_timesheet_work_policies (
+CREATE DATABASE timesheet_schema;
+USE  timesheet_schema;
+
+CREATE TABLE timesheet_work_policies (
     company_name VARCHAR(100) PRIMARY KEY,
     ot_hours_per_year INT NOT NULL CHECK (ot_hours_per_year >= 0),
     working_hours_per_day DECIMAL(4 , 2 ) NOT NULL CHECK (working_hours_per_day > 0),
@@ -9,7 +12,7 @@ CREATE TABLE hris_timesheet_work_policies (
     wp_updated_by VARCHAR(100)
 );
 
-CREATE TABLE hris_timesheet_records (
+CREATE TABLE timesheet_records (
     ts_record_id INT PRIMARY KEY AUTO_INCREMENT,
     ts_employee_email VARCHAR(100) NOT NULL,
     ts_record_date DATE NOT NULL,
@@ -27,7 +30,29 @@ CREATE TABLE hris_timesheet_records (
     ts_updated_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     ts_updated_by VARCHAR(100),
     CONSTRAINT ts_fk_wp FOREIGN KEY (ts_company_name)
-        REFERENCES hris_timesheet_work_policies (company_name)
+        REFERENCES timesheet_work_policies (company_name)
         ON DELETE SET NULL,
     CONSTRAINT unique_employee_date UNIQUE (ts_employee_email , ts_record_date)
 );
+
+
+-- Sample data for timesheet_work_policies
+INSERT INTO timesheet_work_policies (
+    company_name, ot_hours_per_year, working_hours_per_day, lunch_hours_per_day,
+    wp_created_by, wp_updated_by
+) VALUES
+("WSO2 - INDIA", 200, 8.00, 1.00, 'admin', 'admin'),
+("WSO2 - USA", 150, 7.50, 0.50, 'hr_manager', 'admin'),
+("WSO2 - UK", 250, 8.50, 1.00, 'admin', 'admin'),
+("WSO2 - BRAZIL", 100, 7.00, 0.75, 'hr_manager', 'admin'),
+("WSO2 - GERMANY", 300, 9.00, 1.00, 'admin', 'admin'),
+("WSO2 - AUSTRALIA", 180, 8.00, 0.50, 'admin', 'admin'),
+("WSO2 - SRI LANKA", 120, 7.75, 1.00, 'hr_manager', 'admin'),
+("WSO2 - UAE", 220, 8.25, 0.75, 'admin', 'admin'),
+("WSO2 - SINGAPORE", 220, 8.25, 0.75, 'admin', 'admin'),
+("WSO2 - MALAYSIA", 220, 8.25, 0.75, 'admin', 'admin'),
+("WSO2 - CANADA", 220, 8.25, 0.75, 'admin', 'admin'),
+("WSO2 - PACIFIC CONTROL SYSTEMS", 220, 8.25, 0.75, 'admin', 'admin'),
+("WSO2 - SPAIN", 220, 8.25, 0.75, 'admin', 'admin'),
+("WSO2 - NEW ZEALAND", 220, 8.25, 0.75, 'admin', 'admin')
+;

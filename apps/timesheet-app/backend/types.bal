@@ -36,7 +36,7 @@ public type TimeSheetRecords record {
     # Overtime information from the database
     int? totalRecordCount;
     # List of timesheet records
-    database:TimeSheetRecord[]? timesheetRecords;
+    database:TimeLog[]? timeLogs;
     # Timesheet information for leads
     database:TimesheetInfo? timesheetInfo;
 };

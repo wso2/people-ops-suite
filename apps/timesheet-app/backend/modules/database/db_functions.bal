@@ -32,11 +32,11 @@ public isolated function getWorkPolicies(string companyName) returns WorkPolicie
 #
 # + filter - Filter type for the records
 # + return - Timesheet records or an error
-public isolated function getTimesheetRecords(TimesheetCommonFilter filter) returns TimeSheetRecord[]|error? {
-    stream<TimeSheetRecord, error?> recordsResult =
+public isolated function getTimesheetRecords(TimesheetCommonFilter filter) returns TimeLog[]|error? {
+    stream<TimeLog, error?> recordsResult =
         databaseClient->query(getTimesheetRecordsOfEmployee(filter));
 
-    return from TimeSheetRecord timesheetRecord in recordsResult
+    return from TimeLog timesheetRecord in recordsResult
         select timesheetRecord;
 }
 
@@ -59,7 +59,7 @@ public isolated function getTotalRecordCount(TimesheetCommonFilter filter) retur
 # + leadEmail - Email of the employee's lead
 # + companyName - Name of the company of the employee
 # + return - Execution result or an error
-public isolated function insertTimesheetRecords(TimeSheetRecord[] timesheetRecords, string employeeEmail,
+public isolated function insertTimesheetRecords(TimeLog[] timesheetRecords, string employeeEmail,
         string companyName, string leadEmail) returns error|int[] {
 
     sql:ExecutionResult[]|sql:Error executionResults =
@@ -91,10 +91,10 @@ public isolated function getTimesheetInfo(TimesheetCommonFilter filter) returns 
 # + updateRecords - Records to be updated
 # + invokerEmail - Email of the invoker
 # + return - An error if occurred
-public isolated function updateTimesheetRecords(string invokerEmail, TimesheetUpdate[] updateRecords) returns error? {
+public isolated function updateTimesheetRecords(string invokerEmail, TimeLogUpdate[] updateRecords) returns error? {
     do {
         transaction {
-            foreach TimesheetUpdate updateRecord in updateRecords {
+            foreach TimeLogUpdate updateRecord in updateRecords {
                 _ = check databaseClient->execute(updateTimesheetRecordQuery(updateRecord, invokerEmail));
             }
             check commit;

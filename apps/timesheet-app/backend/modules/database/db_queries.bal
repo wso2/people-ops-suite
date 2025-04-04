@@ -26,7 +26,7 @@ isolated function getWorkPoliciesQuery(string companyName) returns sql:Parameter
         working_hours_per_day AS 'workingHoursPerDay',
         lunch_hours_per_day AS 'lunchHoursPerDay'
     FROM
-        hris_timesheet_work_policies
+        timesheet_work_policies
     WHERE
         company_name = ${companyName};
 `;
@@ -49,7 +49,7 @@ isolated function getTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) re
         tr.ts_ot_rejection_reason AS overtimeRejectReason,
         tr.ts_ot_status AS overtimeStatus
     FROM
-        hris_timesheet_records tr
+        timesheet_records tr
     `;
     sql:ParameterizedQuery[] filters = [];
     if filter.employeeEmail is string {
@@ -88,7 +88,7 @@ isolated function getTotalRecordCountQuery(TimesheetCommonFilter filter) returns
         SELECT
             COUNT(*) AS totalRecords
         FROM
-            hris_timesheet_records
+            timesheet_records
     `;
     sql:ParameterizedQuery[] filters = [];
     if filter.employeeEmail is string {
@@ -111,14 +111,14 @@ isolated function getTotalRecordCountQuery(TimesheetCommonFilter filter) returns
 # + companyName - Name of the company
 # + leadEmail - Email of the lead
 # + return - Insert query for the timesheet records
-isolated function insertTimesheetRecordsQuery(TimeSheetRecord[] timesheetRecords, string employeeEmail,
+isolated function insertTimesheetRecordsQuery(TimeLog[] timesheetRecords, string employeeEmail,
         string companyName, string leadEmail) returns sql:ParameterizedQuery[] =>
 
-            from TimeSheetRecord timesheetRecord in timesheetRecords
-let TimeSheetRecord {recordDate, clockInTime, clockOutTime, isLunchIncluded, overtimeDuration, overtimeReason,
+            from TimeLog timesheetRecord in timesheetRecords
+let TimeLog {recordDate, clockInTime, clockOutTime, isLunchIncluded, overtimeDuration, overtimeReason,
 overtimeStatus} = timesheetRecord
 select `
-        INSERT INTO hris_timesheet_records (
+        INSERT INTO timesheet_records (
             ts_employee_email,
             ts_record_date,
             ts_company_name,
@@ -155,47 +155,51 @@ select `
 isolated function getTimesheetInfoQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
     SELECT
-        COUNT(*) AS totalRecords,
-        SUM(CASE
-            WHEN ts_ot_status = ${PENDING} THEN 1
-            ELSE 0
-        END) AS pendingRecords,
-        SUM(CASE
-            WHEN ts_ot_status = ${REJECTED} THEN 1
-            ELSE 0
-        END) AS rejectedRecords,
-        SUM(CASE
-            WHEN ts_ot_status = ${APPROVED} THEN 1
-            ELSE 0
-        END) AS approvedRecords,
+        COALESCE(COUNT(*), 0) AS totalRecords,
+        COALESCE(SUM(CASE
+                    WHEN ts_ot_status = ${PENDING} THEN 1
+                    ELSE 0
+                END),
+                0) AS pendingRecords,
+        COALESCE(SUM(CASE
+                    WHEN ts_ot_status = ${REJECTED} THEN 1
+                    ELSE 0
+                END),
+                0) AS rejectedRecords,
+        COALESCE(SUM(CASE
+                    WHEN ts_ot_status = ${APPROVED} THEN 1
+                    ELSE 0
+                END),
+                0) AS approvedRecords,
         COALESCE(SUM(CASE
                     WHEN ts_ot_status = ${APPROVED} THEN ts_ot_hours
                     ELSE 0
                 END),
                 0) AS totalOvertimeTaken,
-        (SELECT
-                ot_hours_per_year
-            FROM
-                hris_timesheet_work_policies
-            WHERE
-                company_name = (SELECT
-                        ts_company_name
+        COALESCE((SELECT
+                        ot_hours_per_year
                     FROM
-                        hris_timesheet_records
-                    LIMIT 1)) - COALESCE(SUM(CASE
+                        timesheet_work_policies
+                    WHERE
+                        company_name = (SELECT
+                                ts_company_name
+                            FROM
+                                timesheet_records
+                            LIMIT 1)),
+                0) - COALESCE(SUM(CASE
                     WHEN ts_ot_status = ${APPROVED} THEN ts_ot_hours
                     ELSE 0
                 END),
                 0) AS overtimeLeft
     FROM
-        hris_timesheet_records
-`;
+        timesheet_records
+    `;
     sql:ParameterizedQuery[] filters = [];
     if filter.employeeEmail is string {
-        filters.push(sql:queryConcat(`hris_timesheet_records.ts_employee_email = `, `${filter.employeeEmail}`));
+        filters.push(sql:queryConcat(`timesheet_records.ts_employee_email = `, `${filter.employeeEmail}`));
     }
     if filter.leadEmail is string {
-        filters.push(sql:queryConcat(`hris_timesheet_records.ts_lead_email =  `, `${filter.leadEmail}`));
+        filters.push(sql:queryConcat(`timesheet_records.ts_lead_email =  `, `${filter.leadEmail}`));
     }
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
     return mainQuery;
@@ -206,11 +210,11 @@ isolated function getTimesheetInfoQuery(TimesheetCommonFilter filter) returns sq
 # + updateRecord - Update record type of the timesheet record
 # + invokerEmail - Email of the invoker
 # + return - Update query for a timesheet record
-isolated function updateTimesheetRecordQuery(TimesheetUpdate updateRecord, string invokerEmail)
+isolated function updateTimesheetRecordQuery(TimeLogUpdate updateRecord, string invokerEmail)
     returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery updateQuery = `
-    UPDATE hris_timesheet_records SET
+    UPDATE timesheet_records SET
 `;
     updateQuery = sql:queryConcat(updateQuery, `ts_clock_in = COALESCE(${updateRecord.clockInTime}, ts_clock_in),`);
     updateQuery = sql:queryConcat(updateQuery, `ts_clock_out = COALESCE(${updateRecord.clockOutTime}, ts_clock_out),`);

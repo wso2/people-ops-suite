@@ -57,7 +57,7 @@ public enum TimeSheetStatus {
 };
 
 # Timesheet record type.
-public type TimeSheetRecord record {|
+public type TimeLog record {|
     # Time sheet record id
     int recordId;
     # Employee's email address
@@ -81,7 +81,7 @@ public type TimeSheetRecord record {|
     # Overtime rejection reason
     string overtimeRejectReason?;
     # Overtime status
-    TimeSheetStatus overtimeStatus;
+    TimeSheetStatus overtimeStatus?;
 |};
 
 # Common filter for the timesheet records.
@@ -121,7 +121,7 @@ public type TimesheetInfo record {|
 |};
 
 # Update type for the timesheet record.
-public type TimesheetUpdate record {|
+public type TimeLogUpdate record {|
     # Time sheet record id
     int recordId;
     # Email of the employee
