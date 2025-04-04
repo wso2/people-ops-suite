@@ -74,7 +74,7 @@ isolated function getTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) re
             mainQuery = sql:queryConcat(mainQuery, ` OFFSET ${filter.recordOffset}`);
         }
     } else {
-        mainQuery = sql:queryConcat(mainQuery, ` LIMIT 100`);
+        mainQuery = sql:queryConcat(mainQuery, ` LIMIT 400`);
     }
     return mainQuery;
 }
