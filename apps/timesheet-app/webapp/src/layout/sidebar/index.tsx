@@ -35,7 +35,6 @@ import { SIDEBAR_WIDTH } from "@config/ui";
 import { useLocation, matchPath, useMatches } from "react-router-dom";
 import { ColorModeContext } from "../../App";
 import { Stack, Typography } from "@mui/material";
-import { APP_NAME } from "@config/config";
 
 interface SidebarProps {
   open: boolean;

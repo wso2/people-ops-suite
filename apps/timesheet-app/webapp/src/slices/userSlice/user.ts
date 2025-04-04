@@ -14,16 +14,20 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { RootState } from "@slices/store";
+import { AppConfig } from "@config/config";
+import { APIService } from "@utils/apiService";
+import { Roles, State, WorkPolicies } from "@utils/types";
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { APIService } from "../../utils/apiService";
-import { AppConfig } from "../../config/config";
-import { State } from "../../types/types";
 
 const initialState: UserState = {
   state: State.idle,
   stateMessage: null,
   errorMessage: null,
   userInfo: null,
+  roles: [],
+  privileges: [],
+  workPolicies: {} as WorkPolicies,
 };
 
 interface UserState {
@@ -31,15 +35,28 @@ interface UserState {
   stateMessage: string | null;
   errorMessage: string | null;
   userInfo: UserInfoInterface | null;
+  roles: Roles[];
+  privileges: number[];
+  workPolicies: WorkPolicies;
 }
 
-interface UserInfoInterface {
+interface EmployeeInfo {
   employeeId: string;
   firstName: string;
   lastName: string;
   workEmail: string;
-  employeeThumbnail: string;
+  employeeThumbnail: string | null;
+  managerEmail: string;
   jobRole: string;
+  company: string;
+  lead: boolean;
+}
+
+interface UserInfoInterface {
+  employeeInfo: EmployeeInfo;
+  jobRole: string;
+  privileges: number[];
+  workPolicies: WorkPolicies;
 }
 
 export const getUserInfo = createAsyncThunk("User/getUserInfo", async () => {
@@ -74,15 +91,29 @@ export const UserSlice = createSlice({
         state.stateMessage = "Checking User Info";
       })
       .addCase(getUserInfo.fulfilled, (state, action) => {
-        state.userInfo = action.payload.UserInfo;
+        const userInfo = action.payload.UserInfo;
+        state.userInfo = userInfo;
+        var roles = [];
+        if (userInfo.privileges.includes(987)) {
+          roles.push(Roles.EMPLOYEE);
+        }
+        if (userInfo.privileges.includes(862)) {
+          roles.push(Roles.LEAD);
+        }
+        if (userInfo.privileges.includes(762)) {
+          roles.push(Roles.ADMIN);
+        }
+        state.roles = roles;
         state.state = State.success;
       })
       .addCase(getUserInfo.rejected, (state) => {
         state.state = State.failed;
+        state.stateMessage = "Failed to retrieve user Info";
       });
   },
 });
 
+export const selectRoles = (state: RootState) => state.user.roles;
 export const { updateStateMessage } = UserSlice.actions;
 
 export default UserSlice.reducer;

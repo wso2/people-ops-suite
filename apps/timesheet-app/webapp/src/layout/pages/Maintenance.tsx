@@ -15,18 +15,7 @@
 // under the License.
 
 import React from "react";
-import { Box, Button, Typography } from "@mui/material";
-import {
-  Link as RouterLink,
-  LinkProps as RouterLinkProps,
-} from "react-router-dom";
-
-const Link = React.forwardRef<HTMLAnchorElement, RouterLinkProps>(function Link(
-  itemProps,
-  ref
-) {
-  return <RouterLink ref={ref} {...itemProps} role={undefined} />;
-});
+import { Box, Typography } from "@mui/material";
 
 export default function MaintenancePage() {
   return (
@@ -41,9 +30,8 @@ export default function MaintenancePage() {
     >
       <img alt="maintenance" src="/maintenance.gif" />
       <Typography variant="h4" style={{ color: "gray" }}>
-        Exciting changes are on the way! Our website is currently undergoing a
-        transformation to enhance your experience. Please check back soon to see
-        the amazing updates.
+        Exciting changes are on the way! Our website is currently undergoing a transformation to enhance your
+        experience. Please check back soon to see the amazing updates.
       </Typography>
     </Box>
   );

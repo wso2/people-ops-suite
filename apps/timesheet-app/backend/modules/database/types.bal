@@ -18,7 +18,7 @@ import ballerinax/mysql;
 
 # [Configurable] database configs.
 type DatabaseConfig record {|
-    # Database User 
+    # Database User
     string user;
     # Database Password
     string password;
@@ -39,24 +39,109 @@ type DatabaseClientConfig record {|
     mysql:Options? options;
 |};
 
-# [Database]SampleCollection type.
-public type SampleCollection record {|
-    # Id of the collection
-    int id;
-    # Name
-    string name;
-    # Timestamp, when created
-    string createdOn;
-    # Person, who created
-    string createdBy;
-    # Timestamp, when updated
-    string updatedOn;
-    # Person, who updates
-    string updatedBy;
+# Work policies record.
+public type WorkPolicies record {|
+    # Number of OT hours per year
+    int otHoursPerYear;
+    # Number of working hours per day
+    decimal workingHoursPerDay;
+    # Lunch time duration per day
+    decimal lunchHoursPerDay;
 |};
 
-# [Database]Collection insert type.
-public type AddSampleCollection record {|
-    # Name of the collection
-    string name;
+# Enum type for the timesheet status.
+public enum TimeSheetStatus {
+    PENDING = "PENDING",
+    APPROVED = "APPROVED",
+    REJECTED = "REJECTED"
+};
+
+# Timesheet record type.
+public type TimeLog record {|
+    # Time sheet record id
+    int recordId;
+    # Employee's email address
+    string employeeEmail?;
+    # Record date
+    string recordDate;
+    # Company name
+    string companyName?;
+    # Clock in time
+    string clockInTime;
+    # Clock out time
+    string clockOutTime;
+    # Total work duration
+    int isLunchIncluded;
+    # Overtime duration
+    decimal overtimeDuration?;
+    # Overtime reason
+    string overtimeReason?;
+    # Email of the lead
+    string leadEmail?;
+    # Overtime rejection reason
+    string overtimeRejectReason?;
+    # Overtime status
+    TimeSheetStatus overtimeStatus?;
+|};
+
+# Common filter for the timesheet records.
+public type TimesheetCommonFilter record {|
+    # Employee email
+    string? employeeEmail;
+    # Email of the lead
+    string? leadEmail;
+    # TimeSheetStatus
+    TimeSheetStatus? status;
+    # Limit of the records
+    int? recordsLimit;
+    # Offset of the records
+    int? recordOffset;
+    # Start date to filter
+    string? rangeStart;
+    # End date to filter
+    string? rangeEnd;
+    # Dates array to filter
+    string[]? recordDates;
+    # Company name to filter
+    string? companyName;
+|};
+
+# Timesheet information record type.
+public type TimesheetInfo record {|
+    # Total count of the records
+    int totalRecords;
+    # Total count of the pending records
+    decimal? pendingRecords;
+    # Total count of the approved records
+    decimal? approvedRecords;
+    # Total count of the rejected records
+    decimal? rejectedRecords;
+    # Total count of the overtime taken
+    decimal? totalOverTimeTaken;
+    # Count of overtime left from yearly quota
+    decimal? overTimeLeft;
+|};
+
+# Update type for the timesheet record.
+public type TimeLogUpdate record {|
+    # Time sheet record id
+    int recordId;
+    # Email of the employee
+    string employeeEmail?;
+    # Record date
+    string recordDate?;
+    # Clock in time
+    string clockInTime?;
+    # Clock out time
+    string clockOutTime?;
+    # Total work duration
+    int isLunchIncluded?;
+    # Overtime duration
+    decimal overtimeDuration?;
+    # Overtime reason
+    string overtimeReason?;
+    # Overtime rejection reason
+    string overtimeRejectReason?;
+    # Overtime status
+    TimeSheetStatus overtimeStatus?;
 |};

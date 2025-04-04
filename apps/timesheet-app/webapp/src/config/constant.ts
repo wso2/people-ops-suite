@@ -14,13 +14,20 @@
 // specific language governing permissions and limitations
 // under the License.
 
-export const SnackMessage = {
+export const Messages = {
   success: {
-    addCollections: "Successfully added the Collection",
+    updateRecord: "Successfully updated the record",
+    saveRecords: "Successfully saved the records",
+    updateRecords: "Successfully updated the records",
   },
   error: {
-    fetchCollectionsMessage: "Unable to retrieve list of selected Collections",
-    addCollections: "Unable to create the Collection",
+    fetchRecords: "Unable to retrieve timesheet logs",
+    sendRecords: "Unable to save timesheet records",
+    otExceeds: "This entries exceeds the available overtime quota",
+    updateRecords: "Unable to update the records",
   },
   warning: {},
+  info: {
+    adminHelperAlert: " Use the filter to get employee timesheet information",
+  },
 };
