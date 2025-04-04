@@ -44,7 +44,6 @@ import {
 } from "@mui/material";
 import { Messages } from "@config/constant";
 import AddIcon from "@mui/icons-material/Add";
-import { TimesheetStatus } from "@utils/types";
 import EditIcon from "@mui/icons-material/Edit";
 import React, { useState, useRef } from "react";
 import CloseIcon from "@mui/icons-material/Close";
@@ -59,8 +58,8 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import { addTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
-import { format, differenceInMinutes, isWeekend, startOfDay, subDays, isSameDay } from "date-fns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { format, differenceInMinutes, isWeekend, startOfDay, subDays, isSameDay } from "date-fns";
 
 interface TimeTrackingFormProps {
   onClose?: () => void;
@@ -91,7 +90,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
       isLunchIncluded: true,
       overtimeDuration: 0,
       overtimeReason: "",
-      overtimeStatus: TimesheetStatus.APPROVED,
     };
   }
 
@@ -140,7 +138,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
         recordDate: formattedRecordDate,
         clockInTime: formatTime(entry.clockInTime!),
         clockOutTime: formatTime(entry.clockOutTime!),
-        overtimeStatus: entry.overtimeDuration > 0 ? TimesheetStatus.PENDING : TimesheetStatus.APPROVED,
       };
     });
   };

@@ -49,7 +49,7 @@ export const fetchEmployeeMetaData = createAsyncThunk(
   "metaSlice/fetchEmployeeMetaData",
   async (_, { dispatch, rejectWithValue }) => {
     try {
-      const response = await APIService.getInstance().get(AppConfig.serviceUrls.metaData);
+      const response = await APIService.getInstance().get(AppConfig.serviceUrls.employees);
       return response.data;
     } catch (error) {
       if (axios.isCancel(error)) {

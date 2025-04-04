@@ -14,6 +14,15 @@
 // specific language governing permissions and limitations
 // under the License.
 import {
+  State,
+  Filter,
+  TimesheetRecord,
+  TimesheetStatus,
+  TimesheetUpdate,
+  statusChipStyles,
+  ConfirmationType,
+} from "@utils/types";
+import {
   DataGrid,
   GridFilterModel,
   GridLogicOperator,
@@ -22,6 +31,8 @@ import {
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { useEffect, useState } from "react";
+import { Messages } from "@config/constant";
+import NoDataView from "@component/common/NoDataView";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -35,15 +46,6 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import InformationHeader from "@component/common/InformationHeader";
 import { useConfirmationModalContext } from "@context/DialogContext";
 import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
-import {
-  ConfirmationType,
-  Filter,
-  State,
-  statusChipStyles,
-  TimesheetRecord,
-  TimesheetStatus,
-  TimesheetUpdate,
-} from "@utils/types";
 import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton, Avatar } from "@mui/material";
 
 const TimesheetAuditView = () => {
@@ -51,13 +53,14 @@ const TimesheetAuditView = () => {
   const dispatch = useAppDispatch();
   const dialogContext = useConfirmationModalContext();
   const leadEmail = useAppSelector((state) => state.auth.userInfo?.email);
+  const employeeMap = useAppSelector((state) => state.meteInfo.employeeMap);
+  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
+  const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
+  const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
+  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
-  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
-  const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
-  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
-  const employeeMap = useAppSelector((state) => state.meteInfo.employeeMap);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 5,
@@ -373,117 +376,123 @@ const TimesheetAuditView = () => {
   }, []);
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
-        {timesheetInfo && workPolicies && (
-          <Box sx={{ width: "100%", height: "auto" }}>
-            <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} isLeadView={true} />
-          </Box>
-        )}
+    <Box sx={{ width: "100%", height: "100%" }}>
+      {timesheetLoadingInfo === State.failed ? (
+        <NoDataView message={Messages.error.fetchRecords} type="error" />
+      ) : (
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
+            {timesheetInfo && workPolicies && (
+              <Box sx={{ width: "100%", height: "auto" }}>
+                <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} isLeadView={true} />
+              </Box>
+            )}
 
-        <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
-          <FilterComponent
-            availableFields={availableFields}
-            filters={filters}
-            setFilters={setFilters}
-            onApply={fetchData}
-            onReset={handleResetFilters}
-            isLead={true}
-          />
-          <Box>
-            <Button
-              variant="contained"
-              onClick={() => handleApproveRecords()}
-              sx={{ width: "160px", mx: 1 }}
-              startIcon={<ThumbUpIcon />}
-              disabled={selectionModel.length <= 1}
-            >
-              Batch Approve
-            </Button>
+            <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
+              <FilterComponent
+                availableFields={availableFields}
+                filters={filters}
+                setFilters={setFilters}
+                onApply={fetchData}
+                onReset={handleResetFilters}
+                isLead={true}
+              />
+              <Box>
+                <Button
+                  variant="contained"
+                  onClick={() => handleApproveRecords()}
+                  sx={{ width: "160px", mx: 1 }}
+                  startIcon={<ThumbUpIcon />}
+                  disabled={selectionModel.length <= 1}
+                >
+                  Batch Approve
+                </Button>
 
-            <Button
-              variant="contained"
-              onClick={() => handleDeclineRecords()}
-              color="error"
-              sx={{ width: "160px", mx: 1 }}
-              startIcon={<ThumbDownIcon />}
-              disabled={selectionModel.length <= 1}
-            >
-              Batch Reject
-            </Button>
-          </Box>
-        </Stack>
+                <Button
+                  variant="contained"
+                  onClick={() => handleDeclineRecords()}
+                  color="error"
+                  sx={{ width: "160px", mx: 1 }}
+                  startIcon={<ThumbDownIcon />}
+                  disabled={selectionModel.length <= 1}
+                >
+                  Batch Reject
+                </Button>
+              </Box>
+            </Stack>
 
-        <Paper
-          elevation={0}
-          sx={{
-            height: "85%",
-            width: "100%",
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: "divider",
-            overflow: "auto",
-          }}
-        >
-          {records && (
-            <DataGrid
-              pagination
-              rows={records}
-              columns={columns}
-              disableDensitySelector
-              paginationMode="server"
-              rowCount={totalRecordCount}
-              paginationModel={paginationModel}
-              onPaginationModelChange={setPaginationModel}
-              disableRowSelectionOnClick
-              loading={recordLoadingState === State.loading}
-              getRowId={(row) => row.recordId}
-              filterModel={filterModel}
-              onFilterModelChange={setFilterModel}
-              onRowSelectionModelChange={handleSelectionChange}
-              checkboxSelection
-              slotProps={{
-                toolbar: {
-                  showQuickFilter: true,
-                  quickFilterProps: { debounceMs: 500 },
-                },
-              }}
+            <Paper
+              elevation={0}
               sx={{
-                border: "none",
-                "& .MuiDataGrid-columnHeaders": {
-                  backgroundColor: theme.palette.background.paper,
-                  borderBottom: `1px solid ${theme.palette.divider}`,
-                },
-                "& .MuiDataGrid-cell": {
-                  borderBottom: `1px solid ${theme.palette.divider}`,
-                },
-                "& .MuiDataGrid-virtualScroller": {
-                  backgroundColor: theme.palette.background.default,
-                },
-                "& .MuiDataGrid-footerContainer": {
-                  borderTop: `1px solid ${theme.palette.divider}`,
-                  backgroundColor: theme.palette.background.paper,
-                },
-                "& .MuiDataGrid-row": {
-                  "&:hover": {
-                    backgroundColor: theme.palette.action.hover,
-                  },
-                  "&.Mui-selected": {
-                    backgroundColor: theme.palette.action.selected,
-                    "&:hover": {
-                      backgroundColor: theme.palette.action.selected,
-                    },
-                  },
-                },
-                overflow: "auto",
-                height: "100%",
+                height: "85%",
                 width: "100%",
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                overflow: "auto",
               }}
-            />
-          )}
-        </Paper>
-      </Box>
-    </LocalizationProvider>
+            >
+              {records && (
+                <DataGrid
+                  pagination
+                  rows={records}
+                  columns={columns}
+                  disableDensitySelector
+                  paginationMode="server"
+                  rowCount={totalRecordCount}
+                  paginationModel={paginationModel}
+                  onPaginationModelChange={setPaginationModel}
+                  disableRowSelectionOnClick
+                  loading={recordLoadingState === State.loading}
+                  getRowId={(row) => row.recordId}
+                  filterModel={filterModel}
+                  onFilterModelChange={setFilterModel}
+                  onRowSelectionModelChange={handleSelectionChange}
+                  checkboxSelection
+                  slotProps={{
+                    toolbar: {
+                      showQuickFilter: true,
+                      quickFilterProps: { debounceMs: 500 },
+                    },
+                  }}
+                  sx={{
+                    border: "none",
+                    "& .MuiDataGrid-columnHeaders": {
+                      backgroundColor: theme.palette.background.paper,
+                      borderBottom: `1px solid ${theme.palette.divider}`,
+                    },
+                    "& .MuiDataGrid-cell": {
+                      borderBottom: `1px solid ${theme.palette.divider}`,
+                    },
+                    "& .MuiDataGrid-virtualScroller": {
+                      backgroundColor: theme.palette.background.default,
+                    },
+                    "& .MuiDataGrid-footerContainer": {
+                      borderTop: `1px solid ${theme.palette.divider}`,
+                      backgroundColor: theme.palette.background.paper,
+                    },
+                    "& .MuiDataGrid-row": {
+                      "&:hover": {
+                        backgroundColor: theme.palette.action.hover,
+                      },
+                      "&.Mui-selected": {
+                        backgroundColor: theme.palette.action.selected,
+                        "&:hover": {
+                          backgroundColor: theme.palette.action.selected,
+                        },
+                      },
+                    },
+                    overflow: "auto",
+                    height: "100%",
+                    width: "100%",
+                  }}
+                />
+              )}
+            </Paper>
+          </Box>
+        </LocalizationProvider>
+      )}
+    </Box>
   );
 };
 export default TimesheetAuditView;

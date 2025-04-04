@@ -41,8 +41,10 @@ import {
   GridRenderCellParams,
 } from "@mui/x-data-grid";
 import { useEffect, useState } from "react";
+import { Messages } from "@config/constant";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
+import NoDataView from "@component/common/NoDataView";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
@@ -68,6 +70,7 @@ const TimesheetDataGrid = () => {
   const [errors, setErrors] = useState<Partial<Record<keyof TimesheetRecord, string>>>({});
   const leadEmail = useAppSelector((state) => state.user.userInfo?.employeeInfo.managerEmail);
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
+  const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
@@ -359,210 +362,216 @@ const TimesheetDataGrid = () => {
   }, []);
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
-        {timesheetInfo && workPolicies && (
-          <Box sx={{ width: "100%", height: "auto" }}>
-            <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} />
-          </Box>
-        )}
+    <Box sx={{ width: "100%", height: "100%" }}>
+      {timesheetLoadingInfo === State.failed ? (
+        <NoDataView message={Messages.error.fetchRecords} type="error" />
+      ) : (
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
+            {timesheetInfo && workPolicies && (
+              <Box sx={{ width: "100%", height: "auto" }}>
+                <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} />
+              </Box>
+            )}
 
-        <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
-          <FilterComponent
-            availableFields={availableFields}
-            filters={filters}
-            setFilters={setFilters}
-            onApply={fetchData}
-            onReset={handleResetFilters}
-          />
+            <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
+              <FilterComponent
+                availableFields={availableFields}
+                filters={filters}
+                setFilters={setFilters}
+                onApply={fetchData}
+                onReset={handleResetFilters}
+              />
 
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenDialog}
-            sx={{
-              boxShadow: "none",
-              "&:hover": { boxShadow: "none" },
-            }}
-          >
-            ADD NEW ENTRIES
-          </Button>
-        </Stack>
-        <Paper
-          elevation={0}
-          sx={{
-            height: "72%",
-            width: "100%",
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: "divider",
-            overflow: "auto",
-          }}
-        >
-          {records && (
-            <DataGrid
-              pagination
-              rows={records}
-              columns={columns}
-              disableDensitySelector
-              paginationMode="server"
-              rowCount={totalRecordCount}
-              paginationModel={paginationModel}
-              pageSizeOptions={[5]}
-              onPaginationModelChange={setPaginationModel}
-              loading={recordLoadingState === State.loading}
-              getRowId={(row) => row.recordId}
-              filterModel={filterModel}
-              onFilterModelChange={setFilterModel}
-              slotProps={{
-                toolbar: {
-                  showQuickFilter: true,
-                  quickFilterProps: { debounceMs: 500 },
-                },
-              }}
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleOpenDialog}
+                sx={{
+                  boxShadow: "none",
+                  "&:hover": { boxShadow: "none" },
+                }}
+              >
+                ADD NEW ENTRIES
+              </Button>
+            </Stack>
+            <Paper
+              elevation={0}
               sx={{
-                border: "none",
-                "& .MuiDataGrid-columnHeaders": {
-                  backgroundColor: theme.palette.background.paper,
-                  borderBottom: `1px solid ${theme.palette.divider}`,
-                },
-                "& .MuiDataGrid-cell": {
-                  borderBottom: `1px solid ${theme.palette.divider}`,
-                },
-                "& .MuiDataGrid-virtualScroller": {
-                  backgroundColor: theme.palette.background.default,
-                },
-                "& .MuiDataGrid-footerContainer": {
-                  borderTop: `1px solid ${theme.palette.divider}`,
-                  backgroundColor: theme.palette.background.paper,
-                },
-                "& .MuiDataGrid-row": {
-                  "&:hover": {
-                    backgroundColor: theme.palette.action.hover,
-                  },
-                  "&.Mui-selected": {
-                    backgroundColor: theme.palette.action.selected,
-                    "&:hover": {
-                      backgroundColor: theme.palette.action.selected,
-                    },
-                  },
-                },
-                overflow: "auto",
-                height: "100%",
+                height: "72%",
                 width: "100%",
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                overflow: "auto",
               }}
-            />
-          )}
-        </Paper>
-
-        <CustomModal open={openDialog} onClose={handleCloseDialog}>
-          <SubmitRecordModal onClose={handleCloseDialog} />
-        </CustomModal>
-
-        <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-          <DialogTitle>Edit Time Entry</DialogTitle>
-          <DialogContent>
-            {editingEntry && (
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12} md={6}>
-                  <DatePicker
-                    label="Date"
-                    value={editingEntry.recordDate}
-                    disabled
-                    onChange={(newDate) => handleEditFieldChange("recordDate", newDate)}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        variant: "outlined",
-                        error: !!errors.recordDate,
-                        helperText: errors.recordDate,
+            >
+              {records && (
+                <DataGrid
+                  pagination
+                  rows={records}
+                  columns={columns}
+                  disableDensitySelector
+                  paginationMode="server"
+                  rowCount={totalRecordCount}
+                  paginationModel={paginationModel}
+                  pageSizeOptions={[5]}
+                  onPaginationModelChange={setPaginationModel}
+                  loading={recordLoadingState === State.loading}
+                  getRowId={(row) => row.recordId}
+                  filterModel={filterModel}
+                  onFilterModelChange={setFilterModel}
+                  slotProps={{
+                    toolbar: {
+                      showQuickFilter: true,
+                      quickFilterProps: { debounceMs: 500 },
+                    },
+                  }}
+                  sx={{
+                    border: "none",
+                    "& .MuiDataGrid-columnHeaders": {
+                      backgroundColor: theme.palette.background.paper,
+                      borderBottom: `1px solid ${theme.palette.divider}`,
+                    },
+                    "& .MuiDataGrid-cell": {
+                      borderBottom: `1px solid ${theme.palette.divider}`,
+                    },
+                    "& .MuiDataGrid-virtualScroller": {
+                      backgroundColor: theme.palette.background.default,
+                    },
+                    "& .MuiDataGrid-footerContainer": {
+                      borderTop: `1px solid ${theme.palette.divider}`,
+                      backgroundColor: theme.palette.background.paper,
+                    },
+                    "& .MuiDataGrid-row": {
+                      "&:hover": {
+                        backgroundColor: theme.palette.action.hover,
                       },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={editingEntry.isLunchIncluded === 1 || editingEntry.isLunchIncluded === true}
-                        onChange={(e) => handleEditFieldChange("isLunchIncluded", e.target.checked ? 1 : 0)}
-                        name="isLunchIncluded"
-                        color="primary"
+                      "&.Mui-selected": {
+                        backgroundColor: theme.palette.action.selected,
+                        "&:hover": {
+                          backgroundColor: theme.palette.action.selected,
+                        },
+                      },
+                    },
+                    overflow: "auto",
+                    height: "100%",
+                    width: "100%",
+                  }}
+                />
+              )}
+            </Paper>
+
+            <CustomModal open={openDialog} onClose={handleCloseDialog}>
+              <SubmitRecordModal onClose={handleCloseDialog} />
+            </CustomModal>
+
+            <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
+              <DialogTitle>Edit Time Entry</DialogTitle>
+              <DialogContent>
+                {editingEntry && (
+                  <Grid container spacing={2} sx={{ mt: 1 }}>
+                    <Grid item xs={12} md={6}>
+                      <DatePicker
+                        label="Date"
+                        value={editingEntry.recordDate}
+                        disabled
+                        onChange={(newDate) => handleEditFieldChange("recordDate", newDate)}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            variant: "outlined",
+                            error: !!errors.recordDate,
+                            helperText: errors.recordDate,
+                          },
+                        }}
                       />
-                    }
-                    label="Lunch Break Taken"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TimePicker
-                    label="Clock In"
-                    value={editingEntry.clockInTime}
-                    onChange={(newTime) => handleEditFieldChange("clockInTime", newTime)}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        variant: "outlined",
-                        error: !!errors.clockInTime,
-                        helperText: errors.clockInTime,
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TimePicker
-                    label="Clock Out"
-                    value={editingEntry.clockOutTime}
-                    onChange={(newTime) => handleEditFieldChange("clockOutTime", newTime)}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        variant: "outlined",
-                        error: !!errors.clockOutTime,
-                        helperText: errors.clockOutTime,
-                      },
-                    }}
-                  />
-                </Grid>
-                {editingEntry.overtimeDuration > 0 && (
-                  <Grid item xs={12}>
-                    <TextField
-                      label="Overtime Reason"
-                      value={editingEntry.overtimeReason}
-                      onChange={(e) => handleEditFieldChange("overtimeReason", e.target.value)}
-                      error={!!errors.overtimeReason}
-                      helperText={errors.overtimeReason}
-                      variant="outlined"
-                      fullWidth
-                      multiline
-                      required={editingEntry.overtimeDuration > 0}
-                      InputProps={{
-                        startAdornment: editingEntry.overtimeDuration > 0 && (
-                          <InputAdornment position="start">
-                            <Chip
-                              label={`OT: ${editingEntry.overtimeDuration.toFixed(2)} hrs`}
-                              color="primary"
-                              size="small"
-                            />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={editingEntry.isLunchIncluded === 1 || editingEntry.isLunchIncluded === true}
+                            onChange={(e) => handleEditFieldChange("isLunchIncluded", e.target.checked ? 1 : 0)}
+                            name="isLunchIncluded"
+                            color="primary"
+                          />
+                        }
+                        label="Lunch Break Taken"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TimePicker
+                        label="Clock In"
+                        value={editingEntry.clockInTime}
+                        onChange={(newTime) => handleEditFieldChange("clockInTime", newTime)}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            variant: "outlined",
+                            error: !!errors.clockInTime,
+                            helperText: errors.clockInTime,
+                          },
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TimePicker
+                        label="Clock Out"
+                        value={editingEntry.clockOutTime}
+                        onChange={(newTime) => handleEditFieldChange("clockOutTime", newTime)}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            variant: "outlined",
+                            error: !!errors.clockOutTime,
+                            helperText: errors.clockOutTime,
+                          },
+                        }}
+                      />
+                    </Grid>
+                    {editingEntry.overtimeDuration > 0 && (
+                      <Grid item xs={12}>
+                        <TextField
+                          label="Overtime Reason"
+                          value={editingEntry.overtimeReason}
+                          onChange={(e) => handleEditFieldChange("overtimeReason", e.target.value)}
+                          error={!!errors.overtimeReason}
+                          helperText={errors.overtimeReason}
+                          variant="outlined"
+                          fullWidth
+                          multiline
+                          required={editingEntry.overtimeDuration > 0}
+                          InputProps={{
+                            startAdornment: editingEntry.overtimeDuration > 0 && (
+                              <InputAdornment position="start">
+                                <Chip
+                                  label={`OT: ${editingEntry.overtimeDuration.toFixed(2)} hrs`}
+                                  color="primary"
+                                  size="small"
+                                />
+                              </InputAdornment>
+                            ),
+                          }}
+                        />
+                      </Grid>
+                    )}
                   </Grid>
                 )}
-              </Grid>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEditDialogOpen(false)} color="secondary">
-              Cancel
-            </Button>
-            <Button onClick={handleSaveEditedEntry} color="primary">
-              Save Changes
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
-    </LocalizationProvider>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setEditDialogOpen(false)} color="secondary">
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveEditedEntry} color="primary">
+                  Save Changes
+                </Button>
+              </DialogActions>
+            </Dialog>
+          </Box>
+        </LocalizationProvider>
+      )}
+    </Box>
   );
 };
 export default TimesheetDataGrid;

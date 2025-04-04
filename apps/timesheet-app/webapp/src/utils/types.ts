@@ -113,7 +113,6 @@ export interface CreateUITimesheetRecord {
   isLunchIncluded: boolean;
   overtimeDuration: number;
   overtimeReason: string | null;
-  overtimeStatus: TimesheetStatus;
 }
 
 export interface TimesheetData {
