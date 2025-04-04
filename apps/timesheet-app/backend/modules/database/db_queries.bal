@@ -181,11 +181,7 @@ isolated function getTimesheetInfoQuery(TimesheetCommonFilter filter) returns sq
                     FROM
                         timesheet_work_policies
                     WHERE
-                        company_name = (SELECT
-                                ts_company_name
-                            FROM
-                                timesheet_records
-                            LIMIT 1)),
+                        company_name LIKE ${filter.companyName}),
                 0) - COALESCE(SUM(CASE
                     WHEN ts_ot_status = ${APPROVED} THEN ts_ot_hours
                     ELSE 0

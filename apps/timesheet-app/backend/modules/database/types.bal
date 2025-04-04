@@ -102,6 +102,8 @@ public type TimesheetCommonFilter record {|
     string? rangeEnd;
     # Dates array to filter
     string[]? recordDates;
+    # Company name to filter
+    string? companyName;
 |};
 
 # Timesheet information record type.

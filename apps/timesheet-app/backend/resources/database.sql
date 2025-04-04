@@ -31,8 +31,7 @@ CREATE TABLE timesheet_records (
     ts_updated_by VARCHAR(100),
     CONSTRAINT ts_fk_wp FOREIGN KEY (ts_company_name)
         REFERENCES timesheet_work_policies (company_name)
-        ON DELETE SET NULL,
-    CONSTRAINT unique_employee_date UNIQUE (ts_employee_email , ts_record_date)
+        ON DELETE SET NULL
 );
 
 
