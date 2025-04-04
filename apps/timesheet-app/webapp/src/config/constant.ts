@@ -21,7 +21,7 @@ export const Messages = {
     updateRecords: "Successfully updated the records",
   },
   error: {
-    fetchRecords: "Unable to retrieve timesheet records",
+    fetchRecords: "Unable to retrieve timesheet logs",
     sendRecords: "Unable to save timesheet records",
     otExceeds: "This entries exceeds the available overtime quota",
     updateRecords: "Unable to update the records",

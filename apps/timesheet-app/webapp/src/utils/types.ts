@@ -117,7 +117,7 @@ export interface CreateUITimesheetRecord {
 
 export interface TimesheetData {
   totalRecordCount: number;
-  timesheetRecords: TimesheetRecord[];
+  timeLogs: TimesheetRecord[];
   timesheetInfo: TimesheetInfo;
 }
 

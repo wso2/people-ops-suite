@@ -38,8 +38,8 @@ const ReportView = () => {
   const dispatch = useAppDispatch();
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
+  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs || []);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
-  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
 
   const [filters, setFilters] = useState<Filter[]>([]);
