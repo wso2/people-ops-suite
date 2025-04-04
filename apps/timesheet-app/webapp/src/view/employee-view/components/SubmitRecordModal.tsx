@@ -50,7 +50,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PublishIcon from "@mui/icons-material/Publish";
 import { HourglassBottom } from "@mui/icons-material";
-import { CreateUITimesheetRecord } from "@utils/types";
+import { ConfirmationType, CreateUITimesheetRecord } from "@utils/types";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { useAppDispatch, useAppSelector } from "@slices/store";
@@ -58,6 +58,7 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import { addTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
+import { useConfirmationModalContext } from "@context/DialogContext";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { format, differenceInMinutes, isWeekend, startOfDay, subDays, isSameDay } from "date-fns";
 
@@ -67,19 +68,20 @@ interface TimeTrackingFormProps {
 
 const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   const dispatch = useAppDispatch();
-  const regularLunchHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.lunchHoursPerDay);
-  const regularWorkHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.workingHoursPerDay);
   const newRecordId = useRef<number>(0);
-  const regularWorkMinutes = (regularWorkHoursPerDay ?? 8) * 60;
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [entries, setEntries] = useState<CreateUITimesheetRecord[]>([]);
   const totalDays = entries.length;
-  const userEmail = useAppSelector((state) => state.user.userInfo!.employeeInfo.workEmail);
   const [editingEntry, setEditingEntry] = useState<CreateUITimesheetRecord | null>(null);
+  const userEmail = useAppSelector((state) => state.user.userInfo!.employeeInfo.workEmail);
   const totalOvertimeHours = entries.reduce((sum, entry) => sum + entry.overtimeDuration, 0);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
+  const regularLunchHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.lunchHoursPerDay);
+  const regularWorkHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.workingHoursPerDay);
+  const regularWorkMinutes = (regularWorkHoursPerDay ?? 8) * 60;
+  const dialogContext = useConfirmationModalContext();
 
   function createNewEntry(): CreateUITimesheetRecord {
     return {
@@ -292,7 +294,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
       recordId: (newRecordId.current += 1),
       recordDate: newDate,
       overtimeDuration: 0,
-      overtimeReason: "",
     };
 
     if (lastEntry.clockInTime) {
@@ -326,6 +327,19 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     );
   };
 
+  const handleSubmitRecordModalClose = () => {
+    dialogContext.showConfirmation(
+      "Do you want to close this window?",
+      "",
+      ConfirmationType.accept,
+      () => {
+        onClose?.();
+      },
+      "Yes",
+      "No"
+    );
+  };
+
   return (
     <Box sx={{ height: "100%", overflow: "auto" }}>
       <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -353,19 +367,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                       px: 1,
                     }}
                   />
-                  <Chip
-                    title="OT Remaining"
-                    label={`OT Remaining ${timesheetInfo?.overTimeLeft.toFixed(1)}h`}
-                    icon={<HourglassBottom />}
-                    variant="outlined"
-                    size="medium"
-                    sx={{
-                      borderWidth: 2,
-                      px: 1,
-                    }}
-                  />
-
-                  <IconButton color="secondary" onClick={onClose} sx={{ mx: 1 }}>
+                  <IconButton color="secondary" onClick={handleSubmitRecordModalClose} sx={{ mx: 1 }}>
                     <CloseIcon />
                   </IconButton>
                 </Box>
@@ -485,7 +487,14 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
         </Card>
 
         <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-          <DialogTitle>{isAddingNew ? "Add New Time Entry" : "Edit Time Entry"}</DialogTitle>
+          <DialogTitle>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1 }}>
+              {isAddingNew ? "Add New Time Entry" : "Edit Time Entry"}{" "}
+              <IconButton color="secondary" onClick={() => setEditDialogOpen(false)} sx={{ mx: 1 }}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </DialogTitle>
           <DialogContent>
             {editingEntry && (
               <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -578,10 +587,20 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setEditDialogOpen(false)} color="secondary">
+            <Button
+              onClick={() => setEditDialogOpen(false)}
+              color="secondary"
+              variant="outlined"
+              startIcon={<CloseIcon />}
+            >
               Cancel
             </Button>
-            <Button onClick={handleSaveEditedEntry} color="primary">
+            <Button
+              onClick={handleSaveEditedEntry}
+              color="primary"
+              startIcon={isAddingNew ? <AddIcon /> : <HourglassBottom />}
+              variant="contained"
+            >
               {isAddingNew ? "Add Entry" : "Save Changes"}
             </Button>
           </DialogActions>

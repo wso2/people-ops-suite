@@ -43,7 +43,9 @@ import {
 import { useEffect, useState } from "react";
 import { Messages } from "@config/constant";
 import AddIcon from "@mui/icons-material/Add";
+import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from "@mui/icons-material/Edit";
+import CloseIcon from "@mui/icons-material/Close";
 import NoDataView from "@component/common/NoDataView";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
@@ -64,15 +66,14 @@ const TimesheetDataGrid = () => {
   const dispatch = useAppDispatch();
   const handleOpenDialog = () => setOpenDialog(true);
   const [openDialog, setOpenDialog] = useState(false);
-  const handleCloseDialog = () => setOpenDialog(false);
   const userEmail = useAppSelector((state) => state.auth.userInfo?.email);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const [errors, setErrors] = useState<Partial<Record<keyof TimesheetRecord, string>>>({});
   const leadEmail = useAppSelector((state) => state.user.userInfo?.employeeInfo.managerEmail);
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
+  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs || []);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
-  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
   const regularLunchHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.lunchHoursPerDay);
   const regularWorkHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.workingHoursPerDay);
@@ -241,6 +242,11 @@ const TimesheetDataGrid = () => {
         ...filterParams,
       })
     );
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    fetchDefaultData();
   };
 
   const fetchDefaultData = async () => {
@@ -420,6 +426,7 @@ const TimesheetDataGrid = () => {
                   loading={recordLoadingState === State.loading}
                   getRowId={(row) => row.recordId}
                   filterModel={filterModel}
+                  disableRowSelectionOnClick
                   onFilterModelChange={setFilterModel}
                   slotProps={{
                     toolbar: {
@@ -560,10 +567,15 @@ const TimesheetDataGrid = () => {
                 )}
               </DialogContent>
               <DialogActions>
-                <Button onClick={() => setEditDialogOpen(false)} color="secondary">
+                <Button
+                  onClick={() => setEditDialogOpen(false)}
+                  color="secondary"
+                  startIcon={<CloseIcon />}
+                  variant="outlined"
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleSaveEditedEntry} color="primary">
+                <Button onClick={handleSaveEditedEntry} color="primary" startIcon={<SaveIcon />} variant="contained">
                   Save Changes
                 </Button>
               </DialogActions>

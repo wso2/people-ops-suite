@@ -58,8 +58,8 @@ const TimesheetAuditView = () => {
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
+  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs || []);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
-  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetRecords || []);
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
