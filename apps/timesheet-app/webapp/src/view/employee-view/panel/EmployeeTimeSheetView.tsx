@@ -190,19 +190,15 @@ const TimesheetDataGrid = () => {
       width: 120,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row">
-          <Tooltip title="Edit">
-            <span>
-              <IconButton
-                size="small"
-                color="primary"
-                onClick={() => openEditDialog(params.row)}
-                sx={{ mr: 1 }}
-                disabled={params.row.overtimeStatus === TimesheetStatus.APPROVED}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
+          {params.row.overtimeStatus === TimesheetStatus.PENDING && (
+            <Tooltip title="Edit">
+              <span>
+                <IconButton size="small" color="primary" onClick={() => openEditDialog(params.row)} sx={{ mr: 1 }}>
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
         </Stack>
       ),
     },

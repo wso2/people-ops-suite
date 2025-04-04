@@ -174,7 +174,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
           {appState === "active" ? (
             <>
               {userInfoState === State.failed && (
-                <Box sx={{ width: "60%", height: "90vh" }}>
+                <Box sx={{ width: "100%", height: "90vh" }}>
                   <NoDataView message={userInfo.stateMessage || "No Data Found"} type="error" />
                 </Box>
               )}

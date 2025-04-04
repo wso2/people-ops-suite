@@ -20,12 +20,12 @@ import ballerina/sql;
 # + companyName - Company name to filter
 # + return - Work policies or an error
 public isolated function getWorkPolicies(string companyName) returns WorkPolicies|error? {
-    WorkPolicies|sql:Error policy = databaseClient->queryRow(getWorkPoliciesQuery(companyName));
+    WorkPolicies|error policies = databaseClient->queryRow(getWorkPoliciesQuery(companyName));
 
-    if policy is sql:Error && policy is sql:NoRowsError {
+    if policies is sql:NoRowsError {
         return;
     }
-    return policy;
+    return policies;
 }
 
 # Function to get timesheet records using filters.
@@ -36,28 +36,18 @@ public isolated function getTimesheetRecords(TimesheetCommonFilter filter) retur
     stream<TimeSheetRecord, error?> recordsResult =
         databaseClient->query(getTimesheetRecordsOfEmployee(filter));
 
-    TimeSheetRecord[] timesheetRecords = [];
-    check from TimeSheetRecord timesheetRecord in recordsResult
-        do {
-            timesheetRecords.push(timesheetRecord);
-        };
-
-    return timesheetRecords;
+    return from TimeSheetRecord timesheetRecord in recordsResult
+        select timesheetRecord;
 }
 
 # Function to retrieve the timesheet record count.
 #
 # + filter - Filter type for the records
 # + return - Timesheet record count or an error
-public isolated function getTotalRecordCount(TimesheetCommonFilter filter)
-    returns int|error? {
-
+public isolated function getTotalRecordCount(TimesheetCommonFilter filter) returns int|error? {
     int|sql:Error count = databaseClient->queryRow(getTotalRecordCountQuery(filter));
     if count is sql:NoRowsError {
         return 0;
-    }
-    if count is sql:Error {
-        return;
     }
     return count;
 }
@@ -70,16 +60,17 @@ public isolated function getTotalRecordCount(TimesheetCommonFilter filter)
 # + companyName - Name of the company of the employee
 # + return - Execution result or an error
 public isolated function insertTimesheetRecords(TimeSheetRecord[] timesheetRecords, string employeeEmail,
-        string companyName, string leadEmail) returns sql:Error|sql:ExecutionResult[] {
+        string companyName, string leadEmail) returns error|int[] {
 
-    sql:ExecutionResult[]|sql:Error executionResult =
+    sql:ExecutionResult[]|sql:Error executionResults =
         databaseClient->batchExecute(insertTimesheetRecordsQuery(timesheetRecords, employeeEmail, companyName,
             leadEmail));
 
-    if executionResult is error {
-        return executionResult;
+    if executionResults is error {
+        return executionResults;
     }
-    return executionResult;
+    return from sql:ExecutionResult executionResult in executionResults
+        select check executionResult.lastInsertId.ensureType(int);
 }
 
 # Function to fetch employee timesheet info.

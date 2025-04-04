@@ -32,9 +32,10 @@ import {
   TextField,
   IconButton,
   CardHeader,
-  FormControl,
+  Typography,
   CardContent,
   DialogTitle,
+  CardActions,
   DialogActions,
   DialogContent,
   TableContainer,
@@ -45,21 +46,20 @@ import { Messages } from "@config/constant";
 import AddIcon from "@mui/icons-material/Add";
 import { TimesheetStatus } from "@utils/types";
 import EditIcon from "@mui/icons-material/Edit";
+import React, { useState, useRef } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PublishIcon from "@mui/icons-material/Publish";
 import { HourglassBottom } from "@mui/icons-material";
 import { CreateUITimesheetRecord } from "@utils/types";
-import React, { useState, useEffect, useRef } from "react";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
-import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import { addTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
-import { format, differenceInMinutes, isWeekend, startOfDay } from "date-fns";
+import { format, differenceInMinutes, isWeekend, startOfDay, subDays, isSameDay } from "date-fns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 
 interface TimeTrackingFormProps {
@@ -73,13 +73,13 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   const newRecordId = useRef<number>(0);
   const regularWorkMinutes = (regularWorkHoursPerDay ?? 8) * 60;
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [isAddingNew, setIsAddingNew] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [entries, setEntries] = useState<CreateUITimesheetRecord[]>([]);
   const totalDays = entries.length;
   const userEmail = useAppSelector((state) => state.user.userInfo!.employeeInfo.workEmail);
   const [editingEntry, setEditingEntry] = useState<CreateUITimesheetRecord | null>(null);
   const totalOvertimeHours = entries.reduce((sum, entry) => sum + entry.overtimeDuration, 0);
-  const [currentEntry, setCurrentEntry] = useState<CreateUITimesheetRecord>(createNewEntry());
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
 
   function createNewEntry(): CreateUITimesheetRecord {
@@ -95,47 +95,26 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     };
   }
 
-  useEffect(() => {
-    setCurrentEntry(calculateOvertime(currentEntry));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    currentEntry.clockInTime,
-    currentEntry.clockOutTime,
-    currentEntry.isLunchIncluded,
-    currentEntry.recordDate,
-    regularWorkMinutes,
-  ]);
-
-  const handleDateChange = (newDate: Date | null) => {
-    setCurrentEntry({ ...currentEntry, recordDate: newDate });
+  const handleAddNewEntry = () => {
+    setIsAddingNew(true);
+    setEditingEntry(createNewEntry());
+    setEditDialogOpen(true);
   };
 
-  const handleClockInChange = (newTime: Date | null) => {
-    setCurrentEntry({ ...currentEntry, clockInTime: newTime });
-  };
+  const calculateOvertime = (entry: CreateUITimesheetRecord): CreateUITimesheetRecord => {
+    if (!(entry.clockInTime && entry.clockOutTime && entry.recordDate)) return entry;
 
-  const handleClockOutChange = (newTime: Date | null) => {
-    setCurrentEntry({ ...currentEntry, clockOutTime: newTime });
-  };
+    const totalMinutes = differenceInMinutes(entry.clockOutTime, entry.clockInTime);
+    const lunchBreakMinutes = entry.isLunchIncluded ? (regularLunchHoursPerDay ?? 0) * 60 : 0;
+    const workMinutes = Math.max(0, totalMinutes - lunchBreakMinutes);
+    const overtimeMinutes = isWeekend(entry.recordDate) ? totalMinutes : Math.max(0, workMinutes - regularWorkMinutes);
 
-  const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setCurrentEntry({ ...currentEntry, isLunchIncluded: event.target.checked });
-  };
-
-  const handleOvertimeReasonChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setCurrentEntry({ ...currentEntry, overtimeReason: event.target.value });
-  };
-
-  const handleAddEntry = () => {
-    const entryErrors = validateEntry(currentEntry);
-
-    if (Object.keys(entryErrors).length === 0) {
-      setEntries([...entries, currentEntry]);
-      setCurrentEntry(createNewEntry());
-      setErrors({});
-    } else {
-      setErrors(entryErrors);
-    }
+    return {
+      ...entry,
+      overtimeDuration: parseFloat((overtimeMinutes / 60).toFixed(2)),
+      overtimeReason:
+        overtimeMinutes > 0 ? entry.overtimeReason ?? (isWeekend(entry.recordDate) ? "Weekend work" : "") : "",
+    };
   };
 
   const handleDeleteEntry = (recordId: number) => {
@@ -143,18 +122,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   };
 
   const handleBatchSubmit = () => {
-    if (entries.length === 0) {
-      const entryErrors = validateEntry(currentEntry);
-
-      if (Object.keys(entryErrors).length === 0) {
-        setEntries([...entries, currentEntry]);
-        setCurrentEntry(createNewEntry());
-      } else {
-        setErrors(entryErrors);
-      }
-    } else {
-      handleDataSubmit();
-    }
+    handleDataSubmit();
   };
 
   const cleanTimeEntries = (entries: CreateUITimesheetRecord[]) => {
@@ -178,7 +146,17 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   };
 
   const handleDataSubmit = async () => {
-    if (timesheetInfo && totalOvertimeHours > timesheetInfo?.overTimeLeft) {
+    if (entries.length === 0) {
+      dispatch(
+        enqueueSnackbarMessage({
+          message: "Please add at least one entry to submit",
+          type: "error",
+        })
+      );
+      return;
+    }
+
+    if (timesheetInfo?.overTimeLeft !== undefined && totalOvertimeHours > timesheetInfo.overTimeLeft) {
       dispatch(
         enqueueSnackbarMessage({
           message: Messages.error.otExceeds,
@@ -195,65 +173,10 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     }
   };
 
-  const handleReset = () => {
-    setCurrentEntry(createNewEntry());
-    setErrors({});
-  };
-
   const openEditDialog = (entry: CreateUITimesheetRecord) => {
+    setIsAddingNew(false);
     setEditingEntry(entry);
     setEditDialogOpen(true);
-  };
-
-  const calculateOvertime = (entry: CreateUITimesheetRecord): CreateUITimesheetRecord => {
-    if (!(entry.clockInTime && entry.clockOutTime && entry.recordDate)) return entry;
-
-    const totalMinutes = differenceInMinutes(entry.clockOutTime, entry.clockInTime);
-    const lunchBreakMinutes = entry.isLunchIncluded ? (regularLunchHoursPerDay ?? 0) * 60 : 0;
-    const workMinutes = Math.max(0, totalMinutes - lunchBreakMinutes);
-    const overtimeMinutes = isWeekend(entry.recordDate) ? totalMinutes : Math.max(0, workMinutes - regularWorkMinutes);
-
-    return {
-      ...entry,
-      overtimeDuration: parseFloat((overtimeMinutes / 60).toFixed(2)),
-      overtimeReason:
-        overtimeMinutes > 0 ? entry.overtimeReason ?? (isWeekend(entry.recordDate) ? "Weekend work" : "") : "",
-    };
-  };
-
-  const handleSaveEditedEntry = () => {
-    if (editingEntry) {
-      const updatedEntry = calculateOvertime(editingEntry);
-      const entryErrors = validateEntry(updatedEntry);
-
-      if (updatedEntry.overtimeDuration <= 0 && entryErrors.overtimeReason) {
-        delete entryErrors.overtimeReason;
-      }
-
-      if (Object.keys(entryErrors).length === 0) {
-        setEntries(entries.map((entry) => (entry.recordId === updatedEntry.recordId ? updatedEntry : entry)));
-        setEditDialogOpen(false);
-        setEditingEntry(null);
-        setErrors({});
-      } else {
-        setErrors(entryErrors);
-      }
-    }
-  };
-
-  const handleEditFieldChange = (field: keyof CreateUITimesheetRecord, value: any) => {
-    if (editingEntry) {
-      const updatedEntry = {
-        ...editingEntry,
-        [field]: value,
-      };
-
-      if (["recordDate", "clockInTime", "clockOutTime", "isLunchIncluded"].includes(field)) {
-        setEditingEntry(calculateOvertime(updatedEntry));
-      } else {
-        setEditingEntry(updatedEntry);
-      }
-    }
   };
 
   const validateEntry = (entry: CreateUITimesheetRecord): Record<string, string> => {
@@ -286,169 +209,176 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
       );
 
       if (conflictingEntry) {
-        entryErrors.recordDate = "You already have an entry for this recordDate";
+        entryErrors.recordDate = "You already have an entry for this date";
       }
     }
 
     return entryErrors;
   };
 
+  const handleSaveEditedEntry = () => {
+    if (editingEntry) {
+      const updatedEntry = calculateOvertime(editingEntry);
+      const entryErrors = validateEntry(updatedEntry);
+
+      if (updatedEntry.overtimeDuration <= 0 && entryErrors.overtimeReason) {
+        delete entryErrors.overtimeReason;
+      }
+
+      if (Object.keys(entryErrors).length === 0) {
+        if (isAddingNew) {
+          setEntries([...entries, updatedEntry]);
+        } else {
+          setEntries(entries.map((entry) => (entry.recordId === updatedEntry.recordId ? updatedEntry : entry)));
+        }
+        setEditDialogOpen(false);
+        setEditingEntry(null);
+        setErrors({});
+        setIsAddingNew(false);
+      } else {
+        setErrors(entryErrors);
+      }
+    }
+  };
+
+  const handleEditFieldChange = (field: keyof CreateUITimesheetRecord, value: any) => {
+    if (editingEntry) {
+      const updatedEntry = {
+        ...editingEntry,
+        [field]: value,
+      };
+
+      if (["recordDate", "clockInTime", "clockOutTime", "isLunchIncluded"].includes(field)) {
+        setEditingEntry(calculateOvertime(updatedEntry));
+      } else {
+        setEditingEntry(updatedEntry);
+      }
+    }
+  };
+
+  const handleDuplicateLastEntry = () => {
+    if (entries.length === 0) {
+      dispatch(
+        enqueueSnackbarMessage({
+          message: "No entries available to duplicate",
+          type: "error",
+        })
+      );
+      return;
+    }
+
+    const lastEntry = entries[entries.length - 1];
+    if (!lastEntry.recordDate) {
+      dispatch(
+        enqueueSnackbarMessage({
+          message: "Last entry must have a date to duplicate",
+          type: "error",
+        })
+      );
+      return;
+    }
+
+    const newDate = subDays(lastEntry.recordDate, 1);
+
+    if (entries.some((entry) => entry.recordDate && isSameDay(entry.recordDate, newDate))) {
+      dispatch(
+        enqueueSnackbarMessage({
+          message: "An entry already exists for this date",
+          type: "error",
+        })
+      );
+      return;
+    }
+
+    const newEntry: CreateUITimesheetRecord = {
+      ...lastEntry,
+      recordId: (newRecordId.current += 1),
+      recordDate: newDate,
+      overtimeDuration: 0,
+      overtimeReason: "",
+    };
+
+    if (lastEntry.clockInTime) {
+      newEntry.clockInTime = new Date(
+        newDate.getFullYear(),
+        newDate.getMonth(),
+        newDate.getDate(),
+        lastEntry.clockInTime.getHours(),
+        lastEntry.clockInTime.getMinutes()
+      );
+    }
+
+    if (lastEntry.clockOutTime) {
+      newEntry.clockOutTime = new Date(
+        newDate.getFullYear(),
+        newDate.getMonth(),
+        newDate.getDate(),
+        lastEntry.clockOutTime.getHours(),
+        lastEntry.clockOutTime.getMinutes()
+      );
+    }
+
+    const entryWithOvertime = calculateOvertime(newEntry);
+    setEntries([...entries, entryWithOvertime]);
+
+    dispatch(
+      enqueueSnackbarMessage({
+        message: "Duplicated last entry with previous day's date",
+        type: "success",
+      })
+    );
+  };
+
   return (
     <Box sx={{ height: "100%", overflow: "auto" }}>
       <LocalizationProvider dateAdapter={AdapterDateFns}>
-        <Card elevation={3} sx={{ height: "100%" }}>
+        <Card elevation={2} sx={{ height: "100%" }}>
           <CardHeader
             subheader="Record your work hours"
             titleTypographyProps={{ variant: "h5" }}
-            sx={{ bgcolor: "primary.main", color: "primary.contrastText" }}
             action={
               <>
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  onClick={handleBatchSubmit}
-                  sx={{ width: "160px", mx: 1 }}
-                  startIcon={<PublishIcon />}
-                  disabled={entries.length === 0}
-                >
-                  Submit Entries
-                </Button>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1 }}>
+                  <Chip
+                    title="Overtime Summary of Entries"
+                    label={
+                      <>
+                        Total: {totalDays} day{totalDays !== 1 ? "s" : ""}
+                        {totalOvertimeHours > 0 &&
+                          ` with ${totalOvertimeHours.toFixed(2)} overtime hour${totalOvertimeHours !== 1 ? "s" : ""}`}
+                      </>
+                    }
+                    icon={<ReceiptLongIcon />}
+                    variant="outlined"
+                    size="medium"
+                    sx={{
+                      borderWidth: 2,
+                      px: 1,
+                    }}
+                  />
+                  <Chip
+                    title="OT Remaining"
+                    label={`OT Remaining ${timesheetInfo?.overTimeLeft.toFixed(1)}h`}
+                    icon={<HourglassBottom />}
+                    variant="outlined"
+                    size="medium"
+                    sx={{
+                      borderWidth: 2,
+                      px: 1,
+                    }}
+                  />
 
-                <IconButton color="secondary" onClick={onClose} sx={{ mx: 1 }}>
-                  <CloseIcon />
-                </IconButton>
+                  <IconButton color="secondary" onClick={onClose} sx={{ mx: 1 }}>
+                    <CloseIcon />
+                  </IconButton>
+                </Box>
               </>
             }
           />
           <CardContent>
-            <Box sx={{ mb: 4 }}>
-              <Grid container spacing={2} alignItems="center" justifyContent="center" textAlign="center">
-                <Grid item xs={12} md={3} lg={1.5}>
-                  <DatePicker
-                    label="Date"
-                    value={currentEntry.recordDate}
-                    onChange={handleDateChange}
-                    maxDate={new Date()}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        variant: "outlined",
-                        error: !!errors.recordDate,
-                        helperText:
-                          errors.recordDate ||
-                          (currentEntry.recordDate && isWeekend(currentEntry.recordDate) ? "Weekend" : ""),
-                        sx: { textAlign: "center" },
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3} lg={1.5}>
-                  <TimePicker
-                    label="Clock In"
-                    value={currentEntry.clockInTime}
-                    onChange={handleClockInChange}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        variant: "outlined",
-                        error: !!errors.clockInTime,
-                        helperText: errors.clockInTime,
-                        sx: { textAlign: "center" },
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3} lg={1.5}>
-                  <TimePicker
-                    label="Clock Out"
-                    value={currentEntry.clockOutTime}
-                    onChange={handleClockOutChange}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        variant: "outlined",
-                        error: !!errors.clockOutTime,
-                        helperText: errors.clockOutTime,
-                        sx: { textAlign: "center" },
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3} lg={1.5} sx={{ display: "flex", justifyContent: "center" }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={currentEntry.isLunchIncluded}
-                        onChange={handleSwitchChange}
-                        name="isLunchIncluded"
-                        color="primary"
-                      />
-                    }
-                    label="Lunch Break"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6} lg={3}>
-                  {currentEntry.overtimeDuration > 0 && (
-                    <FormControl fullWidth error={!!errors.overtimeReason} variant="outlined">
-                      <TextField
-                        label="Reason for Overtime"
-                        value={currentEntry.overtimeReason}
-                        onChange={handleOvertimeReasonChange}
-                        error={!!errors.overtimeReason}
-                        helperText={errors.overtimeReason}
-                        variant="outlined"
-                        multiline
-                        required
-                        sx={{ textAlign: "center" }}
-                        InputProps={{
-                          startAdornment: currentEntry.overtimeDuration > 0 && (
-                            <InputAdornment position="end">
-                              <Tooltip title={currentEntry.overtimeReason}>
-                                <Chip
-                                  label={`${currentEntry.overtimeDuration} hr${
-                                    currentEntry.overtimeDuration !== 1 ? "s" : ""
-                                  }`}
-                                  color="primary"
-                                  size="small"
-                                  sx={{ mr: 1 }}
-                                />
-                              </Tooltip>
-                            </InputAdornment>
-                          ),
-                        }}
-                      />
-                    </FormControl>
-                  )}
-                </Grid>
-                <Grid item xs={12} md={12} lg={3}>
-                  <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      onClick={handleReset}
-                      sx={{ width: "120px" }}
-                      startIcon={<RestartAltIcon />}
-                    >
-                      Reset
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      color="primary"
-                      onClick={handleAddEntry}
-                      disabled={entries.length >= 14}
-                      startIcon={<AddIcon />}
-                      sx={{ width: "120px" }}
-                    >
-                      Add Entry
-                    </Button>
-                  </Box>
-                </Grid>
-              </Grid>
-            </Box>
-
-            {entries.length > 0 && (
-              <Box sx={{ mt: 4 }}>
-                <Divider sx={{ mb: 2 }}>
+            {entries.length > 0 ? (
+              <Box>
+                <Divider>
                   <Chip label="Entries to Submit" />
                 </Divider>
                 <TableContainer component={Paper} elevation={2}>
@@ -463,9 +393,9 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                         <TableCell>Actions</TableCell>
                       </TableRow>
                     </TableHead>
-                    <TableBody>
+                    <TableBody sx={{ maxHeight: "50vh", overflowY: "auto" }}>
                       {entries.map((entry) => (
-                        <TableRow key={entry.recordDate?.toString()}>
+                        <TableRow key={entry.recordId}>
                           <TableCell>
                             {entry.recordDate ? format(entry.recordDate, "MMM dd, yyyy") : ""}
                             {entry.recordDate && isWeekend(entry.recordDate) && (
@@ -479,7 +409,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                             {entry.overtimeDuration > 0 ? (
                               <Tooltip title={entry.overtimeReason}>
                                 <Chip
-                                  label={`${entry.overtimeDuration.toFixed(2)} hr${
+                                  label={`${entry.overtimeDuration.toFixed(2)} h${
                                     entry.overtimeDuration !== 1 ? "s" : ""
                                   }`}
                                   color="primary"
@@ -510,45 +440,55 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                     </TableBody>
                   </Table>
                 </TableContainer>
-                <Box sx={{ mt: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Chip
-                    title="OT Remaining"
-                    label={
-                      <>
-                        Total: {totalDays} day{totalDays !== 1 ? "s" : ""}
-                        {totalOvertimeHours > 0 &&
-                          ` with ${totalOvertimeHours.toFixed(2)} overtime hour${totalOvertimeHours !== 1 ? "s" : ""}`}
-                      </>
-                    }
-                    color="success"
-                    icon={<ReceiptLongIcon />}
-                    variant="outlined"
-                    size="medium"
-                    sx={{
-                      borderWidth: 2,
-                      px: 1,
-                    }}
-                  />
-                  <Chip
-                    title="OT Remaining"
-                    label={`OT Remaining ${timesheetInfo?.overTimeLeft.toFixed(1)}h`}
-                    color="success"
-                    icon={<HourglassBottom />}
-                    variant="outlined"
-                    size="medium"
-                    sx={{
-                      borderWidth: 2,
-                      px: 1,
-                    }}
-                  />
-                </Box>
+              </Box>
+            ) : (
+              <Box sx={{ textAlign: "center", py: 4 }}>
+                <Typography variant="body1" color="textSecondary" sx={{ mt: 1 }}>
+                  Click the "Add New Entry" button to get started
+                </Typography>
               </Box>
             )}
           </CardContent>
+          <CardActions>
+            <Box sx={{ display: "flex", width: "100%", justifyContent: "space-between" }}>
+              <Box>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={handleAddNewEntry}
+                  disabled={entries.length > 15}
+                  startIcon={<AddIcon />}
+                  sx={{ mx: 1 }}
+                >
+                  Add New Entry
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={handleDuplicateLastEntry}
+                  startIcon={<ReceiptLongIcon />}
+                  disabled={entries.length === 0 || entries.length > 14}
+                  sx={{ mx: 1 }}
+                >
+                  Duplicate Last Entry
+                </Button>
+              </Box>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={handleBatchSubmit}
+                sx={{ width: "160px", mx: 1 }}
+                startIcon={<PublishIcon />}
+                disabled={entries.length === 0}
+              >
+                Submit Entries
+              </Button>
+            </Box>
+          </CardActions>
         </Card>
 
         <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-          <DialogTitle>Edit Time Entry</DialogTitle>
+          <DialogTitle>{isAddingNew ? "Add New Time Entry" : "Edit Time Entry"}</DialogTitle>
           <DialogContent>
             {editingEntry && (
               <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -557,6 +497,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                     label="Date"
                     value={editingEntry.recordDate}
                     onChange={(newDate) => handleEditFieldChange("recordDate", newDate)}
+                    maxDate={new Date()}
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -621,7 +562,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                       variant="outlined"
                       fullWidth
                       multiline
-                      rows={3}
                       required={editingEntry.overtimeDuration > 0}
                       InputProps={{
                         startAdornment: editingEntry.overtimeDuration > 0 && (
@@ -645,7 +585,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
               Cancel
             </Button>
             <Button onClick={handleSaveEditedEntry} color="primary">
-              Save Changes
+              {isAddingNew ? "Add Entry" : "Save Changes"}
             </Button>
           </DialogActions>
         </Dialog>
