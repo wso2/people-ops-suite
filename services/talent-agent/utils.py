@@ -1,10 +1,4 @@
-import json
 import re
-
-
-def printOutput(output):
-    print(json.dumps(output, sort_keys=True, indent=3))
-
 
 def validate_year(year):
     try:
