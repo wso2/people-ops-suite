@@ -20,6 +20,7 @@ import userReducer from "@slices/userSlice/user";
 import { configureStore } from "@reduxjs/toolkit";
 import commonReducer from "@slices/commonSlice/common";
 import meetingReducer from "@slices/meetingSlice/meeting";
+import employeeReducer from "@slices/employeeSlice/employee";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 
 enableMapSet();
@@ -28,6 +29,7 @@ export const store = configureStore({
   reducer: {
     auth: authReducer,
     user: userReducer,
+    employee: employeeReducer,
     common: commonReducer,
     meeting: meetingReducer,
   },

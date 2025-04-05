@@ -25,6 +25,7 @@ export const SnackMessage = {
     fetchPrivileges: "Failed to fetch Privileges",
     insufficientPrivileges: "Insufficient Privileges",
     fetchMeetings: "Unable to retrieve list of Meetings",
+    fetchEmployees: "Unable to retrieve list of Employees",
     fetchAttachments: "Unable to retrieve list of Attachments",
     fetchMeetingTypes: "Unable to retrieve list of Meeting Types",
   },
