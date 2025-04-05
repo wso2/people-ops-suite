@@ -27,8 +27,10 @@ personal_info_schema = Object(
     ],
     examples=[
         (
-            ("ASHLEY GILL 3 Lappage Court Telephone: 01882 652349 Tyler Green, Bucks. Mobile: 07717 121824 HP8 4JD "
-            "Email: ashleygill2023@gotmail.com"),
+            (
+                "ASHLEY GILL 3 Lappage Court Telephone: 01882 652349 Tyler Green, Bucks. Mobile: 07717 121824 HP8 4JD "
+                "Email: ashleygill2023@gotmail.com"
+            ),
             [
                 {
                     "full_name": "Ashley Gill",
@@ -40,10 +42,12 @@ personal_info_schema = Object(
             ],
         ),
         (
-            ("Hasanga University of Moratuwa, Sri Lanka 2021 - Present Ranasinghe B.Sc. Engineering (Hons) Specialised "
-            "in Computer Science and Engineering Computer Science & Stream: Data Science and Engineering Combined "
-            "Mathematics(A), Physics(A), Chemistry(A) +94 70 168 4781 Z-Score: 2.0883 G.C.E Ordinary Level Examination "
-            "(2017) hasanga-ranasinghe 8 A’s hasanga1 dinithhasangare@gmail.com Projects Kadawatha, Sri Lanka."),
+            (
+                "Hasanga University of Moratuwa, Sri Lanka 2021 - Present Ranasinghe B.Sc. Engineering (Hons) Specialised "
+                "in Computer Science and Engineering Computer Science & Stream: Data Science and Engineering Combined "
+                "Mathematics(A), Physics(A), Chemistry(A) +94 70 168 4781 Z-Score: 2.0883 G.C.E Ordinary Level Examination "
+                "(2017) hasanga-ranasinghe 8 A’s hasanga1 dinithhasangare@gmail.com Projects Kadawatha, Sri Lanka."
+            ),
             [
                 {
                     "full_name": "Hasanga Ranasinghe",
@@ -104,8 +108,10 @@ professional_links_schema = Object(
     ],
     examples=[
         (
-            ("LinkedIn: https://www.linkedin.com/in/johndoe GitHub: https://github.com/johndoe Portfolio: "
-            "https://johndoe.com"),
+            (
+                "LinkedIn: https://www.linkedin.com/in/johndoe GitHub: https://github.com/johndoe Portfolio: "
+                "https://johndoe.com"
+            ),
             [
                 {
                     "linkedin": "https://www.linkedin.com/in/johndoe",
@@ -122,8 +128,10 @@ professional_links_schema = Object(
             ],
         ),
         (
-            ("LinkedIn: https://www.linkedin.com/in/janedoe GitHub: https://github.com/janedoe GitLab: "
-            "https://gitlab.com/janedoe"),
+            (
+                "LinkedIn: https://www.linkedin.com/in/janedoe GitHub: https://github.com/janedoe GitLab: "
+                "https://gitlab.com/janedoe"
+            ),
             [
                 {
                     "linkedin": "https://www.linkedin.com/in/janedoe",
@@ -486,23 +494,23 @@ candidate_skill_score_schema = Object(
     attributes=[
         Number(
             id="experience_score",
-            description="A score from 0 to 10 based on relevant professional experience"
+            description="A score from 0 to 10 based on relevant professional experience",
         ),
         Number(
             id="certification_score",
-            description="A score from 0 to 10 based on relevant certifications"
+            description="A score from 0 to 10 based on relevant certifications",
         ),
         Number(
             id="project_score",
-            description="A score from 0 to 10 based on relevant projects"
+            description="A score from 0 to 10 based on relevant projects and their github info if available",
         ),
         Number(
             id="education_score",
-            description="A score from 0 to 10 based on relevant education and coursework"
+            description="A score from 0 to 10 based on relevant education and coursework",
         ),
         Text(
             id="evaluation_text",
-            description="A detailed explanation justifying the scores across all evaluation criteria"
+            description="A detailed explanation justifying the scores across all evaluation criteria",
         ),
     ],
     examples=[
@@ -525,17 +533,19 @@ candidate_skill_score_schema = Object(
             - Education: Computer Science BS from State University (2019). Relevant courses: Data Structures, Machine \
                 Learning
             """,
-            [{
-                "experience_score": 9.0,
-                "certification_score": 6.0,
-                "project_score": 9.0,
-                "education_score": 7.0,
-                "evaluation_text": "The candidate demonstrates strong Python skills through their experience leading \
+            [
+                {
+                    "experience_score": 9.0,
+                    "certification_score": 6.0,
+                    "project_score": 9.0,
+                    "education_score": 7.0,
+                    "evaluation_text": "The candidate demonstrates strong Python skills through their experience leading \
                     a Python development team and building data pipelines using Python. Their projects show practical \
                         application of Python in complex ETL processes. While they lack Python-specific certifications,\
                               their CS degree and relevant coursework provide a solid foundation. Overall, this is a \
-                                strong Python candidate with professional leadership experience."
-            }]
+                                strong Python candidate with professional leadership experience.",
+                }
+            ],
         ),
         (
             """
@@ -555,17 +565,19 @@ candidate_skill_score_schema = Object(
             - Education: Computer Science BS from State University (2019). Relevant courses: Data Structures, Machine \
                 Learning
             """,
-            [{
-                "experience_score": 2.0,
-                "certification_score": 0.0,
-                "project_score": 0.0,
-                "education_score": 4.0,
-                "evaluation_text": "The candidate shows minimal evidence of mobile development skills. Their \
+            [
+                {
+                    "experience_score": 2.0,
+                    "certification_score": 0.0,
+                    "project_score": 0.0,
+                    "education_score": 4.0,
+                    "evaluation_text": "The candidate shows minimal evidence of mobile development skills. Their \
                     experience and projects focus on backend and cloud infrastructure rather than mobile platforms. \
                         They have no mobile-specific certifications. Their CS degree provides general programming \
                             knowledge but no specific mobile development training is mentioned. The candidate would \
-                                need significant training to transition to mobile development."
-            }]
-        )
-    ]
+                                need significant training to transition to mobile development.",
+                }
+            ],
+        ),
+    ],
 )

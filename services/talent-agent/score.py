@@ -1,9 +1,84 @@
 from llm_utils import llm
 from kor.extraction import create_extraction_chain
 from schemas import candidate_skill_score_schema
+import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 chain = create_extraction_chain(llm, candidate_skill_score_schema)
 
+def extract_repo_info(repo_url):
+    try:
+        parts = repo_url.strip("/").split("/")
+        owner = parts[-2]
+        name = parts[-1]
+        return owner, name
+    except Exception:
+        return None, None
+
+def analyze_github_project(repo_url):
+    owner, name = extract_repo_info(repo_url)
+    if not owner or not name:
+        return {"error": "Invalid GitHub URL"}
+
+    headers = {"Authorization": f"Bearer {os.getenv("GITHUB_TOKEN")}"}
+    query = """
+    query($owner: String!, $name: String!) {
+      repository(owner: $owner, name: $name) {
+        name
+        stargazerCount
+        forkCount
+        updatedAt
+        defaultBranchRef {
+          target {
+            ... on Commit {
+              history(first: 100) {
+                totalCount
+              }
+            }
+          }
+        }
+        pullRequests(states: MERGED) {
+          totalCount
+        }
+        readme: object(expression: "HEAD:README.md") {
+          ... on Blob {
+            text
+          }
+        }
+      }
+    }
+    """
+
+    variables = {"owner": owner, "name": name}
+
+    response = requests.post(
+        os.getenv("GITHUB_API_URL"),
+        json={"query": query, "variables": variables},
+        headers=headers,
+    )
+
+    resp_json = response.json()
+
+    if "errors" in resp_json:
+        print("GraphQL Error:", resp_json["errors"])
+        return {""}
+
+    if "data" not in resp_json or not resp_json["data"].get("repository"):
+        print("Repository not found or inaccessible.")
+        return {""}
+
+    repo = resp_json["data"]["repository"]
+
+    return {
+        "stars": repo["stargazerCount"],
+        "forks": repo["forkCount"],
+        "last_updated": repo["updatedAt"],
+        "commits": repo["defaultBranchRef"]["target"]["history"]["totalCount"],
+        "merged_prs": repo["pullRequests"]["totalCount"],
+    }
 
 def evaluate_candidate(
     candidate,
@@ -130,6 +205,7 @@ def format_projects(projects, skill):
         name = project.get("name", "")
         description = project.get("description", "")
         tech_stack = project.get("technologies", [])
+        github_link = project.get("github", "")
 
         skill_mentioned = (
             skill.lower() in description.lower()
@@ -140,6 +216,9 @@ def format_projects(projects, skill):
         project_text = f"{name}: {description} (Technologies: {tech_text})"
         if skill_mentioned:
             project_text = f"[RELEVANT] {project_text}"
+
+        if github_link:
+            project_text += f" [GitHub Info About the project: {analyze_github_project(github_link)}]"
 
         project_list.append(project_text)
 
