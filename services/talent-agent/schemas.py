@@ -517,17 +517,24 @@ candidate_skill_score_schema = Object(
             4. Education: Relevant formal education related to this skill (0-10)
             
             Candidate information:
-            - Experience: [RELEVANT] Senior Developer at Tech Co (2020-2023): Led Python development team on cloud infrastructure projects
+            - Experience: [RELEVANT] Senior Developer at Tech Co (2020-2023): Led Python development team on cloud \
+                infrastructure projects
             - Certifications: AWS Certified Solutions Architect from Amazon (2021)
-            - Projects: [RELEVANT] Data Pipeline: Built ETL pipeline for financial data (Technologies: Python, AWS, Airflow)
-            - Education: Computer Science BS from State University (2019). Relevant courses: Data Structures, Machine Learning
+            - Projects: [RELEVANT] Data Pipeline: Built ETL pipeline for financial data (Technologies: Python, AWS, \
+                Airflow)
+            - Education: Computer Science BS from State University (2019). Relevant courses: Data Structures, Machine \
+                Learning
             """,
             [{
                 "experience_score": 9.0,
                 "certification_score": 6.0,
                 "project_score": 9.0,
                 "education_score": 7.0,
-                "evaluation_text": "The candidate demonstrates strong Python skills through their experience leading a Python development team and building data pipelines using Python. Their projects show practical application of Python in complex ETL processes. While they lack Python-specific certifications, their CS degree and relevant coursework provide a solid foundation. Overall, this is a strong Python candidate with professional leadership experience."
+                "evaluation_text": "The candidate demonstrates strong Python skills through their experience leading \
+                    a Python development team and building data pipelines using Python. Their projects show practical \
+                        application of Python in complex ETL processes. While they lack Python-specific certifications,\
+                              their CS degree and relevant coursework provide a solid foundation. Overall, this is a \
+                                strong Python candidate with professional leadership experience."
             }]
         ),
         (
@@ -541,17 +548,23 @@ candidate_skill_score_schema = Object(
             4. Education: Relevant formal education related to this skill (0-10)
             
             Candidate information:
-            - Experience: Senior Developer at Tech Co (2020-2023): Led Python development team on cloud infrastructure projects
+            - Experience: Senior Developer at Tech Co (2020-2023): Led Python development team on cloud infrastructure\
+                  projects
             - Certifications: AWS Certified Solutions Architect from Amazon (2021)
             - Projects: Data Pipeline: Built ETL pipeline for financial data (Technologies: Python, AWS, Airflow)
-            - Education: Computer Science BS from State University (2019). Relevant courses: Data Structures, Machine Learning
+            - Education: Computer Science BS from State University (2019). Relevant courses: Data Structures, Machine \
+                Learning
             """,
             [{
                 "experience_score": 2.0,
                 "certification_score": 0.0,
                 "project_score": 0.0,
                 "education_score": 4.0,
-                "evaluation_text": "The candidate shows minimal evidence of mobile development skills. Their experience and projects focus on backend and cloud infrastructure rather than mobile platforms. They have no mobile-specific certifications. Their CS degree provides general programming knowledge but no specific mobile development training is mentioned. The candidate would need significant training to transition to mobile development."
+                "evaluation_text": "The candidate shows minimal evidence of mobile development skills. Their \
+                    experience and projects focus on backend and cloud infrastructure rather than mobile platforms. \
+                        They have no mobile-specific certifications. Their CS degree provides general programming \
+                            knowledge but no specific mobile development training is mentioned. The candidate would \
+                                need significant training to transition to mobile development."
             }]
         )
     ]
