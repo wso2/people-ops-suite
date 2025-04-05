@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { Meeting } from "@slices/meetingSlice/meeting";
+import { Meeting } from "@utils/types";
 
 export enum State {
   failed = "failed",
