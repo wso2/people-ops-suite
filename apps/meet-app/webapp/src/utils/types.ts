@@ -52,8 +52,8 @@ export interface UserInfoInterface {
 }
 
 export enum Role {
-  SALES_ADMIN = "SALES_ADMIN",
-  SALES_TEAM = "SALES_TEAM",
+  ADMIN = "ADMIN",
+  TEAM = "TEAM",
 }
 
 export interface MeetingTypes {

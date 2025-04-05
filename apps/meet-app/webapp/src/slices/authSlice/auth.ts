@@ -49,10 +49,10 @@ export const loadPrivileges = createAsyncThunk(
     const roles: Role[] = [];
 
     if (userPrivileges.includes(762)) {
-      roles.push(Role.SALES_ADMIN);
+      roles.push(Role.ADMIN);
     }
     if (userPrivileges.includes(987)) {
-      roles.push(Role.SALES_TEAM);
+      roles.push(Role.TEAM);
     }
 
     if (roles.length === 0) {

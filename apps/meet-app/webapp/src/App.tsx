@@ -14,40 +14,30 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { createContext, useState, useMemo } from "react";
-import { Provider } from "react-redux";
-
-// MUI imports
-import { ThemeProvider, createTheme } from "@mui/material/styles";
-
-// APP imports
+import "@src/App.scss";
 import { store } from "@slices/store";
+import { Provider } from "react-redux";
 import { ThemeMode } from "@utils/types";
-import { APP_NAME, AsgardeoConfig } from "@config/config";
 import AppHandler from "@app/AppHandler";
 import { themeSettings } from "@src/theme";
-import "@src/App.scss";
-import AppAuthProvider from "@context/AuthContext";
-
-// Other imports
-import { AuthProvider } from "@asgardeo/auth-react";
 import { SnackbarProvider } from "notistack";
+import AppAuthProvider from "@context/AuthContext";
+import { AuthProvider } from "@asgardeo/auth-react";
+import { createContext, useState, useMemo } from "react";
+import { APP_NAME, AsgardeoConfig } from "@config/config";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
 
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
 
 function App() {
   document.title = APP_NAME;
   const processLocalThemeMode = (): ThemeMode => {
-    var savedTheme: ThemeMode | null = localStorage.getItem(
-      "internal-app-theme"
-    ) as ThemeMode;
+    var savedTheme: ThemeMode | null = localStorage.getItem("internal-app-theme") as ThemeMode;
 
     if (savedTheme) {
       return savedTheme;
     } else {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? ThemeMode.Dark
-      : ThemeMode.Light;
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? ThemeMode.Dark : ThemeMode.Light;
       localStorage.setItem("internal-app-theme", systemTheme);
       return systemTheme;
     }
@@ -58,13 +48,8 @@ function App() {
   const colorMode = useMemo(
     () => ({
       toggleColorMode: () => {
-        localStorage.setItem(
-          "internal-app-theme",
-          mode === ThemeMode.Light ? ThemeMode.Dark : ThemeMode.Light
-        );
-        setMode((prevMode) =>
-          prevMode === ThemeMode.Light ? ThemeMode.Dark : ThemeMode.Light
-        );
+        localStorage.setItem("internal-app-theme", mode === ThemeMode.Light ? ThemeMode.Dark : ThemeMode.Light);
+        setMode((prevMode) => (prevMode === ThemeMode.Light ? ThemeMode.Dark : ThemeMode.Light));
       },
     }),
     [mode]
