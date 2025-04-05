@@ -479,3 +479,80 @@ candidate_schema = Object(
         interests_schema,
     ],
 )
+
+candidate_skill_score_schema = Object(
+    id="candidate_skill_score",
+    description="Evaluates how well a candidate's experience matches a specific skill",
+    attributes=[
+        Number(
+            id="experience_score",
+            description="A score from 0 to 10 based on relevant professional experience"
+        ),
+        Number(
+            id="certification_score",
+            description="A score from 0 to 10 based on relevant certifications"
+        ),
+        Number(
+            id="project_score",
+            description="A score from 0 to 10 based on relevant projects"
+        ),
+        Number(
+            id="education_score",
+            description="A score from 0 to 10 based on relevant education and coursework"
+        ),
+        Text(
+            id="evaluation_text",
+            description="A detailed explanation justifying the scores across all evaluation criteria"
+        ),
+    ],
+    examples=[
+        (
+            """
+            Evaluate the candidate's proficiency in: Python
+            
+            Evaluation criteria:
+            1. Experience: Years and relevance of experience using this skill (0-10)
+            2. Certifications: Relevant certifications and their recognition level (0-10)
+            3. Projects: Complexity and relevance of projects utilizing this skill (0-10)
+            4. Education: Relevant formal education related to this skill (0-10)
+            
+            Candidate information:
+            - Experience: [RELEVANT] Senior Developer at Tech Co (2020-2023): Led Python development team on cloud infrastructure projects
+            - Certifications: AWS Certified Solutions Architect from Amazon (2021)
+            - Projects: [RELEVANT] Data Pipeline: Built ETL pipeline for financial data (Technologies: Python, AWS, Airflow)
+            - Education: Computer Science BS from State University (2019). Relevant courses: Data Structures, Machine Learning
+            """,
+            [{
+                "experience_score": 9.0,
+                "certification_score": 6.0,
+                "project_score": 9.0,
+                "education_score": 7.0,
+                "evaluation_text": "The candidate demonstrates strong Python skills through their experience leading a Python development team and building data pipelines using Python. Their projects show practical application of Python in complex ETL processes. While they lack Python-specific certifications, their CS degree and relevant coursework provide a solid foundation. Overall, this is a strong Python candidate with professional leadership experience."
+            }]
+        ),
+        (
+            """
+            Evaluate the candidate's proficiency in: Mobile Development
+            
+            Evaluation criteria:
+            1. Experience: Years and relevance of experience using this skill (0-10)
+            2. Certifications: Relevant certifications and their recognition level (0-10)
+            3. Projects: Complexity and relevance of projects utilizing this skill (0-10)
+            4. Education: Relevant formal education related to this skill (0-10)
+            
+            Candidate information:
+            - Experience: Senior Developer at Tech Co (2020-2023): Led Python development team on cloud infrastructure projects
+            - Certifications: AWS Certified Solutions Architect from Amazon (2021)
+            - Projects: Data Pipeline: Built ETL pipeline for financial data (Technologies: Python, AWS, Airflow)
+            - Education: Computer Science BS from State University (2019). Relevant courses: Data Structures, Machine Learning
+            """,
+            [{
+                "experience_score": 2.0,
+                "certification_score": 0.0,
+                "project_score": 0.0,
+                "education_score": 4.0,
+                "evaluation_text": "The candidate shows minimal evidence of mobile development skills. Their experience and projects focus on backend and cloud infrastructure rather than mobile platforms. They have no mobile-specific certifications. Their CS degree provides general programming knowledge but no specific mobile development training is mentioned. The candidate would need significant training to transition to mobile development."
+            }]
+        )
+    ]
+)
