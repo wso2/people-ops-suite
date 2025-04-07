@@ -202,7 +202,8 @@ service http:InterceptableService / on new http:Listener(9091) {
             rangeStart: (),
             rangeEnd: (),
             recordDates: newRecordDates,
-            companyName: ()
+            companyName: (),
+            recordIds: ()
         };
 
         database:TimeLog[]|error? existingRecords = database:getTimesheetRecords(filter);
@@ -289,7 +290,8 @@ service http:InterceptableService / on new http:Listener(9091) {
             rangeStart: rangeStart,
             rangeEnd: rangeEnd,
             recordDates: (),
-            companyName: ()
+            companyName: (),
+            recordIds: ()
         };
 
         int|error? totalRecordCount = database:getTotalRecordCount(commonFilter);
@@ -341,7 +343,8 @@ service http:InterceptableService / on new http:Listener(9091) {
             rangeStart: (),
             rangeEnd: (),
             recordDates: (),
-            companyName: loggedInUser.company
+            companyName: loggedInUser.company,
+            recordIds: ()
         };
         database:TimesheetInfo|error? timesheetInfo = database:getTimesheetInfo(infoFilter);
         if timesheetInfo is error {
@@ -387,7 +390,7 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
 
         if !authorization:checkPermissions([authorization:authorizedRoles.leadRole], userInfo.groups) {
-            if recordPayload.some(r => (r.overtimeStatus == database:APPROVED) && (r.overtimeDuration > 0d)) {
+            if recordPayload.some(r => r.overtimeStatus == database:APPROVED) {
                 return <http:Forbidden>{
                     body: {
                         message: "Employees can not approve overtime records!"

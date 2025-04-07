@@ -343,7 +343,6 @@ const TimesheetDataGrid = () => {
       recordDate: format(editingEntry.recordDate, "yyyy-MM-dd"),
       clockInTime: format(editingEntry.clockInTime, "HH:mm:ss"),
       clockOutTime: format(editingEntry.clockOutTime, "HH:mm:ss"),
-      overtimeStatus: editingEntry.overtimeDuration > 0 ? TimesheetStatus.PENDING : TimesheetStatus.APPROVED,
       overtimeRejectReason: editingEntry.overtimeRejectReason ?? "",
     };
 

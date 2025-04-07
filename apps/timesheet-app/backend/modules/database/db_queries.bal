@@ -58,6 +58,9 @@ isolated function getTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) re
     if filter.recordDates is string[] {
         filters.push(sql:queryConcat(`tr.ts_record_date IN (`, sql:arrayFlattenQuery(filter.recordDates ?: []), `)`));
     }
+    if filter.recordIds is int[] {
+        filters.push(sql:queryConcat(`tr.ts_record_id IN (`, sql:arrayFlattenQuery(filter.recordIds ?: []), `)`));
+    }
     if filter.status is TimeSheetStatus {
         filters.push(sql:queryConcat(`tr.ts_ot_status =  `, `${filter.status}`));
     }
