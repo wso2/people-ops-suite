@@ -21,9 +21,64 @@ import { APIService } from "@utils/apiService";
 import { SnackMessage } from "@config/constant";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
-import { Meetings, MeetingState, MeetingTypes, DeleteMeeting, AddMeetingPayload, Attachments } from "@utils/types";
 
+interface Meetings {
+  count: number;
+  meetings: Meeting[];
+}
 
+export interface Meeting {
+  meetingId: number;
+  title: string;
+  googleEventId: string;
+  host: string;
+  startTime: string;
+  endTime: string;
+  internalParticipants: string;
+  meetingStatus: string;
+}
+
+interface MeetingState {
+  state: State;
+  submitState: State;
+  stateMessage: string | null;
+  errorMessage: string | null;
+  meetings: Meetings | null;
+  meetingTypes: string[] | null;
+  backgroundProcess: boolean;
+  backgroundProcessMessage: string | null;
+}
+
+interface AddMeetingPayload {
+  title: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+  timeZone: string;
+  internalParticipants: string[];
+  externalParticipants: string[];
+}
+
+interface DeleteMeeting {
+  message: string;
+}
+
+interface Attachments {
+  attachments: Attachment[];
+}
+
+interface Attachment {
+  fileUrl: string;
+  title: string;
+  mimeType: string;
+  iconLink: string;
+  fileId: string;
+}
+
+interface MeetingTypes {
+  domain: string;
+  types: string[];
+}
 
 const initialState: MeetingState = {
   state: State.idle,

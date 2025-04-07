@@ -23,6 +23,7 @@ import {
   TextField,
   Typography,
   Autocomplete,
+  FormHelperText,
   CircularProgress,
   createFilterOptions,
 } from "@mui/material";
@@ -199,7 +200,7 @@ function MeetingForm() {
               <strong>
                 Are you sure you want to create the meeting <br />
               </strong>{" "}
-              {`${formik.values.meetingType} - ${formik.values.customerName} - ${formik.values.customTitle} `} ?
+              {`${formik.values.meetingType} - ${formik.values.customerName} - ${formik.values.customTitle} ?`}
             </Typography>
           </>
         )}
@@ -325,7 +326,18 @@ function MeetingForm() {
           multiline
           rows={2}
         />
-
+        <FormHelperText
+          error={
+            (formik.touched.customTitle && Boolean(formik.errors.customTitle)) ||
+            (formik.touched.meetingType && Boolean(formik.errors.meetingType)) ||
+            (formik.touched.customerName && Boolean(formik.errors.customerName))
+          }
+          sx={{ marginX: "14px !important", marginBottom: "2px !important", marginTop: "0px !important" }}
+        >
+          {(formik.touched.customTitle && formik.errors.customTitle) ||
+            (formik.touched.meetingType && formik.errors.meetingType) ||
+            (formik.touched.customerName && formik.errors.customerName)}
+        </FormHelperText>
         <DatePicker
           name="date"
           label="Meeting Date *"
@@ -405,6 +417,18 @@ function MeetingForm() {
             sx={{ flex: 1 }}
           />
         </Box>
+        <FormHelperText
+          error={
+            (formik.touched.date && Boolean(formik.errors.date)) ||
+            (formik.touched.startTime && Boolean(formik.errors.startTime)) ||
+            (formik.touched.endTime && Boolean(formik.errors.endTime))
+          }
+          sx={{ marginX: "14px !important", marginBottom: "2px !important", marginTop: "0px !important" }}
+        >
+          {(formik.touched.date && formik.errors.date) ||
+            (formik.touched.startTime && formik.errors.startTime) ||
+            (formik.touched.endTime && formik.errors.endTime)}
+        </FormHelperText>
 
         <Autocomplete
           multiple
@@ -528,12 +552,18 @@ function MeetingForm() {
               name="externalParticipants"
               onBlur={formik.handleBlur}
               error={
-                (formik.touched.externalParticipants && Boolean(formik.errors.externalParticipants)) ||
-                (formik.touched.internalParticipants && Boolean(formik.errors.internalParticipants))
+                (formik.touched.internalParticipants &&
+                  Boolean(formik.errors.internalParticipants) &&
+                  formik.touched.externalParticipants &&
+                  Boolean(formik.errors.externalParticipants)) ||
+                (formik.touched.externalParticipants && Boolean(formik.errors.externalParticipants))
               }
               helperText={
-                (formik.touched.externalParticipants && formik.errors.externalParticipants) ||
-                (formik.touched.internalParticipants && formik.errors.internalParticipants)
+                (formik.touched.internalParticipants &&
+                  formik.errors.internalParticipants &&
+                  formik.touched.externalParticipants &&
+                  formik.errors.externalParticipants) ||
+                (formik.touched.externalParticipants && formik.errors.externalParticipants)
               }
             />
           )}

@@ -17,9 +17,47 @@
 import { State } from "@/types/types";
 import { RootState } from "@slices/store";
 import { SnackMessage } from "@config/constant";
-import { AuthState, AuthData, Role, UserState } from "@utils/types";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
+import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
+
+export enum Role {
+  ADMIN = "ADMIN",
+  TEAM = "TEAM",
+}
+
+interface AuthState {
+  status: State;
+  mode: "active" | "maintenance";
+  statusMessage: string | null;
+  isAuthenticated: boolean;
+  userInfo: BasicUserInfo | null;
+  decodedIdToken: DecodedIDTokenPayload | null;
+  roles: string[];
+}
+
+interface AuthData {
+  userInfo: BasicUserInfo;
+  idToken: string;
+  decodedIdToken: DecodedIDTokenPayload;
+}
+
+export interface UserState {
+  state: State;
+  stateMessage: string | null;
+  errorMessage: string | null;
+  userInfo: UserInfoInterface | null;
+}
+
+export interface UserInfoInterface {
+  employeeId: string;
+  firstName: string;
+  lastName: string;
+  workEmail: string;
+  employeeThumbnail: string | null;
+  jobRole: string;
+  privileges: number[];
+}
 
 const initialState: AuthState = {
   status: State.idle,

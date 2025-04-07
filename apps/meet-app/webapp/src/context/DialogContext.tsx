@@ -134,7 +134,7 @@ const ConfirmationDialogContextProvider: React.FC<ConfirmationModalContextProvid
     setContent({
       title: "",
       message: "",
-      type: "update",
+      type: "accept",
       action: () => {},
       okText: undefined,
       cancelText: undefined,

@@ -17,8 +17,8 @@
 import { State } from "@/types/types";
 import { AppConfig } from "@config/config";
 import { APIService } from "@utils/apiService";
+import { UserState, UserInfoInterface } from "@slices/authSlice/auth";
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { UserState, UserInfoInterface } from "@utils/types";
 
 const initialState: UserState = {
   state: State.idle,

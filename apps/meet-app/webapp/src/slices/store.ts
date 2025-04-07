@@ -29,9 +29,9 @@ export const store = configureStore({
   reducer: {
     auth: authReducer,
     user: userReducer,
-    employee: employeeReducer,
     common: commonReducer,
     meeting: meetingReducer,
+    employee: employeeReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

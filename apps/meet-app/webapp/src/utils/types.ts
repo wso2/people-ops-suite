@@ -14,113 +14,12 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
-import { State } from "src/types/types";
 export type stateType = "failed" | "success" | "loading" | "idle";
-
-export interface AuthState {
-  status: State;
-  mode: "active" | "maintenance";
-  statusMessage: string | null;
-  isAuthenticated: boolean;
-  userInfo: BasicUserInfo | null;
-  decodedIdToken: DecodedIDTokenPayload | null;
-  roles: string[];
-}
-
-export interface AuthData {
-  userInfo: BasicUserInfo;
-  idToken: string;
-  decodedIdToken: DecodedIDTokenPayload;
-}
-
-export interface UserState {
-  state: State;
-  stateMessage: string | null;
-  errorMessage: string | null;
-  userInfo: UserInfoInterface | null;
-}
-
-export interface UserInfoInterface {
-  employeeId: string;
-  firstName: string;
-  lastName: string;
-  workEmail: string;
-  employeeThumbnail: string | null;
-  jobRole: string;
-  privileges: number[];
-}
-
-export enum Role {
-  ADMIN = "ADMIN",
-  TEAM = "TEAM",
-}
 
 export interface MeetingTypes {
   domain: string;
   types: string[];
-}
-
-export interface Meeting {
-  meetingId: number;
-  title: string;
-  googleEventId: string;
-  host: string;
-  startTime: string;
-  endTime: string;
-  internalParticipants: string;
-  meetingStatus: string;
-}
-
-export interface Meetings {
-  count: number;
-  meetings: Meeting[];
-}
-
-export interface MeetingState {
-  state: State;
-  submitState: State;
-  stateMessage: string | null;
-  errorMessage: string | null;
-  meetings: Meetings | null;
-  meetingTypes: string[] | null;
-  backgroundProcess: boolean;
-  backgroundProcessMessage: string | null;
-}
-
-export interface AddMeetingPayload {
-  title: string;
-  description: string;
-  startTime: string;
-  endTime: string;
-  timeZone: string;
-  internalParticipants: string[];
-  externalParticipants: string[];
-}
-
-export interface DeleteMeeting {
-  message: string;
-}
-
-export interface Attachments {
-  attachments: Attachment[];
-}
-
-export interface Attachment {
-  fileUrl: string;
-  title: string;
-  mimeType: string;
-  iconLink: string;
-  fileId: string;
-}
-
-export interface Employee {
-  workEmail: string;
-  firstName: string;
-  lastName: string;
-  jobBand: number;
-  employeeThumbnail: string;
-}
+} 
 
 export interface Header {
   title: string;
