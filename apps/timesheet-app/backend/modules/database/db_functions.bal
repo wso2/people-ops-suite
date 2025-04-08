@@ -88,13 +88,18 @@ public isolated function getTimesheetInfo(TimesheetCommonFilter filter) returns 
 
 # Function to update timesheet records.
 #
-# + updateRecords - Records to be updated
+# + reviewRecord - TimeLogReview object containing records to be updated
 # + invokerEmail - Email of the invoker
 # + return - An error if occurred
-public isolated function updateTimesheetRecords(string invokerEmail, TimeLogUpdate[] updateRecords) returns error? {
+public isolated function updateTimesheetRecords(string invokerEmail, TimeLogReview reviewRecord) returns error? {
     do {
         transaction {
-            foreach TimeLogUpdate updateRecord in updateRecords {
+            foreach int recordId in reviewRecord.recordIds {
+                TimeLogUpdate updateRecord = {
+                    recordId: recordId,
+                    overtimeStatus: reviewRecord.overtimeStatus,
+                    overtimeRejectReason: reviewRecord.overtimeRejectReason
+                };
                 _ = check databaseClient->execute(updateTimesheetRecordQuery(updateRecord, invokerEmail));
             }
             check commit;
@@ -102,4 +107,13 @@ public isolated function updateTimesheetRecords(string invokerEmail, TimeLogUpda
     } on fail error e {
         return e;
     }
+}
+
+# Function to update a timesheet record.
+#
+# + timeLog - Record to be updated
+# + invokerEmail - Email of the invoker
+# + return - An error if occurred
+public isolated function updateTimesheetRecord(TimeLogUpdate timeLog, string invokerEmail) returns error? {
+    _ = check databaseClient->execute(updateTimesheetRecordQuery(timeLog, invokerEmail));
 }

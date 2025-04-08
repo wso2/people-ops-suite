@@ -121,7 +121,7 @@ service http:InterceptableService / on new http:Listener(9091) {
 
         entity:Employee[]|error employees = entity:getAllActiveEmployees();
         if employees is error {
-            string customError = string `Error occurred while retrieving employees!`;
+            string customError = "Error occurred while retrieving employees!";
             log:printError(customError, employees);
             return <http:InternalServerError>{
                 body: {
@@ -261,7 +261,7 @@ service http:InterceptableService / on new http:Listener(9091) {
     # + employeeEmail - Email of the employee to filter timesheet records
     # + return - Timesheet records or an error
     isolated resource function get time\-logs(http:RequestContext ctx, string? employeeEmail, int? 'limit,
-            string? leadEmail, database:TimeSheetStatus? status, int? offset, string? rangeStart, string? rangeEnd)
+            string? leadEmail, database:TimesheetStatus? status, int? offset, string? rangeStart, string? rangeEnd)
         returns TimeSheetRecords|http:Forbidden|http:BadRequest|http:InternalServerError {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -296,7 +296,7 @@ service http:InterceptableService / on new http:Listener(9091) {
 
         int|error? totalRecordCount = database:getTotalRecordCount(commonFilter);
         if totalRecordCount is error {
-            string customError = string `Error occurred while retrieving the record count!`;
+            string customError = "Error occurred while retrieving the record count!";
             log:printError(customError, totalRecordCount);
             return <http:InternalServerError>{
                 body: {
@@ -307,7 +307,7 @@ service http:InterceptableService / on new http:Listener(9091) {
 
         database:TimeLog[]|error? timeLogs = database:getTimesheetRecords(commonFilter);
         if timeLogs is error {
-            string customError = string `Error occurred while retrieving the timeLogs!`;
+            string customError = "Error occurred while retrieving the timeLogs!";
             log:printError(customError, timeLogs);
             return <http:InternalServerError>{
                 body: {
@@ -348,7 +348,7 @@ service http:InterceptableService / on new http:Listener(9091) {
         };
         database:TimesheetInfo|error? timesheetInfo = database:getTimesheetInfo(infoFilter);
         if timesheetInfo is error {
-            string customError = string `Error occurred while retrieving the timesheet information!`;
+            string customError = "Error occurred while retrieving the timesheet information!";
             log:printError(customError, timesheetInfo);
             return <http:InternalServerError>{
                 body: {
@@ -364,12 +364,60 @@ service http:InterceptableService / on new http:Listener(9091) {
         };
     }
 
-    # Endpoint to patch timesheet records of an employee.
+    # Endpoint to patch timesheet records.
+    #
+    # + recordPayload - TimeLogReview payload
+    # + return - Ok status or error status's
+    isolated resource function patch time\-logs(http:RequestContext ctx, database:TimeLogReview recordPayload)
+        returns http:InternalServerError|http:Ok|http:BadRequest|http:Forbidden {
+
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            return <http:BadRequest>{
+                body: {
+                    message: "User information header not found!"
+                }
+            };
+        }
+
+        if !authorization:checkPermissions([authorization:authorizedRoles.leadRole], userInfo.groups) {
+            return <http:Forbidden>{
+                body: {
+                    message: "Insufficient privileges!"
+                }
+            };
+        }
+
+        if recordPayload.overtimeStatus == database:REJECTED &&
+            (recordPayload.overtimeRejectReason == "" || recordPayload.overtimeRejectReason is ()) {
+            string customError = "Overtime rejection reason required for rejected records!";
+            log:printError(customError);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        error? timesheetRecords = database:updateTimesheetRecords(userInfo.email, recordPayload);
+        if timesheetRecords is error {
+            string customError = "Error occurred while updating the timesheet records!";
+            log:printError(customError, timesheetRecords);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        return http:OK;
+    }
+
+    # Endpoint to patch timesheet record of an employee.
     #
     # + recordPayload - TimesheetUpdate record payload
     # + return - Ok status or error status's
-    isolated resource function patch time\-logs(http:RequestContext ctx,
-            database:TimeLogUpdate[] recordPayload)
+    isolated resource function patch employees/[string employeeEmail]/time\-log/[int recordId](http:RequestContext ctx,
+            database:TimeLogUpdate recordPayload)
         returns http:InternalServerError|http:Ok|http:BadRequest|http:Forbidden {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -389,19 +437,17 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
-        if !authorization:checkPermissions([authorization:authorizedRoles.leadRole], userInfo.groups) {
-            if recordPayload.some(r => r.overtimeStatus == database:APPROVED) {
-                return <http:Forbidden>{
-                    body: {
-                        message: "Employees can not approve overtime records!"
-                    }
-                };
-            }
+        if employeeEmail !== userInfo.email {
+            return <http:Forbidden>{
+                body: {
+                    message: "Employees not allowed to modify others time logs!"
+                }
+            };
         }
 
-        error? timesheetRecords = database:updateTimesheetRecords(userInfo.email, recordPayload);
+        error? timesheetRecords = database:updateTimesheetRecord(recordPayload, userInfo.email);
         if timesheetRecords is error {
-            string customError = string `Error occurred while updating the timesheet records!`;
+            string customError = string `Error occurred while updating the ${employeeEmail} timesheet record!`;
             log:printError(customError, timesheetRecords);
             return <http:InternalServerError>{
                 body: {

@@ -61,7 +61,7 @@ isolated function getTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) re
     if filter.recordIds is int[] {
         filters.push(sql:queryConcat(`tr.ts_record_id IN (`, sql:arrayFlattenQuery(filter.recordIds ?: []), `)`));
     }
-    if filter.status is TimeSheetStatus {
+    if filter.status is TimesheetStatus {
         filters.push(sql:queryConcat(`tr.ts_ot_status =  `, `${filter.status}`));
     }
     if filter.rangeStart is string && filter.rangeEnd is string {
@@ -97,7 +97,7 @@ isolated function getTotalRecordCountQuery(TimesheetCommonFilter filter) returns
     if filter.employeeEmail is string {
         filters.push(sql:queryConcat(`ts_employee_email = `, `${filter.employeeEmail}`));
     }
-    if filter.status is TimeSheetStatus {
+    if filter.status is TimesheetStatus {
         filters.push(sql:queryConcat(`ts_ot_status = `, `${filter.status}`));
     }
     if filter.leadEmail is string {

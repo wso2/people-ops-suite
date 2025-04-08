@@ -50,7 +50,7 @@ public type WorkPolicies record {|
 |};
 
 # Enum type for the timesheet status.
-public enum TimeSheetStatus {
+public enum TimesheetStatus {
     PENDING = "PENDING",
     APPROVED = "APPROVED",
     REJECTED = "REJECTED"
@@ -81,7 +81,7 @@ public type TimeLog record {|
     # Overtime rejection reason
     string overtimeRejectReason?;
     # Overtime status
-    TimeSheetStatus overtimeStatus?;
+    TimesheetStatus overtimeStatus?;
 |};
 
 # Common filter for the timesheet records.
@@ -90,8 +90,8 @@ public type TimesheetCommonFilter record {|
     string? employeeEmail;
     # Email of the lead
     string? leadEmail;
-    # TimeSheetStatus
-    TimeSheetStatus? status;
+    # TimesheetStatus
+    TimesheetStatus? status;
     # Limit of the records
     int? recordsLimit;
     # Offset of the records
@@ -145,5 +145,15 @@ public type TimeLogUpdate record {|
     # Overtime rejection reason
     string overtimeRejectReason?;
     # Overtime status
-    TimeSheetStatus overtimeStatus?;
+    TimesheetStatus overtimeStatus?;
+|};
+
+# Approve or reject time logs type.
+public type TimeLogReview record {|
+    # Time sheet record id
+    int[] recordIds;
+    # Overtime rejection reason
+    string overtimeRejectReason?;
+    # Overtime status
+    TimesheetStatus overtimeStatus;
 |};
