@@ -32,6 +32,7 @@ import {
 } from "@mui/x-data-grid";
 import { useEffect, useState } from "react";
 import { Messages } from "@config/constant";
+import { DEFAULT_PAGE_SIZE } from "@config/config";
 import NoDataView from "@component/common/NoDataView";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
@@ -63,7 +64,7 @@ const TimesheetAuditView = () => {
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
-    pageSize: 5,
+    pageSize: DEFAULT_PAGE_SIZE,
   });
   const [filters, setFilters] = useState<Filter[]>([]);
   const availableFields = [
