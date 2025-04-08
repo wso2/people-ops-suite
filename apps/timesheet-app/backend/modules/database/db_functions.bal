@@ -31,10 +31,9 @@ public isolated function getWorkPolicies(string companyName) returns WorkPolicie
 # Function to get timesheet records using filters.
 #
 # + filter - Filter type for the records
-# + return - Timesheet records or an error
+# + return - TimeLog records or an error
 public isolated function getTimesheetRecords(TimesheetCommonFilter filter) returns TimeLog[]|error? {
-    stream<TimeLog, error?> recordsResult =
-        databaseClient->query(getTimesheetRecordsOfEmployee(filter));
+    stream<TimeLog, error?> recordsResult = databaseClient->query(getTimesheetRecordsOfEmployee(filter));
 
     return from TimeLog timesheetRecord in recordsResult
         select timesheetRecord;
@@ -58,7 +57,7 @@ public isolated function getTotalRecordCount(TimesheetCommonFilter filter) retur
 # + employeeEmail - Email of the employee
 # + leadEmail - Email of the employee's lead
 # + companyName - Name of the company of the employee
-# + return - Execution result or an error
+# + return - Execution result array or an error
 public isolated function insertTimesheetRecords(TimeLog[] timesheetRecords, string employeeEmail,
         string companyName, string leadEmail) returns error|int[] {
 

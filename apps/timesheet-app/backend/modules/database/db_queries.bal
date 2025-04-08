@@ -109,7 +109,7 @@ isolated function getTotalRecordCountQuery(TimesheetCommonFilter filter) returns
 
 # Query to insert the timesheet records of an employee.
 #
-# + timesheetRecords - Filter type for the records
+# + timesheetRecords - TimeLog record to be inserted
 # + employeeEmail - Email of the employee
 # + companyName - Name of the company
 # + leadEmail - Email of the lead

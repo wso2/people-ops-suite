@@ -56,9 +56,9 @@ public enum TimesheetStatus {
     REJECTED = "REJECTED"
 };
 
-# Timesheet record type.
+# TimeLog record type.
 public type TimeLog record {|
-    # Time sheet record id
+    # Time log record id
     int recordId;
     # Employee's email address
     string employeeEmail?;
@@ -124,9 +124,9 @@ public type TimesheetInfo record {|
     decimal? overTimeLeft;
 |};
 
-# Update type for the timesheet record.
+# Update type for the time log record.
 public type TimeLogUpdate record {|
-    # Time sheet record id
+    # Time log record id
     int recordId;
     # Email of the employee
     string employeeEmail?;

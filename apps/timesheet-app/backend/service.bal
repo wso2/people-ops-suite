@@ -27,7 +27,7 @@ final cache:Cache userInfoCache = new (capacity = 100, evictionFactor = 0.2);
     label: "Timesheet Application",
     id: "hris/timesheet-application"
 }
-service http:InterceptableService / on new http:Listener(9091) {
+service http:InterceptableService / on new http:Listener(9090) {
 
     # Request interceptor.
     # + return - authorization:JwtInterceptor
@@ -194,7 +194,7 @@ service http:InterceptableService / on new http:Listener(9091) {
         }
 
         database:TimesheetCommonFilter filter = {
-            employeeEmail: employeeEmail,
+            employeeEmail,
             leadEmail: loggedInUser.managerEmail,
             status: (),
             recordsLimit: (),
@@ -251,15 +251,15 @@ service http:InterceptableService / on new http:Listener(9091) {
         return http:CREATED;
     }
 
-    # Endpoint to get timesheet records using the common filter.
+    # Endpoint to get time logs using the common filter.
     #
     # + 'limit - Limit of the response
-    # + status - Status of the timesheet records
-    # + rangeStart - Start date of the timesheet records
-    # + rangeEnd - End date of the timesheet records
-    # + offset - Offset of timesheet records to retrieve
-    # + employeeEmail - Email of the employee to filter timesheet records
-    # + return - Timesheet records or an error
+    # + status - Status of the time logs
+    # + rangeStart - Start date of the time logs
+    # + rangeEnd - End date of the time logs
+    # + offset - Offset of time logs to retrieve
+    # + employeeEmail - Email of the employee to filter time logs
+    # + return - time logs or an error
     isolated resource function get time\-logs(http:RequestContext ctx, string? employeeEmail, int? 'limit,
             string? leadEmail, database:TimesheetStatus? status, int? offset, string? rangeStart, string? rangeEnd)
         returns TimeSheetRecords|http:Forbidden|http:BadRequest|http:InternalServerError {
@@ -412,7 +412,7 @@ service http:InterceptableService / on new http:Listener(9091) {
         return http:OK;
     }
 
-    # Endpoint to patch timesheet record of an employee.
+    # Endpoint to patch time log record of an employee.
     #
     # + recordPayload - TimesheetUpdate record payload
     # + return - Ok status or error status's
