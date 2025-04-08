@@ -14,13 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import {
-  styled,
-  Theme,
-  CSSObject,
-  alpha,
-  useTheme,
-} from "@mui/material/styles";
+import { styled, Theme, CSSObject, alpha, useTheme } from "@mui/material/styles";
 import { MUIStyledCommonProps } from "@mui/system";
 import MuiDrawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
@@ -66,9 +60,7 @@ function useRouteMatch(patterns: readonly string[]) {
 }
 
 const Sidebar = (props: SidebarProps) => {
-  const currentIndex = useRouteMatch([
-    ...getActiveRouteDetails(props.roles).map((r) => r.path),
-  ]);
+  const currentIndex = useRouteMatch([...getActiveRouteDetails(props.roles).map((r) => r.path)]);
   const theme = useTheme();
 
   return (
@@ -125,16 +117,10 @@ const Sidebar = (props: SidebarProps) => {
                   },
                 }}
               >
-                {props.theme.palette.mode === "dark" ? (
-                  <LightModeOutlinedIcon />
-                ) : (
-                  <DarkModeOutlinedIcon />
-                )}
+                {props.theme.palette.mode === "dark" ? <LightModeOutlinedIcon /> : <DarkModeOutlinedIcon />}
                 <span className="menu-tooltip">
                   <Typography variant="h6">
-                    {"Switch to " +
-                      (props.theme.palette.mode === "dark" ? "light" : "dark") +
-                      " mode"}
+                    {"Switch to " + (props.theme.palette.mode === "dark" ? "light" : "dark") + " mode"}
                   </Typography>
                 </span>
               </IconButton>
@@ -219,19 +205,17 @@ const closedMixin = (theme: Theme): CSSObject => ({
   padding: theme.spacing(0.5),
 });
 
-export const DrawerHeader = styled("div")<DrawerHeaderInterface>(
-  ({ theme, open }) => ({
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    padding: theme.spacing(0.5),
-    transition: theme.transitions.create(["display"], {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.leavingScreen,
-    }),
-    ...theme.mixins.toolbar,
-    ...(open && {
-      justifyContent: "flex-start",
-    }),
-  })
-);
+export const DrawerHeader = styled("div")<DrawerHeaderInterface>(({ theme, open }) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  padding: theme.spacing(0.5),
+  transition: theme.transitions.create(["display"], {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  ...theme.mixins.toolbar,
+  ...(open && {
+    justifyContent: "flex-start",
+  }),
+}));

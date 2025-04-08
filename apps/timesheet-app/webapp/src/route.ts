@@ -41,7 +41,7 @@ interface RouteDetail {
 
 export const routes: RouteObjectWithRole[] = [
   {
-    path: "/employee-portal",
+    path: "/",
     text: "Employee Portal",
     icon: React.createElement(LeaderboardIcon),
     element: React.createElement(View.employeeView),

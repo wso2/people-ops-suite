@@ -18,7 +18,7 @@ export const Messages = {
   success: {
     updateRecord: "Successfully updated the record",
     saveRecords: "Successfully saved the records",
-    updateRecords: "Successfully updated the records",
+    updateRecords: "Updated successfully",
   },
   error: {
     fetchRecords: "Unable to retrieve timesheet logs",

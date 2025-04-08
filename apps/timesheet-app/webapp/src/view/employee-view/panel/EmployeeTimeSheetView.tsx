@@ -43,7 +43,7 @@ import {
 import { useEffect, useState } from "react";
 import { Messages } from "@config/constant";
 import AddIcon from "@mui/icons-material/Add";
-import SaveIcon from '@mui/icons-material/Save';
+import SaveIcon from "@mui/icons-material/Save";
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
 import NoDataView from "@component/common/NoDataView";
@@ -58,7 +58,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { CustomModal } from "@component/common/CustomComponentModal";
 import { differenceInMinutes, format, isWeekend, parseISO } from "date-fns";
 import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
-import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
+import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecord } from "@slices/recordSlice/record";
 import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus, TimesheetUpdate } from "@utils/types";
 
 const TimesheetDataGrid = () => {
@@ -74,8 +74,8 @@ const TimesheetDataGrid = () => {
   const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs || []);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
-  const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
   const regularLunchHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.lunchHoursPerDay);
+  const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
   const regularWorkHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.workingHoursPerDay);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
@@ -333,26 +333,31 @@ const TimesheetDataGrid = () => {
     }
 
     setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
 
-    if (Object.keys(newErrors).length > 0) {
-      return;
-    }
+    console.log("Saving entry", editingEntry);
+
+    const { overtimeStatus, overtimeRejectReason, ...entryWithoutStatus } = editingEntry;
+
+    console.log("entryWithoutStatus entry", entryWithoutStatus);
 
     const formattedEntry: TimesheetUpdate = {
-      ...editingEntry,
-      recordDate: format(editingEntry.recordDate, "yyyy-MM-dd"),
+      ...entryWithoutStatus,
       clockInTime: format(editingEntry.clockInTime, "HH:mm:ss"),
       clockOutTime: format(editingEntry.clockOutTime, "HH:mm:ss"),
-      overtimeRejectReason: editingEntry.overtimeRejectReason ?? "",
     };
 
-    console.log("formatted entry", formattedEntry);
+    console.log("formattedEntry entry", formattedEntry);
 
-    const timesheetRecords: TimesheetUpdate[] = [];
+    if (!userEmail) return;
+    await dispatch(
+      updateTimesheetRecord({
+        timesheetRecord: formattedEntry,
+        employeeEmail: userEmail,
+        recordId: editingEntry.recordId,
+      })
+    );
 
-    timesheetRecords.push(formattedEntry);
-
-    await dispatch(updateTimesheetRecords({ timesheetRecords: timesheetRecords }));
     fetchData();
     setEditDialogOpen(false);
     setEditingEntry(null);

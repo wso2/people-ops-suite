@@ -21,7 +21,7 @@ import { APIService } from "@utils/apiService";
 import { createSlice } from "@reduxjs/toolkit";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { enqueueSnackbarMessage } from "../commonSlice/common";
-import { State, TimesheetData, TimesheetStatus, TimesheetUpdate } from "@utils/types";
+import { State, TimeLogReview, TimesheetData, TimesheetStatus, TimesheetUpdate } from "@utils/types";
 
 interface TimesheetRecordState {
   retrievingState: State;
@@ -128,11 +128,13 @@ export const fetchTimesheetRecords = createAsyncThunk(
   }
 );
 
-export const updateTimesheetRecords = createAsyncThunk(
-  "timesheet/updateTimesheetRecords",
+export const updateTimesheetRecord = createAsyncThunk(
+  "timesheet/updateTimesheetRecord",
   async (
     params: {
-      timesheetRecords: TimesheetUpdate[];
+      employeeEmail: string;
+      recordId: number;
+      timesheetRecord: TimesheetUpdate;
     },
     { dispatch, rejectWithValue }
   ) => {
@@ -140,9 +142,9 @@ export const updateTimesheetRecords = createAsyncThunk(
       APIService.getCancelToken().cancel();
       const newCancelTokenSource = APIService.updateCancelToken();
 
-      const response = await APIService.getInstance().patch(
-        `${AppConfig.serviceUrls.timesheetRecords}`,
-        params.timesheetRecords,
+      await APIService.getInstance().patch(
+        `${AppConfig.serviceUrls.employees}/${params.employeeEmail}/time-log/${params.recordId}`,
+        params.timesheetRecord,
         {
           cancelToken: newCancelTokenSource.token,
           headers: {
@@ -151,7 +153,74 @@ export const updateTimesheetRecords = createAsyncThunk(
         }
       );
 
-      return response.data;
+      dispatch(
+        enqueueSnackbarMessage({
+          message: Messages.success.updateRecord,
+          type: "success",
+        })
+      );
+
+      return { success: true };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.code === "ERR_CANCELED") {
+          return rejectWithValue("Request canceled");
+        }
+
+        const errorMessage =
+          error.response?.status === HttpStatusCode.InternalServerError
+            ? Messages.error.updateRecords
+            : String(error.response?.data?.message || error.message);
+
+        dispatch(
+          enqueueSnackbarMessage({
+            message: errorMessage,
+            type: "error",
+          })
+        );
+
+        return rejectWithValue(errorMessage);
+      }
+
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      dispatch(
+        enqueueSnackbarMessage({
+          message: errorMessage,
+          type: "error",
+        })
+      );
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+export const updateTimesheetRecords = createAsyncThunk(
+  "timesheet/updateTimesheetRecords",
+  async (
+    params: {
+      payload: TimeLogReview;
+    },
+    { dispatch, rejectWithValue }
+  ) => {
+    try {
+      APIService.getCancelToken().cancel();
+      const newCancelTokenSource = APIService.updateCancelToken();
+
+      await APIService.getInstance().patch(`${AppConfig.serviceUrls.timesheetRecords}`, params.payload, {
+        cancelToken: newCancelTokenSource.token,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      dispatch(
+        enqueueSnackbarMessage({
+          message: Messages.success.updateRecord,
+          type: "success",
+        })
+      );
+
+      return { success: true };
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.code === "ERR_CANCELED") {

@@ -445,6 +445,14 @@ service http:InterceptableService / on new http:Listener(9091) {
             };
         }
 
+        if recordPayload.overtimeStatus !is () {
+            return <http:Forbidden>{
+                body: {
+                    message: "Employees not allowed to modify time log status!"
+                }
+            };
+        }
+
         error? timesheetRecords = database:updateTimesheetRecord(recordPayload, userInfo.email);
         if timesheetRecords is error {
             string customError = string `Error occurred while updating the ${employeeEmail} timesheet record!`;

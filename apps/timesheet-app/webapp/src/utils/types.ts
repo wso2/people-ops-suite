@@ -145,7 +145,6 @@ export interface TimesheetUpdate {
   overtimeDuration?: string;
   overtimeReason?: string;
   overtimeRejectReason?: string;
-  overtimeStatus?: TimesheetStatus;
 }
 
 export const statusChipStyles = {
@@ -168,4 +167,10 @@ export interface Filter {
   field: string;
   operator: string;
   value: any;
+}
+
+export interface TimeLogReview {
+  recordIds: number[];
+  overtimeStatus: TimesheetStatus;
+  overtimeRejectReason?: string;
 }

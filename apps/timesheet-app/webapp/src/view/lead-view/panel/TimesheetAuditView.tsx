@@ -16,9 +16,9 @@
 import {
   State,
   Filter,
+  TimeLogReview,
   TimesheetRecord,
   TimesheetStatus,
-  TimesheetUpdate,
   statusChipStyles,
   ConfirmationType,
 } from "@utils/types";
@@ -330,31 +330,26 @@ const TimesheetAuditView = () => {
   };
 
   const handleUpdateRecords = async (status: TimesheetStatus, recordId?: number, comment?: string) => {
-    const timesheetRecords: TimesheetUpdate[] = [];
+    const recordIds = selectionModel.length > 1 ? selectionModel.map((id) => id as number) : [recordId as number];
 
-    if (recordId) {
-      timesheetRecords.push({ recordId: recordId, overtimeStatus: status });
-    }
+    const payload: TimeLogReview = {
+      recordIds,
+      overtimeRejectReason: comment,
+      overtimeStatus: status,
+    };
 
-    if (selectionModel.length > 1) {
-      selectionModel.forEach((recordId) => {
-        timesheetRecords.push({ recordId: recordId as number, overtimeStatus: status, overtimeRejectReason: comment });
-      });
-    }
-    await dispatch(updateTimesheetRecords({ timesheetRecords: timesheetRecords }));
+    await dispatch(updateTimesheetRecords({ payload }));
     fetchData();
   };
 
   const fetchData = async () => {
     if (!leadEmail) return;
 
-    const filterParams = filters.reduce((acc, filter) => {
-      return { ...acc, [filter.field]: filter.value };
-    }, {});
+    const filterParams = Object.fromEntries(filters.map(({ field, value }) => [field, value]));
 
     dispatch(
       fetchTimesheetRecords({
-        leadEmail: leadEmail,
+        leadEmail,
         status: TimesheetStatus.PENDING,
         limit: paginationModel.pageSize,
         offset: paginationModel.page * paginationModel.pageSize,
