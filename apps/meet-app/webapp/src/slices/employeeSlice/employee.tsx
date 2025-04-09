@@ -19,6 +19,7 @@ import { AppConfig } from "@config/config";
 import axios, { HttpStatusCode } from "axios";
 import { APIService } from "@utils/apiService";
 import { SnackMessage } from "@config/constant";
+import { UserState } from "@slices/authSlice/auth";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 
@@ -45,7 +46,8 @@ const initialState: EmployeesState = {
 
 export const fetchEmployees = createAsyncThunk(
   "employee/fetchEmployees",
-  async (_, { dispatch, rejectWithValue }) => {
+  async (_, { getState, dispatch, rejectWithValue }) => {
+    const { userInfo } = (getState() as { user: UserState }).user;
     APIService.getCancelToken().cancel();
     const newCancelTokenSource = APIService.updateCancelToken();
     return new Promise<Employee[]>((resolve, reject) => {
@@ -54,7 +56,8 @@ export const fetchEmployees = createAsyncThunk(
           cancelToken: newCancelTokenSource.token,
         })
         .then((response) => {
-          resolve(response.data);
+          const filteredEmployees = response.data.filter((emp: Employee) => emp.workEmail !== userInfo?.workEmail);
+          resolve(filteredEmployees);
         })
         .catch((error) => {
           if (axios.isCancel(error)) {
