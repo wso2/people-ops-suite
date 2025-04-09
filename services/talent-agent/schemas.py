@@ -43,17 +43,16 @@ personal_info_schema = Object(
         ),
         (
             (
-                "Hasanga University of Moratuwa, Sri Lanka 2021 - Present Ranasinghe B.Sc. Engineering (Hons) Specialised "
-                "in Computer Science and Engineering Computer Science & Stream: Data Science and Engineering Combined "
-                "Mathematics(A), Physics(A), Chemistry(A) +94 70 168 4781 Z-Score: 2.0883 G.C.E Ordinary Level Examination "
-                "(2017) hasanga-ranasinghe 8 A’s hasanga1 dinithhasangare@gmail.com Projects Kadawatha, Sri Lanka."
+                "John ABC University of Sri Lanka 2021 - Present Doe B.Sc. Engineering (Hons) Specialised "
+                "in Computer Science and Engineering Computer Science Combined Mathematics(A), Physics(A), Chemistry(A)"
+                "+94 70 123 4567 Z-Score: 2.21 johndoe123 john.doe@example.com" "Projects Colombo, Sri Lanka."
             ),
             [
                 {
-                    "full_name": "Hasanga Ranasinghe",
-                    "email": "dinithhasangare@gmail.com",
-                    "phone": "+94 70 168 4781",
-                    "address": "Kadawatha",
+                    "full_name": "John Doe",
+                    "email": "john.doe@example.com",
+                    "phone": "+94 70 123 4567",
+                    "address": "Colombo",
                     "country": "Sri Lanka",
                 }
             ],
@@ -183,31 +182,31 @@ education_schema = Object(
     ],
     examples=[
         (
-            "B.Sc. in Computer Science and Engineering (University of Moratuwa, Sri Lanka, 2021 - Present): \
-                Specialized in Data Science and Engineering. GPA: 3.8/4.0. A-Level (Royal College, Colombo, \
-                    Sri Lanka, 2019 - 2020): Combined Mathematics(A), Physics(A), Chemistry(A). Z-Score: 2.0883. \
-                        O-Level (Royal College, Colombo, Sri Lanka, 2017): 8 A’s.",
+            "B.Sc. in Electrical Engineering (ABC University, Sri Lanka, 2021 - Present): Specialized in Power Systems \
+                  Engineering. GPA: 3.4/4.0. A-Level (XYZ College, Kandy, Sri Lanka, 2019 - 2020): Biology(B), \
+                    Physics(B), Mathematics(C). Z-Score: 1.7521. O-Level (XYZ College, Kandy, Sri Lanka, 2017): \
+                        6 A’s, 2 B’s.",
             [
                 {
-                    "degree": "B.Sc. in Computer Science and Engineering",
-                    "institution": "University of Moratuwa",
+                    "degree": "B.Sc. in Electrical Engineering",
+                    "institution": "ABC University",
                     "location": "Sri Lanka",
-                    "gpa_zscore": 3.8,
+                    "gpa_zscore": 3.4,
                     "start_year": 2021,
                     "end_year": None,
                 },
                 {
                     "degree": "A-Level",
-                    "institution": "Royal College",
-                    "location": "Colombo, Sri Lanka",
-                    "gpa_zscore": 2.0883,
+                    "institution": "XYZ College",
+                    "location": "Kandy, Sri Lanka",
+                    "gpa_zscore": 1.7521,
                     "start_year": 2019,
                     "end_year": 2020,
                 },
                 {
                     "degree": "O-Level",
-                    "institution": "Royal College",
-                    "location": "Colombo, Sri Lanka",
+                    "institution": "XYZ College",
+                    "location": "Kandy, Sri Lanka",
                     "gpa_zscore": None,
                     "start_year": 2017,
                     "end_year": None,
