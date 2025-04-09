@@ -16,12 +16,48 @@
 
 import { State } from "@/types/types";
 import { RootState } from "@slices/store";
-import { AppConfig } from "@config/config";
-import { APIService } from "@utils/apiService";
-import { SnackMessage } from "@config/constant"
-import { AuthState, AuthData, Role } from "@utils/types";
+import { SnackMessage } from "@config/constant";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
+import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
+
+export enum Role {
+  ADMIN = "ADMIN",
+  TEAM = "TEAM",
+}
+
+interface AuthState {
+  status: State;
+  mode: "active" | "maintenance";
+  statusMessage: string | null;
+  isAuthenticated: boolean;
+  userInfo: BasicUserInfo | null;
+  decodedIdToken: DecodedIDTokenPayload | null;
+  roles: string[];
+}
+
+interface AuthData {
+  userInfo: BasicUserInfo;
+  idToken: string;
+  decodedIdToken: DecodedIDTokenPayload;
+}
+
+export interface UserState {
+  state: State;
+  stateMessage: string | null;
+  errorMessage: string | null;
+  userInfo: UserInfoInterface | null;
+}
+
+export interface UserInfoInterface {
+  employeeId: string;
+  firstName: string;
+  lastName: string;
+  workEmail: string;
+  employeeThumbnail: string | null;
+  jobRole: string;
+  privileges: number[];
+}
 
 const initialState: AuthState = {
   status: State.idle,
@@ -33,44 +69,42 @@ const initialState: AuthState = {
   roles: [],
 };
 
-export const loadPrivileges = createAsyncThunk("auth/loadPrivileges", async (_, { dispatch, rejectWithValue }) => {
-  return new Promise<{
-    roles: Role[]
-  }>((resolve, reject) => {
-    APIService.getInstance()
-      .get(AppConfig.serviceUrls.userInfo)
-      .then((resp) => {
-        const userPrivileges: number[] = resp.data.privileges;
-        const roles: Role[] = [];
-        if (userPrivileges.includes(762)) {
-          roles.push(Role.SALES_ADMIN);
-        }
-        if (userPrivileges.includes(987)) {
-          roles.push(Role.SALES_TEAM);
-        }
-        if (roles.length === 0) {
-          dispatch(
-            enqueueSnackbarMessage({
-              message: "Insufficient privileges",
-              type: "error",
-            })
-          );
-          rejectWithValue("No roles found");
-        }
-        resolve({ roles });
-      })
-      .catch((error) => {
-        const errorMessage = SnackMessage.error.fetchPrivileges;
-        dispatch(
-          enqueueSnackbarMessage({
-            message: errorMessage,
-            type: "error",
-          })
-        );
-        reject(error);
-      });
+export const loadPrivileges = createAsyncThunk(
+  "auth/loadPrivileges",
+  (_, { getState, dispatch, rejectWithValue }) => {
+    const { userInfo } = (getState() as { user: UserState }).user;
+
+    if (!userInfo) {
+      dispatch(
+        enqueueSnackbarMessage({
+          message: SnackMessage.error.fetchPrivileges,
+          type: "error",
+        })
+      );
+      return rejectWithValue("User info is missing");
+    }
+    const userPrivileges = userInfo.privileges;
+    const roles: Role[] = [];
+
+    if (userPrivileges.includes(762)) {
+      roles.push(Role.ADMIN);
+    }
+    if (userPrivileges.includes(987)) {
+      roles.push(Role.TEAM);
+    }
+
+    if (roles.length === 0) {
+      dispatch(
+        enqueueSnackbarMessage({
+          message: SnackMessage.error.insufficientPrivileges,
+          type: "error",
+        })
+      );
+      return rejectWithValue("No roles found");
+    }
+    return { roles };
+
   });
-});
 
 export const authSlice = createSlice({
   name: "auth",
@@ -100,6 +134,5 @@ export const authSlice = createSlice({
 
 
 export const { setUserAuthData } = authSlice.actions;
-export const selectUserInfo = (state: RootState) => state.auth.userInfo;
 export const selectRoles = (state: RootState) => state.auth.roles;
 export default authSlice.reducer;

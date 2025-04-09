@@ -17,6 +17,7 @@
 import { State } from "@/types/types";
 import { AppConfig } from "@config/config";
 import { APIService } from "@utils/apiService";
+import { UserState, UserInfoInterface } from "@slices/authSlice/auth";
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
 const initialState: UserState = {
@@ -26,23 +27,7 @@ const initialState: UserState = {
   userInfo: null,
 };
 
-interface UserState {
-  state: State;
-  stateMessage: string | null;
-  errorMessage: string | null;
-  userInfo: UserInfoInterface | null;
-}
-
-interface UserInfoInterface {
-  employeeId: string;
-  firstName: string;
-  lastName: string;
-  workEmail: string;
-  employeeThumbnail: string;
-  jobRole: string;
-}
-
-export const getUserInfo = createAsyncThunk("User/getUserInfo", async () => {
+export const getUserInfo = createAsyncThunk("user/getUserInfo", async () => {
   return new Promise<{
     UserInfo: UserInfoInterface;
   }>((resolve, reject) => {
@@ -71,7 +56,7 @@ export const UserSlice = createSlice({
     builder
       .addCase(getUserInfo.pending, (state, action) => {
         state.state = State.loading;
-        state.stateMessage = "Checking User Info";
+        state.stateMessage = "Checking User Info...";
       })
       .addCase(getUserInfo.fulfilled, (state, action) => {
         state.userInfo = action.payload.UserInfo;

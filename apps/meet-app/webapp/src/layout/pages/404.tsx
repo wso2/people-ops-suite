@@ -16,15 +16,9 @@
 
 import React from "react";
 import { Box, Button, Typography } from "@mui/material";
-import {
-  Link as RouterLink,
-  LinkProps as RouterLinkProps,
-} from "react-router-dom";
+import { Link as RouterLink, LinkProps as RouterLinkProps } from "react-router-dom";
 
-const Link = React.forwardRef<HTMLAnchorElement, RouterLinkProps>(function Link(
-  itemProps,
-  ref
-) {
+const Link = React.forwardRef<HTMLAnchorElement, RouterLinkProps>(function Link(itemProps, ref) {
   return <RouterLink ref={ref} {...itemProps} role={undefined} />;
 });
 

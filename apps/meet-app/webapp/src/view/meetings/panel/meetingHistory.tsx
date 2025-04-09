@@ -1,8 +1,3 @@
-import { State } from "@/types/types";
-import { useEffect, useState } from "react";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import ErrorHandler from "@component/common/ErrorHandler";
-import { useAppDispatch, useAppSelector } from "@slices/store";
 import {
   Box,
   Button,
@@ -16,17 +11,15 @@ import {
   DialogContent,
   CircularProgress,
 } from "@mui/material";
-import {
-  Delete,
-  Visibility,
-  CheckCircle,
-  DeleteForever,
-} from "@mui/icons-material";
-import {
-  fetchMeetings,
-  deleteMeeting,
-  fetchAttachments,
-} from "@slices/meetingSlice/meeting";
+import { State } from "@/types/types";
+import { useEffect, useState } from "react";
+import { ConfirmationType } from "@/types/types";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import ErrorHandler from "@component/common/ErrorHandler";
+import { useAppDispatch, useAppSelector } from "@slices/store";
+import { useConfirmationModalContext } from "@context/DialogContext";
+import { Delete, Visibility, CheckCircle, DeleteForever } from "@mui/icons-material";
+import { fetchMeetings, deleteMeeting, fetchAttachments } from "@slices/meetingSlice/meeting";
 
 interface Attachment {
   title: string;
@@ -49,19 +42,44 @@ const formatDateTime = (dateTimeStr: string) => {
 function MeetingHistory() {
   const dispatch = useAppDispatch();
   const meeting = useAppSelector((state) => state.meeting);
+  const totalMeetings = meeting.meetings?.count || 0;
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [loadingAttachments, setLoadingAttachments] = useState(false);
-  const [openAttachmentDialog, setOpenAttachmentDialog] = useState(false);
-  const [meetingToDelete, setMeetingToDelete] = useState<number | null>(null);
   const [loadingDelete, setLoadingDelete] = useState(false);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const totalMeetings = meeting.meetings?.count || 0;
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [openAttachmentDialog, setOpenAttachmentDialog] = useState(false);
+  const dialogContext = useConfirmationModalContext();
 
   useEffect(() => {
     dispatch(fetchMeetings({ limit: pageSize, offset: page * pageSize }));
   }, [dispatch, page, pageSize]);
+
+  const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
+    dialogContext.showConfirmation(
+      "Confirm Deletion",
+      <Box>
+        <>
+          <Typography variant="body1">
+            <strong>
+              Are you sure you want to delete the meeting <br />
+            </strong>{" "}
+            {`${meetingTitle} ?`}
+          </Typography>
+        </>
+      </Box>,
+      ConfirmationType.accept,
+      async () => {
+        setLoadingDelete(true);
+        await dispatch(deleteMeeting(meetingId)).then(() => {
+          setLoadingDelete(false);
+          dispatch(fetchMeetings({ limit: pageSize, offset: page * pageSize }));
+        });
+      },
+      "Yes",
+      "No"
+    );
+  };
 
   const handleViewAttachments = (meetingId: number) => {
     setLoadingAttachments(true);
@@ -69,22 +87,6 @@ function MeetingHistory() {
       setAttachments(data.payload.attachments);
       setOpenAttachmentDialog(true);
       setLoadingAttachments(false);
-    });
-  };
-
-  const handleConfirmDelete = () => {
-    if (meetingToDelete !== null) {
-      handleDeleteMeeting(meetingToDelete);
-      setOpenDeleteDialog(false);
-      setMeetingToDelete(null);
-    }
-  };
-
-  const handleDeleteMeeting = (meetingId: number) => {
-    setLoadingDelete(true);
-    dispatch(deleteMeeting(meetingId)).then(() => {
-      setLoadingDelete(false);
-      dispatch(fetchMeetings({ limit: pageSize, offset: page * pageSize }));
     });
   };
 
@@ -120,11 +122,7 @@ function MeetingHistory() {
                 height: "100%",
               }}
             >
-              {status === "ACTIVE" ? (
-                <CheckCircle color="success" />
-              ) : (
-                <Delete color="disabled" />
-              )}
+              {status === "ACTIVE" ? <CheckCircle color="success" /> : <Delete color="disabled" />}
             </Box>
           </Tooltip>
         );
@@ -135,6 +133,12 @@ function MeetingHistory() {
       headerName: "Host",
       minWidth: 120,
       flex: 2,
+    },
+    {
+      field: "internalParticipants",
+      headerName: "WSO2 Participants",
+      minWidth: 200,
+      flex: 3,
     },
     {
       field: "startTime",
@@ -151,14 +155,8 @@ function MeetingHistory() {
       renderCell: (params) => formatDateTime(params.value),
     },
     {
-      field: "internalParticipants",
-      headerName: "WSO2 Participants",
-      minWidth: 200,
-      flex: 3,
-    },
-    {
       field: "actions",
-      headerName: "",
+      headerName: "Actions",
       minWidth: 90,
       flex: 1,
       renderCell: (params) => {
@@ -167,10 +165,7 @@ function MeetingHistory() {
         return (
           <>
             <Tooltip title="View Attachments" arrow>
-              <IconButton
-                color="info"
-                onClick={() => handleViewAttachments(params.row.meetingId)}
-              >
+              <IconButton color="info" onClick={() => handleViewAttachments(params.row.meetingId)}>
                 <Visibility />
               </IconButton>
             </Tooltip>
@@ -179,8 +174,7 @@ function MeetingHistory() {
                 <IconButton
                   color="error"
                   onClick={() => {
-                    setMeetingToDelete(params.row.meetingId);
-                    setOpenDeleteDialog(true);
+                    handleDeleteMeeting(params.row.meetingId, params.row.title);
                   }}
                 >
                   <DeleteForever />
@@ -260,23 +254,6 @@ function MeetingHistory() {
       >
         <CircularProgress color="inherit" />
       </Backdrop>
-      <Dialog
-        open={openDeleteDialog}
-        onClose={() => setOpenDeleteDialog(false)}
-      >
-        <DialogTitle>Confirm Deletion</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to delete this meeting?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)} color="primary">
-            Cancel
-          </Button>
-          <Button onClick={handleConfirmDelete} color="error">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
       <Dialog open={openAttachmentDialog} onClose={handleCloseAttachmentDialog}>
         <DialogTitle>Attachments</DialogTitle>
         <DialogContent>
@@ -285,10 +262,7 @@ function MeetingHistory() {
           ) : (
             <Box>
               {attachments.map((attachment, index) => (
-                <Box
-                  key={index}
-                  sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                >
+                <Box key={index} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                   <img
                     src={attachment.iconLink}
                     alt={attachment.title}
