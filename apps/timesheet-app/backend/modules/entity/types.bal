@@ -38,7 +38,7 @@ public type GraphQlRetryConfig record {|
 |};
 
 # Employee information record.
-public type Employee record {
+public type Employee record {|
     # Id of the employee
     string employeeId?;
     # Email of the employee
@@ -57,19 +57,19 @@ public type Employee record {
     string? managerEmail;
     # Indicator of lead or not
     boolean lead?;
-};
+|};
 
 # Employee data.
-type EmployeeData record {
+type EmployeeData record {|
     # Employee
     Employee employee;
-};
+|};
 
 # Employee response.
-type EmployeeResponse record {
+type EmployeeResponse record {|
     # Employee data
     EmployeeData data;
-};
+|};
 
 # The EmployeeStatus represents the status of an employee.
 public enum EmployeeStatus {
@@ -107,9 +107,9 @@ public type EmployeeFilter record {|
 |};
 
 # The GetEmployeesResponse record type represents the response of the getEmployees query.
-type GetEmployeesResponse readonly & record {
+type GetEmployeesResponse readonly & record {|
     *graphql:GenericResponseWithErrors;
     record {
         Employee[] & readonly employees;
     } data;
-};
+|};
