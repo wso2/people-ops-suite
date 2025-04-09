@@ -32,14 +32,20 @@ export const ColorModeContext = createContext({ toggleColorMode: () => {} });
 function App() {
   document.title = APP_NAME;
   const processLocalThemeMode = (): ThemeMode => {
-    var savedTheme: ThemeMode | null = localStorage.getItem("internal-app-theme") as ThemeMode;
+    try {
+      const savedTheme = localStorage.getItem("internal-app-theme");
+      if (savedTheme === ThemeMode.Light || savedTheme === ThemeMode.Dark) {
+        return savedTheme;
+      }
 
-    if (savedTheme) {
-      return savedTheme;
-    } else {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? ThemeMode.Dark : ThemeMode.Light;
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const systemTheme = prefersDark ? ThemeMode.Dark : ThemeMode.Light;
+
       localStorage.setItem("internal-app-theme", systemTheme);
       return systemTheme;
+    } catch (err) {
+      console.error("Theme detection failed, defaulting to light mode.", err);
+      return ThemeMode.Light;
     }
   };
 
