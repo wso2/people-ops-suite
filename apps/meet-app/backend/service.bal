@@ -23,7 +23,7 @@ import ballerina/http;
 import ballerina/log;
 import ballerinax/googleapis.calendar as gcalendar;
 
-cache:Cache cache = new ({
+final cache:Cache cache = new ({
     capacity: 2000,
     defaultMaxAge: 1800.0,
     cleanupInterval: 900.0
@@ -155,7 +155,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + domain - Domain to filter 
     # + return - Meeting types | Error
-    isolated resource function get meetings/types(http:RequestContext ctx, string domain)
+    resource function get meetings/types(http:RequestContext ctx, string domain)
         returns database:MeetingTypes|http:Forbidden|http:InternalServerError {
 
         // Fetch the meeting types from the database.
@@ -177,7 +177,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + createCalendarEventRequest - Create calendar event request
     # + return - Created meeting | Error
-    isolated resource function post meetings(http:RequestContext ctx,
+    resource function post meetings(http:RequestContext ctx,
             calendar:CreateCalendarEventRequest createCalendarEventRequest)
         returns MeetingCreationResponse|http:Forbidden|http:InternalServerError {
 
@@ -242,7 +242,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + 'limit - Limit of the data  
     # + offset - Offset of the data
     # + return - Meetings | Error
-    isolated resource function get meetings(http:RequestContext ctx, string? title, string? host,
+    resource function get meetings(http:RequestContext ctx, string? title, string? host,
             string? startTime, string? endTime, string? internalParticipants, int? 'limit, int? offset)
         returns MeetingListResponse|http:Forbidden|http:InternalServerError {
 
@@ -302,7 +302,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + meetingId - meetingId to get attachments 
     # + return - Attachments|Error
-    isolated resource function get meetings/[int meetingId]/attachments(http:RequestContext ctx)
+    resource function get meetings/[int meetingId]/attachments(http:RequestContext ctx)
         returns AttachmentListResponse|http:InternalServerError|http:Forbidden {
 
         // User information header.
@@ -365,7 +365,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + meetingId - meetingId to delete  
     # + return - Ok|InternalServerError|Forbidden
-    isolated resource function delete meetings/[int meetingId](http:RequestContext ctx)
+    resource function delete meetings/[int meetingId](http:RequestContext ctx)
         returns MeetingDeletionResponse|http:InternalServerError|http:Forbidden {
 
         // User information header.
