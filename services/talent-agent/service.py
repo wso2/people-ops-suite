@@ -11,22 +11,30 @@ import os
 app = FastAPI()
 
 @app.post("/resumes/parse")
-async def extract_resumes(files: list[UploadFile] = File(...)):
+async def extract_resume(request: Request):
+    data: bytes = await request.body()
+
     os.makedirs("temp", exist_ok=True)
-    structuredObjects = []
-    
-    for file in files:
-        file_location = f"temp/{file.filename}"
-        with open(file_location, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        
+    file_location = "temp/temp_resume.pdf"
+
+    try:
+        with open(file_location, "wb") as f:
+            f.write(data)
+
         resume_content = extract_text(file_location)
-        chain = create_extraction_chain(llm, candidate_schema, encoder_or_encoder_class="json", input_formatter=None)
+        chain = create_extraction_chain(
+            llm,
+            candidate_schema,
+            encoder_or_encoder_class="json",
+            input_formatter=None
+        )
         output = chain.invoke(resume_content)["data"]
-        structuredObjects.append(format_candidate_data(output))
-        os.remove(file_location)
-    
-    return {"structuredObjects": structuredObjects}
+        structured_object = format_candidate_data(output)
+    finally:
+        if os.path.exists(file_location):
+            os.remove(file_location)
+
+    return {"structuredObject": structured_object}
 
 @app.post("/resumes/similarity")
 async def get_scores(request: Request):
