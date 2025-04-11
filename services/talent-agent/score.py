@@ -102,7 +102,7 @@ def evaluate_candidate(
     """
     results = []
 
-    experience = candidate.get("experience", [])
+    experience = candidate.get("experiences", [])
     certifications = candidate.get("certifications", [])
     projects = candidate.get("projects", [])
     education = candidate.get("education", [])
