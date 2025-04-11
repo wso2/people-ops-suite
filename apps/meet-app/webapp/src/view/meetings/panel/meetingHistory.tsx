@@ -20,6 +20,7 @@ import {
   Dialog,
   Tooltip,
   Backdrop,
+  TextField,
   IconButton,
   Typography,
   DialogTitle,
@@ -34,7 +35,7 @@ import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import ErrorHandler from "@component/common/ErrorHandler";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { useConfirmationModalContext } from "@context/DialogContext";
-import { Delete, Visibility, CheckCircle, DeleteForever } from "@mui/icons-material";
+import { Delete, Visibility, CheckCircle, DeleteForever, Search } from "@mui/icons-material";
 import { fetchMeetings, deleteMeeting, fetchAttachments } from "@slices/meetingSlice/meeting";
 
 interface Attachment {
@@ -61,15 +62,17 @@ function MeetingHistory() {
   const totalMeetings = meeting.meetings?.count || 0;
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const dialogContext = useConfirmationModalContext();
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [openAttachmentDialog, setOpenAttachmentDialog] = useState(false);
-  const dialogContext = useConfirmationModalContext();
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filteredSearchQuery, setFilteredSearchQuery] = useState<string>("");
 
   useEffect(() => {
-    dispatch(fetchMeetings({ limit: pageSize, offset: page * pageSize }));
-  }, [dispatch, page, pageSize]);
+    dispatch(fetchMeetings({ title: filteredSearchQuery, limit: pageSize, offset: page * pageSize }));
+  }, [dispatch, filteredSearchQuery, page, pageSize]);
 
   const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
     dialogContext.showConfirmation(
@@ -89,7 +92,7 @@ function MeetingHistory() {
         setLoadingDelete(true);
         await dispatch(deleteMeeting(meetingId)).then(() => {
           setLoadingDelete(false);
-          dispatch(fetchMeetings({ limit: pageSize, offset: page * pageSize }));
+          dispatch(fetchMeetings({ title: filteredSearchQuery, limit: pageSize, offset: page * pageSize }));
         });
       },
       "Yes",
@@ -224,6 +227,60 @@ function MeetingHistory() {
 
   return (
     <Box>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "flex-start",
+          gap: 1,
+          px: 2,
+          pt: 1.5,
+        }}
+      >
+        <TextField
+          label="Search by Title"
+          size="small"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              setFilteredSearchQuery(searchQuery);
+              setPage(0);
+            }
+          }}
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          sx={{
+            width: 300,
+            "& .MuiInputBase-root": {
+              paddingRight: 0, // Remove any extra padding on the right
+            },
+          }}
+          InputProps={{
+            endAdornment: (
+              <IconButton
+                onClick={() => {
+                  setFilteredSearchQuery(searchQuery);
+                  setPage(0);
+                }}
+                sx={{
+                  // padding: 0, // Remove padding around the icon
+                  // height: "100%", // Make the button fill the full height of the text field
+                  // width: "40px", // Adjust width to match the size of the icon
+                  justifyContent: "center", // Center the icon horizontally
+                  borderRadius: 0, // Remove the circular border radius
+                  // "&:hover": {
+                  //   backgroundColor: "#f0f0f0", // Change background color on hover
+                  // },
+                }}
+              >
+                <Search />
+              </IconButton>
+            ),
+          }}
+        />
+      </Box>
       {meeting.state === State.loading ? (
         <Box
           sx={{
