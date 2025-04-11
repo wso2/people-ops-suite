@@ -78,8 +78,8 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         // Check if the employees are already cached.
-        if cache.hasKey(USER_INFO_CACHE_KEY) {
-            UserInfoResponse|error cachedUserInfo = cache.get(USER_INFO_CACHE_KEY).ensureType();
+        if cache.hasKey(userInfo.email) {
+            UserInfoResponse|error cachedUserInfo = cache.get(userInfo.email).ensureType();
             if cachedUserInfo is UserInfoResponse {
                 return cachedUserInfo;
             }
@@ -108,7 +108,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         UserInfoResponse userInfoResponse = {...loggedInUser, privileges};
 
-        error? cacheError = cache.put(USER_INFO_CACHE_KEY, userInfoResponse);
+        error? cacheError = cache.put(userInfo.email, userInfoResponse);
         if cacheError is error {
             log:printError("An error occurred while writing user info to the cache", cacheError);
         }
