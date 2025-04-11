@@ -17,7 +17,7 @@
 // MUI imports
 import { PaletteMode, Theme, alpha } from "@mui/material";
 
-// color design tokens export
+// Color Design Tokens Export
 export const tokens = (mode: PaletteMode) => ({
   ...(mode === "dark"
     ? {
@@ -30,7 +30,7 @@ export const tokens = (mode: PaletteMode) => ({
           600: "#000000",
         },
         primary: {
-          100: "#FF5722",
+          100: "#e0e0e0",
         },
       }
     : {
@@ -43,7 +43,7 @@ export const tokens = (mode: PaletteMode) => ({
           600: "#ffffff",
         },
         primary: {
-          100: "#FD7014",
+          100: "#666666",
         },
       }),
 });

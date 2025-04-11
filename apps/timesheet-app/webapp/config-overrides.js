@@ -11,7 +11,6 @@ module.exports = function override(config) {
       "@utils": path.resolve(__dirname, "src/utils"),
       "@context": path.resolve(__dirname, "src/context"),
       "@slices": path.resolve(__dirname, "src/slices"),
-      types: path.resolve(__dirname, "src/types"),
     },
   };
   return config;

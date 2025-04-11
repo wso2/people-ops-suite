@@ -5,7 +5,6 @@
 2. Rename following files
 
    - `config.toml.local` -> `config.toml`
-   - `/tests/config.toml.local` -> `/tests/config.toml`
 
 3. Add relevant configurations.
 
@@ -19,43 +18,44 @@
 
 ```toml
 # App Configurations.
-[sample_app]
-    port = <Port number>
 
 # Entity Configurations.
-[sample_app.entity]
+[timesheet_app.entity]
     hrEntityBaseUrl = "<Entity URL>"
-    [sample_app.entity.oauthConfig]
+    employeeTypes = "<Allowed employee types : PERMANENT, INTERNSHIP>"
+    allowedEmployeeStatusTypes = "<Allowed employee status types: ACTIVE, MARKED LEAVER>"
+    [timesheet_app.entity.oauthConfig]
         tokenUrl = "<Refresh URL>"
         clientId = "<Client ID of the Asgardeo app>"
         clientSecret = "<Client secret of the Asgardeo app>"
 
-    [sample_app.entity.retryConfig]
+    [timesheet_app.entity.retryConfig]
         count = <Retry count: 3>
         interval = <Retry interval: 3.0>
         backOffFactor = <Backoff factor: 2.0>
         maxWaitInterval = <Max waiting interval: 20.0>
 
 # Database Configurations.
-[sample_app.database.dbConfig]
+[timesheet_app.database.dbConfig]
     host = "<Database host>"
     user = "<Database user name>"
     password = "<Database password>"
     database = "<Schema name>"
     port = <Database port>
-    [sample_app.database.dbConfig.connectionPool]
+    [timesheet_app.database.dbConfig.connectionPool]
         maxOpenConnections = <Maximum open connections: 10>
         maxConnectionLifeTime = <Maximum connection lifetime: 100.0>
         minIdleConnections= <Maximum idle connections: 3>
-    [sample_app.database.dbConfig.options]
+    [timesheet_app.database.dbConfig.options]
         connectTimeout = <Connection timeout in: 10.0>
-    [sample_app.database.dbConfig.options.ssl]
+    [timesheet_app.database.dbConfig.options.ssl]
         mode = "PREFERRED"
 
 # Authorization Configurations.
-[sample_app.authorization.authorizedRoles]
+[timesheet_app.authorization.authorizedRoles]
     employeeRole  = "<Asgardeo role mapped to this application role>"
-    headPeopleOperationsRole = "<Asgardeo role mapped to this application role>"
+    adminRole = "<Asgardeo role mapped to this application role>"
+    leadRole = "<Asgardeo role mapped to this application role>"
 ```
 
 ## Execute
@@ -82,7 +82,7 @@ You can get a token from the sample Asgardeo app or using the webapp-template it
    - /tests/Config.toml
 
 ```toml
-    [sample_app]
+    [timesheet_app]
     jwtKey = ""
 ```
 

@@ -26,8 +26,7 @@ declare global {
       AUTH_SIGN_IN_REDIRECT_URL: string;
       AUTH_SIGN_OUT_REDIRECT_URL: string;
       REACT_APP_BACKEND_BASE_URL: string;
-      RECRUITMENT_ADMIN: string;
-      RECRUITMENT_TEAM: string;
+      DEFAULT_PAGE_SIZE: number;
     };
   }
 }
@@ -42,12 +41,12 @@ export const AsgardeoConfig: BaseURLAuthClientConfig = {
 
 export const ServiceBaseUrl = window.config?.REACT_APP_BACKEND_BASE_URL ?? "";
 export const APP_NAME = window.config?.APP_NAME ?? "";
-export const RECRUITMENT_ADMIN = window.config?.RECRUITMENT_ADMIN ?? "";
-export const RECRUITMENT_TEAM = window.config?.RECRUITMENT_TEAM ?? "";
+export const DEFAULT_PAGE_SIZE = window.config?.DEFAULT_PAGE_SIZE ?? 10;
 
 export const AppConfig = {
   serviceUrls: {
-    collections: ServiceBaseUrl + "/collections",
     getUserInfo: ServiceBaseUrl + "/user-info",
+    timesheetRecords: ServiceBaseUrl + "/time-logs",
+    employees: ServiceBaseUrl + "/employees",
   },
 };
