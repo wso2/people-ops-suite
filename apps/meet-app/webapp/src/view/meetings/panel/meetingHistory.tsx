@@ -254,7 +254,7 @@ function MeetingHistory() {
           sx={{
             width: 300,
             "& .MuiInputBase-root": {
-              paddingRight: 0, // Remove any extra padding on the right
+              paddingRight: 0,
             },
           }}
           InputProps={{
@@ -265,14 +265,8 @@ function MeetingHistory() {
                   setPage(0);
                 }}
                 sx={{
-                  // padding: 0, // Remove padding around the icon
-                  // height: "100%", // Make the button fill the full height of the text field
-                  // width: "40px", // Adjust width to match the size of the icon
-                  justifyContent: "center", // Center the icon horizontally
-                  borderRadius: 0, // Remove the circular border radius
-                  // "&:hover": {
-                  //   backgroundColor: "#f0f0f0", // Change background color on hover
-                  // },
+                  justifyContent: "center",
+                  borderRadius: 0,
                 }}
               >
                 <Search />
