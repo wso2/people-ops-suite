@@ -69,9 +69,12 @@ function MeetingHistory() {
   const [openAttachmentDialog, setOpenAttachmentDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filteredSearchQuery, setFilteredSearchQuery] = useState<string>("");
+  const loggedInUser = useAppSelector((state) => state.user.userInfo?.workEmail) || "";
 
   useEffect(() => {
-    dispatch(fetchMeetings({ title: filteredSearchQuery, limit: pageSize, offset: page * pageSize }));
+    dispatch(
+      fetchMeetings({ host: loggedInUser, title: filteredSearchQuery, limit: pageSize, offset: page * pageSize })
+    );
   }, [dispatch, filteredSearchQuery, page, pageSize]);
 
   const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
@@ -92,7 +95,9 @@ function MeetingHistory() {
         setLoadingDelete(true);
         await dispatch(deleteMeeting(meetingId)).then(() => {
           setLoadingDelete(false);
-          dispatch(fetchMeetings({ title: filteredSearchQuery, limit: pageSize, offset: page * pageSize }));
+          dispatch(
+            fetchMeetings({ host: loggedInUser, title: filteredSearchQuery, limit: pageSize, offset: page * pageSize })
+          );
         });
       },
       "Yes",
