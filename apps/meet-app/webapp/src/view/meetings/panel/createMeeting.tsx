@@ -278,6 +278,7 @@ function MeetingForm() {
                 onBlur={formik.handleBlur}
                 onChange={formik.handleChange}
                 error={formik.touched.meetingType && Boolean(formik.errors.meetingType)}
+                helperText={formik.touched.meetingType && formik.errors.meetingType}
               />
             )}
           />
@@ -292,6 +293,7 @@ function MeetingForm() {
             onBlur={formik.handleBlur}
             onChange={formik.handleChange}
             error={formik.touched.customerName && Boolean(formik.errors.customerName)}
+            helperText={formik.touched.customerName && formik.errors.customerName}
             autoCorrect="off"
             autoCapitalize="none"
             spellCheck={false}
@@ -323,17 +325,6 @@ function MeetingForm() {
           multiline
           rows={2}
         />
-        <FormHelperText
-          error={
-            (formik.touched.customTitle && Boolean(formik.errors.customTitle)) ||
-            (formik.touched.meetingType && Boolean(formik.errors.meetingType)) ||
-            (formik.touched.customerName && Boolean(formik.errors.customerName))
-          }
-          sx={{ marginX: "14px !important", marginBottom: "2px !important", marginTop: "0px !important" }}
-        >
-          {(formik.touched.meetingType && formik.errors.meetingType) ||
-            (formik.touched.customerName && formik.errors.customerName)}
-        </FormHelperText>
         <DatePicker
           name="date"
           label="Meeting Date *"
@@ -430,6 +421,13 @@ function MeetingForm() {
           multiple
           limitTags={1}
           options={employees.map((emp) => emp.workEmail)}
+          filterOptions={createFilterOptions({
+            stringify: (email) => {
+              const employee = employees.find((emp) => emp.workEmail === email);
+              const fullName = `${employee?.firstName || ""} ${employee?.lastName || ""}`;
+              return `${email} ${fullName}`;
+            },
+          })}
           filterSelectedOptions
           value={formik.values.internalParticipants.split(",").filter(Boolean)}
           onChange={(_, newValue) => {
