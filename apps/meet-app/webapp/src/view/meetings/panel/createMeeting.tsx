@@ -530,9 +530,10 @@ function MeetingForm() {
           options={externalEmailInputValue.filter((email) => email.trim() !== "")}
           filterSelectedOptions
           value={formik.values.externalParticipants.split(",").filter(Boolean)}
-          onChange={(_, newValue) => {
+          onChange={async (_, newValue) => {
             const emails = newValue.map((email) => email.trim()).filter(Boolean);
-            formik.setFieldValue("externalParticipants", emails.join(","));
+            await formik.setFieldValue("externalParticipants", emails.join(","));
+            formik.setFieldTouched("externalParticipants", true);
           }}
           onInputChange={(_, newInputValue) => {
             setExternalEmailInputValue([newInputValue]);
