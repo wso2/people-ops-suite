@@ -60,7 +60,7 @@ function formatDateTime(date: Dayjs | null, time: Dayjs | null): Dayjs | null {
 const validationSchema = yup.object({
   meetingType: yup.string().trim().required("Meeting type is required"),
   customerName: yup.string().trim().required("Customer name is required"),
-  customTitle: yup.string().trim().required("Title is required"),
+  customTitle: yup.string().trim(),
   description: yup.string().trim(),
   date: yup
     .mixed<Dayjs>()
@@ -165,7 +165,7 @@ function MeetingForm() {
       try {
         if (!formik.isValid) return;
         const formattedData = {
-          title: `${values.meetingType} - ${values.customerName} - ${values.customTitle}`.trim(),
+          title: [values.meetingType, values.customerName, values.customTitle?.trim()].filter(Boolean).join(" - "),
           description: values.description,
           startTime:
             values.date && values.startTime ? formatDateTime(values.date, values.startTime)?.toISOString() ?? "" : "",
@@ -237,18 +237,6 @@ function MeetingForm() {
         <Typography variant="h5" fontWeight="bold" color="primary.main" align="center">
           Create Meeting
         </Typography>
-        <TextField
-          required
-          fullWidth
-          id="customTitle"
-          name="customTitle"
-          label="Title"
-          value={formik.values.customTitle}
-          onBlur={formik.handleBlur}
-          onChange={formik.handleChange}
-          error={formik.touched.customTitle && Boolean(formik.errors.customTitle)}
-        />
-
         <Box sx={{ display: "flex", gap: 2 }}>
           <Autocomplete
             sx={{ flex: 1 }}
@@ -290,6 +278,7 @@ function MeetingForm() {
                 onBlur={formik.handleBlur}
                 onChange={formik.handleChange}
                 error={formik.touched.meetingType && Boolean(formik.errors.meetingType)}
+                helperText={formik.touched.meetingType && formik.errors.meetingType}
               />
             )}
           />
@@ -304,13 +293,23 @@ function MeetingForm() {
             onBlur={formik.handleBlur}
             onChange={formik.handleChange}
             error={formik.touched.customerName && Boolean(formik.errors.customerName)}
+            helperText={formik.touched.customerName && formik.errors.customerName}
             autoCorrect="off"
             autoCapitalize="none"
             spellCheck={false}
             sx={{ flex: 1 }}
           />
         </Box>
-
+        <TextField
+          fullWidth
+          id="customTitle"
+          name="customTitle"
+          label="Title"
+          value={formik.values.customTitle}
+          onBlur={formik.handleBlur}
+          onChange={formik.handleChange}
+          error={formik.touched.customTitle && Boolean(formik.errors.customTitle)}
+        />
         <TextField
           fullWidth
           id="description"
@@ -326,18 +325,6 @@ function MeetingForm() {
           multiline
           rows={2}
         />
-        <FormHelperText
-          error={
-            (formik.touched.customTitle && Boolean(formik.errors.customTitle)) ||
-            (formik.touched.meetingType && Boolean(formik.errors.meetingType)) ||
-            (formik.touched.customerName && Boolean(formik.errors.customerName))
-          }
-          sx={{ marginX: "14px !important", marginBottom: "2px !important", marginTop: "0px !important" }}
-        >
-          {(formik.touched.customTitle && formik.errors.customTitle) ||
-            (formik.touched.meetingType && formik.errors.meetingType) ||
-            (formik.touched.customerName && formik.errors.customerName)}
-        </FormHelperText>
         <DatePicker
           name="date"
           label="Meeting Date *"
@@ -434,6 +421,13 @@ function MeetingForm() {
           multiple
           limitTags={1}
           options={employees.map((emp) => emp.workEmail)}
+          filterOptions={createFilterOptions({
+            stringify: (email) => {
+              const employee = employees.find((emp) => emp.workEmail === email);
+              const fullName = `${employee?.firstName || ""} ${employee?.lastName || ""}`;
+              return `${email} ${fullName}`;
+            },
+          })}
           filterSelectedOptions
           value={formik.values.internalParticipants.split(",").filter(Boolean)}
           onChange={(_, newValue) => {
@@ -536,9 +530,10 @@ function MeetingForm() {
           options={externalEmailInputValue.filter((email) => email.trim() !== "")}
           filterSelectedOptions
           value={formik.values.externalParticipants.split(",").filter(Boolean)}
-          onChange={(_, newValue) => {
+          onChange={async (_, newValue) => {
             const emails = newValue.map((email) => email.trim()).filter(Boolean);
-            formik.setFieldValue("externalParticipants", emails.join(","));
+            await formik.setFieldValue("externalParticipants", emails.join(","));
+            formik.setFieldTouched("externalParticipants", true);
           }}
           onInputChange={(_, newInputValue) => {
             setExternalEmailInputValue([newInputValue]);
