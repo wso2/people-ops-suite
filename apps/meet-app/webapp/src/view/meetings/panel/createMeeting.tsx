@@ -200,7 +200,9 @@ function MeetingForm() {
               <strong>
                 Are you sure you want to create the meeting <br />
               </strong>{" "}
-              {`${formik.values.meetingType} - ${formik.values.customerName} - ${formik.values.customTitle} ?`}
+              {[formik.values.meetingType, formik.values.customerName, formik.values.customTitle?.trim()]
+                .filter(Boolean)
+                .join(" - ")}
             </Typography>
           </>
         )}
