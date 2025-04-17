@@ -15,48 +15,104 @@
 // under the License.
 import ballerina/sql;
 
-# Fetch sample collections.
+# Fetch work policies of a company.
 #
-# + name - Name to filter  
-# + 'limit - Limit of the response  
-# + offset - Offset of the number of sample collection to retrieve
-# + return - List of sample collections|Error
-public isolated function fetchSampleCollections(string? name, int? 'limit, int? offset) returns SampleCollection[]|error {
-    stream<SampleCollection, error?> resultStream = databaseClient->
-            query(getSampleCollectionsQuery(name, 'limit, offset));
+# + companyName - Company name to filter
+# + return - Work policies or an error
+public isolated function getWorkPolicies(string companyName) returns WorkPolicies|error? {
+    WorkPolicies|error policies = databaseClient->queryRow(getWorkPoliciesQuery(companyName));
 
-    SampleCollection[] sampleCollections = [];
-    check from SampleCollection sampleCollection in resultStream
-        do {
-            sampleCollections.push(sampleCollection);
-        };
-
-    return sampleCollections;
-}
-
-# Fetch specific sample collection.
-#
-# + id - Identification of the sample collection
-# + return - Sample collections|Error, if so
-public isolated function fetchSampleCollection(int id) returns SampleCollection|error? {
-    SampleCollection|sql:Error sampleCollection = databaseClient->queryRow(getSampleCollectionQuery(id));
-
-    if sampleCollection is sql:Error && sampleCollection is sql:NoRowsError {
+    if policies is sql:NoRowsError {
         return;
     }
-    return sampleCollection;
+    return policies;
 }
 
-# Insert sample collection.
+# Function to get timesheet records using filters.
 #
-# + sampleCollection - Sample collection payload
-# + createdBy - Person who created the sample collection
-# + return - Id of the sample collection|Error
-public isolated function addSampleCollection(AddSampleCollection sampleCollection, string createdBy) returns int|error {
-    sql:ExecutionResult|error executionResults = databaseClient->execute(addSampleCollectionQuery(sampleCollection, createdBy));
+# + filter - Filter type for the records
+# + return - TimeLog records or an error
+public isolated function getTimesheetRecords(TimesheetCommonFilter filter) returns TimeLog[]|error? {
+    stream<TimeLog, error?> recordsResult = databaseClient->query(getTimesheetRecordsOfEmployee(filter));
+
+    return from TimeLog timesheetRecord in recordsResult
+        select timesheetRecord;
+}
+
+# Function to retrieve the timesheet record count.
+#
+# + filter - Filter type for the records
+# + return - Timesheet record count or an error
+public isolated function getTotalRecordCount(TimesheetCommonFilter filter) returns int|error? {
+    int|sql:Error count = databaseClient->queryRow(getTotalRecordCountQuery(filter));
+    if count is sql:NoRowsError {
+        return 0;
+    }
+    return count;
+}
+
+# Function to insert timesheet records.
+#
+# + timesheetRecords - Timesheet record payload
+# + employeeEmail - Email of the employee
+# + leadEmail - Email of the employee's lead
+# + companyName - Name of the company of the employee
+# + return - Execution result array or an error
+public isolated function insertTimesheetRecords(TimeLog[] timesheetRecords, string employeeEmail,
+        string companyName, string leadEmail) returns error|int[] {
+
+    sql:ExecutionResult[]|sql:Error executionResults =
+        databaseClient->batchExecute(insertTimesheetRecordsQuery(timesheetRecords, employeeEmail, companyName,
+            leadEmail));
+
     if executionResults is error {
         return executionResults;
     }
+    return from sql:ExecutionResult executionResult in executionResults
+        select check executionResult.lastInsertId.ensureType(int);
+}
 
-    return <int>executionResults.lastInsertId;
+# Function to fetch employee timesheet info.
+#
+# + filter - Filter type for the timesheet information
+# + return - Timesheet info or an error
+public isolated function getTimesheetInfo(TimesheetCommonFilter filter) returns TimesheetInfo|error? {
+    TimesheetInfo|sql:Error policy = databaseClient->queryRow(getTimesheetInfoQuery(filter));
+
+    if policy is sql:Error && policy is sql:NoRowsError {
+        return;
+    }
+    return policy;
+}
+
+# Function to update timesheet records.
+#
+# + reviewRecord - TimeLogReview object containing records to be updated
+# + invokerEmail - Email of the invoker
+# + return - An error if occurred
+public isolated function updateTimesheetRecords(string invokerEmail, TimeLogReview reviewRecord) returns error? {
+    do {
+        transaction {
+            foreach int recordId in reviewRecord.recordIds {
+                TimeLogUpdate updateRecord = {
+                    recordId: recordId,
+                    overtimeStatus: reviewRecord.overtimeStatus,
+                    overtimeRejectReason: reviewRecord.overtimeRejectReason
+                };
+                _ = check databaseClient->execute(updateTimesheetRecordQuery(updateRecord, invokerEmail));
+            }
+            check commit;
+        }
+    } on fail error e {
+        return e;
+    }
+}
+
+# Function to update a timesheet record.
+#
+# + timeLog - Record to be updated
+# + invokerEmail - Email of the invoker
+# + return - An error if occurred
+public isolated function updateTimesheetRecord(TimeLogUpdate timeLog, string invokerEmail) returns error? {
+    _ = check databaseClient->execute(updateTimesheetRecordQuery(timeLog, invokerEmail));
 }

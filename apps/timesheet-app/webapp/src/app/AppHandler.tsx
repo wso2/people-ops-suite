@@ -22,16 +22,18 @@ import { RootState, useAppSelector } from "@slices/store";
 import PreLoader from "@component/common/PreLoader";
 import ErrorHandler from "@component/common/ErrorHandler";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import { selectRoles } from "@slices/userSlice/user";
 
 const AppHandler = () => {
   const auth = useAppSelector((state: RootState) => state.auth);
+  const roles = useAppSelector(selectRoles)
 
   const router = createBrowserRouter([
     {
       path: "/",
       element: <Layout />,
       errorElement: <Error />,
-      children: getActiveRoutesV2(routes, auth.roles),
+      children: getActiveRoutesV2(routes, roles),
     },
   ]);
 

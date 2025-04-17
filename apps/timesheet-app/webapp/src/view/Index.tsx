@@ -16,8 +16,12 @@
 
 import { lazy } from "react";
 
-const firstView = lazy(() => import("./first-view"));
+const leadView = lazy(() => import("./lead-view/panel/TimesheetAuditView"));
+const employeeView = lazy(() => import("./employee-view/panel/EmployeeTimesheetView"));
+const ReportView = lazy(() => import("./admin-view/panel/ReportView"));
 
 export const View = {
-  firstView,
+  leadView,
+  employeeView,
+  ReportView
 };

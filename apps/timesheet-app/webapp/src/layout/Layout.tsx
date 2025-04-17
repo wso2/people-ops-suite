@@ -19,23 +19,15 @@ import { useSelector } from "react-redux";
 import { Box, alpha } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
-
 import Header from "./header";
 import Sidebar from "./sidebar";
-import {
-  Outlet,
-  useLocation,
-  useNavigate,
-  matchRoutes,
-} from "react-router-dom";
-import { routes } from "../route";
-
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import ConfirmationModalContextProvider from "@context/DialogContext";
-import { selectUserInfo, selectRoles } from "@slices/authSlice";
 import { useSnackbar } from "notistack";
 import pJson from "../../package.json";
 import { RootState, useAppSelector } from "@slices/store";
 import { Typography } from "@mui/material";
+import { selectRoles } from "@slices/userSlice/user";
 
 export default function Layout() {
   //snackbar configuration
@@ -50,6 +42,7 @@ export default function Layout() {
         anchorOrigin: { horizontal: "right", vertical: "bottom" },
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [common.timestamp]);
 
   useEffect(() => {
@@ -57,10 +50,10 @@ export default function Layout() {
       navigate(localStorage.getItem("hris-app-redirect-url") as string);
       localStorage.removeItem("hris-app-redirect-url");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const location = useLocation();
-  const matches = matchRoutes(routes, location.pathname);
   const theme = useTheme();
 
   const [open, setOpen] = useState(false);
@@ -72,7 +65,7 @@ export default function Layout() {
         <CssBaseline />
 
         <Sidebar
-          roles={roles}
+          roles={roles.map((role) => role.toString())}
           currentPath={location.pathname}
           open={open}
           handleDrawer={() => setOpen(!open)}
@@ -99,11 +92,7 @@ export default function Layout() {
             sx={{
               background:
                 theme.palette.mode === "light"
-                  ? (theme) =>
-                      alpha(
-                        theme.palette.secondary.main,
-                        theme.palette.action.activatedOpacity
-                      )
+                  ? (theme) => alpha(theme.palette.secondary.main, theme.palette.action.activatedOpacity)
                   : "#0d0d0d",
             }}
           >
