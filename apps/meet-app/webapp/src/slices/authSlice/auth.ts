@@ -12,7 +12,7 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License. 
+// under the License.
 
 import { State } from "@/types/types";
 import { RootState } from "@slices/store";
@@ -72,18 +72,20 @@ const initialState: AuthState = {
 export const loadPrivileges = createAsyncThunk(
   "auth/loadPrivileges",
   (_, { getState, dispatch, rejectWithValue }) => {
-    const { userInfo } = (getState() as { user: UserState }).user;
+    const { userInfo, state, errorMessage } = (
+      getState() as { user: UserState }
+    ).user;
 
-    if (!userInfo) {
+    if (state === State.failed) {
       dispatch(
         enqueueSnackbarMessage({
           message: SnackMessage.error.fetchPrivileges,
           type: "error",
         })
       );
-      return rejectWithValue("User info is missing");
+      return rejectWithValue(errorMessage);
     }
-    const userPrivileges = userInfo.privileges;
+    const userPrivileges = userInfo?.privileges || [];
     const roles: Role[] = [];
 
     if (userPrivileges.includes(762)) {
@@ -103,8 +105,8 @@ export const loadPrivileges = createAsyncThunk(
       return rejectWithValue("No roles found");
     }
     return { roles };
-
-  });
+  }
+);
 
 export const authSlice = createSlice({
   name: "auth",
@@ -123,15 +125,14 @@ export const authSlice = createSlice({
       })
       .addCase(loadPrivileges.fulfilled, (state, action) => {
         state.status = State.success;
-        state.roles = action.payload.roles
+        state.roles = action.payload.roles;
       })
       .addCase(loadPrivileges.rejected, (state, action) => {
         state.status = State.failed;
+        state.statusMessage = action.payload as string;
       });
   },
 });
-
-
 
 export const { setUserAuthData } = authSlice.actions;
 export const selectRoles = (state: RootState) => state.auth.roles;

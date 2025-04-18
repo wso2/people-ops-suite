@@ -12,7 +12,7 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License. 
+// under the License.
 
 import * as rax from "retry-axios";
 import axios, { AxiosInstance, CancelTokenSource } from "axios";
@@ -37,7 +37,15 @@ export class APIService {
     (APIService._instance.defaults as unknown as rax.RaxConfig).raxConfig = {
       retry: 3,
       instance: APIService._instance,
-      httpMethodsToRetry: ["GET", "HEAD", "OPTIONS", "DELETE", "POST", "PATCH", "PUT"],
+      httpMethodsToRetry: [
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "DELETE",
+        "POST",
+        "PATCH",
+        "PUT",
+      ],
       statusCodesToRetry: [[401, 401]],
       retryDelay: 100,
 
@@ -82,6 +90,7 @@ export class APIService {
     APIService._instance.interceptors.request.use(
       (config) => {
         config.headers.set("Authorization", "Bearer " + APIService._idToken);
+        config.headers.set("x-jwt-assertion", APIService._idToken);
 
         const endpoint = config.url || "";
 
