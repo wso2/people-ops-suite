@@ -46,9 +46,7 @@ const AppHandler = () => {
         <MaintenancePage />
       )}
       {auth.status === "failed" && (
-        <ErrorHandler
-          message={"Something went wrong while authenticating the user."}
-        />
+        <ErrorHandler message={auth.statusMessage} />
       )}
     </>
   );
