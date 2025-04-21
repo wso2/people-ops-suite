@@ -164,7 +164,7 @@ export const addMeetings = createAsyncThunk(
 
 export const fetchMeetings = createAsyncThunk(
   "meeting/fetchMeetings",
-  async ({ host, title, limit, offset }: { host: string, title: string, limit: number, offset: number }, { dispatch }) => {
+  async ({ host, title, limit, offset }: { host: string|null, title: string|null, limit: number, offset: number }, { dispatch }) => {
     APIService.getCancelToken().cancel();
     const newCancelTokenSource = APIService.updateCancelToken();
     return new Promise<Meetings>((resolve, reject) => {

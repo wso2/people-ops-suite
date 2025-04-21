@@ -33,7 +33,7 @@ interface AuthState {
   isAuthenticated: boolean;
   userInfo: BasicUserInfo | null;
   decodedIdToken: DecodedIDTokenPayload | null;
-  roles: string[];
+  roles: Role[];
 }
 
 interface AuthData {
