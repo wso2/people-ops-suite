@@ -39,7 +39,7 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
     // External participants validation.
     foreach string participant in createCalendarEventRequest.externalParticipants {
         if wso2EmailDomainRegex.isFullMatch(participant.trim()) {
-            return error(string `Cannot add WSO2 participant as external participant: ${participant}`);
+            return error(string `Cannot add the internal participant, ${participant} as an external participant`);
         }
     }
 
