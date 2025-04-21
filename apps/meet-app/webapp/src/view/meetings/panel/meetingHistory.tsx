@@ -29,8 +29,11 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { State } from "@/types/types";
+import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
+import { Role } from "@slices/authSlice/auth";
 import { ConfirmationType } from "@/types/types";
+import { selectRoles } from "@slices/authSlice/auth";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import ErrorHandler from "@component/common/ErrorHandler";
 import { useAppDispatch, useAppSelector } from "@slices/store";
@@ -67,15 +70,17 @@ function MeetingHistory() {
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [openAttachmentDialog, setOpenAttachmentDialog] = useState(false);
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [filteredSearchQuery, setFilteredSearchQuery] = useState<string>("");
   const loggedInUser = useAppSelector((state) => state.user.userInfo?.workEmail) || "";
+  const isAdmin = useSelector(selectRoles).includes(Role.ADMIN);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filteredSearchQuery, setFilteredSearchQuery] = useState<string | null>(null);
+  const [filteredHostQuery, setFilteredHostQuery] = useState<string | null>(isAdmin ? null : loggedInUser);
 
   useEffect(() => {
     dispatch(
-      fetchMeetings({ host: loggedInUser, title: filteredSearchQuery, limit: pageSize, offset: page * pageSize })
+      fetchMeetings({ host: filteredHostQuery, title: filteredSearchQuery, limit: pageSize, offset: page * pageSize })
     );
-  }, [dispatch, filteredSearchQuery, page, pageSize]);
+  }, [dispatch, filteredSearchQuery, filteredHostQuery, page, pageSize]);
 
   const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
     dialogContext.showConfirmation(
@@ -96,7 +101,12 @@ function MeetingHistory() {
         await dispatch(deleteMeeting(meetingId)).then(() => {
           setLoadingDelete(false);
           dispatch(
-            fetchMeetings({ host: loggedInUser, title: filteredSearchQuery, limit: pageSize, offset: page * pageSize })
+            fetchMeetings({
+              host: filteredHostQuery,
+              title: filteredSearchQuery,
+              limit: pageSize,
+              offset: page * pageSize,
+            })
           );
         });
       },
