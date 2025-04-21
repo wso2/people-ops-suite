@@ -12,7 +12,7 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License. 
+// under the License.
 
 import { State } from "@/types/types";
 import { AppConfig } from "@config/config";
@@ -89,9 +89,7 @@ const initialState: MeetingState = {
   meetingTypes: null,
   backgroundProcess: false,
   backgroundProcessMessage: null,
-}
-
-
+};
 
 export const fetchMeetingTypes = createAsyncThunk(
   "meeting/fetchMeetingTypes",
@@ -123,48 +121,48 @@ export const fetchMeetingTypes = createAsyncThunk(
         });
     });
   }
-)
+);
 
-export const addMeetings = createAsyncThunk(
-  "meeting/addMeetings",
-  async (payload: AddMeetingPayload, { dispatch }) => {
-    APIService.getCancelToken().cancel();
-    const newCancelTokenSource = APIService.updateCancelToken();
-    return new Promise<AddMeetingPayload>((resolve, reject) => {
-      APIService.getInstance()
-        .post(AppConfig.serviceUrls.meetings, payload, {
-          cancelToken: newCancelTokenSource.token,
-        })
-        .then((response) => {
-          dispatch(
-            enqueueSnackbarMessage({
-              message: SnackMessage.success.addMeetings,
-              type: "success",
-            })
-          );
-          resolve(response.data);
-        })
-        .catch((error) => {
-          const errorMessage =
-            error.response?.data?.message ||
-            (error.response?.status === HttpStatusCode.InternalServerError
-              ? SnackMessage.error.addMeetings
-              : "An unknown error occurred.");
-          dispatch(
-            enqueueSnackbarMessage({
-              message: errorMessage,
-              type: "error",
-            })
-          );
-          reject(error);
-        });
-    });
-  }
-)
+export const addMeetings = createAsyncThunk("meeting/addMeetings", async (payload: AddMeetingPayload, { dispatch }) => {
+  APIService.getCancelToken().cancel();
+  const newCancelTokenSource = APIService.updateCancelToken();
+  return new Promise<AddMeetingPayload>((resolve, reject) => {
+    APIService.getInstance()
+      .post(AppConfig.serviceUrls.meetings, payload, {
+        cancelToken: newCancelTokenSource.token,
+      })
+      .then((response) => {
+        dispatch(
+          enqueueSnackbarMessage({
+            message: SnackMessage.success.addMeetings,
+            type: "success",
+          })
+        );
+        resolve(response.data);
+      })
+      .catch((error) => {
+        const errorMessage =
+          error.response?.data?.message ||
+          (error.response?.status === HttpStatusCode.InternalServerError
+            ? SnackMessage.error.addMeetings
+            : "An unknown error occurred.");
+        dispatch(
+          enqueueSnackbarMessage({
+            message: errorMessage,
+            type: "error",
+          })
+        );
+        reject(error);
+      });
+  });
+});
 
 export const fetchMeetings = createAsyncThunk(
   "meeting/fetchMeetings",
-  async ({ host, title, limit, offset }: { host: string|null, title: string|null, limit: number, offset: number }, { dispatch }) => {
+  async (
+    { host, title, limit, offset }: { host: string | null; title: string | null; limit: number; offset: number },
+    { dispatch }
+  ) => {
     APIService.getCancelToken().cancel();
     const newCancelTokenSource = APIService.updateCancelToken();
     return new Promise<Meetings>((resolve, reject) => {
@@ -194,42 +192,39 @@ export const fetchMeetings = createAsyncThunk(
   }
 );
 
-export const deleteMeeting = createAsyncThunk(
-  "meeting/deleteMeeting",
-  async (meetingId: number, { dispatch }) => {
-    APIService.getCancelToken().cancel();
-    const newCancelTokenSource = APIService.updateCancelToken();
-    return new Promise<DeleteMeeting>((resolve, reject) => {
-      APIService.getInstance()
-        .delete(`${AppConfig.serviceUrls.meetings}/${meetingId}`, {
-          cancelToken: newCancelTokenSource.token,
-        })
-        .then((response) => {
-          dispatch(
-            enqueueSnackbarMessage({
-              message: SnackMessage.success.deleteMeeting,
-              type: "success",
-            })
-          );
-          resolve(response.data);
-        })
-        .catch((error) => {
-          const errorMessage =
-            error.response?.data?.message ||
-            (error.response?.status === HttpStatusCode.InternalServerError
-              ? SnackMessage.error.deleteMeeting
-              : "An unknown error occurred.");
-          dispatch(
-            enqueueSnackbarMessage({
-              message: errorMessage,
-              type: "error",
-            })
-          );
-          reject(error);
-        });
-    });
-  }
-)
+export const deleteMeeting = createAsyncThunk("meeting/deleteMeeting", async (meetingId: number, { dispatch }) => {
+  APIService.getCancelToken().cancel();
+  const newCancelTokenSource = APIService.updateCancelToken();
+  return new Promise<DeleteMeeting>((resolve, reject) => {
+    APIService.getInstance()
+      .delete(`${AppConfig.serviceUrls.meetings}/${meetingId}`, {
+        cancelToken: newCancelTokenSource.token,
+      })
+      .then((response) => {
+        dispatch(
+          enqueueSnackbarMessage({
+            message: SnackMessage.success.deleteMeeting,
+            type: "success",
+          })
+        );
+        resolve(response.data);
+      })
+      .catch((error) => {
+        const errorMessage =
+          error.response?.data?.message ||
+          (error.response?.status === HttpStatusCode.InternalServerError
+            ? SnackMessage.error.deleteMeeting
+            : "An unknown error occurred.");
+        dispatch(
+          enqueueSnackbarMessage({
+            message: errorMessage,
+            type: "error",
+          })
+        );
+        reject(error);
+      });
+  });
+});
 
 export const fetchAttachments = createAsyncThunk(
   "meeting/fetchAttachments",
@@ -261,7 +256,7 @@ export const fetchAttachments = createAsyncThunk(
         });
     });
   }
-)
+);
 
 const MeetingSlice = createSlice({
   name: "meeting",
@@ -334,9 +329,7 @@ const MeetingSlice = createSlice({
       .addCase(fetchAttachments.rejected, (state) => {
         state.submitState = State.failed;
         state.stateMessage = "Failed to fetch!";
-      })
-
-      ;
+      });
   },
 });
 

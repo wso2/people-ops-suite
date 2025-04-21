@@ -101,7 +101,12 @@ function MeetingHistory() {
         await dispatch(deleteMeeting(meetingId)).then(() => {
           setLoadingDelete(false);
           dispatch(
-            fetchMeetings({ host: filteredHostQuery, title: filteredSearchQuery, limit: pageSize, offset: page * pageSize })
+            fetchMeetings({
+              host: filteredHostQuery,
+              title: filteredSearchQuery,
+              limit: pageSize,
+              offset: page * pageSize,
+            })
           );
         });
       },
