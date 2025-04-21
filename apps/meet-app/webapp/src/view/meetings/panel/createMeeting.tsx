@@ -120,6 +120,11 @@ const validationSchema = yup.object({
       "valid-external-emails",
       "Invalid email format in external participants",
       (value) => !value || value.split(",").every((email) => yup.string().email().isValidSync(email))
+    )
+    .test(
+      "no-wso2-emails",
+      "External participants cannot have @wso2.com emails",
+      (value) => !value || !value.split(",").some((email) => email.trim().endsWith("@wso2.com"))
     ),
 });
 

@@ -36,6 +36,13 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
         }
     }
 
+    // External participants validation.
+    foreach string participant in createCalendarEventRequest.externalParticipants {
+        if wso2EmailDomainRegex.isFullMatch(participant.trim()) {
+            return error(string `Cannot add WSO2 participant as external participant: ${participant}`);
+        }
+    }
+
     // Add hyperlink to the disclaimer message.
     string updatedDisclaimer = re `\$\{creatorEmail\}`
         .replace(disclaimerMessage, string `<a href="mailto:${creatorEmail}">${creatorEmail}</a>`);
