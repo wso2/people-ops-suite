@@ -266,8 +266,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         // Determine the host filter based on user role.
-        string[]? filteredInternalParticipants =
-            isAdmin ? (internalParticipants != () ? internalParticipants : ()) : [userInfo.email];
+        string[]? filteredInternalParticipants = isAdmin ? internalParticipants : [userInfo.email];
 
         // Fetch the meetings from the database.
         database:Meeting[]|error meetings = database:fetchMeetings(title, host, startTime, endTime,

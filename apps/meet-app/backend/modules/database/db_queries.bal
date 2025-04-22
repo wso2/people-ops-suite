@@ -115,10 +115,15 @@ isolated function getMeetingsQuery(string? title, string? host, string? startTim
         filters.push(sql:queryConcat(`host = `, `${host}`));
     }
     if internalParticipants is string[] {
-        sql:ParameterizedQuery internalParticipantsQuery = sql:queryConcat(` host IN (`, sql:arrayFlattenQuery(internalParticipants), `) `);
+        sql:ParameterizedQuery internalParticipantsQuery =
+            sql:queryConcat(` host IN (`, sql:arrayFlattenQuery(internalParticipants), `) `);
 
         foreach string internalParticipant in internalParticipants {
-            internalParticipantsQuery = sql:queryConcat(internalParticipantsQuery, `OR wso2_participants LIKE ${"%" + internalParticipant + "%"}`);
+            internalParticipantsQuery = sql:queryConcat(
+                internalParticipantsQuery,
+                `OR wso2_participants LIKE ${"%" + internalParticipant + "%"}`
+            );
+
         }
         filters.push(internalParticipantsQuery);
     }
