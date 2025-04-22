@@ -74,7 +74,7 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 # + offset - offset of the query  
 # + return - sql:ParameterizedQuery - Select query for the meeting table
 isolated function getMeetingsQuery(string? title, string? host, string? startTime, string? endTime,
-        string[]? internalParticipants, int? 'limit, int? offset) returns sql:ParameterizedQuery {
+        string? internalParticipants, int? 'limit, int? offset) returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery mainQuery = `
             SELECT 
@@ -114,18 +114,8 @@ isolated function getMeetingsQuery(string? title, string? host, string? startTim
     if host is string {
         filters.push(sql:queryConcat(`host = `, `${host}`));
     }
-    if internalParticipants is string[] {
-        sql:ParameterizedQuery internalParticipantsQuery =
-            sql:queryConcat(` host IN (`, sql:arrayFlattenQuery(internalParticipants), `) `);
-
-        foreach string internalParticipant in internalParticipants {
-            internalParticipantsQuery = sql:queryConcat(
-                internalParticipantsQuery,
-                `OR wso2_participants LIKE ${"%" + internalParticipant + "%"}`
-            );
-
-        }
-        filters.push(internalParticipantsQuery);
+    if internalParticipants is string {
+        filters.push(sql:queryConcat(`wso2_participants LIKE ${"%" + internalParticipants + "%"}`));
     }
 
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
