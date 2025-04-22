@@ -68,7 +68,7 @@ public isolated function addMeeting(AddMeetingPayload addMeetingPayload, string 
 # + isAdmin - Is the user an admin
 # + return - List of meetings | Error
 public isolated function fetchMeetings(string? title, string? host, string? startTime, string? endTime,
-        string? internalParticipants, int? 'limit, int? offset, string loggedInUser, boolean isAdmin) returns Meeting[]|error {
+        string[]? internalParticipants, int? 'limit, int? offset, string loggedInUser, boolean isAdmin) returns Meeting[]|error {
 
     stream<Meeting, error?> resultStream = databaseClient->
                 query(getMeetingsQuery(title, host, startTime, endTime, internalParticipants, 'limit, offset, loggedInUser, isAdmin));

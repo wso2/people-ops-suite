@@ -76,7 +76,7 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 # + isAdmin - Is the user an admin
 # + return - sql:ParameterizedQuery - Select query for the meeting table
 isolated function getMeetingsQuery(string? title, string? host, string? startTime, string? endTime,
-        string? internalParticipants, int? 'limit, int? offset, string loggedInUser, boolean isAdmin) returns sql:ParameterizedQuery {
+        string[]? internalParticipants, int? 'limit, int? offset, string loggedInUser, boolean isAdmin) returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery mainQuery = `
             SELECT 
@@ -119,8 +119,19 @@ isolated function getMeetingsQuery(string? title, string? host, string? startTim
     if title is string {
         filters.push(sql:queryConcat(`title LIKE ${"%" + title + "%"}`));
     }
-    if internalParticipants is string {
-        filters.push(sql:queryConcat(`wso2_participants LIKE ${"%" + internalParticipants + "%"}`));
+    if internalParticipants is string[] && internalParticipants.length() > 0 {
+        boolean first = true;
+        sql:ParameterizedQuery internalParticipantsFilter = `(`;
+        foreach string participant in internalParticipants {
+            if first {
+                internalParticipantsFilter = sql:queryConcat(internalParticipantsFilter, `wso2_participants LIKE ${"%" + participant + "%"}`);
+                first = false;
+            } else {
+                internalParticipantsFilter = sql:queryConcat(internalParticipantsFilter, ` OR wso2_participants LIKE ${"%" + participant + "%"}`);
+            }
+        }
+        internalParticipantsFilter = sql:queryConcat(internalParticipantsFilter, `)`);
+        filters.push(internalParticipantsFilter);
     }
     if startTime is string {
         filters.push(sql:queryConcat(`start_time >= ${startTime}`));

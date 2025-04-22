@@ -243,7 +243,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + offset - Offset of the data
     # + return - Meetings | Error
     resource function get meetings(http:RequestContext ctx, string? title, string? host,
-            string? startTime, string? endTime, string? internalParticipants, int? 'limit, int? offset)
+            string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
         returns MeetingListResponse|http:Forbidden|http:InternalServerError {
 
         // User information header.
