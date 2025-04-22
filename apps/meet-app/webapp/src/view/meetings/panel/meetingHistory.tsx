@@ -168,7 +168,7 @@ function MeetingHistory() {
       field: "internalParticipants",
       headerName: "WSO2 Participants",
       minWidth: 200,
-      flex: 3,
+      flex: 4,
     },
     {
       field: "startTime",

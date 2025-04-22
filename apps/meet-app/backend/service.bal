@@ -119,7 +119,8 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + ctx - Request object
     # + return - List  of employees | Error
-    resource function get employees(http:RequestContext ctx) returns entity:EmployeeBasic[]|http:InternalServerError|error {
+    resource function get employees(http:RequestContext ctx) 
+        returns entity:EmployeeBasic[]|http:InternalServerError|error {
 
         // Check if the employees are already cached.
         if cache.hasKey(EMPLOYEES_CACHE_KEY) {
