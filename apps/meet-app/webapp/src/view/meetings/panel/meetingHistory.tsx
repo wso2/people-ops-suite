@@ -74,13 +74,10 @@ function MeetingHistory() {
   const isAdmin = useSelector(selectRoles).includes(Role.ADMIN);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filteredSearchQuery, setFilteredSearchQuery] = useState<string | null>(null);
-  const [filteredHostQuery, setFilteredHostQuery] = useState<string | null>(isAdmin ? null : loggedInUser);
 
   useEffect(() => {
-    dispatch(
-      fetchMeetings({ host: filteredHostQuery, title: filteredSearchQuery, limit: pageSize, offset: page * pageSize })
-    );
-  }, [dispatch, filteredSearchQuery, filteredHostQuery, page, pageSize]);
+    dispatch(fetchMeetings({ title: filteredSearchQuery, limit: pageSize, offset: page * pageSize }));
+  }, [dispatch, filteredSearchQuery, page, pageSize]);
 
   const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
     dialogContext.showConfirmation(
@@ -102,7 +99,6 @@ function MeetingHistory() {
           setLoadingDelete(false);
           dispatch(
             fetchMeetings({
-              host: filteredHostQuery,
               title: filteredSearchQuery,
               limit: pageSize,
               offset: page * pageSize,
