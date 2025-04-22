@@ -265,12 +265,9 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // Determine the host filter based on user role.
-        string? filteredHost = isAdmin ? (host != () ? host : ()) : userInfo.email;
-
         // Fetch the meetings from the database.
-        database:Meeting[]|error meetings = database:fetchMeetings(title, filteredHost, startTime, endTime,
-            internalParticipants, 'limit, offset);
+        database:Meeting[]|error meetings = database:fetchMeetings(title, host, startTime, endTime,
+            internalParticipants, 'limit, offset, userInfo.email, isAdmin);
         if meetings is error {
             string customError = string `Error occurred while retrieving the meetings!`;
             log:printError(customError, meetings);

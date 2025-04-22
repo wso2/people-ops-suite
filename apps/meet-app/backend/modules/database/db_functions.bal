@@ -64,12 +64,14 @@ public isolated function addMeeting(AddMeetingPayload addMeetingPayload, string 
 # + internalParticipants - Internal participants filter
 # + 'limit - Limit of the response
 # + offset - Offset of the number of meetings to retrieve  
+# + loggedInUser - User who is logged in
+# + isAdmin - Is the user an admin
 # + return - List of meetings | Error
 public isolated function fetchMeetings(string? title, string? host, string? startTime, string? endTime,
-        string? internalParticipants, int? 'limit, int? offset) returns Meeting[]|error {
+        string? internalParticipants, int? 'limit, int? offset, string loggedInUser, boolean isAdmin) returns Meeting[]|error {
 
     stream<Meeting, error?> resultStream = databaseClient->
-                query(getMeetingsQuery(title, host, startTime, endTime, internalParticipants, 'limit, offset));
+                query(getMeetingsQuery(title, host, startTime, endTime, internalParticipants, 'limit, offset, loggedInUser, isAdmin));
 
     return from Meeting meeting in resultStream
         select meeting;

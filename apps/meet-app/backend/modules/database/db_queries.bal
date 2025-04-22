@@ -72,9 +72,11 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 # + internalParticipants - Participants filter
 # + 'limit - Limit of the data  
 # + offset - offset of the query  
+# + loggedInUser - User who is logged in
+# + isAdmin - Is the user an admin
 # + return - sql:ParameterizedQuery - Select query for the meeting table
 isolated function getMeetingsQuery(string? title, string? host, string? startTime, string? endTime,
-        string? internalParticipants, int? 'limit, int? offset) returns sql:ParameterizedQuery {
+        string? internalParticipants, int? 'limit, int? offset, string loggedInUser, boolean isAdmin) returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery mainQuery = `
             SELECT 
@@ -102,8 +104,23 @@ isolated function getMeetingsQuery(string? title, string? host, string? startTim
     // Setting the filters based on the meeting object.
     sql:ParameterizedQuery[] filters = [];
 
+    if (isAdmin) {
+        if host is string {
+            filters.push(sql:queryConcat(`host = `, `${host}`));
+        }
+    } else {
+        if host is string {
+            filters.push(sql:queryConcat(`host = `, `${host}`));
+        } else {
+            filters.push(sql:queryConcat(`(host = ${loggedInUser} OR wso2_participants LIKE ${"%" + loggedInUser + "%"})`));
+        }
+    }
+
     if title is string {
         filters.push(sql:queryConcat(`title LIKE ${"%" + title + "%"}`));
+    }
+    if internalParticipants is string {
+        filters.push(sql:queryConcat(`wso2_participants LIKE ${"%" + internalParticipants + "%"}`));
     }
     if startTime is string {
         filters.push(sql:queryConcat(`start_time >= ${startTime}`));
@@ -111,13 +128,8 @@ isolated function getMeetingsQuery(string? title, string? host, string? startTim
     if endTime is string {
         filters.push(sql:queryConcat(`end_time <= ${endTime}`));
     }
-    if host is string {
-        filters.push(sql:queryConcat(`host = `, `${host}`));
-    }
-    if internalParticipants is string {
-        filters.push(sql:queryConcat(`wso2_participants LIKE ${"%" + internalParticipants + "%"}`));
-    }
 
+    // Building the WHERE clause.
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
 
     // Sorting the result by created_on.
