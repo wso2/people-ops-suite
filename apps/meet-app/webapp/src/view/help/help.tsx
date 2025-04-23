@@ -14,12 +14,22 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { lazy } from "react";
+import CommonPage from "@layout/pages/CommonPage";
+import HelpCenterIcon from "@mui/icons-material/HelpCenter";
+import UserGuide from "@view/help/panel/userGuide";
 
-const meetings = lazy(() => import("@view/meetings/meetings"));
-const help = lazy(() => import("@view/help/help"));
-
-export const View = {
-  meetings,
-  help,
-};
+export default function Help() {
+  return (
+    <CommonPage
+      title="Help"
+      commonPageTabs={[
+        {
+          tabTitle: "User Guide",
+          tabPath: "user-guide",
+          icon: <HelpCenterIcon />,
+          page: <UserGuide />,
+        },
+      ]}
+    />
+  );
+}
