@@ -119,7 +119,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + ctx - Request object
     # + return - List  of employees | Error
-    resource function get employees(http:RequestContext ctx) 
+    resource function get employees(http:RequestContext ctx)
         returns entity:EmployeeBasic[]|http:InternalServerError|error {
 
         // Check if the employees are already cached.
@@ -267,8 +267,8 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         // Fetch the meetings from the database.
-        database:Meeting[]|error meetings = database:fetchMeetings(title, host, startTime, endTime,
-            internalParticipants, 'limit, offset, userInfo.email, isAdmin);
+        database:Meeting[]|error meetings = database:fetchMeetings(userInfo.email, isAdmin, title, host,
+            startTime, endTime, internalParticipants, 'limit, offset);
         if meetings is error {
             string customError = string `Error occurred while retrieving the meetings!`;
             log:printError(customError, meetings);

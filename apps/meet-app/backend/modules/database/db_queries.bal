@@ -75,8 +75,8 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 # + loggedInUser - User who is logged in
 # + isAdmin - Is the user an admin
 # + return - sql:ParameterizedQuery - Select query for the meeting table
-isolated function getMeetingsQuery(string? title, string? host, string? startTime, string? endTime,
-        string[]? internalParticipants, int? 'limit, int? offset, string loggedInUser, boolean isAdmin)
+isolated function getMeetingsQuery(string loggedInUser, boolean isAdmin, string? title, string? host,
+        string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
     returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery mainQuery = `
@@ -105,7 +105,7 @@ isolated function getMeetingsQuery(string? title, string? host, string? startTim
     // Setting the filters based on the meeting object.
     sql:ParameterizedQuery[] filters = [];
 
-    if (isAdmin) {
+    if isAdmin {
         if host is string {
             filters.push(sql:queryConcat(`host = `, `${host}`));
         }
