@@ -20,7 +20,7 @@ import VideoCallIcon from "@mui/icons-material/VideoCall";
 import CreateMeeting from "@view/meetings/panel/createMeeting";
 import MeetingHistory from "@view/meetings/panel/meetingHistory";
 
-export default function OfferLetter() {
+export default function Meetings() {
   return (
     <CommonPage
       title="Meetings"

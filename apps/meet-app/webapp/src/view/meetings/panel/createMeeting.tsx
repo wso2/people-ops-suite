@@ -627,7 +627,7 @@ function MeetingForm() {
   );
 }
 
-function createMeeting() {
+function CreateMeeting() {
   return (
     <Box
       sx={{
@@ -665,4 +665,4 @@ function createMeeting() {
   );
 }
 
-export default createMeeting;
+export default CreateMeeting;
