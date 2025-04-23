@@ -105,20 +105,14 @@ isolated function getMeetingsQuery(string loggedInUser, boolean isAdmin, string?
     // Setting the filters based on the meeting object.
     sql:ParameterizedQuery[] filters = [];
 
-    if isAdmin {
-        if host is string {
-            filters.push(sql:queryConcat(`host = `, `${host}`));
-        }
-    } else {
-        if host is string {
-            filters.push(sql:queryConcat(`host = `, `${host}`));
-        } else {
-            filters.push(sql:queryConcat(
-                `(host = ${loggedInUser} OR wso2_participants LIKE ${"%" + loggedInUser + "%"})`
-            ));
-        }
+    if host is string {
+        filters.push(sql:queryConcat(`host = `, `${host}`));
     }
-
+    if host is () && !isAdmin {
+        filters.push(sql:queryConcat(
+            `(host = ${loggedInUser} OR wso2_participants LIKE ${"%" + loggedInUser + "%"})`
+        ));
+    }
     if title is string {
         filters.push(sql:queryConcat(`title LIKE ${"%" + title + "%"}`));
     }
@@ -132,12 +126,13 @@ isolated function getMeetingsQuery(string loggedInUser, boolean isAdmin, string?
                     `wso2_participants LIKE ${"%" + participant + "%"}`
                 );
                 first = false;
-            } else {
-                internalParticipantsFilter = sql:queryConcat(
-                    internalParticipantsFilter,
-                    ` OR wso2_participants LIKE ${"%" + participant + "%"}`
-                );
+                continue;
             }
+            // If the first participant is already added, add OR for the rest of the participants.
+            internalParticipantsFilter = sql:queryConcat(
+                internalParticipantsFilter,
+                ` OR wso2_participants LIKE ${"%" + participant + "%"}`
+            );
         }
         internalParticipantsFilter = sql:queryConcat(internalParticipantsFilter, `)`);
         filters.push(internalParticipantsFilter);
