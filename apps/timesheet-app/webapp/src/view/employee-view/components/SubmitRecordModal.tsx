@@ -28,6 +28,7 @@ import {
   TableRow,
   TableBody,
   TableCell,
+  Accordion,
   TableHead,
   TextField,
   IconButton,
@@ -41,26 +42,39 @@ import {
   TableContainer,
   InputAdornment,
   FormControlLabel,
+  AccordionSummary,
+  AccordionDetails,
 } from "@mui/material";
+import {
+  format,
+  isAfter,
+  subDays,
+  isWeekend,
+  isSameDay,
+  startOfDay,
+  eachDayOfInterval,
+  differenceInMinutes,
+} from "date-fns";
 import { Messages } from "@config/constant";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
-import React, { useState, useRef } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PublishIcon from "@mui/icons-material/Publish";
 import { HourglassBottom } from "@mui/icons-material";
-import { ConfirmationType, CreateUITimesheetRecord } from "@utils/types";
+import { DEFAULT_TIME_ENTRY_SIZE } from "@config/config";
+import React, { useState, useRef, useEffect } from "react";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
-import { useAppDispatch, useAppSelector } from "@slices/store";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import { useAppDispatch, useAppSelector } from "@slices/store";
 import { addTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { useConfirmationModalContext } from "@context/DialogContext";
+import { ConfirmationType, CreateUITimesheetRecord } from "@utils/types";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { format, differenceInMinutes, isWeekend, startOfDay, subDays, isSameDay } from "date-fns";
 
 interface TimeTrackingFormProps {
   onClose?: () => void;
@@ -69,11 +83,18 @@ interface TimeTrackingFormProps {
 const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   const dispatch = useAppDispatch();
   const newRecordId = useRef<number>(0);
+  const dialogContext = useConfirmationModalContext();
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [bulkLunchIncluded, setBulkLunchIncluded] = useState(true);
+  const [bulkOvertimeReason, setBulkOvertimeReason] = useState("");
+  const [bulkEndDate, setBulkEndDate] = useState<Date | null>(null);
+  const [entriesCount, setEntriesCount] = useState(0);
   const [entries, setEntries] = useState<CreateUITimesheetRecord[]>([]);
-  const totalDays = entries.length;
+  const [bulkStartDate, setBulkStartDate] = useState<Date | null>(null);
+  const [bulkClockInTime, setBulkClockInTime] = useState<Date | null>(null);
+  const [bulkClockOutTime, setBulkClockOutTime] = useState<Date | null>(null);
   const [editingEntry, setEditingEntry] = useState<CreateUITimesheetRecord | null>(null);
   const userEmail = useAppSelector((state) => state.user.userInfo!.employeeInfo.workEmail);
   const totalOvertimeHours = entries.reduce((sum, entry) => sum + entry.overtimeDuration, 0);
@@ -81,7 +102,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   const regularLunchHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.lunchHoursPerDay);
   const regularWorkHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.workingHoursPerDay);
   const regularWorkMinutes = (regularWorkHoursPerDay ?? 8) * 60;
-  const dialogContext = useConfirmationModalContext();
 
   function createNewEntry(): CreateUITimesheetRecord {
     return {
@@ -145,7 +165,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   };
 
   const handleDataSubmit = async () => {
-    if (entries.length === 0) {
+    if (entriesCount === 0) {
       dispatch(
         enqueueSnackbarMessage({
           message: "Please add at least one entry to submit",
@@ -215,6 +235,50 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     return entryErrors;
   };
 
+  const validateBulkEntry = () => {
+    const errors: Record<string, string> = {};
+
+    if (!bulkStartDate) {
+      errors.startDate = "Start date is required";
+    }
+
+    if (!bulkEndDate) {
+      errors.endDate = "End date is required";
+    }
+
+    if (bulkStartDate && bulkEndDate && isAfter(bulkStartDate, bulkEndDate)) {
+      errors.endDate = "End date must be after start date";
+    }
+
+    if (bulkStartDate && bulkEndDate) {
+      const daysBetween = eachDayOfInterval({ start: bulkStartDate, end: bulkEndDate }).length;
+      if (daysBetween > DEFAULT_TIME_ENTRY_SIZE) {
+        errors.endDate = `Date range cannot exceed allowed entry count of ${DEFAULT_TIME_ENTRY_SIZE}, currently selected is ${daysBetween}`;
+      }
+    }
+
+    if (!bulkClockInTime) {
+      errors.clockInTime = "Clock in time is required";
+    }
+
+    if (!bulkClockOutTime) {
+      errors.clockOutTime = "Clock out time is required";
+    }
+
+    if (bulkClockInTime && bulkClockOutTime) {
+      if (bulkClockInTime.getTime() >= bulkClockOutTime.getTime()) {
+        errors.clockOutTime = "Clock out time must be after clock in time";
+      }
+      if (differenceInMinutes(bulkClockOutTime, bulkClockInTime) > regularWorkMinutes) {
+        if (!bulkOvertimeReason?.trim()) {
+          errors.bulkOvertimeReason = "Overtime reason is required for overtime hours";
+        }
+      }
+    }
+
+    return errors;
+  };
+
   const handleSaveEditedEntry = () => {
     if (editingEntry) {
       const updatedEntry = calculateOvertime(editingEntry);
@@ -256,7 +320,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   };
 
   const handleDuplicateLastEntry = () => {
-    if (entries.length === 0) {
+    if (entriesCount === 0) {
       dispatch(
         enqueueSnackbarMessage({
           message: "No entries available to duplicate",
@@ -266,7 +330,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
       return;
     }
 
-    const lastEntry = entries[entries.length - 1];
+    const lastEntry = entries[entriesCount - 1];
     if (!lastEntry.recordDate) {
       dispatch(
         enqueueSnackbarMessage({
@@ -277,12 +341,37 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
       return;
     }
 
-    const newDate = subDays(lastEntry.recordDate, 1);
+    let newDate = subDays(lastEntry.recordDate, 1);
+    let attempts = 0;
+    const maxAttempts = 7;
 
-    if (entries.some((entry) => entry.recordDate && isSameDay(entry.recordDate, newDate))) {
+    while (attempts < maxAttempts) {
+      if (isWeekend(newDate)) {
+        newDate = subDays(newDate, 1);
+        attempts++;
+        continue;
+      }
+
+      if (isAfter(newDate, new Date())) {
+        newDate = subDays(newDate, 1);
+        attempts++;
+        continue;
+      }
+
+      const entryExists = entries.some((entry) => entry.recordDate && isSameDay(entry.recordDate, newDate));
+      if (entryExists) {
+        newDate = subDays(newDate, 1);
+        attempts++;
+        continue;
+      }
+
+      break;
+    }
+
+    if (attempts >= maxAttempts) {
       dispatch(
         enqueueSnackbarMessage({
-          message: "An entry already exists for this date",
+          message: "Could not find a valid weekday to duplicate",
           type: "error",
         })
       );
@@ -321,7 +410,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
 
     dispatch(
       enqueueSnackbarMessage({
-        message: "Duplicated last entry with previous day's date",
+        message: `Duplicated last entry to ${format(newDate, "MMM dd, yyyy")}`,
         type: "success",
       })
     );
@@ -330,7 +419,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   const handleSubmitRecordModalClose = () => {
     dialogContext.showConfirmation(
       "Do you want to close this window?",
-      "",
+      "Entries will be lost unless you submit them.",
       ConfirmationType.accept,
       () => {
         onClose?.();
@@ -339,6 +428,89 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
       "No"
     );
   };
+
+  const handleAddBulkEntries = () => {
+    const errors = validateBulkEntry();
+    if (Object.keys(errors).length > 0) {
+      setErrors(errors);
+      return;
+    }
+
+    if (!bulkStartDate || !bulkEndDate || !bulkClockInTime || !bulkClockOutTime) return;
+
+    const dateRange = eachDayOfInterval({ start: bulkStartDate, end: bulkEndDate });
+    const newEntries: CreateUITimesheetRecord[] = [];
+
+    dateRange.forEach((date) => {
+      // Skip weekends for bulk entry
+      if (isWeekend(date)) return;
+
+      // Check if date is in the future
+      if (isAfter(date, new Date())) return;
+
+      // Check if entry already exists for this date
+      const existingEntry = entries.find((entry) => entry.recordDate && isSameDay(entry.recordDate, date));
+      if (existingEntry) return;
+
+      const clockInTime = new Date(date);
+      clockInTime.setHours(bulkClockInTime.getHours(), bulkClockInTime.getMinutes());
+
+      const clockOutTime = new Date(date);
+      clockOutTime.setHours(bulkClockOutTime.getHours(), bulkClockOutTime.getMinutes());
+
+      const newEntry: CreateUITimesheetRecord = {
+        recordId: (newRecordId.current += 1),
+        recordDate: date,
+        clockInTime,
+        clockOutTime,
+        isLunchIncluded: bulkLunchIncluded,
+        overtimeDuration: 0,
+        overtimeReason: bulkOvertimeReason,
+      };
+
+      const entryWithOvertime = calculateOvertime(newEntry);
+      newEntries.push(entryWithOvertime);
+    });
+
+    if (entriesCount + newEntries.length >= DEFAULT_TIME_ENTRY_SIZE) {
+      dispatch(
+        enqueueSnackbarMessage({
+          message: `Exceeds the maximum allowed entry count of ${DEFAULT_TIME_ENTRY_SIZE}.`,
+          type: "error",
+        })
+      );
+      return;
+    }
+
+    if (newEntries.length === 0) {
+      dispatch(
+        enqueueSnackbarMessage({
+          message: "No valid dates to add (weekends excluded or all dates already have entries)",
+          type: "warning",
+        })
+      );
+      return;
+    }
+
+    setEntries([...entries, ...newEntries]);
+    setBulkStartDate(null);
+    setBulkEndDate(null);
+    setBulkClockInTime(null);
+    setBulkClockOutTime(null);
+    setBulkOvertimeReason("");
+    setErrors({});
+
+    dispatch(
+      enqueueSnackbarMessage({
+        message: `Added ${newEntries.length} new entries`,
+        type: "success",
+      })
+    );
+  };
+
+  useEffect(() => {
+    setEntriesCount(entries.length);
+  }, [entries]);
 
   return (
     <Box sx={{ height: "100%", overflow: "auto" }}>
@@ -354,7 +526,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                     title="Overtime Summary of Entries"
                     label={
                       <>
-                        Total: {totalDays} day{totalDays !== 1 ? "s" : ""}
+                        Total: {entriesCount} day{entriesCount !== 1 ? "s" : ""}
                         {totalOvertimeHours > 0 &&
                           ` with ${totalOvertimeHours.toFixed(2)} overtime hour${totalOvertimeHours !== 1 ? "s" : ""}`}
                       </>
@@ -375,8 +547,131 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
             }
           />
           <CardContent>
-            {entries.length > 0 ? (
-              <Box>
+            {DEFAULT_TIME_ENTRY_SIZE - entriesCount > 1 && (
+              <Accordion defaultExpanded={true}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="h6" gutterBottom>
+                    Bulk Time Entry
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <DatePicker
+                        label="Start Date"
+                        value={bulkStartDate}
+                        onChange={(newDate) => setBulkStartDate(newDate)}
+                        maxDate={new Date()}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            variant: "outlined",
+                            error: !!errors.startDate,
+                            helperText: errors.startDate,
+                          },
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <DatePicker
+                        label="End Date"
+                        value={bulkEndDate}
+                        onChange={(newDate) => setBulkEndDate(newDate)}
+                        maxDate={new Date()}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            variant: "outlined",
+                            error: !!errors.endDate,
+                            helperText: errors.endDate,
+                          },
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TimePicker
+                        label="Clock In Time"
+                        value={bulkClockInTime}
+                        onChange={(newTime) => setBulkClockInTime(newTime)}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            variant: "outlined",
+                            error: !!errors.clockInTime,
+                            helperText: errors.clockInTime,
+                          },
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TimePicker
+                        label="Clock Out Time"
+                        value={bulkClockOutTime}
+                        onChange={(newTime) => setBulkClockOutTime(newTime)}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            variant: "outlined",
+                            error: !!errors.clockOutTime,
+                            helperText: errors.clockOutTime,
+                          },
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={bulkLunchIncluded}
+                            onChange={(e) => setBulkLunchIncluded(e.target.checked)}
+                            name="bulkLunchIncluded"
+                            color="primary"
+                          />
+                        }
+                        label="Include Lunch Break"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        label="Overtime Reason (if applicable)"
+                        value={bulkOvertimeReason}
+                        onChange={(e) => setBulkOvertimeReason(e.target.value)}
+                        variant="outlined"
+                        fullWidth
+                        multiline
+                        error={!!errors.bulkOvertimeReason}
+                        helperText={errors.bulkOvertimeReason}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Tooltip
+                        title={
+                          entriesCount < DEFAULT_TIME_ENTRY_SIZE
+                            ? `Add bulk entries excluding weekends.`
+                            : "Max entries reached."
+                        }
+                      >
+                        <span>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={handleAddBulkEntries}
+                            disabled={entriesCount >= DEFAULT_TIME_ENTRY_SIZE}
+                            fullWidth
+                            startIcon={<AddIcon />}
+                          >
+                            Add Bulk Entries
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    </Grid>
+                  </Grid>
+                </AccordionDetails>
+              </Accordion>
+            )}
+
+            {entriesCount > 0 && (
+              <Box sx={{ p: 2, border: "1px solid #eee", borderRadius: 1 }}>
                 <Divider>
                   <Chip label="Entries to Submit" />
                 </Divider>
@@ -440,37 +735,52 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                   </Table>
                 </TableContainer>
               </Box>
-            ) : (
-              <Box sx={{ textAlign: "center", py: 4 }}>
-                <Typography variant="body1" color="textSecondary" sx={{ mt: 1 }}>
-                  Click the "Add New Entry" button to get started
-                </Typography>
-              </Box>
             )}
           </CardContent>
           <CardActions>
             <Box sx={{ display: "flex", width: "100%", justifyContent: "space-between" }}>
               <Box>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={handleAddNewEntry}
-                  disabled={entries.length > 15}
-                  startIcon={<AddIcon />}
-                  sx={{ mx: 1 }}
+                <Tooltip
+                  title={
+                    entriesCount < DEFAULT_TIME_ENTRY_SIZE
+                      ? `Add a single entry including weekends.`
+                      : "Max entries reached"
+                  }
                 >
-                  Add New Entry
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={handleDuplicateLastEntry}
-                  startIcon={<ReceiptLongIcon />}
-                  disabled={entries.length === 0 || entries.length > 14}
-                  sx={{ mx: 1 }}
+                  <span>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={handleAddNewEntry}
+                      disabled={entriesCount >= DEFAULT_TIME_ENTRY_SIZE}
+                      startIcon={<AddIcon />}
+                      sx={{ mx: 1 }}
+                    >
+                      ADD A SINGLE ENTRY
+                    </Button>
+                  </span>
+                </Tooltip>
+                {/* Disabled until next development phase */}
+                {/* <Tooltip
+                  title={
+                    entriesCount < DEFAULT_TIME_ENTRY_SIZE
+                      ? `Duplicate the last entry with previous date.`
+                      : "Max entries reached"
+                  }
                 >
-                  Duplicate Last Entry
-                </Button>
+                  <span>
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      onClick={handleDuplicateLastEntry}
+                      startIcon={<ReceiptLongIcon />}
+                      disabled={entriesCount === 0 || entriesCount >= DEFAULT_TIME_ENTRY_SIZE}
+                      sx={{ mx: 1 }}
+                    >
+                      DUPLICATE LAST ENTRY
+                    </Button>
+                  </span>
+                </Tooltip> */}
               </Box>
               <Button
                 variant="contained"
@@ -478,7 +788,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                 onClick={handleBatchSubmit}
                 sx={{ width: "160px", mx: 1 }}
                 startIcon={<PublishIcon />}
-                disabled={entries.length === 0}
+                disabled={entriesCount === 0}
               >
                 Submit Entries
               </Button>

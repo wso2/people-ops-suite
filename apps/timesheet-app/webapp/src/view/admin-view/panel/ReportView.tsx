@@ -18,6 +18,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useEffect, useState } from "react";
 import { Messages } from "@config/constant";
+import NoDataView from "@component/common/NoDataView";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
@@ -31,7 +32,6 @@ import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography } from "@mui/material";
 import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus } from "@utils/types";
 import { DataGrid, GridFilterModel, GridLogicOperator, GridRenderCellParams } from "@mui/x-data-grid";
-import NoDataView from "@component/common/NoDataView";
 
 const ReportView = () => {
   const theme = useTheme();
@@ -116,7 +116,18 @@ const ReportView = () => {
           )}
           {params.row.overtimeDuration > 0 && (
             <Tooltip title={params.row.overtimeReason}>
-              <Typography variant="caption" color="text.secondary" noWrap>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{
+                  fontSize: "12px",
+                  lineHeight: "1.4",
+                  whiteSpace: "pre-wrap",
+                  wordWrap: "break-word",
+                  overflowWrap: "break-word",
+                  wordBreak: "break-all",
+                }}
+              >
                 {params.row.overtimeReason}
               </Typography>
             </Tooltip>
@@ -132,7 +143,18 @@ const ReportView = () => {
         <>
           {params.row.overtimeStatus === TimesheetStatus.REJECTED && (
             <Tooltip title={params.row.overtimeRejectReason}>
-              <Typography color="text.secondary" noWrap variant="body2">
+              <Typography
+                color="text.secondary"
+                sx={{
+                  fontSize: "12px",
+                  lineHeight: "1.4",
+                  whiteSpace: "pre-wrap",
+                  wordWrap: "break-word",
+                  overflowWrap: "break-word",
+                  wordBreak: "break-all",
+                }}
+                variant="body2"
+              >
                 {params.row.overtimeRejectReason}
               </Typography>
             </Tooltip>

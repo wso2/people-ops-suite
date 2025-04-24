@@ -27,6 +27,7 @@ declare global {
       AUTH_SIGN_OUT_REDIRECT_URL: string;
       REACT_APP_BACKEND_BASE_URL: string;
       DEFAULT_PAGE_SIZE: number;
+      DEFAULT_TIME_ENTRY_SIZE: number;
     };
   }
 }
@@ -42,6 +43,7 @@ export const AsgardeoConfig: BaseURLAuthClientConfig = {
 export const ServiceBaseUrl = window.config?.REACT_APP_BACKEND_BASE_URL ?? "";
 export const APP_NAME = window.config?.APP_NAME ?? "";
 export const DEFAULT_PAGE_SIZE = window.config?.DEFAULT_PAGE_SIZE ?? 10;
+export const DEFAULT_TIME_ENTRY_SIZE = window.config?.DEFAULT_TIME_ENTRY_SIZE ?? 35;
 
 export const AppConfig = {
   serviceUrls: {

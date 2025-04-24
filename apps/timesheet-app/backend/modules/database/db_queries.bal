@@ -228,4 +228,3 @@ isolated function updateTimesheetRecordQuery(TimeLogUpdate updateRecord, string 
         WHERE ts_record_id = ${updateRecord.recordId}`);
     return updateQuery;
 }
-

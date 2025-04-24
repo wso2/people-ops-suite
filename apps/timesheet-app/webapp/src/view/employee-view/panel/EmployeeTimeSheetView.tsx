@@ -148,7 +148,18 @@ const TimesheetDataGrid = () => {
           )}
           {params.row.overtimeDuration > 0 && (
             <Tooltip title={params.row.overtimeReason}>
-              <Typography color="text.secondary" variant="body2" noWrap>
+              <Typography
+                color="text.secondary"
+                variant="body2"
+                sx={{
+                  fontSize: "12px",
+                  lineHeight: "1.4",
+                  whiteSpace: "pre-wrap",
+                  wordWrap: "break-word",
+                  overflowWrap: "break-word",
+                  wordBreak: "break-all",
+                }}
+              >
                 {params.row.overtimeReason}
               </Typography>
             </Tooltip>
@@ -181,7 +192,19 @@ const TimesheetDataGrid = () => {
         <>
           {params.row.overtimeStatus === TimesheetStatus.REJECTED && (
             <Tooltip title={params.row.overtimeRejectReason}>
-              <Typography color="text.secondary" noWrap variant="body2">
+              <Typography
+                color="text.secondary"
+                noWrap
+                variant="body2"
+                sx={{
+                  fontSize: "12px",
+                  lineHeight: "1.4",
+                  whiteSpace: "pre-wrap",
+                  wordWrap: "break-word",
+                  overflowWrap: "break-word",
+                  wordBreak: "break-all",
+                }}
+              >
                 {params.row.overtimeRejectReason}
               </Typography>
             </Tooltip>
@@ -393,18 +416,19 @@ const TimesheetDataGrid = () => {
                 onApply={fetchData}
                 onReset={handleResetFilters}
               />
-
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleOpenDialog}
-                sx={{
-                  boxShadow: "none",
-                  "&:hover": { boxShadow: "none" },
-                }}
-              >
-                ADD NEW ENTRIES
-              </Button>
+              <Tooltip title="Enter time logs to the system">
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleOpenDialog}
+                  sx={{
+                    boxShadow: "none",
+                    "&:hover": { boxShadow: "none" },
+                  }}
+                >
+                  ENTER TIME LOGS
+                </Button>
+              </Tooltip>
             </Stack>
             <Paper
               elevation={0}
