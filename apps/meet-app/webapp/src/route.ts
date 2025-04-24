@@ -15,13 +15,11 @@
 // under the License. 
 
 import React from "react";
-import { RouteObject, NonIndexRouteObject } from "react-router-dom";
-// MUI imports
-import DuoIcon from '@mui/icons-material/Duo';
-// APP imports
 import { View } from "@view/index";
+import { Role } from "@slices/authSlice/auth";
+import DuoIcon from '@mui/icons-material/Duo';
 import { isIncludedRole } from "@utils/utils";
-import { Role } from "@utils/types";
+import { RouteObject, NonIndexRouteObject } from "react-router-dom";
 
 export interface RouteObjectWithRole extends NonIndexRouteObject {
   allowRoles: string[];
@@ -49,7 +47,7 @@ export const routes: RouteObjectWithRole[] = [
     text: "Meetings",
     icon: React.createElement(DuoIcon),
     element: React.createElement(View.meetings),
-    allowRoles: [Role.SALES_ADMIN, Role.SALES_TEAM],
+    allowRoles: [Role.ADMIN, Role.TEAM],
   },
 ];
 export const getActiveRoutesV2 = (

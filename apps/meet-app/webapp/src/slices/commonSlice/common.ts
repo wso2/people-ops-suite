@@ -14,9 +14,9 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { VariantType } from "notistack";
 import { AppDispatch } from "@slices/store";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface CommonState {
   message: string;

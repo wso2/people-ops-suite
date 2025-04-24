@@ -23,13 +23,12 @@ public configurable AppRoles authorizedRoles = ?;
 public isolated service class JwtInterceptor {
 
     *http:RequestInterceptor;
-
     isolated resource function default [string... path](http:RequestContext ctx, http:Request req)
         returns http:NextService|http:Forbidden|http:InternalServerError|error? {
 
         string|error idToken = req.getHeader(JWT_ASSERTION_HEADER);
         if idToken is error {
-            string errorMsg = "Missing authorization details in the request!";
+            string errorMsg = "Missing invoker info header!";
             log:printError(errorMsg, idToken);
             return <http:InternalServerError>{
                 body: {
@@ -38,57 +37,30 @@ public isolated service class JwtInterceptor {
             };
         }
 
-        CustomJwtPayload|error decodedUserInfo = decodeJwt(idToken);
-        if decodedUserInfo is error {
-            string errorMsg = "Error while extracting user information!";
-            log:printError(errorMsg, decodedUserInfo);
-            return <http:InternalServerError>{
-                body: {
-                    message: errorMsg
-                }
-            };
+        [jwt:Header, jwt:Payload]|jwt:Error result = jwt:decode(idToken);
+        if result is jwt:Error {
+            string errorMsg = "Error while reading the Invoker info!";
+            log:printError(errorMsg, result);
+            return <http:InternalServerError>{body: {message: errorMsg}};
         }
 
-        boolean isAuthorized = checkPrivileges(decodedUserInfo);
-        if !isAuthorized {
-            string errorMsg = "Insufficient privileges!";
-            log:printError(errorMsg);
-            return <http:Forbidden>{
-                body: {
-                    message: errorMsg
-                }
-            };
+        CustomJwtPayload|error userInfo = result[1].cloneWithType(CustomJwtPayload);
+        if userInfo is error {
+            string errorMsg = "Malformed Invoker info object!";
+            log:printError(errorMsg, userInfo);
+            return <http:InternalServerError>{body: {message: errorMsg}};
         }
 
-        ctx.set(HEADER_USER_INFO, decodedUserInfo);
-        return ctx.next();
-    }
-}
-
-# Decode the JWT.
-#
-# + key - Asgardeo ID token
-# + return - User email OR Error OR HTTP Response
-public isolated function decodeJwt(string key) returns CustomJwtPayload|error {
-
-    [jwt:Header, jwt:Payload]|jwt:Error result = jwt:decode(key);
-    if result is jwt:Error {
-        return result;
-    }
-    CustomJwtPayload|error userInfo = result[1].cloneWithType();
-    return userInfo;
-}
-
-# Checks if the user belongs to any of the authorized groups.
-#
-# + userInfo - `CustomJwtPayload` object containing the user's email and groups
-# + return - Returns true if the user is authorized Otherwise, false
-public isolated function checkPrivileges(CustomJwtPayload userInfo) returns boolean {
-
-    foreach anydata role in authorizedRoles.toArray() {
-        if userInfo.groups.some(r => r == role) {
-            return true;
+        foreach anydata role in authorizedRoles.toArray() {
+            if userInfo.groups.some(r => r === role) {
+                ctx.set(HEADER_USER_INFO, userInfo);
+                return ctx.next();
+            }
         }
+
+        log:printError(
+                string `${userInfo.email} is missing required permissions, only has ${userInfo.groups.toBalString()}`);
+
+        return <http:Forbidden>{body: {message: "Insufficient privileges!"}};
     }
-    return false;
 }

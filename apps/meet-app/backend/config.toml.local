@@ -1,7 +1,10 @@
 [meet_app.calendar]
     calendarBaseUrl = ""
     calendarId = ""
-    disclaimerMessage = ""
+    disclaimerMessage = "<h3><b>Disclaimer:</b></h3><b>This meeting has been scheduled on behalf of ${creatorEmail} using the Meet scheduling account.</b><br><br>"
+    # Note:
+    # ${creatorEmail} will be dynamically replaced with the actual email of the logged-in user.
+
     [meet_app.calendar.oauthConfig]
         tokenUrl = ""
         clientId = ""

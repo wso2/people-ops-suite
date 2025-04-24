@@ -20,10 +20,7 @@ import ListItem from "@mui/material/ListItem";
 import { Theme, alpha } from "@mui/material/styles";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import {
-  NavLink as RouterLink,
-  LinkProps as RouterLinkProps,
-} from "react-router-dom";
+import { NavLink as RouterLink, LinkProps as RouterLinkProps } from "react-router-dom";
 
 interface ListItemLinkProps {
   icon?: React.ReactElement;
@@ -34,18 +31,13 @@ interface ListItemLinkProps {
   theme: Theme;
 }
 
-const Link = React.forwardRef<HTMLAnchorElement, RouterLinkProps>(function Link(
-  itemProps,
-  ref
-) {
+const Link = React.forwardRef<HTMLAnchorElement, RouterLinkProps>(function Link(itemProps, ref) {
   return (
     <RouterLink
       ref={ref}
       {...itemProps}
       role={undefined}
-      style={({ isActive }) =>
-        isActive ? { background: alpha("#FFFFF", 0.05), color: "#FF7300" } : {}
-      }
+      style={({ isActive }) => (isActive ? { background: alpha("#FFFFF", 0.05), color: "#FF7300" } : {})}
     />
   );
 });
@@ -71,10 +63,7 @@ const ListItemLink = (props: ListItemLinkProps) => {
               visibility: "visible",
               color: (theme) => theme.palette.common.white,
               background: (theme) => theme.palette.primary.dark,
-              boxShadow:
-                theme.palette.mode === "dark"
-                  ? "0px 0px 10px rgba(120, 125, 129, 0.2)"
-                  : 10,
+              boxShadow: theme.palette.mode === "dark" ? "0px 0px 10px rgba(120, 125, 129, 0.2)" : 10,
             },
           }),
         },
