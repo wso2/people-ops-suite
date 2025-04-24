@@ -47,6 +47,7 @@ export const AppConfig = {
   serviceUrls: {
     meetings: ServiceBaseUrl + "/meetings",
     userInfo: ServiceBaseUrl + "/user-info",
+    employees: ServiceBaseUrl + "/employees",
     meetingTypes: ServiceBaseUrl + "/meetings/types?domain=" + APP_DOMAIN,
   },
 };

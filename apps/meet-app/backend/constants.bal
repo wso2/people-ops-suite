@@ -16,4 +16,3 @@
 
 # Cache key of employees.
 const string EMPLOYEES_CACHE_KEY = "employees";
-const string USER_INFO_CACHE_KEY = "userInfo";

@@ -36,7 +36,7 @@ Retrieve the logged in user's details.
     "firstName": "Jon",
     "lastName": "Smith",
     "jobRole": "Software Engineer",
-    "employeeThumbnail": "https://abc.com",
+    "employeeThumbnail": "https://example.com/thumbnails/user",
     "privileges": [
       123,
       456
@@ -53,6 +53,67 @@ Retrieve the logged in user's details.
     "message": "Error occurred while retrieving user data: user@wso2.com"
   }
   ```
+  </td>
+    </tr>
+    </tr>
+  </tbody>
+</table>
+
+### /employees
+
+#### GET
+
+##### Summary:
+
+Retrieve the list of employees.
+
+##### Parameters
+
+| Name | Located in | Description | Required | Schema |
+| ---- | ---------- | ----------- | -------- | ------ |
+| -    | -          | -           | -        | -      |
+
+##### Responses
+
+<table>
+  <thead>
+    <tr>
+      <th>Code</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td> 200 </td><td> Ok <br/>
+  
+  ```json
+  [
+    {
+      "firstName": "John",
+      "lastName": "Doe",
+      "workEmail": "john.doe@example.com",
+      "employeeThumbnail": "https://example.com/thumbnails/john_doe"
+    },
+    {
+      "firstName": "Jane",
+      "lastName": "Smith",
+      "workEmail": "jane.smith@example.com",
+      "employeeThumbnail": "https://example.com/thumbnails/jane_smith"
+    }
+  ]
+
+````
+</td>
+  </tr>
+  <tr>
+    <td> 500 </td><td> Internal Server Error <br/>
+
+```json
+{
+  "message": "Error occurred while retrieving employees!"
+}
+````
+
   </td>
     </tr>
     </tr>

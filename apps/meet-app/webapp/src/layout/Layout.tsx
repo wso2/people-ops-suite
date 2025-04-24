@@ -24,9 +24,10 @@ import { Box, alpha } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { selectRoles } from "@slices/authSlice/auth";
+import { RootState, useAppSelector } from "@slices/store";
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { RootState, useAppSelector } from "@slices/store";
+import ConfirmationModalContextProvider from "@context/DialogContext";
 
 export default function Layout() {
   const { enqueueSnackbar } = useSnackbar();
@@ -63,48 +64,50 @@ export default function Layout() {
   }, [navigate]);
 
   return (
-    <Box sx={{ display: "flex" }}>
-      <CssBaseline />
-      <Sidebar
-        roles={roles}
-        currentPath={location.pathname}
-        open={open}
-        handleDrawer={() => setOpen(!open)}
-        theme={theme}
-      />
-      <Header />
-      <Box
-        component="main"
-        className="Hello"
-        sx={{
-          flexGrow: 1,
-          height: "100vh",
-          p: 3,
-          pt: 7.5,
-          pb: 4.5,
-        }}
-      >
-        <Suspense fallback={<div>Loading...</div>}>
-          <Outlet />
-        </Suspense>
+    <ConfirmationModalContextProvider>
+      <Box sx={{ display: "flex" }}>
+        <CssBaseline />
+        <Sidebar
+          roles={roles}
+          currentPath={location.pathname}
+          open={open}
+          handleDrawer={() => setOpen(!open)}
+          theme={theme}
+        />
+        <Header />
         <Box
-          className="layout-note"
+          component="main"
+          className="Hello"
           sx={{
-            background:
-              theme.palette.mode === "light"
-                ? (theme) =>
-                    alpha(
-                      theme.palette.secondary.main,
-                      theme.palette.action.activatedOpacity
-                    )
-                : (theme) => alpha(theme.palette.common.black, 0.4),
+            flexGrow: 1,
+            height: "100vh",
+            p: 3,
+            pt: 7.5,
+            pb: 4.5,
           }}
         >
-          <Typography variant="h6" sx={{ color: "#919090" }}>
-            v {pJson.version} | © {new Date().getFullYear()} WSO2 LLC
-          </Typography>
+          <Suspense fallback={<div>Loading...</div>}>
+            <Outlet />
+          </Suspense>
+          <Box
+            className="layout-note"
+            sx={{
+              background:
+                theme.palette.mode === "light"
+                  ? (theme) =>
+                      alpha(
+                        theme.palette.secondary.main,
+                        theme.palette.action.activatedOpacity
+                      )
+                  : (theme) => alpha(theme.palette.common.black, 0.4),
+            }}
+          >
+            <Typography variant="h6" sx={{ color: "#919090" }}>
+              v {pJson.version} | © {new Date().getFullYear()} WSO2 LLC
+            </Typography>
+          </Box>
         </Box>
       </Box>
-    </Box>
+    </ConfirmationModalContextProvider>
   );
 }

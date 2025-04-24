@@ -23,7 +23,7 @@ import ballerina/http;
 import ballerina/log;
 import ballerinax/googleapis.calendar as gcalendar;
 
-cache:Cache cache = new ({
+final cache:Cache cache = new ({
     capacity: 2000,
     defaultMaxAge: 1800.0,
     cleanupInterval: 900.0
@@ -78,8 +78,8 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         // Check if the employees are already cached.
-        if cache.hasKey(USER_INFO_CACHE_KEY) {
-            UserInfoResponse|error cachedUserInfo = cache.get(USER_INFO_CACHE_KEY).ensureType();
+        if cache.hasKey(userInfo.email) {
+            UserInfoResponse|error cachedUserInfo = cache.get(userInfo.email).ensureType();
             if cachedUserInfo is UserInfoResponse {
                 return cachedUserInfo;
             }
@@ -108,7 +108,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         UserInfoResponse userInfoResponse = {...loggedInUser, privileges};
 
-        error? cacheError = cache.put(USER_INFO_CACHE_KEY, userInfoResponse);
+        error? cacheError = cache.put(userInfo.email, userInfoResponse);
         if cacheError is error {
             log:printError("An error occurred while writing user info to the cache", cacheError);
         }
@@ -119,7 +119,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + ctx - Request object
     # + return - List  of employees | Error
-    resource function get employees(http:RequestContext ctx) returns entity:EmployeeBasic[]|http:InternalServerError {
+    resource function get employees(http:RequestContext ctx) returns entity:EmployeeBasic[]|http:InternalServerError|error {
 
         // Check if the employees are already cached.
         if cache.hasKey(EMPLOYEES_CACHE_KEY) {
@@ -140,7 +140,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        error? cacheError = cache.put(EMPLOYEES_CACHE_KEY, employees);
+        employees = from var employee in employees
+            order by employee.workEmail.toLowerAscii() ascending
+            select employee;
+
+        error? cacheError = cache.put(EMPLOYEES_CACHE_KEY, check employees);
         if cacheError is error {
             log:printError("An error occurred while writing employees to the cache", cacheError);
         }
@@ -151,7 +155,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + domain - Domain to filter 
     # + return - Meeting types | Error
-    isolated resource function get meetings/types(http:RequestContext ctx, string domain)
+    resource function get meetings/types(http:RequestContext ctx, string domain)
         returns database:MeetingTypes|http:Forbidden|http:InternalServerError {
 
         // Fetch the meeting types from the database.
@@ -173,7 +177,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + createCalendarEventRequest - Create calendar event request
     # + return - Created meeting | Error
-    isolated resource function post meetings(http:RequestContext ctx,
+    resource function post meetings(http:RequestContext ctx,
             calendar:CreateCalendarEventRequest createCalendarEventRequest)
         returns MeetingCreationResponse|http:Forbidden|http:InternalServerError {
 
@@ -238,8 +242,8 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + 'limit - Limit of the data  
     # + offset - Offset of the data
     # + return - Meetings | Error
-    isolated resource function get meetings(http:RequestContext ctx, string? title, string? host,
-            string? startTime, string? endTime, string? internalParticipants, int? 'limit, int? offset)
+    resource function get meetings(http:RequestContext ctx, string? title, string? host,
+            string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
         returns MeetingListResponse|http:Forbidden|http:InternalServerError {
 
         // User information header.
@@ -262,11 +266,11 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         // Determine the host filter based on user role.
-        string? filteredHost = isAdmin ? (host != () ? host : ()) : userInfo.email;
+        string[]? filteredInternalParticipants = isAdmin ? internalParticipants : [userInfo.email];
 
         // Fetch the meetings from the database.
-        database:Meeting[]|error meetings = database:fetchMeetings(title, filteredHost, startTime, endTime,
-            internalParticipants, 'limit, offset);
+        database:Meeting[]|error meetings = database:fetchMeetings(title, host, startTime, endTime,
+            filteredInternalParticipants, 'limit, offset);
         if meetings is error {
             string customError = string `Error occurred while retrieving the meetings!`;
             log:printError(customError, meetings);
@@ -298,7 +302,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + meetingId - meetingId to get attachments 
     # + return - Attachments|Error
-    isolated resource function get meetings/[int meetingId]/attachments(http:RequestContext ctx)
+    resource function get meetings/[int meetingId]/attachments(http:RequestContext ctx)
         returns AttachmentListResponse|http:InternalServerError|http:Forbidden {
 
         // User information header.
@@ -361,7 +365,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + meetingId - meetingId to delete  
     # + return - Ok|InternalServerError|Forbidden
-    isolated resource function delete meetings/[int meetingId](http:RequestContext ctx)
+    resource function delete meetings/[int meetingId](http:RequestContext ctx)
         returns MeetingDeletionResponse|http:InternalServerError|http:Forbidden {
 
         // User information header.

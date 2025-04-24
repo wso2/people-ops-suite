@@ -14,12 +14,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// MUI imports
-import VideoCallIcon from "@mui/icons-material/VideoCall";
-import HistoryIcon from "@mui/icons-material/History";
-
-// App imports
 import CommonPage from "@layout/pages/CommonPage";
+import HistoryIcon from "@mui/icons-material/History";
+import VideoCallIcon from "@mui/icons-material/VideoCall";
 import CreateMeeting from "@view/meetings/panel/createMeeting";
 import MeetingHistory from "@view/meetings/panel/meetingHistory";
 

@@ -1,4 +1,3 @@
-//NewNew Theme
 // Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
@@ -15,7 +14,6 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-// MUI imports
 import { PaletteMode, alpha } from "@mui/material";
 
 // Color Design Tokens
@@ -155,8 +153,8 @@ export const themeSettings = (mode: PaletteMode) => {
         styleOverrides: {
           columnHeader: {
             backgroundColor: mode === "dark"
-              ? alpha(colors.primary[300], 0.9)  // Dark theme color
-              : alpha(colors.primary[300], 0.2), // Light theme color
+              ? alpha(colors.primary[300], 0.9)  
+              : alpha(colors.primary[300], 0.2),
             fontWeight: 1000,
           },
           columnHeaderTitle: {

@@ -12,15 +12,31 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License. 
+// under the License.
 
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { State } from "@/types/types";
-import { APIService } from "@utils/apiService";
 import { AppConfig } from "@config/config";
-import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
-import { SnackMessage } from "@config/constant";
 import axios, { HttpStatusCode } from "axios";
+import { APIService } from "@utils/apiService";
+import { SnackMessage } from "@config/constant";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
+
+interface Meetings {
+  count: number;
+  meetings: Meeting[];
+}
+
+export interface Meeting {
+  meetingId: number;
+  title: string;
+  googleEventId: string;
+  host: string;
+  startTime: string;
+  endTime: string;
+  internalParticipants: string;
+  meetingStatus: string;
+}
 
 interface MeetingState {
   state: State;
@@ -33,6 +49,37 @@ interface MeetingState {
   backgroundProcessMessage: string | null;
 }
 
+interface AddMeetingPayload {
+  title: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+  timeZone: string;
+  internalParticipants: string[];
+  externalParticipants: string[];
+}
+
+interface DeleteMeeting {
+  message: string;
+}
+
+interface Attachments {
+  attachments: Attachment[];
+}
+
+interface Attachment {
+  fileUrl: string;
+  title: string;
+  mimeType: string;
+  iconLink: string;
+  fileId: string;
+}
+
+interface MeetingTypes {
+  domain: string;
+  types: string[];
+}
+
 const initialState: MeetingState = {
   state: State.idle,
   submitState: State.idle,
@@ -42,12 +89,7 @@ const initialState: MeetingState = {
   meetingTypes: null,
   backgroundProcess: false,
   backgroundProcessMessage: null,
-}
-
-export interface MeetingTypes {
-  domain: string;
-  types: string[];
-}
+};
 
 export const fetchMeetingTypes = createAsyncThunk(
   "meeting/fetchMeetingTypes",
@@ -79,80 +121,54 @@ export const fetchMeetingTypes = createAsyncThunk(
         });
     });
   }
-)
+);
 
-export interface AddMeetingPayload {
-  title: string;
-  description: string;
-  startTime: string;
-  endTime: string;
-  timeZone: string;
-  internalParticipants: string[];
-  externalParticipants: string[];
-}
-
-export const addMeetings = createAsyncThunk(
-  "meeting/addMeetings",
-  async (payload: AddMeetingPayload, { dispatch }) => {
-    APIService.getCancelToken().cancel();
-    const newCancelTokenSource = APIService.updateCancelToken();
-    return new Promise<AddMeetingPayload>((resolve, reject) => {
-      APIService.getInstance()
-        .post(AppConfig.serviceUrls.meetings, payload, {
-          cancelToken: newCancelTokenSource.token,
-        })
-        .then((response) => {
-          dispatch(
-            enqueueSnackbarMessage({
-              message: SnackMessage.success.addMeetings,
-              type: "success",
-            })
-          );
-          resolve(response.data);
-        })
-        .catch((error) => {
-          const errorMessage =
-            error.response?.data?.message ||
-            (error.response?.status === HttpStatusCode.InternalServerError
-              ? SnackMessage.error.addMeetings
-              : "An unknown error occurred.");
-          dispatch(
-            enqueueSnackbarMessage({
-              message: errorMessage,
-              type: "error",
-            })
-          );
-          reject(error);
-        });
-    });
-  }
-)
-
-interface Meetings {
-  count: number;
-  meetings: Meeting[];
-}
-
-export interface Meeting {
-  meetingId: number;
-  title: string;
-  googleEventId: string;
-  host: string;
-  startTime: string;
-  endTime: string;
-  internalParticipants: string;
-  meetingStatus: string;
-}
+export const addMeetings = createAsyncThunk("meeting/addMeetings", async (payload: AddMeetingPayload, { dispatch }) => {
+  APIService.getCancelToken().cancel();
+  const newCancelTokenSource = APIService.updateCancelToken();
+  return new Promise<AddMeetingPayload>((resolve, reject) => {
+    APIService.getInstance()
+      .post(AppConfig.serviceUrls.meetings, payload, {
+        cancelToken: newCancelTokenSource.token,
+      })
+      .then((response) => {
+        dispatch(
+          enqueueSnackbarMessage({
+            message: SnackMessage.success.addMeetings,
+            type: "success",
+          })
+        );
+        resolve(response.data);
+      })
+      .catch((error) => {
+        const errorMessage =
+          error.response?.data?.message ||
+          (error.response?.status === HttpStatusCode.InternalServerError
+            ? SnackMessage.error.addMeetings
+            : "An unknown error occurred.");
+        dispatch(
+          enqueueSnackbarMessage({
+            message: errorMessage,
+            type: "error",
+          })
+        );
+        reject(error);
+      });
+  });
+});
 
 export const fetchMeetings = createAsyncThunk(
   "meeting/fetchMeetings",
-  async ({ limit, offset }: { limit: number; offset: number }, { dispatch }) => {
+  async (
+    { host, title, limit, offset }: { host: string | null; title: string | null; limit: number; offset: number },
+    { dispatch }
+  ) => {
     APIService.getCancelToken().cancel();
     const newCancelTokenSource = APIService.updateCancelToken();
     return new Promise<Meetings>((resolve, reject) => {
       APIService.getInstance()
         .get(AppConfig.serviceUrls.meetings, {
-          params: { limit, offset },
+          params: { host, title, limit, offset },
           cancelToken: newCancelTokenSource.token,
         })
         .then((response) => {
@@ -176,58 +192,39 @@ export const fetchMeetings = createAsyncThunk(
   }
 );
 
-export interface DeleteMeeting {
-  message: string;
-}
-
-export const deleteMeeting = createAsyncThunk(
-  "meeting/deleteMeeting",
-  async (meetingId: number, { dispatch }) => {
-    APIService.getCancelToken().cancel();
-    const newCancelTokenSource = APIService.updateCancelToken();
-    return new Promise<DeleteMeeting>((resolve, reject) => {
-      APIService.getInstance()
-        .delete(`${AppConfig.serviceUrls.meetings}/${meetingId}`, {
-          cancelToken: newCancelTokenSource.token,
-        })
-        .then((response) => {
-          dispatch(
-            enqueueSnackbarMessage({
-              message: SnackMessage.success.deleteMeeting,
-              type: "success",
-            })
-          );
-          resolve(response.data);
-        })
-        .catch((error) => {
-          const errorMessage =
-            error.response?.data?.message ||
-            (error.response?.status === HttpStatusCode.InternalServerError
-              ? SnackMessage.error.deleteMeeting
-              : "An unknown error occurred.");
-          dispatch(
-            enqueueSnackbarMessage({
-              message: errorMessage,
-              type: "error",
-            })
-          );
-          reject(error);
-        });
-    });
-  }
-)
-
-interface Attachment {
-  fileUrl: string;
-  title: string;
-  mimeType: string;
-  iconLink: string;
-  fileId: string;
-}
-
-interface Attachments {
-  attachments: Attachment[];
-}
+export const deleteMeeting = createAsyncThunk("meeting/deleteMeeting", async (meetingId: number, { dispatch }) => {
+  APIService.getCancelToken().cancel();
+  const newCancelTokenSource = APIService.updateCancelToken();
+  return new Promise<DeleteMeeting>((resolve, reject) => {
+    APIService.getInstance()
+      .delete(`${AppConfig.serviceUrls.meetings}/${meetingId}`, {
+        cancelToken: newCancelTokenSource.token,
+      })
+      .then((response) => {
+        dispatch(
+          enqueueSnackbarMessage({
+            message: SnackMessage.success.deleteMeeting,
+            type: "success",
+          })
+        );
+        resolve(response.data);
+      })
+      .catch((error) => {
+        const errorMessage =
+          error.response?.data?.message ||
+          (error.response?.status === HttpStatusCode.InternalServerError
+            ? SnackMessage.error.deleteMeeting
+            : "An unknown error occurred.");
+        dispatch(
+          enqueueSnackbarMessage({
+            message: errorMessage,
+            type: "error",
+          })
+        );
+        reject(error);
+      });
+  });
+});
 
 export const fetchAttachments = createAsyncThunk(
   "meeting/fetchAttachments",
@@ -259,13 +256,13 @@ export const fetchAttachments = createAsyncThunk(
         });
     });
   }
-)
+);
 
 const MeetingSlice = createSlice({
   name: "meeting",
   initialState,
   reducers: {
-    resetSubmitSate(state) {
+    resetSubmitState(state) {
       state.submitState = State.idle;
     },
   },
@@ -332,11 +329,9 @@ const MeetingSlice = createSlice({
       .addCase(fetchAttachments.rejected, (state) => {
         state.submitState = State.failed;
         state.stateMessage = "Failed to fetch!";
-      })
-
-      ;
+      });
   },
 });
 
-export const { resetSubmitSate } = MeetingSlice.actions;
+export const { resetSubmitState } = MeetingSlice.actions;
 export default MeetingSlice.reducer;

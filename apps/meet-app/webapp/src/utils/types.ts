@@ -14,38 +14,12 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
-import { State } from "src/types/types";
 export type stateType = "failed" | "success" | "loading" | "idle";
 
-export interface AuthState {
-  status: State;
-  mode: "active" | "maintenance";
-  statusMessage: string | null;
-  isAuthenticated: boolean;
-  userInfo: BasicUserInfo | null;
-  decodedIdToken: DecodedIDTokenPayload | null;
-  roles: string[];
-}
-
-export interface AuthData {
-  userInfo: BasicUserInfo;
-  idToken: string;
-  decodedIdToken: DecodedIDTokenPayload;
-}
-
-export enum Role {
-  SALES_ADMIN = "SALES_ADMIN",
-  SALES_TEAM = "SALES_TEAM",
-}
-
-export interface Employee {
-  workEmail: string;
-  firstName: string;
-  lastName: string;
-  jobBand: number;
-  employeeThumbnail: string;
-}
+export interface MeetingTypes {
+  domain: string;
+  types: string[];
+} 
 
 export interface Header {
   title: string;

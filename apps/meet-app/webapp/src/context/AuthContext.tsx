@@ -41,9 +41,7 @@ const promptBeforeIdle = 4_000;
 
 const AppAuthProvider = (props: { children: React.ReactNode }) => {
   const [open, setOpen] = useState<boolean>(false);
-  const [appState, setAppState] = useState<"logout" | "active" | "loading">(
-    "loading"
-  );
+  const [appState, setAppState] = useState<"logout" | "active" | "loading">("loading");
 
   const dispatch = useAppDispatch();
   const auth = useAppSelector((state: RootState) => state.auth);
@@ -80,10 +78,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
     var appStatus = localStorage.getItem("meet-app-state");
 
     if (!localStorage.getItem("meet-app-redirect-url")) {
-      localStorage.setItem(
-        "meet-app-redirect-url",
-        window.location.href.replace(window.location.origin, "")
-      );
+      localStorage.setItem("meet-app-redirect-url", window.location.href.replace(window.location.origin, ""));
     }
 
     if (appStatus && appStatus === "logout") {
@@ -96,20 +91,18 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
   useEffect(() => {
     if (appState === "active") {
       if (state.isAuthenticated) {
-        Promise.all([
-          getBasicUserInfo(),
-          getIDToken(),
-          getDecodedIDToken(),
-        ]).then(async ([userInfo, idToken, decodedIdToken]) => {
-          dispatch(
-            setUserAuthData({
-              userInfo: userInfo,
-              idToken: idToken,
-              decodedIdToken: decodedIdToken,
-            })
-          );
-          new APIService(idToken, refreshToken);
-        });
+        Promise.all([getBasicUserInfo(), getIDToken(), getDecodedIDToken()]).then(
+          async ([userInfo, idToken, decodedIdToken]) => {
+            dispatch(
+              setUserAuthData({
+                userInfo: userInfo,
+                idToken: idToken,
+                decodedIdToken: decodedIdToken,
+              })
+            );
+            new APIService(idToken, refreshToken);
+          }
+        );
       }
     }
   }, [appState, state.isAuthenticated]);
@@ -118,8 +111,9 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
     if (appState === "active") {
       if (state.isAuthenticated) {
         if (userInfo.state !== "loading") {
-          dispatch(getUserInfo());
-          dispatch(loadPrivileges());
+          dispatch(getUserInfo()).then(() => {
+            dispatch(loadPrivileges());
+          });
         }
       } else {
         signIn();
@@ -176,13 +170,10 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
           >
-            <DialogTitle id="alert-dialog-title">
-              {"Are you still there?"}
-            </DialogTitle>
+            <DialogTitle id="alert-dialog-title">{"Are you still there?"}</DialogTitle>
             <DialogContent>
               <DialogContentText id="alert-dialog-description">
-                It looks like you've been inactive for a while. Would you like
-                to continue?
+                It looks like you've been inactive for a while. Would you like to continue?
               </DialogContentText>
             </DialogContent>
             <DialogActions>

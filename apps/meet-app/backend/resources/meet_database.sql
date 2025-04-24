@@ -32,5 +32,5 @@ CREATE TABLE meeting_type (
 -- Insert data into the meeting_type table
 INSERT INTO meeting_type (`domain`, `types`, `created_by`, `updated_by`)
 VALUES
-  ('Sales', 'Discovery Call, Technical Call, Demo Call, POC Call, Legal Chat, Procurement Chat, Pricing chat',
+  ('Sales', 'Discovery Call, Technical Call, Demo Call, POC Call, Legal Chat, Procurement Chat, Pricing Chat',
   'patric@wso2.com', 'patric@wso2.com');

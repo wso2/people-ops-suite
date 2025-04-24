@@ -1,14 +1,26 @@
-import { State } from "@/types/types";
-import { useEffect, useState } from "react";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import ErrorHandler from "@component/common/ErrorHandler";
-import { useAppDispatch, useAppSelector } from "@slices/store";
+// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 import {
   Box,
   Button,
   Dialog,
   Tooltip,
   Backdrop,
+  TextField,
   IconButton,
   Typography,
   DialogTitle,
@@ -16,17 +28,18 @@ import {
   DialogContent,
   CircularProgress,
 } from "@mui/material";
-import {
-  Delete,
-  Visibility,
-  CheckCircle,
-  DeleteForever,
-} from "@mui/icons-material";
-import {
-  fetchMeetings,
-  deleteMeeting,
-  fetchAttachments,
-} from "@slices/meetingSlice/meeting";
+import { State } from "@/types/types";
+import { useSelector } from "react-redux";
+import { useEffect, useState } from "react";
+import { Role } from "@slices/authSlice/auth";
+import { ConfirmationType } from "@/types/types";
+import { selectRoles } from "@slices/authSlice/auth";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import ErrorHandler from "@component/common/ErrorHandler";
+import { useAppDispatch, useAppSelector } from "@slices/store";
+import { useConfirmationModalContext } from "@context/DialogContext";
+import { Delete, Visibility, CheckCircle, DeleteForever, Search } from "@mui/icons-material";
+import { fetchMeetings, deleteMeeting, fetchAttachments } from "@slices/meetingSlice/meeting";
 
 interface Attachment {
   title: string;
@@ -49,19 +62,58 @@ const formatDateTime = (dateTimeStr: string) => {
 function MeetingHistory() {
   const dispatch = useAppDispatch();
   const meeting = useAppSelector((state) => state.meeting);
+  const totalMeetings = meeting.meetings?.count || 0;
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [loadingAttachments, setLoadingAttachments] = useState(false);
-  const [openAttachmentDialog, setOpenAttachmentDialog] = useState(false);
-  const [meetingToDelete, setMeetingToDelete] = useState<number | null>(null);
+  const dialogContext = useConfirmationModalContext();
   const [loadingDelete, setLoadingDelete] = useState(false);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const totalMeetings = meeting.meetings?.count || 0;
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [openAttachmentDialog, setOpenAttachmentDialog] = useState(false);
+  const loggedInUser = useAppSelector((state) => state.user.userInfo?.workEmail) || "";
+  const isAdmin = useSelector(selectRoles).includes(Role.ADMIN);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filteredSearchQuery, setFilteredSearchQuery] = useState<string | null>(null);
+  const [filteredHostQuery, setFilteredHostQuery] = useState<string | null>(isAdmin ? null : loggedInUser);
 
   useEffect(() => {
-    dispatch(fetchMeetings({ limit: pageSize, offset: page * pageSize }));
-  }, [dispatch, page, pageSize]);
+    dispatch(
+      fetchMeetings({ host: filteredHostQuery, title: filteredSearchQuery, limit: pageSize, offset: page * pageSize })
+    );
+  }, [dispatch, filteredSearchQuery, filteredHostQuery, page, pageSize]);
+
+  const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
+    dialogContext.showConfirmation(
+      "Confirm Deletion",
+      <Box>
+        <>
+          <Typography variant="body1">
+            <strong>
+              Are you sure you want to delete the meeting <br />
+            </strong>{" "}
+            {`${meetingTitle} ?`}
+          </Typography>
+        </>
+      </Box>,
+      ConfirmationType.accept,
+      async () => {
+        setLoadingDelete(true);
+        await dispatch(deleteMeeting(meetingId)).then(() => {
+          setLoadingDelete(false);
+          dispatch(
+            fetchMeetings({
+              host: filteredHostQuery,
+              title: filteredSearchQuery,
+              limit: pageSize,
+              offset: page * pageSize,
+            })
+          );
+        });
+      },
+      "Yes",
+      "No"
+    );
+  };
 
   const handleViewAttachments = (meetingId: number) => {
     setLoadingAttachments(true);
@@ -69,22 +121,6 @@ function MeetingHistory() {
       setAttachments(data.payload.attachments);
       setOpenAttachmentDialog(true);
       setLoadingAttachments(false);
-    });
-  };
-
-  const handleConfirmDelete = () => {
-    if (meetingToDelete !== null) {
-      handleDeleteMeeting(meetingToDelete);
-      setOpenDeleteDialog(false);
-      setMeetingToDelete(null);
-    }
-  };
-
-  const handleDeleteMeeting = (meetingId: number) => {
-    setLoadingDelete(true);
-    dispatch(deleteMeeting(meetingId)).then(() => {
-      setLoadingDelete(false);
-      dispatch(fetchMeetings({ limit: pageSize, offset: page * pageSize }));
     });
   };
 
@@ -107,9 +143,9 @@ function MeetingHistory() {
       flex: 1,
       headerAlign: "center",
       align: "center",
+      disableColumnMenu: true,
       renderCell: (params) => {
         const status = params.value;
-
         return (
           <Tooltip title={status === "ACTIVE" ? "Active" : "Cancelled"} arrow>
             <Box
@@ -120,11 +156,7 @@ function MeetingHistory() {
                 height: "100%",
               }}
             >
-              {status === "ACTIVE" ? (
-                <CheckCircle color="success" />
-              ) : (
-                <Delete color="disabled" />
-              )}
+              {status === "ACTIVE" ? <CheckCircle color="success" /> : <Delete color="disabled" />}
             </Box>
           </Tooltip>
         );
@@ -135,6 +167,12 @@ function MeetingHistory() {
       headerName: "Host",
       minWidth: 120,
       flex: 2,
+    },
+    {
+      field: "internalParticipants",
+      headerName: "WSO2 Participants",
+      minWidth: 200,
+      flex: 3,
     },
     {
       field: "startTime",
@@ -151,36 +189,43 @@ function MeetingHistory() {
       renderCell: (params) => formatDateTime(params.value),
     },
     {
-      field: "internalParticipants",
-      headerName: "WSO2 Participants",
-      minWidth: 200,
-      flex: 3,
-    },
-    {
-      field: "actions",
-      headerName: "",
-      minWidth: 90,
+      field: "attachments",
+      headerName: "Attachments",
+      minWidth: 100,
       flex: 1,
+      headerAlign: "center",
+      align: "center",
+      disableColumnMenu: true,
       renderCell: (params) => {
-        const isCancelled = params.row.meetingStatus === "CANCELLED";
-
         return (
           <>
             <Tooltip title="View Attachments" arrow>
-              <IconButton
-                color="info"
-                onClick={() => handleViewAttachments(params.row.meetingId)}
-              >
+              <IconButton color="info" onClick={() => handleViewAttachments(params.row.meetingId)}>
                 <Visibility />
               </IconButton>
             </Tooltip>
+          </>
+        );
+      },
+    },
+    {
+      field: "delete",
+      headerName: "Delete",
+      minWidth: 90,
+      flex: 1,
+      headerAlign: "center",
+      align: "center",
+      disableColumnMenu: true,
+      renderCell: (params) => {
+        const isCancelled = params.row.meetingStatus === "CANCELLED";
+        return (
+          <>
             {!isCancelled && (
               <Tooltip title="Delete Meeting" arrow>
                 <IconButton
                   color="error"
                   onClick={() => {
-                    setMeetingToDelete(params.row.meetingId);
-                    setOpenDeleteDialog(true);
+                    handleDeleteMeeting(params.row.meetingId, params.row.title);
                   }}
                 >
                   <DeleteForever />
@@ -197,6 +242,54 @@ function MeetingHistory() {
 
   return (
     <Box>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "flex-start",
+          gap: 1,
+          px: 2,
+          pt: 1.5,
+        }}
+      >
+        <TextField
+          label="Search by Title"
+          size="small"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              setFilteredSearchQuery(searchQuery);
+              setPage(0);
+            }
+          }}
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          sx={{
+            width: 300,
+            "& .MuiInputBase-root": {
+              paddingRight: 0,
+            },
+          }}
+          InputProps={{
+            endAdornment: (
+              <IconButton
+                onClick={() => {
+                  setFilteredSearchQuery(searchQuery);
+                  setPage(0);
+                }}
+                sx={{
+                  justifyContent: "center",
+                  borderRadius: 0,
+                }}
+              >
+                <Search />
+              </IconButton>
+            ),
+          }}
+        />
+      </Box>
       {meeting.state === State.loading ? (
         <Box
           sx={{
@@ -260,23 +353,6 @@ function MeetingHistory() {
       >
         <CircularProgress color="inherit" />
       </Backdrop>
-      <Dialog
-        open={openDeleteDialog}
-        onClose={() => setOpenDeleteDialog(false)}
-      >
-        <DialogTitle>Confirm Deletion</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to delete this meeting?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)} color="primary">
-            Cancel
-          </Button>
-          <Button onClick={handleConfirmDelete} color="error">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
       <Dialog open={openAttachmentDialog} onClose={handleCloseAttachmentDialog}>
         <DialogTitle>Attachments</DialogTitle>
         <DialogContent>
@@ -285,10 +361,7 @@ function MeetingHistory() {
           ) : (
             <Box>
               {attachments.map((attachment, index) => (
-                <Box
-                  key={index}
-                  sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                >
+                <Box key={index} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                   <img
                     src={attachment.iconLink}
                     alt={attachment.title}
