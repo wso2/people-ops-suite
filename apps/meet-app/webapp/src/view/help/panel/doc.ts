@@ -1,17 +1,37 @@
-export const doc = `
+import { IMPORTANT_CONTACTS } from "@config/config";
+
+function groupContactsByTeam(contacts: any[]) {
+    const teams: { [team: string]: { name: string; email: string }[] } = {};
+    contacts.forEach(({ name, email, team }) => {
+        if (!teams[team]) teams[team] = [];
+        teams[team].push({ name, email });
+    });
+    return teams;
+}
+
+let importantContactsMarkdown = "";
+const grouped = groupContactsByTeam(IMPORTANT_CONTACTS);
+for (const [team, members] of Object.entries(grouped)) {
+  const membersMarkdown = members
+    .map(member => `[**${member.name}**](mailto:${member.email})`)
+    .join(", ");
+    importantContactsMarkdown += `* ${membersMarkdown} from the ${team}\n`;
+}
+
+let guide = `
 # **<font color="#FF7300">WSO2</font> Sales Meeting Scheduler User Guide**
 
 <br>
 
 ## **Purpose**
 
-The purpose is to **centralize sales meeting recordings** in a single location. This enables leads to provide feedback and ensures that Team Organizers (TOs) and others who join the conversation later are up to date, thus maintaining continuity in discussions. Currently, recordings are stored in the individual host's drive, making access inconvenient for others. Using a common user account to schedule sales meetings would ensure all recordings are stored in one shared drive. This would make it easier for leads to review calls and provide feedback, and for other team members (such as Solution Architects and Customer Success Managers) to catch up on previous discussions before joining.
+The purpose is to centralize sales meeting recordings in a single location. This enables leads to provide feedback and ensures that TOs and others who join the conversation later are up to date, thus maintaining continuity in discussions. Currently, recordings are stored in the individual host's drive, making access inconvenient for others. Using a common user account to schedule sales meetings would ensure all recordings are stored in one shared drive. This would make it easier for leads to review calls and provide feedback, and for other team members (such as Solution Architects and Customer Success Managers) to catch up on previous discussions before joining.
 
 <br>
 
 ## **Overview**
 
-The <a href="https://meet.wso2.com" target="_blank">WSO2 Sales Meeting Scheduler</a> is a homegrown app created by the WSO2 DigiOps for the Sales Team. It was created to address the issues mentioned above and ensure that all sales call recordings are stored in a **centralized location**.
+The <a href="https://meet.wso2.com" target="_blank">WSO2 Sales Meeting Scheduler</a> is a homegrown app created by the WSO2 DigiOps for the Sales Team. It was created to address the issues mentioned above and ensure that all sales call recordings are stored in a centralized location.
 
 ![](/doc/00.png)
 
@@ -76,7 +96,7 @@ Please utilize the **Google Calendar** meeting invitation to reschedule, cancel,
 
 ## **Meeting History**
 
-This tab is for viewing the meeting history. The **search bar** could be used to filter and find a specific call. The **Attachment section** would include the recording and transcript.
+This tab is for viewing the meeting history. The **search bar** could be used to filter and find a specific call. The **Attachment** section would include the recording and transcript.
 
 ![](/doc/07.png)
 
@@ -98,9 +118,6 @@ The admins (Team leads and leadership would be able to access all the recordings
 ## **Important Contacts**
 
 For any concerns, please reach out to:
-
-*   [**Rashvini Weerasinghe**](mailto:rashvini@wso2.com), [**Dilani De Silva**](mailto:dilani@wso2.com) from the Sales Enablement Team
-*   [**Sachin Ramesh**](mailto:sachinr@wso2.com), [**Patric Nilackshan (Intern)**](mailto:patric@wso2.com) from the Internal Apps Team
-*   [**Udith Wickramasuriya**](mailto:udith@wso2.com) from the Security team
-
 `
+
+export const doc = guide + importantContactsMarkdown;
