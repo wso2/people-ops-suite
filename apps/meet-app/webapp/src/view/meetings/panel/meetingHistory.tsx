@@ -238,9 +238,9 @@ function MeetingHistory() {
           display: "flex",
           justifyContent: "flex-end",
           alignItems: "flex-start",
-          gap: 1,
           px: 2,
           pt: 1.5,
+          pb: 1,
         }}
       >
         <TextField
@@ -306,7 +306,6 @@ function MeetingHistory() {
               display: "grid",
               gridTemplateColumns: "1fr",
               paddingX: 2,
-              paddingY: 2,
             }}
           >
             <DataGrid
