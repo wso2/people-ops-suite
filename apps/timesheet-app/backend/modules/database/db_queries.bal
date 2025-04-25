@@ -24,7 +24,8 @@ isolated function getWorkPoliciesQuery(string companyName) returns sql:Parameter
     SELECT
         ot_hours_per_year AS 'otHoursPerYear',
         working_hours_per_day AS 'workingHoursPerDay',
-        lunch_hours_per_day AS 'lunchHoursPerDay'
+        lunch_hours_per_day AS 'lunchHoursPerDay',
+        system_activated AS 'isSystemActivated'
     FROM
         timesheet_work_policies
     WHERE

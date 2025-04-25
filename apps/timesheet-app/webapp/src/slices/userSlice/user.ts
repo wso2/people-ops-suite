@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { AxiosError } from "axios";
 import { RootState } from "@slices/store";
 import { AppConfig } from "@config/config";
 import { APIService } from "@utils/apiService";
@@ -59,21 +60,19 @@ interface UserInfoInterface {
   workPolicies: WorkPolicies;
 }
 
-export const getUserInfo = createAsyncThunk("User/getUserInfo", async () => {
-  return new Promise<{
-    UserInfo: UserInfoInterface;
-  }>((resolve, reject) => {
-    APIService.getInstance()
-      .get(AppConfig.serviceUrls.getUserInfo)
-      .then((resp) => {
-        resolve({
-          UserInfo: resp.data,
-        });
-      })
-      .catch((error: Error) => {
-        reject(error);
-      });
-  });
+export const getUserInfo = createAsyncThunk("User/getUserInfo", async (_, { rejectWithValue }) => {
+  try {
+    const resp = await APIService.getInstance().get(AppConfig.serviceUrls.getUserInfo);
+    return {
+      UserInfo: resp.data,
+    };
+  } catch (error: any) {
+    const axiosError = error as AxiosError;
+    const status = axiosError.response?.status;
+    const message = "Request failed";
+
+    return rejectWithValue({ status, message });
+  }
 });
 
 export const UserSlice = createSlice({
@@ -106,9 +105,27 @@ export const UserSlice = createSlice({
         state.roles = roles;
         state.state = State.success;
       })
-      .addCase(getUserInfo.rejected, (state) => {
+      .addCase(getUserInfo.rejected, (state, action: any) => {
         state.state = State.failed;
-        state.stateMessage = "Failed to retrieve user Info";
+
+        const status = action.payload?.status;
+
+        switch (status) {
+          case 401:
+            state.stateMessage = "You are not authorized.";
+            break;
+          case 403:
+            state.stateMessage = "Forbidden: You do not have access to the system.";
+            break;
+          case 404:
+            state.stateMessage = "User not found.";
+            break;
+          case 500:
+            state.stateMessage = "Server error. Please try again later.";
+            break;
+          default:
+            state.stateMessage = "Failed to retrieve user info.";
+        }
       });
   },
 });
