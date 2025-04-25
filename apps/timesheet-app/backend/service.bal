@@ -80,6 +80,14 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+        if workPolicies.isSystemActivated == false {
+            return <http:Forbidden>{
+                body: {
+                    message: "System is not enabled for the user company"
+                }
+            };
+        }
+
         int[] privileges = [EMPLOYEE_PRIVILEGE];
         if authorization:checkPermissions([authorization:authorizedRoles.adminRole], userInfo.groups) {
             privileges.push(HR_ADMIN_PRIVILEGE);

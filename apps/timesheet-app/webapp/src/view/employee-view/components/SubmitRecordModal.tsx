@@ -26,6 +26,7 @@ import {
   Tooltip,
   Divider,
   TableRow,
+  useTheme,
   TableBody,
   TableCell,
   Accordion,
@@ -81,6 +82,7 @@ interface TimeTrackingFormProps {
 }
 
 const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
+  const theme = useTheme();
   const dispatch = useAppDispatch();
   const newRecordId = useRef<number>(0);
   const dialogContext = useConfirmationModalContext();
@@ -411,7 +413,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     dispatch(
       enqueueSnackbarMessage({
         message: `Duplicated last entry to ${format(newDate, "MMM dd, yyyy")}`,
-        type: "success",
+        type: "info",
       })
     );
   };
@@ -502,8 +504,8 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
 
     dispatch(
       enqueueSnackbarMessage({
-        message: `Added ${newEntries.length} new entries`,
-        type: "success",
+        message: `Created ${newEntries.length} new entries`,
+        type: "info",
       })
     );
   };
@@ -647,7 +649,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                       <Tooltip
                         title={
                           entriesCount < DEFAULT_TIME_ENTRY_SIZE
-                            ? `Add bulk entries excluding weekends.`
+                            ? `Create bulk entries excluding weekends.`
                             : "Max entries reached."
                         }
                       >
@@ -660,7 +662,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                             fullWidth
                             startIcon={<AddIcon />}
                           >
-                            Add Bulk Entries
+                            Create Bulk Entries
                           </Button>
                         </span>
                       </Tooltip>
@@ -689,7 +691,14 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                     </TableHead>
                     <TableBody sx={{ maxHeight: "50vh", overflowY: "auto" }}>
                       {entries.map((entry) => (
-                        <TableRow key={entry.recordId}>
+                        <TableRow
+                          key={entry.recordId}
+                          sx={{
+                            "&:hover": {
+                              backgroundColor: theme.palette.action.hover,
+                            },
+                          }}
+                        >
                           <TableCell>
                             {entry.recordDate ? format(entry.recordDate, "MMM dd, yyyy") : ""}
                             {entry.recordDate && isWeekend(entry.recordDate) && (
@@ -756,7 +765,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                       startIcon={<AddIcon />}
                       sx={{ mx: 1 }}
                     >
-                      ADD A SINGLE ENTRY
+                      CREATE A SINGLE ENTRY
                     </Button>
                   </span>
                 </Tooltip>

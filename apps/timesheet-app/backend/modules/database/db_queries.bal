@@ -72,6 +72,7 @@ isolated function getTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) re
         filters.push(sql:queryConcat(`tr.ts_lead_email =  `, `${filter.leadEmail}`));
     }
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
+    mainQuery = sql:queryConcat(mainQuery, `ORDER BY ts_record_date DESC`);
     if filter.recordsLimit is int {
         mainQuery = sql:queryConcat(mainQuery, ` LIMIT ${filter.recordsLimit}`);
         if filter.recordOffset is int {
