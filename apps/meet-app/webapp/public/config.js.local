@@ -6,4 +6,5 @@ window.config = {
   ASGARDEO_BASE_URL: "",
   AUTH_SIGN_IN_REDIRECT_URL: "",
   AUTH_SIGN_OUT_REDIRECT_URL: "",
+  IMPORTANT_CONTACTS:[]
 };
