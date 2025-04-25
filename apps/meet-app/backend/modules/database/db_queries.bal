@@ -1,3 +1,4 @@
+import ballerina/log;
 // Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
@@ -65,17 +66,16 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 
 # Build query to retrieve meetings.
 #
+# + hostOrInternalParticipant - Filter by host or internal participant  
 # + title - Title to filter  
 # + host - Host filter  
 # + startTime - Start time filter  
 # + endTime - End time filter  
 # + internalParticipants - Participants filter
 # + 'limit - Limit of the data  
-# + offset - offset of the query  
-# + loggedInUser - User who is logged in
-# + isAdmin - Is the user an admin
+# + offset - offset of the query
 # + return - sql:ParameterizedQuery - Select query for the meeting table
-isolated function getMeetingsQuery(string loggedInUser, boolean isAdmin, string? title, string? host,
+isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? title, string? host,
         string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
     returns sql:ParameterizedQuery {
 
@@ -108,9 +108,9 @@ isolated function getMeetingsQuery(string loggedInUser, boolean isAdmin, string?
     if host is string {
         filters.push(sql:queryConcat(`host = `, `${host}`));
     }
-    if host is () && !isAdmin {
+    if hostOrInternalParticipant is string {
         filters.push(sql:queryConcat(
-            `(host = ${loggedInUser} OR wso2_participants LIKE ${"%" + loggedInUser + "%"})`
+            `(host = ${hostOrInternalParticipant} OR wso2_participants LIKE ${"%" + hostOrInternalParticipant + "%"})`
         ));
     }
     if title is string {

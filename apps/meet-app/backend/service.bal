@@ -267,7 +267,8 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         // Fetch the meetings from the database.
-        database:Meeting[]|error meetings = database:fetchMeetings(userInfo.email, isAdmin, title, host,
+        string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
+        database:Meeting[]|error meetings = database:fetchMeetings(hostOrInternalParticipant, title, host,
             startTime, endTime, internalParticipants, 'limit, offset);
         if meetings is error {
             string customError = string `Error occurred while retrieving the meetings!`;
