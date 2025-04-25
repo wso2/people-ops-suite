@@ -14,30 +14,22 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import DuoIcon from "@mui/icons-material/Duo";
+import HelpIcon from "@mui/icons-material/Help";
 import CommonPage from "@layout/pages/CommonPage";
-import HistoryIcon from "@mui/icons-material/History";
-import VideoCallIcon from "@mui/icons-material/VideoCall";
-import CreateMeeting from "@view/meetings/panel/createMeeting";
-import MeetingHistory from "@view/meetings/panel/meetingHistory";
+import UserGuide from "@view/help/panel/userGuide";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
 
-export default function Meetings() {
+export default function Help() {
   return (
     <CommonPage
-      title="Meetings"
-      icon={<DuoIcon />}
+      title="Help"
+      icon={<HelpIcon />}
       commonPageTabs={[
         {
-          tabTitle: "Create Meeting",
-          tabPath: "create-meeting",
-          icon: <VideoCallIcon />,
-          page: <CreateMeeting />,
-        },
-        {
-          tabTitle: "Meeting History",
-          tabPath: "meeting-history",
-          icon: <HistoryIcon />,
-          page: <MeetingHistory />,
+          tabTitle: "User Guide",
+          tabPath: "user-guide",
+          icon: <MenuBookIcon />,
+          page: <UserGuide />,
         },
       ]}
     />

@@ -25,7 +25,7 @@ import { MUIStyledCommonProps } from "@mui/system";
 import ListLinkItem from "@component/layout/LinkItem";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { useLocation, matchPath, useMatches } from "react-router-dom";
+import { useLocation, matchPath, useMatches, useNavigate } from "react-router-dom";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import { styled, Theme, CSSObject, alpha, useTheme } from "@mui/material/styles";
@@ -62,6 +62,7 @@ function useRouteMatch(patterns: readonly string[]) {
 const Sidebar = (props: SidebarProps) => {
   const currentIndex = useRouteMatch([...getActiveRouteDetails(props.roles).map((r) => r.path)]);
   const theme = useTheme();
+  const navigate = useNavigate();
 
   return (
     <ColorModeContext.Consumer>
@@ -101,6 +102,48 @@ const Sidebar = (props: SidebarProps) => {
           <DrawerSpace />
           <DrawerFooter>
             <Stack flexDirection={"column"} gap={3}>
+              {getActiveRouteDetails(props.roles).map(
+                (r, idx) =>
+                  r.bottomNav && (
+                    <IconButton
+                      key={"bottom-" + idx}
+                      onClick={() => navigate(r.path)}
+                      sx={{
+                        color: (theme) => theme.palette.common.white,
+                        ...(currentIndex === idx && {
+                          color: (theme) => theme.palette.primary.main,
+                        }),
+                        "&:hover": {
+                          background: (theme) =>
+                            theme.palette.mode === "light"
+                              ? alpha(theme.palette.common.white, 0.35)
+                              : alpha(theme.palette.primary.main, 0.35),
+                          ...(!props.open && {
+                            "& .menu-tooltip": {
+                              marginLeft: -3,
+                              opacity: 1,
+                              visibility: "visible",
+                              boxShadow: theme.palette.mode === "dark" ? "0px 0px 10px rgba(120, 125, 129, 0.2)" : 10,
+                            },
+                          }),
+                        },
+                        ...(currentIndex === idx && {
+                          background: (theme) =>
+                            theme.palette.mode === "light"
+                              ? alpha(theme.palette.common.white, 0.5)
+                              : alpha(theme.palette.primary.main, 0.2),
+                        }),
+                      }}
+                    >
+                      {r.icon}
+                      <span className="menu-tooltip">
+                        <Typography sx={{ color: "white" }} variant="h6">
+                          {"Help"}
+                        </Typography>
+                      </span>
+                    </IconButton>
+                  )
+              )}
               <IconButton
                 onClick={colorMode.toggleColorMode}
                 color="inherit"
