@@ -1,5 +1,5 @@
 window.config = {
-  APP_NAME: "Sample App-Dev",
+  APP_NAME: "Meet App",
   APP_DOMAIN: "",
   REACT_APP_BACKEND_BASE_URL: "",
   ASGARDEO_CLIENT_ID: "",
