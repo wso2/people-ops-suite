@@ -120,7 +120,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + ctx - Request object
     # + return - List  of employees | Error
     resource function get employees(http:RequestContext ctx)
-        returns entity:EmployeeBasic[]|http:InternalServerError|error {
+        returns entity:EmployeeBasic[]|http:InternalServerError {
 
         // Check if the employees are already cached.
         if cache.hasKey(EMPLOYEES_CACHE_KEY) {
@@ -145,7 +145,17 @@ service http:InterceptableService / on new http:Listener(9090) {
             order by employee.workEmail.toLowerAscii() ascending
             select employee;
 
-        error? cacheError = cache.put(EMPLOYEES_CACHE_KEY, check employees);
+        if employees is error {
+            string customError = string `Error occurred while retrieving employees!`;
+            log:printError(customError, employees);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        error? cacheError = cache.put(EMPLOYEES_CACHE_KEY, employees);
         if cacheError is error {
             log:printError("An error occurred while writing employees to the cache", cacheError);
         }
