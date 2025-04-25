@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import DuoIcon from "@mui/icons-material/Duo";
 import CommonPage from "@layout/pages/CommonPage";
 import HistoryIcon from "@mui/icons-material/History";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
@@ -24,6 +25,7 @@ export default function Meetings() {
   return (
     <CommonPage
       title="Meetings"
+      icon={<DuoIcon />}
       commonPageTabs={[
         {
           tabTitle: "Create Meeting",

@@ -17,14 +17,13 @@
 import React from "react";
 import { useEffect, useState } from "react";
 import { alpha } from "@mui/material/styles";
-import DuoIcon from "@mui/icons-material/Duo";
 import { useSearchParams } from "react-router-dom";
 import { Box, Stack, Tab, Tabs, Typography } from "@mui/material";
-import SendIcon from "@mui/icons-material/Send";
 
 interface CommonPageProps {
   title: string;
   commonPageTabs: TabProps[];
+  icon?: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
 }
 
 interface TabProps {
@@ -34,7 +33,7 @@ interface TabProps {
   page: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
 }
 
-const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
+const CommonPage = ({ title, commonPageTabs, icon }: CommonPageProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [value, setValue] = useState<number>(0);
   const tabs = commonPageTabs.map((tab) => tab.tabPath);
@@ -67,7 +66,7 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
           alignItems: "center",
         }}
       >
-        <SendIcon />
+        {icon && <Box sx={{ ml: 0.8, mt: 0.5 }}>{icon}</Box>}
         <Stack
           sx={{
             p: 0.8,

@@ -14,19 +14,21 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import HelpIcon from "@mui/icons-material/Help";
 import CommonPage from "@layout/pages/CommonPage";
-import HelpCenterIcon from "@mui/icons-material/HelpCenter";
 import UserGuide from "@view/help/panel/userGuide";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
 
 export default function Help() {
   return (
     <CommonPage
       title="Help"
+      icon={<HelpIcon />}
       commonPageTabs={[
         {
           tabTitle: "User Guide",
           tabPath: "user-guide",
-          icon: <HelpCenterIcon />,
+          icon: <MenuBookIcon />,
           page: <UserGuide />,
         },
       ]}
