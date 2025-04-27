@@ -164,10 +164,8 @@ public type TimeLogReview record {|
 
 # Update type for the work policies record.
 public type WorkPolicyUpdate record {|
-    # Company name
-    string companyName;
     # overtime hours per year
-    int otHoursPerYear;
+    decimal otHoursPerYear?;
     # working hours per day
     decimal workingHoursPerDay?;
     # lunch time duration per day

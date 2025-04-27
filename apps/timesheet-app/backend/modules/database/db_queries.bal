@@ -35,10 +35,11 @@ isolated function getWorkPoliciesQuery(string? companyName) returns sql:Paramete
 
 # Query to update work policies of a company.
 #
+# + companyName - Name of the company to be updated
 # + updateRecord - Update record type of the work policies
 # + invokerEmail - Email of the invoker
 # + return - Update query for a work policies record
-isolated function updateWorkPoliciesOfCompanyQuery(WorkPolicyUpdate updateRecord, string invokerEmail)
+isolated function updateWorkPoliciesOfCompanyQuery(WorkPolicyUpdate updateRecord, string invokerEmail, string companyName)
     returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery updateQuery = `
@@ -53,7 +54,7 @@ isolated function updateWorkPoliciesOfCompanyQuery(WorkPolicyUpdate updateRecord
     updateQuery = sql:queryConcat(updateQuery, `system_activated = COALESCE(${updateRecord.isSystemActivated},
             system_activated),`);
     updateQuery = sql:queryConcat(updateQuery, `wp_updated_by = COALESCE(${invokerEmail},
-            wp_updated_by) WHERE company_name = ${updateRecord.companyName}`);
+            wp_updated_by) WHERE company_name = ${companyName}`);
     return updateQuery;
 }
 

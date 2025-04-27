@@ -6,8 +6,8 @@ CREATE TABLE
     timesheet_work_policies (
         company_name VARCHAR(100) PRIMARY KEY,
         ot_hours_per_year INT NOT NULL CHECK (ot_hours_per_year >= 0),
-        working_hours_per_day DECIMAL(4, 2) NOT NULL CHECK (working_hours_per_day > 0),
-        lunch_hours_per_day DECIMAL(4, 2) NOT NULL CHECK (lunch_hours_per_day >= 0),
+        working_hours_per_day DECIMAL(4, 2) NOT NULL CHECK (working_hours_per_day > 0 AND working_hours_per_day <= 24),
+        lunch_hours_per_day DECIMAL(4, 2) NOT NULL CHECK (lunch_hours_per_day >= 0 AND lunch_hours_per_day <= 24),
         system_activated BOOLEAN DEFAULT FALSE,
         wp_created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         wp_created_by VARCHAR(100) NOT NULL,

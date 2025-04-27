@@ -40,11 +40,14 @@ public isolated function getWorkPoliciesOfCompanies() returns WorkPolicies[]|err
 
 # Function to update work policies of a company.
 #
+# + companyName - Name of the company to be updated
 # + workPolicies - Record to be updated
 # + invokerEmail - Email of the invoker
 # + return - An error if occurred
-public isolated function updateWorkPoliciesOfCompany(WorkPolicyUpdate workPolicies, string invokerEmail) returns error? {
-    _ = check databaseClient->execute(updateWorkPoliciesOfCompanyQuery(workPolicies, invokerEmail));
+public isolated function updateWorkPoliciesOfCompany(WorkPolicyUpdate workPolicies, string invokerEmail,
+        string companyName) returns error? {
+
+    _ = check databaseClient->execute(updateWorkPoliciesOfCompanyQuery(workPolicies, invokerEmail, companyName));
 }
 
 # Function to get timesheet records using filters.

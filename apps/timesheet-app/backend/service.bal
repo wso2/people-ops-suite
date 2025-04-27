@@ -83,7 +83,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         if workPolicies.isSystemActivated == false {
             return <http:Forbidden>{
                 body: {
-                    message: "System is not enabled for the user company"
+                    message: "System is restricted for the user's company"
                 }
             };
         }
@@ -375,7 +375,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # Endpoint to patch timesheet records.
     #
     # + recordPayload - TimeLogReview payload
-    # + return - Ok status or error status's
+    # + return - Success status or error status's
     isolated resource function patch time\-logs(http:RequestContext ctx, database:TimeLogReview recordPayload)
         returns http:InternalServerError|http:Ok|http:BadRequest|http:Forbidden {
 
@@ -407,10 +407,10 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        error? timesheetRecords = database:updateTimesheetRecords(userInfo.email, recordPayload);
-        if timesheetRecords is error {
+        error? updateResult = database:updateTimesheetRecords(userInfo.email, recordPayload);
+        if updateResult is error {
             string customError = "Error occurred while updating the timesheet records!";
-            log:printError(customError, timesheetRecords);
+            log:printError(customError, updateResult);
             return <http:InternalServerError>{
                 body: {
                     message: customError
@@ -510,5 +510,43 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         return workPolicies;
+    }
+
+    # Endpoint to patch work policies of a company.
+    #
+    # + recordPayload - WorkPolicyUpdate record payload
+    # + return - Success status or error status's
+    isolated resource function patch work\-policies/[string companyName](http:RequestContext ctx,
+            database:WorkPolicyUpdate recordPayload)
+        returns http:InternalServerError|http:Ok|http:BadRequest|http:Forbidden {
+
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            return <http:BadRequest>{
+                body: {
+                    message: "User information header not found!"
+                }
+            };
+        }
+
+        if !authorization:checkPermissions([authorization:authorizedRoles.adminRole], userInfo.groups) {
+            return <http:Forbidden>{
+                body: {
+                    message: "Insufficient privileges!"
+                }
+            };
+        }
+
+        error? updateResult = database:updateWorkPoliciesOfCompany(recordPayload, userInfo.email, companyName);
+        if updateResult is error {
+            string customError = string `Error occurred while updating the ${companyName}'s work policies!`;
+            log:printError(customError, updateResult);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        return http:OK;
     }
 }
