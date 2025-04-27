@@ -41,6 +41,8 @@ type DatabaseClientConfig record {|
 
 # Work policies record.
 public type WorkPolicies record {|
+    # Company name
+    string companyName;
     # Number of OT hours per year
     int otHoursPerYear;
     # Number of working hours per day
@@ -158,4 +160,18 @@ public type TimeLogReview record {|
     string overtimeRejectReason?;
     # Overtime status
     TimesheetStatus overtimeStatus;
+|};
+
+# Update type for the work policies record.
+public type WorkPolicyUpdate record {|
+    # Company name
+    string companyName;
+    # overtime hours per year
+    int otHoursPerYear;
+    # working hours per day
+    decimal workingHoursPerDay?;
+    # lunch time duration per day
+    decimal lunchHoursPerDay?;
+    # System activated status
+    boolean isSystemActivated?;
 |};

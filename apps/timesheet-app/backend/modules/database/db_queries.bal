@@ -19,9 +19,10 @@ import ballerina/sql;
 #
 # + companyName - Company name to filter
 # + return - Select query for the work policies
-isolated function getWorkPoliciesQuery(string companyName) returns sql:ParameterizedQuery =>
+isolated function getWorkPoliciesQuery(string? companyName) returns sql:ParameterizedQuery =>
 `
     SELECT
+        company_name AS 'companyName',
         ot_hours_per_year AS 'otHoursPerYear',
         working_hours_per_day AS 'workingHoursPerDay',
         lunch_hours_per_day AS 'lunchHoursPerDay',
@@ -29,8 +30,32 @@ isolated function getWorkPoliciesQuery(string companyName) returns sql:Parameter
     FROM
         timesheet_work_policies
     WHERE
-        company_name = ${companyName};
+        (${companyName} IS NULL OR ${companyName} = '' OR company_name = ${companyName});
 `;
+
+# Query to update work policies of a company.
+#
+# + updateRecord - Update record type of the work policies
+# + invokerEmail - Email of the invoker
+# + return - Update query for a work policies record
+isolated function updateWorkPoliciesOfCompanyQuery(WorkPolicyUpdate updateRecord, string invokerEmail)
+    returns sql:ParameterizedQuery {
+
+    sql:ParameterizedQuery updateQuery = `
+    UPDATE timesheet_work_policies SET
+`;
+    updateQuery = sql:queryConcat(updateQuery, `ot_hours_per_year = COALESCE(${updateRecord.otHoursPerYear},
+            ot_hours_per_year),`);
+    updateQuery = sql:queryConcat(updateQuery, `working_hours_per_day = COALESCE(${updateRecord.workingHoursPerDay},
+            working_hours_per_day),`);
+    updateQuery = sql:queryConcat(updateQuery, `lunch_hours_per_day = COALESCE(${updateRecord.lunchHoursPerDay},
+            lunch_hours_per_day),`);
+    updateQuery = sql:queryConcat(updateQuery, `system_activated = COALESCE(${updateRecord.isSystemActivated},
+            system_activated),`);
+    updateQuery = sql:queryConcat(updateQuery, `wp_updated_by = COALESCE(${invokerEmail},
+            wp_updated_by) WHERE company_name = ${updateRecord.companyName}`);
+    return updateQuery;
+}
 
 # Query to retrieve the timesheet records of an employee.
 #

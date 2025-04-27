@@ -473,4 +473,42 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         return http:OK;
     }
+
+    # Get the work policies of companies.
+    #
+    # + ctx - Request Context
+    # + return - Internal Server Error or Employee information object
+    resource function get work\-policies(http:RequestContext ctx)
+        returns database:WorkPolicies[]|http:InternalServerError|http:BadRequest|http:Forbidden {
+
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            return <http:BadRequest>{
+                body: {
+                    message: "User information header not found!"
+                }
+            };
+        }
+
+        if !authorization:checkPermissions([authorization:authorizedRoles.adminRole], userInfo.groups) {
+            return <http:Forbidden>{
+                body: {
+                    message: "Insufficient privileges!"
+                }
+            };
+        }
+
+        database:WorkPolicies[]|error workPolicies = database:getWorkPoliciesOfCompanies().ensureType();
+        if workPolicies is error {
+            string customError = "Error occurred while retrieving work policies of companies!";
+            log:printError(customError, workPolicies);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        return workPolicies;
+    }
 }

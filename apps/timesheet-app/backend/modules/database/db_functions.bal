@@ -28,6 +28,25 @@ public isolated function getWorkPolicies(string companyName) returns WorkPolicie
     return policies;
 }
 
+# Fetch work policies of companies.
+#
+# + return - Work policies or an error
+public isolated function getWorkPoliciesOfCompanies() returns WorkPolicies[]|error? {
+    stream<WorkPolicies, error?> workPolicyResult = databaseClient->query(getWorkPoliciesQuery(()));
+
+    return from WorkPolicies workPolicies in workPolicyResult
+        select workPolicies;
+}
+
+# Function to update work policies of a company.
+#
+# + workPolicies - Record to be updated
+# + invokerEmail - Email of the invoker
+# + return - An error if occurred
+public isolated function updateWorkPoliciesOfCompany(WorkPolicyUpdate workPolicies, string invokerEmail) returns error? {
+    _ = check databaseClient->execute(updateWorkPoliciesOfCompanyQuery(workPolicies, invokerEmail));
+}
+
 # Function to get timesheet records using filters.
 #
 # + filter - Filter type for the records
