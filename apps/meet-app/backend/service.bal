@@ -348,7 +348,10 @@ service http:InterceptableService / on new http:Listener(9090) {
         boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
 
         // Return Forbidden if a non-admin user views attachments of a meeting they did not host.
-        if !isAdmin && (meeting.host != userInfo.email) {
+        string:RegExp r = re `,`;
+        string user = userInfo.email;
+        if !isAdmin && meeting.host != user && 
+            !r.split(meeting.internalParticipants).some(participant => participant == user) {
             return <http:Forbidden>{
                 body: {message: "Insufficient privileges to view the attachments!"}
             };

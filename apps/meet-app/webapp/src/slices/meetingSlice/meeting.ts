@@ -248,6 +248,8 @@ export const fetchAttachments = createAsyncThunk(
               message:
                 error.response?.status === HttpStatusCode.InternalServerError
                   ? SnackMessage.error.fetchAttachments
+                  : error.response?.status === HttpStatusCode.Forbidden
+                  ? SnackMessage.error.insufficientPrivileges
                   : "An unknown error occurred.",
               type: "error",
             })
