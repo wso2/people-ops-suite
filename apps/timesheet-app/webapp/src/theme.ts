@@ -179,7 +179,7 @@ export const themeSettings = (mode: PaletteMode) => {
             },
           },
           columnHeader: {
-            backgroundColor: alpha("#769FCD", 0.2),
+            backgroundColor: alpha("#e0e0e0", 0.2),
             borderRadius: 0,
             mb: 2,
           },
