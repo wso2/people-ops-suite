@@ -75,7 +75,9 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { useConfirmationModalContext } from "@context/DialogContext";
 import { ConfirmationType, CreateUITimesheetRecord } from "@utils/types";
+import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import NoDataView from "@component/common/NoDataView";
 
 interface TimeTrackingFormProps {
   onClose?: () => void;
@@ -88,6 +90,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   const dialogContext = useConfirmationModalContext();
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [bulkLunchIncluded, setBulkLunchIncluded] = useState(true);
   const [bulkOvertimeReason, setBulkOvertimeReason] = useState("");
@@ -121,6 +124,10 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     setIsAddingNew(true);
     setEditingEntry(createNewEntry());
     setEditDialogOpen(true);
+  };
+
+  const handleAddBatchEntriesOpen = () => {
+    setBatchDialogOpen(true);
   };
 
   const calculateOvertime = (entry: CreateUITimesheetRecord): CreateUITimesheetRecord => {
@@ -501,6 +508,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     setBulkClockOutTime(null);
     setBulkOvertimeReason("");
     setErrors({});
+    setBatchDialogOpen(false);
 
     dispatch(
       enqueueSnackbarMessage({
@@ -517,7 +525,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   return (
     <Box sx={{ height: "100%", overflow: "auto" }}>
       <LocalizationProvider dateAdapter={AdapterDateFns}>
-        <Card elevation={2} sx={{ height: "100%" }}>
+        <Card elevation={2} sx={{ height: "auto" }}>
           <CardHeader
             subheader="Record your work hours"
             titleTypographyProps={{ variant: "h5" }}
@@ -549,203 +557,89 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
             }
           />
           <CardContent>
-            {DEFAULT_TIME_ENTRY_SIZE - entriesCount > 1 && (
-              <Accordion defaultExpanded={true}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography variant="h6" gutterBottom>
-                    Bulk Time Entry
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <DatePicker
-                        label="Start Date"
-                        value={bulkStartDate}
-                        onChange={(newDate) => setBulkStartDate(newDate)}
-                        maxDate={new Date()}
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            variant: "outlined",
-                            error: !!errors.startDate,
-                            helperText: errors.startDate,
-                          },
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <DatePicker
-                        label="End Date"
-                        value={bulkEndDate}
-                        onChange={(newDate) => setBulkEndDate(newDate)}
-                        maxDate={new Date()}
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            variant: "outlined",
-                            error: !!errors.endDate,
-                            helperText: errors.endDate,
-                          },
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TimePicker
-                        label="Clock In Time"
-                        value={bulkClockInTime}
-                        onChange={(newTime) => setBulkClockInTime(newTime)}
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            variant: "outlined",
-                            error: !!errors.clockInTime,
-                            helperText: errors.clockInTime,
-                          },
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TimePicker
-                        label="Clock Out Time"
-                        value={bulkClockOutTime}
-                        onChange={(newTime) => setBulkClockOutTime(newTime)}
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            variant: "outlined",
-                            error: !!errors.clockOutTime,
-                            helperText: errors.clockOutTime,
-                          },
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={bulkLunchIncluded}
-                            onChange={(e) => setBulkLunchIncluded(e.target.checked)}
-                            name="bulkLunchIncluded"
-                            color="primary"
-                          />
-                        }
-                        label="Include Lunch Break"
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Overtime Reason (if applicable)"
-                        value={bulkOvertimeReason}
-                        onChange={(e) => setBulkOvertimeReason(e.target.value)}
-                        variant="outlined"
-                        fullWidth
-                        multiline
-                        error={!!errors.bulkOvertimeReason}
-                        helperText={errors.bulkOvertimeReason}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Tooltip
-                        title={
-                          entriesCount < DEFAULT_TIME_ENTRY_SIZE
-                            ? `Create bulk entries excluding weekends.`
-                            : "Max entries reached."
-                        }
-                      >
-                        <span>
-                          <Button
-                            variant="contained"
-                            color="primary"
-                            onClick={handleAddBulkEntries}
-                            disabled={entriesCount >= DEFAULT_TIME_ENTRY_SIZE}
-                            fullWidth
-                            startIcon={<AddIcon />}
-                          >
-                            Create Bulk Entries
-                          </Button>
-                        </span>
-                      </Tooltip>
-                    </Grid>
-                  </Grid>
-                </AccordionDetails>
-              </Accordion>
-            )}
-
-            {entriesCount > 0 && (
+            {entriesCount > 0 ? (
               <Box sx={{ p: 2, border: "1px solid #eee", borderRadius: 1 }}>
                 <Divider>
                   <Chip label="Entries to Submit" />
                 </Divider>
-                <TableContainer component={Paper} elevation={2}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Date</TableCell>
-                        <TableCell>Clock In</TableCell>
-                        <TableCell>Clock Out</TableCell>
-                        <TableCell>Lunch</TableCell>
-                        <TableCell>OT Hours</TableCell>
-                        <TableCell>Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody sx={{ maxHeight: "50vh", overflowY: "auto" }}>
-                      {entries.map((entry) => (
-                        <TableRow
-                          key={entry.recordId}
-                          sx={{
-                            "&:hover": {
-                              backgroundColor: theme.palette.action.hover,
-                            },
-                          }}
-                        >
-                          <TableCell>
-                            {entry.recordDate ? format(entry.recordDate, "MMM dd, yyyy") : ""}
-                            {entry.recordDate && isWeekend(entry.recordDate) && (
-                              <Chip size="small" label="Weekend" color="secondary" sx={{ ml: 1 }} />
-                            )}
-                          </TableCell>
-                          <TableCell>{entry.clockInTime ? format(entry.clockInTime, "hh:mm a") : ""}</TableCell>
-                          <TableCell>{entry.clockOutTime ? format(entry.clockOutTime, "hh:mm a") : ""}</TableCell>
-                          <TableCell>{entry.isLunchIncluded ? "Yes" : "No"}</TableCell>
-                          <TableCell>
-                            {entry.overtimeDuration > 0 ? (
-                              <Tooltip title={entry.overtimeReason}>
-                                <Chip
-                                  label={`${entry.overtimeDuration.toFixed(2)} h${
-                                    entry.overtimeDuration !== 1 ? "s" : ""
-                                  }`}
-                                  color="primary"
-                                  size="small"
-                                />
-                              </Tooltip>
-                            ) : (
-                              "0"
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: "flex" }}>
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => openEditDialog(entry)}
-                                sx={{ mr: 1 }}
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton size="small" color="error" onClick={() => handleDeleteEntry(entry.recordId)}>
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Box>
-                          </TableCell>
+                <Box sx={{ height: "50vh", overflow: "auto" }}>
+                  <TableContainer component={Paper} elevation={2}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Date</TableCell>
+                          <TableCell>Clock In</TableCell>
+                          <TableCell>Clock Out</TableCell>
+                          <TableCell>Lunch</TableCell>
+                          <TableCell>OT Hours</TableCell>
+                          <TableCell>Actions</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                      </TableHead>
+                      <TableBody>
+                        {entries.map((entry) => (
+                          <TableRow
+                            key={entry.recordId}
+                            sx={{
+                              "&:hover": {
+                                backgroundColor: theme.palette.action.hover,
+                              },
+                            }}
+                          >
+                            <TableCell>
+                              {entry.recordDate ? format(entry.recordDate, "MMM dd, yyyy") : ""}
+                              {entry.recordDate && isWeekend(entry.recordDate) && (
+                                <Chip size="small" label="Weekend" color="secondary" sx={{ ml: 1 }} />
+                              )}
+                            </TableCell>
+                            <TableCell>{entry.clockInTime ? format(entry.clockInTime, "hh:mm a") : ""}</TableCell>
+                            <TableCell>{entry.clockOutTime ? format(entry.clockOutTime, "hh:mm a") : ""}</TableCell>
+                            <TableCell>{entry.isLunchIncluded ? "Yes" : "No"}</TableCell>
+                            <TableCell>
+                              {entry.overtimeDuration > 0 ? (
+                                <Tooltip title={entry.overtimeReason}>
+                                  <Chip
+                                    label={`${entry.overtimeDuration.toFixed(2)} h${
+                                      entry.overtimeDuration !== 1 ? "s" : ""
+                                    }`}
+                                    color="primary"
+                                    size="small"
+                                  />
+                                </Tooltip>
+                              ) : (
+                                "0"
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Box sx={{ display: "flex" }}>
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => openEditDialog(entry)}
+                                  sx={{ mr: 1 }}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeleteEntry(entry.recordId)}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
               </Box>
+            ) : (
+              <NoDataView message="Add entries to get started" />
             )}
           </CardContent>
+
           <CardActions>
             <Box sx={{ display: "flex", width: "100%", justifyContent: "space-between" }}>
               <Box>
@@ -766,6 +660,26 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                       sx={{ mx: 1 }}
                     >
                       CREATE A SINGLE ENTRY
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Tooltip
+                  title={
+                    entriesCount < DEFAULT_TIME_ENTRY_SIZE
+                      ? `Create bulk entries excluding weekends.`
+                      : "Max entries reached."
+                  }
+                >
+                  <span>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={handleAddBatchEntriesOpen}
+                      disabled={!(DEFAULT_TIME_ENTRY_SIZE - entriesCount > 1)}
+                      startIcon={<AutoAwesomeMotionIcon />}
+                      sx={{ mx: 1 }}
+                    >
+                      CREATE BULK ENTRIES
                     </Button>
                   </span>
                 </Tooltip>
@@ -886,6 +800,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                       helperText={errors.overtimeReason}
                       variant="outlined"
                       fullWidth
+                      placeholder="Enter the overtime reason for the overtime hours here"
                       multiline
                       required={editingEntry.overtimeDuration > 0}
                       InputProps={{
@@ -922,6 +837,138 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
             >
               {isAddingNew ? "Add Entry" : "Save Changes"}
             </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog open={batchDialogOpen} onClose={() => setBatchDialogOpen(false)} maxWidth="md" fullWidth>
+          <DialogTitle>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1 }}>
+              Create Bulk Entries
+              <IconButton color="secondary" onClick={() => setBatchDialogOpen(false)} sx={{ mx: 1 }}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <DatePicker
+                  label="Start Date"
+                  value={bulkStartDate}
+                  onChange={(newDate) => setBulkStartDate(newDate)}
+                  maxDate={new Date()}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      variant: "outlined",
+                      error: !!errors.startDate,
+                      helperText: errors.startDate,
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <DatePicker
+                  label="End Date"
+                  value={bulkEndDate}
+                  onChange={(newDate) => setBulkEndDate(newDate)}
+                  maxDate={new Date()}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      variant: "outlined",
+                      error: !!errors.endDate,
+                      helperText: errors.endDate,
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TimePicker
+                  label="Clock In Time"
+                  value={bulkClockInTime}
+                  onChange={(newTime) => setBulkClockInTime(newTime)}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      variant: "outlined",
+                      error: !!errors.clockInTime,
+                      helperText: errors.clockInTime,
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TimePicker
+                  label="Clock Out Time"
+                  value={bulkClockOutTime}
+                  onChange={(newTime) => setBulkClockOutTime(newTime)}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      variant: "outlined",
+                      error: !!errors.clockOutTime,
+                      helperText: errors.clockOutTime,
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={bulkLunchIncluded}
+                      onChange={(e) => setBulkLunchIncluded(e.target.checked)}
+                      name="bulkLunchIncluded"
+                      color="primary"
+                    />
+                  }
+                  label="Include Lunch Break"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Overtime Reason (if applicable)"
+                  value={bulkOvertimeReason}
+                  onChange={(e) => setBulkOvertimeReason(e.target.value)}
+                  variant="outlined"
+                  fullWidth
+                  multiline
+                  error={!!errors.bulkOvertimeReason}
+                  helperText={errors.bulkOvertimeReason}
+                />
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => setBatchDialogOpen(false)}
+              color="secondary"
+              variant="outlined"
+              startIcon={<CloseIcon />}
+            >
+              Cancel
+            </Button>
+            <Tooltip
+              title={
+                entriesCount < DEFAULT_TIME_ENTRY_SIZE
+                  ? `Create bulk entries excluding weekends.`
+                  : "Max entries reached."
+              }
+            >
+              <span>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleAddBulkEntries}
+                  disabled={entriesCount >= DEFAULT_TIME_ENTRY_SIZE}
+                  fullWidth
+                  startIcon={<AddIcon />}
+                >
+                  Create Bulk Entries
+                </Button>
+              </span>
+            </Tooltip>
           </DialogActions>
         </Dialog>
       </LocalizationProvider>

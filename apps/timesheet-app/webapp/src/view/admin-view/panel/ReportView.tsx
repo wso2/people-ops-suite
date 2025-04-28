@@ -303,7 +303,7 @@ const ReportView = () => {
             <NoDataView message={Messages.error.fetchRecords} type="error" />
           ) : (
             <>
-              {records && (
+              {records && records.length > 0 ? (
                 <DataGrid
                   pagination
                   rows={records}
@@ -353,6 +353,12 @@ const ReportView = () => {
                     height: "100%",
                     width: "100%",
                   }}
+                />
+              ) : (
+                <NoDataView
+                  message={
+                    filters.length > 0 ? "No Matching Records Found" : "Use the Filters to get Employee Information"
+                  }
                 />
               )}
             </>

@@ -181,7 +181,7 @@ select `
 
 # Query to retrieve timesheet information.
 #
-# + filter - Filter type for the  records
+# + filter - Filter type for the records
 # + return - Select query for the timesheet information
 isolated function getTimesheetInfoQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
@@ -203,7 +203,7 @@ isolated function getTimesheetInfoQuery(TimesheetCommonFilter filter) returns sq
                 END),
                 0) AS approvedRecords,
         COALESCE(SUM(CASE
-                    WHEN ts_ot_status = ${APPROVED} THEN ts_ot_hours
+                    WHEN ts_ot_status IN (${PENDING}, ${APPROVED}) THEN ts_ot_hours
                     ELSE 0
                 END),
                 0) AS totalOvertimeTaken,
@@ -214,7 +214,7 @@ isolated function getTimesheetInfoQuery(TimesheetCommonFilter filter) returns sq
                     WHERE
                         company_name LIKE ${filter.companyName}),
                 0) - COALESCE(SUM(CASE
-                    WHEN ts_ot_status = ${APPROVED} THEN ts_ot_hours
+                    WHEN ts_ot_status IN (${PENDING}, ${APPROVED}) THEN ts_ot_hours
                     ELSE 0
                 END),
                 0) AS overtimeLeft
@@ -256,3 +256,44 @@ isolated function updateTimesheetRecordQuery(TimeLogUpdate updateRecord, string 
         WHERE ts_record_id = ${updateRecord.recordId}`);
     return updateQuery;
 }
+
+# Query to retrieve overtime information.
+#
+# + filter - Filter type for the records
+# + return - Select query for the overtime information
+isolated function getOvertimeInfoQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery =>
+`
+    SELECT
+        COALESCE(SUM(CASE
+                    WHEN ts_ot_status IN (${PENDING}, ${APPROVED}) THEN ts_ot_hours
+                    ELSE 0
+                END),
+                0) AS totalOvertimeTaken,
+        COALESCE((SELECT
+                        ot_hours_per_year
+                    FROM
+                        timesheet_work_policies
+                    WHERE
+                        company_name LIKE ${filter.companyName}
+                    LIMIT 1),
+                0) AS otHoursPerYear,
+        (COALESCE((SELECT
+                        ot_hours_per_year
+                    FROM
+                        timesheet_work_policies
+                    WHERE
+                        company_name LIKE ${filter.companyName}
+                    LIMIT 1),
+                0) - COALESCE(SUM(CASE
+                    WHEN ts_ot_status IN (${PENDING}, ${APPROVED}) THEN ts_ot_hours
+                    ELSE 0
+                END),
+                0)) AS overtimeLeft
+    FROM
+        timesheet_records
+    WHERE
+        ts_record_date >= DATE_FORMAT(CURDATE(), '%Y-01-01')
+            AND ts_record_date <= DATE_FORMAT(CURDATE(), '%Y-12-31')
+            AND ts_company_name LIKE ${filter.companyName}
+            AND ts_employee_email = ${filter.employeeEmail};
+`;

@@ -16,8 +16,8 @@
 // under the License.
 
 import React from "react";
-import { Button, Paper, Box } from "@mui/material";
 import { Typography } from "@mui/material";
+import { Button, Paper, Box } from "@mui/material";
 import { FileQuestion, Search, RefreshCw } from "lucide-react";
 
 interface NoDataViewProps {

@@ -428,7 +428,7 @@ const TimesheetAuditView = () => {
                 overflow: "auto",
               }}
             >
-              {records && (
+              {records && records.length > 0 ? (
                 <DataGrid
                   pagination
                   rows={records}
@@ -483,6 +483,8 @@ const TimesheetAuditView = () => {
                     width: "100%",
                   }}
                 />
+              ) : (
+                <NoDataView message="No Records Found" />
               )}
             </Paper>
           </Box>
