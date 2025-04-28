@@ -91,25 +91,25 @@ public type TimeLog record {|
 # Common filter for the timesheet records.
 public type TimesheetCommonFilter record {|
     # Employee email
-    string? employeeEmail;
+    string? employeeEmail = ();
     # Email of the lead
-    string? leadEmail;
+    string? leadEmail = ();
     # TimesheetStatus
-    TimesheetStatus? status;
+    TimesheetStatus? status = ();
     # Limit of the records
-    int? recordsLimit;
+    int? recordsLimit = ();
     # Offset of the records
-    int? recordOffset;
+    int? recordOffset = ();
     # Start date to filter
-    string? rangeStart;
+    string? rangeStart = ();
     # End date to filter
-    string? rangeEnd;
+    string? rangeEnd = ();
     # Dates array to filter
-    string[]? recordDates;
+    string[]? recordDates = ();
     # Company name to filter
-    string? companyName;
+    string? companyName = ();
     # Record id array to filter
-    int[]? recordIds;
+    int[]? recordIds = ();
 |};
 
 # Timesheet information record type.
@@ -172,4 +172,14 @@ public type WorkPolicyUpdate record {|
     decimal lunchHoursPerDay?;
     # System activated status
     boolean isSystemActivated?;
+|};
+
+# Timesheet information record type.
+public type OvertimeInfo record {|
+    # overtime hours per year
+    int otHoursPerYear;
+    # Total count of the overtime taken
+    decimal totalOverTimeTaken;
+    # Count of overtime left from yearly quota
+    decimal overtimeLeft;
 |};

@@ -99,12 +99,15 @@ public isolated function insertTimesheetRecords(TimeLog[] timesheetRecords, stri
 # + filter - Filter type for the timesheet information
 # + return - Timesheet info or an error
 public isolated function getTimesheetInfo(TimesheetCommonFilter filter) returns TimesheetInfo|error? {
-    TimesheetInfo|sql:Error policy = databaseClient->queryRow(getTimesheetInfoQuery(filter));
+    return check databaseClient->queryRow(getTimesheetInfoQuery(filter));
+}
 
-    if policy is sql:Error && policy is sql:NoRowsError {
-        return;
-    }
-    return policy;
+# Function to fetch employee timesheet info.
+#
+# + filter - Filter type for the timesheet information
+# + return - Timesheet info or an error
+public isolated function getOvertimeInfo(TimesheetCommonFilter filter) returns OvertimeInfo|error {
+    return check databaseClient->queryRow(getOvertimeInfoQuery(filter));
 }
 
 # Function to update timesheet records.
