@@ -252,7 +252,9 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
         onClose={() => setFilterAnchorEl(null)}
         PaperProps={{
           sx: {
-            p: 2,
+            pt: 1,
+            pl: 2,
+            pr: 2,
             width: 600,
             maxWidth: "90vw",
             maxHeight: "80vh",
@@ -260,7 +262,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
           },
         }}
       >
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
           <Typography variant="subtitle2">FILTERS</Typography>
           <Box>
             <Button size="small" startIcon={<AddIcon />} onClick={handleAddFilter} variant="outlined" sx={{ mr: 1 }}>
@@ -273,7 +275,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
         </Stack>
 
         {filters.length > 0 && (
-          <Stack spacing={2}>
+          <Stack spacing={1}>
             {filters.map((filter) => (
               <Paper key={filter.id} variant="outlined" sx={{ p: 1.5, position: "relative" }}>
                 <Stack spacing={1.5} direction={"row"}>

@@ -70,7 +70,6 @@ const TimesheetDataGrid = () => {
   const userEmail = useAppSelector((state) => state.auth.userInfo?.email);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const [errors, setErrors] = useState<Partial<Record<keyof TimesheetRecord, string>>>({});
-  const leadEmail = useAppSelector((state) => state.user.userInfo?.employeeInfo.managerEmail);
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs || []);
@@ -262,7 +261,6 @@ const TimesheetDataGrid = () => {
         employeeEmail: userEmail,
         limit: paginationModel.pageSize,
         offset: paginationModel.page * paginationModel.pageSize,
-        leadEmail: leadEmail,
         ...filterParams,
       })
     );
@@ -280,7 +278,6 @@ const TimesheetDataGrid = () => {
         employeeEmail: userEmail,
         limit: paginationModel.pageSize,
         offset: paginationModel.page * paginationModel.pageSize,
-        leadEmail: leadEmail,
       })
     );
   };
