@@ -35,7 +35,9 @@ import {
 import { Filter } from "@utils/types";
 import React, { useState } from "react";
 import { useAppSelector } from "@slices/store";
+import DoneIcon from "@mui/icons-material/Done";
 import { DatePicker } from "@mui/x-date-pickers";
+import RestoreIcon from "@mui/icons-material/Restore";
 
 interface FieldConfig {
   field: string;
@@ -258,59 +260,65 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
           },
         }}
       >
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="subtitle2">FILTERS</Typography>
-          <Button size="small" startIcon={<AddIcon />} onClick={handleAddFilter}>
-            Add Filter
-          </Button>
+          <Box>
+            <Button size="small" startIcon={<AddIcon />} onClick={handleAddFilter} variant="outlined" sx={{ mr: 1 }}>
+              Add Filter
+            </Button>
+            <Button size="small" startIcon={<RestoreIcon />} onClick={resetFilters} color="error" variant="outlined">
+              Reset
+            </Button>
+          </Box>
         </Stack>
 
         {filters.length > 0 && (
-          <>
-            <Stack spacing={2}>
-              {filters.map((filter) => (
-                <Paper key={filter.id} variant="outlined" sx={{ p: 1.5, position: "relative" }}>
-                  <Stack spacing={1.5} direction={"row"}>
-                    <Box width={"45%"}>
-                      <TextField
-                        select
-                        size="small"
-                        fullWidth
-                        label="Field"
-                        value={filter.field}
-                        onChange={(e) => handleFilterChange(filter.id, "field", e.target.value)}
-                      >
-                        {availableFields.map((field) => (
-                          <MenuItem key={field.field} value={field.field}>
-                            {field.label}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Box>
+          <Stack spacing={2}>
+            {filters.map((filter) => (
+              <Paper key={filter.id} variant="outlined" sx={{ p: 1.5, position: "relative" }}>
+                <Stack spacing={1.5} direction={"row"}>
+                  <Box width={"45%"}>
+                    <TextField
+                      select
+                      size="small"
+                      fullWidth
+                      label="Field"
+                      value={filter.field}
+                      onChange={(e) => handleFilterChange(filter.id, "field", e.target.value)}
+                    >
+                      {availableFields.map((field) => (
+                        <MenuItem key={field.field} value={field.field}>
+                          {field.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Box>
 
-                    <Box width={"50%"}>{getFilterComponent(filter)}</Box>
-                    <Box width={"5%"} alignContent={"center"} display={"flex"}>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleRemoveFilter(filter.id)}
-                        sx={{ color: "text.secondary" }}
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  </Stack>
-                </Paper>
-              ))}
-              <Stack direction="row" spacing={1} justifyContent="flex-end">
-                <Button size="small" onClick={resetFilters}>
-                  Reset
-                </Button>
-                <Button variant="contained" size="small" onClick={applyFilters} disabled={!areAllFiltersValid()}>
-                  Apply
-                </Button>
-              </Stack>
+                  <Box width={"50%"}>{getFilterComponent(filter)}</Box>
+                  <Box width={"5%"} alignContent={"center"} display={"flex"}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleRemoveFilter(filter.id)}
+                      sx={{ color: "text.secondary" }}
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Stack>
+              </Paper>
+            ))}
+            <Stack direction="row" spacing={1} justifyContent="flex-end">
+              <Button
+                variant="contained"
+                startIcon={<DoneIcon />}
+                size="small"
+                onClick={applyFilters}
+                disabled={!areAllFiltersValid()}
+              >
+                Apply
+              </Button>
             </Stack>
-          </>
+          </Stack>
         )}
       </Menu>
     </>

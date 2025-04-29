@@ -91,8 +91,11 @@ isolated function getTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) re
     if filter.status is TimesheetStatus {
         filters.push(sql:queryConcat(`tr.ts_ot_status =  `, `${filter.status}`));
     }
-    if filter.rangeStart is string && filter.rangeEnd is string {
-        filters.push(sql:queryConcat(`tr.ts_record_date BETWEEN ${filter.rangeStart} `, ` AND ${filter.rangeEnd}`));
+    if filter.rangeStart is string {
+        filters.push(sql:queryConcat(`tr.ts_record_date >= ${filter.rangeStart}`));
+    }
+    if filter.rangeEnd is string {
+        filters.push(sql:queryConcat(`tr.ts_record_date <= ${filter.rangeEnd}`));
     }
     if filter.leadEmail is string {
         filters.push(sql:queryConcat(`tr.ts_lead_email =  `, `${filter.leadEmail}`));
@@ -105,7 +108,7 @@ isolated function getTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) re
             mainQuery = sql:queryConcat(mainQuery, ` OFFSET ${filter.recordOffset}`);
         }
     } else {
-        mainQuery = sql:queryConcat(mainQuery, ` LIMIT 400`);
+        mainQuery = sql:queryConcat(mainQuery, ` LIMIT 500`);
     }
     return mainQuery;
 }

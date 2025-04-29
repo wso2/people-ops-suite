@@ -174,9 +174,9 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        entity:Employee|error loggedInUser = entity:fetchEmployeesBasicInfo(userInfo.email);
+        entity:Employee|error loggedInUser = entity:fetchEmployeesBasicInfo(employeeEmail);
         if loggedInUser is error {
-            string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
+            string customError = string `Error occurred while retrieving user data: ${employeeEmail}!`;
             log:printError(customError, loggedInUser);
             return <http:InternalServerError>{
                 body: {
@@ -184,7 +184,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-
+        decimal pendingOvertimeCount = 0;
         string[] newRecordDates = [];
         foreach database:TimeLog newRecord in recordPayload {
             if newRecord.overtimeReason == "" && ((newRecord.overtimeDuration ?: 0d) > 0d) {
@@ -199,19 +199,37 @@ service http:InterceptableService / on new http:Listener(9090) {
             newRecord.overtimeStatus = (newRecord.overtimeReason is string)
                 && ((newRecord.overtimeDuration ?: 0d) > 0d) ? database:PENDING : database:APPROVED;
             newRecordDates.push(newRecord.recordDate);
+            pendingOvertimeCount += newRecord.overtimeDuration ?: 0d;
+        }
+
+        database:TimesheetCommonFilter overtimeFilter = {
+            employeeEmail,
+            companyName: loggedInUser.company
+        };
+
+        database:OvertimeInfo|error overtimeInfo = database:getOvertimeInfo(overtimeFilter);
+        if overtimeInfo is error {
+            string customError = "Error occurred while retrieving the overtime information!";
+            log:printError(customError, overtimeInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        if overtimeInfo.overtimeLeft < pendingOvertimeCount {
+            return <http:BadRequest>{
+                body: {
+                    message: "Allocated overtime quota exceeds!"
+                }
+            };
         }
 
         database:TimesheetCommonFilter filter = {
             employeeEmail,
             leadEmail: loggedInUser.managerEmail,
-            status: (),
-            recordsLimit: (),
-            recordOffset: (),
-            rangeStart: (),
-            rangeEnd: (),
-            recordDates: newRecordDates,
-            companyName: (),
-            recordIds: ()
+            recordDates: newRecordDates
         };
 
         database:TimeLog[]|error? existingRecords = database:getTimesheetRecords(filter);
@@ -296,10 +314,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             recordsLimit: 'limit,
             recordOffset: offset,
             rangeStart: rangeStart,
-            rangeEnd: rangeEnd,
-            recordDates: (),
-            companyName: (),
-            recordIds: ()
+            rangeEnd: rangeEnd
         };
 
         int|error? totalRecordCount = database:getTotalRecordCount(commonFilter);
@@ -345,14 +360,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         database:TimesheetCommonFilter infoFilter = {
             employeeEmail: emailToFilter is string ? () : employeeEmail,
             leadEmail: emailToFilter is string ? emailToFilter : (),
-            status: (),
-            recordsLimit: (),
-            recordOffset: (),
-            rangeStart: (),
-            rangeEnd: (),
-            recordDates: (),
-            companyName: loggedInUser.company,
-            recordIds: ()
+            companyName: loggedInUser.company
         };
         database:TimesheetInfo|error? timesheetInfo = database:getTimesheetInfo(infoFilter);
         if timesheetInfo is error {

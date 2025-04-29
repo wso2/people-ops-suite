@@ -302,7 +302,7 @@ const TimesheetAuditView = () => {
   const handleApproveRecords = (recordId?: number) => {
     dialogContext.showConfirmation(
       "Do you want to approve the selected?",
-      "Please note that once done, this cannot be undone.",
+      "Approving time logs is a permanent action and cannot be undone.",
       ConfirmationType.send,
       () => {
         handleUpdateRecords(TimesheetStatus.APPROVED, recordId);
@@ -315,7 +315,7 @@ const TimesheetAuditView = () => {
   const handleDeclineRecords = (recordId?: number) => {
     dialogContext.showConfirmation(
       "Do you want to decline the selected?",
-      "Please note that once done, this cannot be undone.",
+      "Declining time logs is a permanent action and cannot be undone.",
       ConfirmationType.send,
       (comment) => {
         handleUpdateRecords(TimesheetStatus.REJECTED, recordId, comment);
