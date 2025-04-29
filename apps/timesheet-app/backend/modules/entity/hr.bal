@@ -14,7 +14,6 @@
 // specific language governing permissions and limitations
 // under the License.
 import ballerina/cache;
-import ballerina/log;
 
 configurable int hrEntityCacheCapacity = 1000;
 configurable decimal hrEntityCacheDefaultMaxAge = 1800.0;
@@ -31,19 +30,19 @@ isolated cache:Cache cache = new ({
 #
 # + workEmail - WSO2 email address
 # + return - Employee | Error
-public isolated function fetchEmployeesBasicInfo(string workEmail) returns Employee|error {
+public isolated function fetchEmployeeBasicInfo(string workEmail) returns Employee|error {
     string document = string `
         query employeeQuery ($workEmail: String!) {
             employee(email: $workEmail) {
-                employeeId,
-                workEmail,
-                firstName,
-                lastName,
-                jobRole,
-                employeeThumbnail,
-                company,
-                managerEmail,
+                employeeId
+                workEmail
+                firstName
+                lastName
+                jobRole
+                employeeThumbnail
                 lead
+                company
+                managerEmail
             }
         }
     `;
@@ -55,56 +54,35 @@ public isolated function fetchEmployeesBasicInfo(string workEmail) returns Emplo
     return response.data.employee;
 }
 
-# This function returns the list of employees in the organization.
+# Retrieve Employee Data.
 #
-# + return - An array of employees in the organization or an error if the employees retrieval is unsuccessful
-public isolated function getAllActiveEmployees() returns Employee[]|error {
-    string[] allowedEmployeeTypes = getAuthorizedEmployeeTypes();
-    string[] allowedEmployeeStatusTypes = getAuthorizedEmployeeStatusTypes();
-    final string GET_EMPLOYEES_DOCUMENT = string `
-        query getAllEmployees($filter: EmployeeFilter!, $limit: Int, $offset: Int) {
-            employees(filter: $filter, limit: $limit, offset: $offset) {
-                firstName
-                lastName
-                workEmail
-                company
-                managerEmail
-                employeeThumbnail
-            }
+# + return - Employee Info Array
+public isolated function getEmployees() returns EmployeeBasic[]|error {
+
+    EmployeeFilter filter = {
+        employeeStatus: getAuthorizedEmployeeTypes().cloneReadOnly(),
+        employmentType: getAuthorizedEmployeeStatusTypes().cloneReadOnly()
+    };
+
+    string document = string `query getAllEmployees($filter: EmployeeFilter!, $limit: Int, $offset: Int) {
+        employees(filter: $filter, limit: $limit, offset: $offset) {
+            workEmail
+            firstName
+            lastName
+            employeeThumbnail
+            managerEmail
         }
-    `;
-    lock {
-        any|cache:Error cachedEmployees = cache.get(CACHE_EMPLOYEES);
-        if cachedEmployees is readonly & Employee[] {
-            return cachedEmployees;
-        }
-        Employee[] employees = [];
-        EmployeeFilter filter = {
-            employeeStatus: allowedEmployeeStatusTypes.cloneReadOnly(),
-            employmentType: allowedEmployeeTypes.cloneReadOnly()
-        };
-        boolean fetchMore = true;
-        while fetchMore {
-            GetEmployeesResponse result = check hrClient->execute(GET_EMPLOYEES_DOCUMENT, {
-                filter,
-                'limit: hrEntityRequestBatchSize,
-                offset: employees.length()
-            });
-            employees.push(...result.data.employees);
-            fetchMore = result.data.employees.length() > 0;
-        }
-        cache:Error? cachePut = cache.put(CACHE_EMPLOYEES, employees.cloneReadOnly());
-        if cachePut is cache:Error {
-            log:printWarn("Error occurred while caching the employees.", cachePut);
-        }
-        foreach Employee employee in employees {
-            string cacheKey = string `${CACHE_EMPLOYEE}_${employee.workEmail}`;
-            Employee & readonly roEmployee = employee.cloneReadOnly();
-            cachePut = cache.put(cacheKey, roEmployee);
-            if cachePut is cache:Error {
-                log:printWarn("Error occurred while caching the employee.", cachePut);
-            }
-        }
-        return employees.cloneReadOnly();
+    }`;
+
+    EmployeeBasic[] employees = [];
+    boolean fetchMore = true;
+    while fetchMore {
+        EmployeesResponse response = check hrClient->execute(
+            document,
+            {filter: filter, 'limit: DEFAULT_LIMIT, offset: employees.length()}
+        );
+        employees.push(...response.data.employees);
+        fetchMore = response.data.employees.length() > 0;
     }
+    return employees;
 }

@@ -28,6 +28,4 @@ public type AppRoles record {|
     string employeeRole;
     # Role for the people operations admins
     string adminRole;
-    # Role for the lead of a team
-    string leadRole;
 |};

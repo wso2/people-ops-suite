@@ -57,7 +57,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        entity:Employee|error employeeInfo = entity:fetchEmployeesBasicInfo(userInfo.email);
+        entity:Employee|error employeeInfo = entity:fetchEmployeeBasicInfo(userInfo.email);
         if employeeInfo is error {
             string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
             log:printError(customError, employeeInfo);
@@ -92,7 +92,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         if authorization:checkPermissions([authorization:authorizedRoles.adminRole], userInfo.groups) {
             privileges.push(HR_ADMIN_PRIVILEGE);
         }
-        if authorization:checkPermissions([authorization:authorizedRoles.leadRole], userInfo.groups) {
+        if employeeInfo.lead {
             privileges.push(LEAD_PRIVILEGE);
         }
 
@@ -108,7 +108,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + ctx - The request context
     # + return - The employees information or an error
     resource function get employees(http:RequestContext ctx)
-        returns entity:Employee[]|http:InternalServerError|http:BadRequest|http:Forbidden {
+        returns entity:EmployeeBasic[]|http:InternalServerError|http:BadRequest|http:Forbidden {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
@@ -127,7 +127,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        entity:Employee[]|error employees = entity:getAllActiveEmployees();
+        entity:EmployeeBasic[]|error employees = entity:getEmployees();
         if employees is error {
             string customError = "Error occurred while retrieving employees!";
             log:printError(customError, employees);
@@ -174,7 +174,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        entity:Employee|error loggedInUser = entity:fetchEmployeesBasicInfo(employeeEmail);
+        entity:Employee|error loggedInUser = entity:fetchEmployeeBasicInfo(employeeEmail);
         if loggedInUser is error {
             string customError = string `Error occurred while retrieving user data: ${employeeEmail}!`;
             log:printError(customError, loggedInUser);
@@ -339,7 +339,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        entity:Employee|error loggedInUser = entity:fetchEmployeesBasicInfo(userInfo.email);
+        entity:Employee|error loggedInUser = entity:fetchEmployeeBasicInfo(userInfo.email);
         if loggedInUser is error {
             string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
             log:printError(customError, loggedInUser);
@@ -351,7 +351,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         string|null emailToFilter = ();
-        if authorization:checkPermissions([authorization:authorizedRoles.leadRole], userInfo.groups) {
+        if authorization:checkPermissions([authorization:LEAD_ROLE], userInfo.groups) {
             if userInfo.email !== employeeEmail {
                 emailToFilter = userInfo.email;
             }
@@ -396,7 +396,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        if !authorization:checkPermissions([authorization:authorizedRoles.leadRole], userInfo.groups) {
+        if !authorization:checkPermissions([authorization:LEAD_ROLE], userInfo.groups) {
             return <http:Forbidden>{
                 body: {
                     message: "Insufficient privileges!"

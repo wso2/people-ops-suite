@@ -25,3 +25,6 @@ public const float RETRY_BACKOFF_FACTOR = 2.0;
 
 # client retry configuration for maximum wait interval in seconds.
 public const decimal RETRY_MAX_INTERVAL = 20.0;
+
+# Default limit for the number of records to be fetched from the server.
+public const int DEFAULT_LIMIT = 100;

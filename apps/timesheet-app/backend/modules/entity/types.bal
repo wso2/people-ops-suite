@@ -37,10 +37,10 @@ public type GraphQlRetryConfig record {|
     decimal maxWaitInterval = RETRY_MAX_INTERVAL;
 |};
 
-# Employee information record.
+# Employee.
 public type Employee record {|
     # Id of the employee
-    string employeeId?;
+    string employeeId;
     # Email of the employee
     string workEmail;
     # First name of the employee
@@ -48,28 +48,54 @@ public type Employee record {|
     # Last name of the employee
     string lastName;
     # Job role
-    string jobRole?;
+    string jobRole;
     # Thumbnail of the employee
     string? employeeThumbnail;
+    # Lead status
+    boolean lead;
     # Company of the employee
     string company;
-    # Manager email of the employee
-    string? managerEmail;
-    # Indicator of lead or not
-    boolean lead?;
+    # Manager of the employee
+    string managerEmail;
 |};
 
 # Employee data.
-type EmployeeData record {|
+type EmployeeData record {
     # Employee
     Employee employee;
-|};
+};
 
 # Employee response.
-type EmployeeResponse record {|
+type EmployeeResponse record {
     # Employee data
     EmployeeData data;
+};
+
+# Basic employee information.
+public type EmployeeBasic record {|
+    # First name of the employee
+    string firstName;
+    # Last name of the employee
+    string lastName;
+    # Email of the employee
+    string workEmail;
+    # Thumbnail of the employee
+    string? employeeThumbnail = ();
+    # Manager of the employee
+    string? managerEmail = ();
 |};
+
+# Employees data.
+type EmployeesData record {
+    # Array of employees
+    EmployeeBasic[] employees;
+};
+
+# Employees response.
+type EmployeesResponse record {
+    # Employees data
+    EmployeesData data;
+};
 
 # The EmployeeStatus represents the status of an employee.
 public enum EmployeeStatus {
@@ -110,6 +136,6 @@ public type EmployeeFilter record {|
 type GetEmployeesResponse readonly & record {|
     *graphql:GenericResponseWithErrors;
     record {
-        Employee[] & readonly employees;
+        EmployeeBasic[] & readonly employees;
     } data;
 |};

@@ -16,6 +16,7 @@
 import ballerina/http;
 import ballerina/jwt;
 import ballerina/log;
+import timesheet_app.entity;
 
 public configurable AppRoles authorizedRoles = ?;
 
@@ -50,6 +51,21 @@ public isolated service class JwtInterceptor {
             string errorMsg = "Malformed Invoker info object!";
             log:printError(errorMsg, userInfo);
             return <http:InternalServerError>{body: {message: errorMsg}};
+        }
+
+        entity:Employee|error employeeInfo = entity:fetchEmployeeBasicInfo(userInfo.email);
+        if employeeInfo is error {
+            string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
+            log:printError(customError, employeeInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        if employeeInfo.lead == true {
+            userInfo.groups.push(LEAD_ROLE);
         }
 
         foreach anydata role in authorizedRoles.toArray() {
