@@ -29,5 +29,6 @@ export const Messages = {
   warning: {},
   info: {
     adminHelperAlert: " Use the filter to get employee timesheet information",
+    noRecords : "No records found",
   },
 };

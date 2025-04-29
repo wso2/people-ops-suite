@@ -85,35 +85,56 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     });
   };
 
-  const handleAddFilter = () => {
-    const availableFieldOptions = availableFields.filter((field) => !filters.some((f) => f.field === field.field));
+  const handleFilterChange = (id: string, field: string, value: any) => {
+    if (field === "field") {
+      const fieldConfig = availableFields.find((f) => f.field === value);
 
-    if (availableFieldOptions.length === 0) {
+      if (fieldConfig?.type === "date") {
+        setFilters(
+          filters.map((filter) =>
+            filter.id === id
+              ? {
+                  ...filter,
+                  field: value,
+                  value: formatDateForAPI(new Date()),
+                }
+              : filter
+          )
+        );
+      } else {
+        setFilters(filters.map((filter) => (filter.id === id ? { ...filter, field: value, value: "" } : filter)));
+      }
       return;
     }
 
+    const currentFilter = filters.find((f) => f.id === id);
+    const fieldConfig = availableFields.find((f) => f.field === currentFilter?.field);
+
+    if (fieldConfig?.type === "date" && value instanceof Date) {
+      setFilters(filters.map((filter) => (filter.id === id ? { ...filter, value: formatDateForAPI(value) } : filter)));
+    } else {
+      setFilters(filters.map((filter) => (filter.id === id ? { ...filter, [field]: value } : filter)));
+    }
+  };
+
+  const handleAddFilter = () => {
+    const availableFieldOptions = availableFields.filter((field) => !filters.some((f) => f.field === field.field));
+
+    if (availableFieldOptions.length === 0) return;
+
     const defaultField = availableFieldOptions[0].field;
+    const fieldConfig = availableFields.find((f) => f.field === defaultField);
+
     setFilters([
       ...filters,
       {
         id: Date.now().toString(),
         field: defaultField,
         operator: "equals",
-        value: defaultField.includes("Date") ? new Date() : "",
+        value: fieldConfig?.type === "date" ? formatDateForAPI(new Date()) : "",
       },
     ]);
   };
-
-  const handleFilterChange = (id: string, field: string, value: any) => {
-    if (field === "field") {
-      if (filters.some((f) => f.field === value && f.id !== id)) {
-        return;
-      }
-    }
-
-    setFilters(filters.map((filter) => (filter.id === id ? { ...filter, [field]: value } : filter)));
-  };
-
   const handleRemoveFilter = (id: string) => {
     setFilters(filters.filter((filter) => filter.id !== id));
   };
@@ -129,6 +150,14 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     }
     onApply();
     setFilterAnchorEl(null);
+  };
+
+  const formatDateForAPI = (date: Date): string => {
+    if (!date || !(date instanceof Date)) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
   const getFilterComponent = (filter: Filter) => {
@@ -156,9 +185,10 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
           </TextField>
         );
       case "date":
+        const dateValue = filter.value ? new Date(filter.value) : null;
         return (
           <DatePicker
-            value={filter.value}
+            value={dateValue}
             onChange={(newValue) => handleFilterChange(filter.id, "value", newValue)}
             slotProps={{
               textField: {
@@ -179,13 +209,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
             getOptionLabel={(option) => option.workEmail}
             renderOption={(props, option) => <li {...props}>{option.workEmail}</li>}
             renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Employee Email"
-                size="small"
-                required
-                error={!filter.value}
-              />
+              <TextField {...params} label="Employee Email" size="small" required error={!filter.value} />
             )}
             onChange={(_, value) => handleFilterChange(filter.id, "value", value?.workEmail)}
             value={employees.find((emp) => emp.workEmail === filter.value) || null}
@@ -281,12 +305,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
                 <Button size="small" onClick={resetFilters}>
                   Reset
                 </Button>
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={applyFilters}
-                  disabled={!areAllFiltersValid()}
-                >
+                <Button variant="contained" size="small" onClick={applyFilters} disabled={!areAllFiltersValid()}>
                   Apply
                 </Button>
               </Stack>

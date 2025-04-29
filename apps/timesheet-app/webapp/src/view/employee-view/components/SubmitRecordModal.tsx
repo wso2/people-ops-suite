@@ -83,19 +83,20 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   const dispatch = useAppDispatch();
   const newRecordId = useRef<number>(0);
   const dialogContext = useConfirmationModalContext();
+  const [entriesCount, setEntriesCount] = useState(0);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [bulkLunchIncluded, setBulkLunchIncluded] = useState(true);
-  const [bulkOvertimeReasonNeeded, setBulkOvertimeReasonNeeded] = useState(false);
   const [bulkOvertimeReason, setBulkOvertimeReason] = useState("");
   const [bulkEndDate, setBulkEndDate] = useState<Date | null>(null);
-  const [entriesCount, setEntriesCount] = useState(0);
   const [entries, setEntries] = useState<CreateUITimesheetRecord[]>([]);
   const [bulkStartDate, setBulkStartDate] = useState<Date | null>(null);
   const [bulkClockInTime, setBulkClockInTime] = useState<Date | null>(null);
   const [bulkClockOutTime, setBulkClockOutTime] = useState<Date | null>(null);
+  const [bulkOvertimeReasonNeeded, setBulkOvertimeReasonNeeded] = useState(false);
+  const [bulkOvertimeDuration, setBulkOvertimeDuration] = useState(0);
   const [editingEntry, setEditingEntry] = useState<CreateUITimesheetRecord | null>(null);
   const userEmail = useAppSelector((state) => state.user.userInfo!.employeeInfo.workEmail);
   const totalOvertimeHours = entries.reduce((sum, entry) => sum + entry.overtimeDuration, 0);
@@ -271,18 +272,23 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     }
 
     if (bulkClockInTime && bulkClockOutTime) {
+      const lunchBreakMinutes = bulkLunchIncluded ? (regularLunchHoursPerDay ?? 0) * 60 : 0;
+      const timeDifference = differenceInMinutes(bulkClockOutTime, bulkClockInTime);
+
+      const workMinutes = Math.max(0, timeDifference - lunchBreakMinutes);
+      const overtimeMinutesPerDay = Math.max(0, workMinutes - regularWorkMinutes);
+
       if (bulkClockInTime.getTime() >= bulkClockOutTime.getTime()) {
         errors.clockOutTime = "Clock out time must be after clock in time";
       }
-      if (differenceInMinutes(bulkClockOutTime, bulkClockInTime) > regularWorkMinutes) {
-        setBulkOvertimeReasonNeeded(true);
+
+      if (overtimeMinutesPerDay > 0) {
         if (!bulkOvertimeReason?.trim()) {
           errors.bulkOvertimeReason = "Overtime reason is required for overtime hours";
-        } else {
-          setBulkOvertimeReasonNeeded(false);
         }
       }
     }
+
 
     return errors;
   };
@@ -497,7 +503,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     if (newEntries.length === 0) {
       dispatch(
         enqueueSnackbarMessage({
-          message: "No valid dates to add (weekends excluded or all dates already have entries)",
+          message: "Dates already have entries",
           type: "warning",
         })
       );
@@ -522,10 +528,31 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   };
 
   useEffect(() => {
-    if (bulkClockInTime && bulkClockOutTime) {
-      setBulkOvertimeReasonNeeded(differenceInMinutes(bulkClockOutTime, bulkClockInTime) > regularWorkMinutes);
+    if (bulkClockInTime && bulkClockOutTime && bulkStartDate && bulkEndDate) {
+      const lunchBreakMinutes = bulkLunchIncluded ? (regularLunchHoursPerDay ?? 0) * 60 : 0;
+      const timeDifference = differenceInMinutes(bulkClockOutTime, bulkClockInTime);
+
+      const workMinutes = Math.max(0, timeDifference - lunchBreakMinutes);
+      const overtimeMinutesPerDay = Math.max(0, workMinutes - regularWorkMinutes);
+
+      const daysBetween = eachDayOfInterval({ start: bulkStartDate, end: bulkEndDate }).length;
+      const totalOvertimeHours = (overtimeMinutesPerDay * daysBetween) / 60;
+
+      setBulkOvertimeReasonNeeded(overtimeMinutesPerDay > 0);
+      setBulkOvertimeDuration(totalOvertimeHours);
+    } else {
+      setBulkOvertimeReasonNeeded(false);
+      setBulkOvertimeDuration(0);
     }
-  }, [bulkClockInTime, bulkClockOutTime]);
+  }, [
+    bulkClockInTime,
+    bulkClockOutTime,
+    bulkStartDate,
+    bulkEndDate,
+    bulkLunchIncluded,
+    regularLunchHoursPerDay,
+    regularWorkMinutes,
+  ]);
 
   useEffect(() => {
     setEntriesCount(entries.length);
@@ -849,7 +876,16 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
           </DialogActions>
         </Dialog>
 
-        <Dialog open={batchDialogOpen} onClose={() => setBatchDialogOpen(false)} maxWidth="md" fullWidth>
+        <Dialog
+          open={batchDialogOpen}
+          onClose={() => {
+            setBulkOvertimeReasonNeeded(false);
+            setBulkOvertimeDuration(0);
+            setBatchDialogOpen(false);
+          }}
+          maxWidth="md"
+          fullWidth
+        >
           <DialogTitle>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               Create Bulk Entries
@@ -947,6 +983,17 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                     multiline
                     error={!!errors.bulkOvertimeReason}
                     helperText={errors.bulkOvertimeReason}
+                    InputProps={{
+                      startAdornment: bulkOvertimeDuration > 0 && (
+                        <InputAdornment position="start">
+                          <Chip
+                            label={`Total OT: ${bulkOvertimeDuration.toFixed(2)} hrs`}
+                            color="primary"
+                            size="small"
+                          />
+                        </InputAdornment>
+                      ),
+                    }}
                   />
                 </Grid>
               )}
