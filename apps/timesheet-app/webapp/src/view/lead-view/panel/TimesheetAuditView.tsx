@@ -484,7 +484,7 @@ const TimesheetAuditView = () => {
                   }}
                 />
               ) : (
-                <NoDataView message="No Records Found" />
+                <NoDataView message={Messages.info.noRecords} />
               )}
             </Paper>
           </Box>

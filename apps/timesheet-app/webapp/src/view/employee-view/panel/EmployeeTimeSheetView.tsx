@@ -496,7 +496,7 @@ const TimesheetDataGrid = () => {
                   }}
                 />
               ) : (
-                <NoDataView message="No Records Found" />
+                <NoDataView message={Messages.info.noRecords} />
               )}
             </Paper>
 

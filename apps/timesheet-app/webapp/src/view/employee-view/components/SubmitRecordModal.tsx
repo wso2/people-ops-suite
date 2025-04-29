@@ -29,12 +29,10 @@ import {
   useTheme,
   TableBody,
   TableCell,
-  Accordion,
   TableHead,
   TextField,
   IconButton,
   CardHeader,
-  Typography,
   CardContent,
   DialogTitle,
   CardActions,
@@ -43,8 +41,6 @@ import {
   TableContainer,
   InputAdornment,
   FormControlLabel,
-  AccordionSummary,
-  AccordionDetails,
 } from "@mui/material";
 import {
   format,
@@ -63,9 +59,9 @@ import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PublishIcon from "@mui/icons-material/Publish";
 import { HourglassBottom } from "@mui/icons-material";
+import NoDataView from "@component/common/NoDataView";
 import { DEFAULT_TIME_ENTRY_SIZE } from "@config/config";
 import React, { useState, useRef, useEffect } from "react";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
@@ -77,7 +73,6 @@ import { useConfirmationModalContext } from "@context/DialogContext";
 import { ConfirmationType, CreateUITimesheetRecord } from "@utils/types";
 import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import NoDataView from "@component/common/NoDataView";
 
 interface TimeTrackingFormProps {
   onClose?: () => void;
@@ -93,6 +88,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [bulkLunchIncluded, setBulkLunchIncluded] = useState(true);
+  const [bulkOvertimeReasonNeeded, setBulkOvertimeReasonNeeded] = useState(false);
   const [bulkOvertimeReason, setBulkOvertimeReason] = useState("");
   const [bulkEndDate, setBulkEndDate] = useState<Date | null>(null);
   const [entriesCount, setEntriesCount] = useState(0);
@@ -279,8 +275,11 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
         errors.clockOutTime = "Clock out time must be after clock in time";
       }
       if (differenceInMinutes(bulkClockOutTime, bulkClockInTime) > regularWorkMinutes) {
+        setBulkOvertimeReasonNeeded(true);
         if (!bulkOvertimeReason?.trim()) {
           errors.bulkOvertimeReason = "Overtime reason is required for overtime hours";
+        } else {
+          setBulkOvertimeReasonNeeded(false);
         }
       }
     }
@@ -426,16 +425,20 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   };
 
   const handleSubmitRecordModalClose = () => {
-    dialogContext.showConfirmation(
-      "Do you want to close this window?",
-      "Entries will be lost unless you submit them.",
-      ConfirmationType.accept,
-      () => {
-        onClose?.();
-      },
-      "Yes",
-      "No"
-    );
+    if (entries.length > 0) {
+      dialogContext.showConfirmation(
+        "Do you want to close this window?",
+        "Entries will be lost unless you submit them.",
+        ConfirmationType.accept,
+        () => {
+          onClose?.();
+        },
+        "Yes",
+        "No"
+      );
+    } else {
+      onClose?.();
+    }
   };
 
   const handleAddBulkEntries = () => {
@@ -517,6 +520,12 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
       })
     );
   };
+
+  useEffect(() => {
+    if (bulkClockInTime && bulkClockOutTime) {
+      setBulkOvertimeReasonNeeded(differenceInMinutes(bulkClockOutTime, bulkClockInTime) > regularWorkMinutes);
+    }
+  }, [bulkClockInTime, bulkClockOutTime]);
 
   useEffect(() => {
     setEntriesCount(entries.length);
@@ -842,15 +851,15 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
 
         <Dialog open={batchDialogOpen} onClose={() => setBatchDialogOpen(false)} maxWidth="md" fullWidth>
           <DialogTitle>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               Create Bulk Entries
-              <IconButton color="secondary" onClick={() => setBatchDialogOpen(false)} sx={{ mx: 1 }}>
+              <IconButton color="secondary" onClick={() => setBatchDialogOpen(false)}>
                 <CloseIcon />
               </IconButton>
             </Box>
           </DialogTitle>
           <DialogContent>
-            <Grid container spacing={2}>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} md={6}>
                 <DatePicker
                   label="Start Date"
@@ -926,18 +935,21 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                   label="Include Lunch Break"
                 />
               </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Overtime Reason (if applicable)"
-                  value={bulkOvertimeReason}
-                  onChange={(e) => setBulkOvertimeReason(e.target.value)}
-                  variant="outlined"
-                  fullWidth
-                  multiline
-                  error={!!errors.bulkOvertimeReason}
-                  helperText={errors.bulkOvertimeReason}
-                />
-              </Grid>
+              {bulkOvertimeReasonNeeded && (
+                <Grid item xs={12}>
+                  <TextField
+                    label="Overtime Reason"
+                    placeholder="Overtime reason is required for entries with overtime"
+                    value={bulkOvertimeReason}
+                    onChange={(e) => setBulkOvertimeReason(e.target.value)}
+                    variant="outlined"
+                    fullWidth
+                    multiline
+                    error={!!errors.bulkOvertimeReason}
+                    helperText={errors.bulkOvertimeReason}
+                  />
+                </Grid>
+              )}
             </Grid>
           </DialogContent>
           <DialogActions>
