@@ -29,11 +29,8 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { State } from "@/types/types";
-import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
-import { Role } from "@slices/authSlice/auth";
 import { ConfirmationType } from "@/types/types";
-import { selectRoles } from "@slices/authSlice/auth";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import ErrorHandler from "@component/common/ErrorHandler";
 import { useAppDispatch, useAppSelector } from "@slices/store";
@@ -70,17 +67,12 @@ function MeetingHistory() {
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [openAttachmentDialog, setOpenAttachmentDialog] = useState(false);
-  const loggedInUser = useAppSelector((state) => state.user.userInfo?.workEmail) || "";
-  const isAdmin = useSelector(selectRoles).includes(Role.ADMIN);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filteredSearchQuery, setFilteredSearchQuery] = useState<string | null>(null);
-  const [filteredHostQuery, setFilteredHostQuery] = useState<string | null>(isAdmin ? null : loggedInUser);
 
   useEffect(() => {
-    dispatch(
-      fetchMeetings({ host: filteredHostQuery, title: filteredSearchQuery, limit: pageSize, offset: page * pageSize })
-    );
-  }, [dispatch, filteredSearchQuery, filteredHostQuery, page, pageSize]);
+    dispatch(fetchMeetings({ title: filteredSearchQuery, limit: pageSize, offset: page * pageSize }));
+  }, [dispatch, filteredSearchQuery, page, pageSize]);
 
   const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
     dialogContext.showConfirmation(
@@ -102,7 +94,6 @@ function MeetingHistory() {
           setLoadingDelete(false);
           dispatch(
             fetchMeetings({
-              host: filteredHostQuery,
               title: filteredSearchQuery,
               limit: pageSize,
               offset: page * pageSize,
@@ -172,7 +163,7 @@ function MeetingHistory() {
       field: "internalParticipants",
       headerName: "WSO2 Participants",
       minWidth: 200,
-      flex: 3,
+      flex: 4,
     },
     {
       field: "startTime",
@@ -247,9 +238,9 @@ function MeetingHistory() {
           display: "flex",
           justifyContent: "flex-end",
           alignItems: "flex-start",
-          gap: 1,
           px: 2,
           pt: 1.5,
+          pb: 1,
         }}
       >
         <TextField
@@ -315,7 +306,6 @@ function MeetingHistory() {
               display: "grid",
               gridTemplateColumns: "1fr",
               paddingX: 2,
-              paddingY: 2,
             }}
           >
             <DataGrid

@@ -17,13 +17,13 @@
 import React from "react";
 import { useEffect, useState } from "react";
 import { alpha } from "@mui/material/styles";
-import DuoIcon from "@mui/icons-material/Duo";
 import { useSearchParams } from "react-router-dom";
 import { Box, Stack, Tab, Tabs, Typography } from "@mui/material";
 
 interface CommonPageProps {
   title: string;
   commonPageTabs: TabProps[];
+  icon?: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
 }
 
 interface TabProps {
@@ -33,7 +33,7 @@ interface TabProps {
   page: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
 }
 
-const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
+const CommonPage = ({ title, commonPageTabs, icon }: CommonPageProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [value, setValue] = useState<number>(0);
   const tabs = commonPageTabs.map((tab) => tab.tabPath);
@@ -66,7 +66,7 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
           alignItems: "center",
         }}
       >
-        <DuoIcon />
+        {icon && <Box sx={{ ml: 0.8, mt: 0.5 }}>{icon}</Box>}
         <Stack
           sx={{
             p: 0.8,
@@ -115,9 +115,7 @@ const CommonPage = ({ title, commonPageTabs }: CommonPageProps) => {
                 lineHeight: 0,
                 py: 0.7,
                 background:
-                  tabs[index] === searchParams.get("tab")
-                    ? alpha(theme.palette.primary.light, 0.2)
-                    : "inherit",
+                  tabs[index] === searchParams.get("tab") ? alpha(theme.palette.primary.light, 0.2) : "inherit",
               })}
             />
           ))}
@@ -153,10 +151,7 @@ function TabPanel(props: TabPanelProps) {
       {value === index && (
         <Box
           sx={(theme) => ({
-            boxShadow:
-              theme.palette.mode === "dark"
-                ? "0px 3px 10px rgba(120, 125, 129, 0.5)"
-                : 10,
+            boxShadow: theme.palette.mode === "dark" ? "0px 3px 10px rgba(120, 125, 129, 0.5)" : 10,
             overflow: "auto",
             height: "100%",
             background: "background.paper",
