@@ -71,7 +71,10 @@ const Sidebar = (props: SidebarProps) => {
           open={props.open}
           sx={{
             "& .MuiDrawer-paper": {
-              background: alpha(theme.palette.primary.main, 0.85),
+              background:
+                props.theme.palette.mode === "light"
+                  ? alpha(theme.palette.primary.main, 1)
+                  : alpha(theme.palette.primary.main, 0),
             },
           }}
         >
