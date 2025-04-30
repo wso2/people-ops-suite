@@ -20,7 +20,7 @@ import ballerina/sql;
 # + companyName - Company name to filter
 # + return - Work policy or an error
 public isolated function fetchWorkPolicy(string companyName) returns WorkPolicy|error? {
-    WorkPolicy|error policies = databaseClient->queryRow(getWorkPolicyQuery(companyName));
+    WorkPolicy|error policies = databaseClient->queryRow(fetchWorkPolicyQuery(companyName));
 
     if policies is sql:NoRowsError {
         return;
@@ -32,7 +32,7 @@ public isolated function fetchWorkPolicy(string companyName) returns WorkPolicy|
 #
 # + return - Work policies or an error
 public isolated function fetchWorkPolicies() returns WorkPolicy[]|error {
-    stream<WorkPolicy, error?> workPolicyResult = databaseClient->query(getWorkPolicyQuery(()));
+    stream<WorkPolicy, error?> workPolicyResult = databaseClient->query(fetchWorkPolicyQuery(()));
 
     return from WorkPolicy workPolicies in workPolicyResult
         select workPolicies;
@@ -55,7 +55,7 @@ public isolated function updateWorkPolicy(WorkPolicyUpdate workPolicies, string 
 # + filter - Filter type for the records
 # + return - TimeLog records or an error
 public isolated function fetchTimesheetRecords(TimesheetCommonFilter filter) returns TimeLog[]|error? {
-    stream<TimeLog, error?> recordsResult = databaseClient->query(getTimesheetRecordsOfEmployee(filter));
+    stream<TimeLog, error?> recordsResult = databaseClient->query(fetchTimesheetRecordsOfEmployee(filter));
 
     return from TimeLog timesheetRecord in recordsResult
         select timesheetRecord;
@@ -66,7 +66,7 @@ public isolated function fetchTimesheetRecords(TimesheetCommonFilter filter) ret
 # + filter - Filter type for the records
 # + return - Timesheet record count or an error
 public isolated function fetchTotalRecordCount(TimesheetCommonFilter filter) returns int|error? {
-    int|sql:Error count = databaseClient->queryRow(getTotalRecordCountQuery(filter));
+    int|sql:Error count = databaseClient->queryRow(fetchTotalRecordCountQuery(filter));
     if count is sql:NoRowsError {
         return 0;
     }
@@ -99,7 +99,7 @@ public isolated function insertTimesheetRecords(TimeLog[] timesheetRecords, stri
 # + filter - Filter type for the timesheet information
 # + return - Timesheet info or an error
 public isolated function fetchTimesheetInfo(TimesheetCommonFilter filter) returns TimesheetInfo|error? {
-    return check databaseClient->queryRow(getTimesheetInfoQuery(filter));
+    return check databaseClient->queryRow(fetchTimesheetInfoQuery(filter));
 }
 
 # Function to fetch employee timesheet info.
@@ -107,7 +107,7 @@ public isolated function fetchTimesheetInfo(TimesheetCommonFilter filter) return
 # + filter - Filter type for the timesheet information
 # + return - Timesheet info or an error
 public isolated function fetchOvertimeInfo(TimesheetCommonFilter filter) returns OvertimeInfo|error {
-    return check databaseClient->queryRow(getOvertimeInfoQuery(filter));
+    return check databaseClient->queryRow(fetchOvertimeInfoQuery(filter));
 }
 
 # Function to update timesheet records.

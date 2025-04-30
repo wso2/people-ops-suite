@@ -19,16 +19,15 @@ import ballerina/sql;
 #
 # + companyName - Company name to filter
 # + return - Select query for the work policies
-isolated function getWorkPolicyQuery(string? companyName) returns sql:ParameterizedQuery =>
+isolated function fetchWorkPolicyQuery(string? companyName) returns sql:ParameterizedQuery =>
 `
     SELECT
         company_name AS 'companyName',
         ot_hours_per_year AS 'otHoursPerYear',
         working_hours_per_day AS 'workingHoursPerDay',
-        lunch_hours_per_day AS 'lunchHoursPerDay',
-        system_activated AS 'isSystemActivated'
+        lunch_hours_per_day AS 'lunchHoursPerDay'
     FROM
-        timesheet_work_policies
+        work_policy
     WHERE
         (${companyName} IS NULL OR ${companyName} = '' OR company_name = ${companyName});
 `;
@@ -43,7 +42,7 @@ isolated function updateWorkPolicyQuery(WorkPolicyUpdate updateRecord, string in
     returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery updateQuery = `
-    UPDATE timesheet_work_policies SET
+    UPDATE work_policy SET
 `;
     updateQuery = sql:queryConcat(updateQuery, `ot_hours_per_year = COALESCE(${updateRecord.otHoursPerYear},
             ot_hours_per_year),`);
@@ -51,8 +50,6 @@ isolated function updateWorkPolicyQuery(WorkPolicyUpdate updateRecord, string in
             working_hours_per_day),`);
     updateQuery = sql:queryConcat(updateQuery, `lunch_hours_per_day = COALESCE(${updateRecord.lunchHoursPerDay},
             lunch_hours_per_day),`);
-    updateQuery = sql:queryConcat(updateQuery, `system_activated = COALESCE(${updateRecord.isSystemActivated},
-            system_activated),`);
     updateQuery = sql:queryConcat(updateQuery, `wp_updated_by = COALESCE(${invokerEmail},
             wp_updated_by) WHERE company_name = ${companyName}`);
     return updateQuery;
@@ -62,7 +59,7 @@ isolated function updateWorkPolicyQuery(WorkPolicyUpdate updateRecord, string in
 #
 # + filter - Filter type for the  records
 # + return - Select query timesheet records
-isolated function getTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
+isolated function fetchTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
     SELECT
         tr.ts_record_id AS recordId,
@@ -117,7 +114,7 @@ isolated function getTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) re
 #
 # + filter - Filter type for the records
 # + return - Select query to get total count of timesheet records
-isolated function getTotalRecordCountQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
+isolated function fetchTotalRecordCountQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
         SELECT
             COUNT(*) AS totalRecords
@@ -186,7 +183,7 @@ select `
 #
 # + filter - Filter type for the records
 # + return - Select query for the timesheet information
-isolated function getTimesheetInfoQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
+isolated function fetchTimesheetInfoQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
     SELECT
         COALESCE(COUNT(*), 0) AS totalRecords,
@@ -213,7 +210,7 @@ isolated function getTimesheetInfoQuery(TimesheetCommonFilter filter) returns sq
         COALESCE((SELECT
                         ot_hours_per_year
                     FROM
-                        timesheet_work_policies
+                        work_policy
                     WHERE
                         company_name LIKE ${filter.companyName}),
                 0) - COALESCE(SUM(CASE
@@ -264,7 +261,7 @@ isolated function updateTimesheetRecordQuery(TimeLogUpdate updateRecord, string 
 #
 # + filter - Filter type for the records
 # + return - Select query for the overtime information
-isolated function getOvertimeInfoQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery =>
+isolated function fetchOvertimeInfoQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery =>
 `
     SELECT
         COALESCE(SUM(CASE
@@ -275,7 +272,7 @@ isolated function getOvertimeInfoQuery(TimesheetCommonFilter filter) returns sql
         COALESCE((SELECT
                         ot_hours_per_year
                     FROM
-                        timesheet_work_policies
+                        work_policy
                     WHERE
                         company_name LIKE ${filter.companyName}
                     LIMIT 1),
@@ -283,7 +280,7 @@ isolated function getOvertimeInfoQuery(TimesheetCommonFilter filter) returns sql
         (COALESCE((SELECT
                         ot_hours_per_year
                     FROM
-                        timesheet_work_policies
+                        work_policy
                     WHERE
                         company_name LIKE ${filter.companyName}
                     LIMIT 1),

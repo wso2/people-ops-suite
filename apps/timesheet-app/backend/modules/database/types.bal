@@ -49,8 +49,6 @@ public type WorkPolicy record {|
     decimal workingHoursPerDay;
     # Lunch time duration per day
     decimal lunchHoursPerDay;
-    # System activated status
-    boolean isSystemActivated;
 |};
 
 # Enum type for the timesheet status.
@@ -170,8 +168,6 @@ public type WorkPolicyUpdate record {|
     decimal workingHoursPerDay?;
     # lunch time duration per day
     decimal lunchHoursPerDay?;
-    # System activated status
-    boolean isSystemActivated?;
 |};
 
 # Timesheet information record type.
