@@ -19,8 +19,8 @@ import ballerina/sql;
 #
 # + companyName - Company name to filter
 # + return - Select query for the work policies
-isolated function fetchWorkPolicyQuery(string? companyName) returns sql:ParameterizedQuery =>
-`
+isolated function fetchWorkPolicyQuery(string? companyName) returns sql:ParameterizedQuery {
+    sql:ParameterizedQuery mainQuery = `
     SELECT
         company_name AS 'companyName',
         ot_hours_per_year AS 'otHoursPerYear',
@@ -28,9 +28,13 @@ isolated function fetchWorkPolicyQuery(string? companyName) returns sql:Paramete
         lunch_hours_per_day AS 'lunchHoursPerDay'
     FROM
         work_policy
-    WHERE
-        (${companyName} IS NULL OR ${companyName} = '' OR company_name = ${companyName});
 `;
+    sql:ParameterizedQuery[] filters = [];
+    if companyName is string {
+        filters.push(sql:queryConcat(`company_name = `, `${companyName};`));
+    }
+    return buildSqlSelectQuery(mainQuery, filters);
+}
 
 # Query to update work policy of a company.
 #
