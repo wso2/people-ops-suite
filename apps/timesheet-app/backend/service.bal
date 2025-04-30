@@ -118,16 +118,13 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-
-        if !authorization:checkPermissions([authorization:authorizedRoles.employeeRole], userInfo.groups) {
-            return <http:Forbidden>{
-                body: {
-                    message: "Insufficient privileges!"
-                }
-            };
+        entity:EmployeeBasic[]|error employees = [];
+        if authorization:checkPermissions([authorization:LEAD_ROLE], userInfo.groups) && leadEmail is string {
+            employees = entity:getEmployees(managerEmail = leadEmail);
         }
-
-        entity:EmployeeBasic[]|error employees = entity:getEmployees(managerEmail = leadEmail);
+        if authorization:checkPermissions([authorization:authorizedRoles.adminRole], userInfo.groups) && leadEmail is () {
+            employees = entity:getEmployees();
+        }
         if employees is error {
             string customError = "Error occurred while retrieving employees!";
             log:printError(customError, employees);
