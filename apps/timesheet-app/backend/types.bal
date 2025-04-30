@@ -28,7 +28,7 @@ public type EmployeeInformation record {
     # Privileges of the employee
     int[] privileges;
     # Work policies of the employee
-    database:WorkPolicies workPolicies;
+    database:WorkPolicy workPolicies;
 };
 
 # Timesheet records collection type.

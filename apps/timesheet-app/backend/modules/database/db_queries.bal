@@ -19,7 +19,7 @@ import ballerina/sql;
 #
 # + companyName - Company name to filter
 # + return - Select query for the work policies
-isolated function getWorkPoliciesQuery(string? companyName) returns sql:ParameterizedQuery =>
+isolated function getWorkPolicyQuery(string? companyName) returns sql:ParameterizedQuery =>
 `
     SELECT
         company_name AS 'companyName',
@@ -33,13 +33,13 @@ isolated function getWorkPoliciesQuery(string? companyName) returns sql:Paramete
         (${companyName} IS NULL OR ${companyName} = '' OR company_name = ${companyName});
 `;
 
-# Query to update work policies of a company.
+# Query to update work policy of a company.
 #
 # + companyName - Name of the company to be updated
-# + updateRecord - Update record type of the work policies
+# + updateRecord - Update record type of the work policy
 # + invokerEmail - Email of the invoker
-# + return - Update query for a work policies record
-isolated function updateWorkPoliciesOfCompanyQuery(WorkPolicyUpdate updateRecord, string invokerEmail, string companyName)
+# + return - Update query for a work policy record
+isolated function updateWorkPolicyQuery(WorkPolicyUpdate updateRecord, string invokerEmail, string companyName)
     returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery updateQuery = `

@@ -68,7 +68,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        database:WorkPolicies|error workPolicies = database:getWorkPolicies(employeeInfo.company).ensureType();
+        database:WorkPolicy|error workPolicies = database:fetchWorkPolicy(employeeInfo.company).ensureType();
         if workPolicies is error {
             string customError =
                 string `Error occurred while retrieving work policy for ${userInfo.email} and ${employeeInfo.company}!`;
@@ -204,7 +204,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             companyName: loggedInUser.company
         };
 
-        database:OvertimeInfo|error overtimeInfo = database:getOvertimeInfo(overtimeFilter);
+        database:OvertimeInfo|error overtimeInfo = database:fetchOvertimeInfo(overtimeFilter);
         if overtimeInfo is error {
             string customError = "Error occurred while retrieving the overtime information!";
             log:printError(customError, overtimeInfo);
@@ -229,7 +229,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             recordDates: newRecordDates
         };
 
-        database:TimeLog[]|error? existingRecords = database:getTimesheetRecords(filter);
+        database:TimeLog[]|error? existingRecords = database:fetchTimesheetRecords(filter);
         if existingRecords is error {
             string customError = "Error occurred while retrieving the existing timesheet records!";
             log:printError(customError, existingRecords);
@@ -314,7 +314,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             rangeEnd: rangeEnd
         };
 
-        int|error? totalRecordCount = database:getTotalRecordCount(commonFilter);
+        int|error? totalRecordCount = database:fetchTotalRecordCount(commonFilter);
         if totalRecordCount is error {
             string customError = "Error occurred while retrieving the record count!";
             log:printError(customError, totalRecordCount);
@@ -325,7 +325,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        database:TimeLog[]|error? timeLogs = database:getTimesheetRecords(commonFilter);
+        database:TimeLog[]|error? timeLogs = database:fetchTimesheetRecords(commonFilter);
         if timeLogs is error {
             string customError = "Error occurred while retrieving the timeLogs!";
             log:printError(customError, timeLogs);
@@ -359,7 +359,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             leadEmail: emailToFilter is string ? emailToFilter : (),
             companyName: loggedInUser.company
         };
-        database:TimesheetInfo|error? timesheetInfo = database:getTimesheetInfo(infoFilter);
+        database:TimesheetInfo|error? timesheetInfo = database:fetchTimesheetInfo(infoFilter);
         if timesheetInfo is error {
             string customError = "Error occurred while retrieving the timesheet information!";
             log:printError(customError, timesheetInfo);
@@ -484,7 +484,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + ctx - Request Context
     # + return - Internal Server Error or Employee information object
     resource function get work\-policies(http:RequestContext ctx)
-        returns database:WorkPolicies[]|http:InternalServerError|http:BadRequest|http:Forbidden {
+        returns database:WorkPolicy[]|http:InternalServerError|http:BadRequest|http:Forbidden {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
@@ -503,7 +503,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        database:WorkPolicies[]|error workPolicies = database:getWorkPoliciesOfCompanies().ensureType();
+        database:WorkPolicy[]|error workPolicies = database:fetchWorkPolicies().ensureType();
         if workPolicies is error {
             string customError = "Error occurred while retrieving work policies of companies!";
             log:printError(customError, workPolicies);
@@ -542,9 +542,9 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        error? updateResult = database:updateWorkPoliciesOfCompany(recordPayload, userInfo.email, companyName);
+        error? updateResult = database:updateWorkPolicy(recordPayload, userInfo.email, companyName);
         if updateResult is error {
-            string customError = string `Error occurred while updating the ${companyName}'s work policies!`;
+            string customError = string `Error occurred while updating the ${companyName}'s work policy!`;
             log:printError(customError, updateResult);
             return <http:InternalServerError>{
                 body: {

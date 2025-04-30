@@ -39,8 +39,8 @@ type DatabaseClientConfig record {|
     mysql:Options? options;
 |};
 
-# Work policies record.
-public type WorkPolicies record {|
+# Work policy record.
+public type WorkPolicy record {|
     # Company name
     string companyName;
     # Number of OT hours per year

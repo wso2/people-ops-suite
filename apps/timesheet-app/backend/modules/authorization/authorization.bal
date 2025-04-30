@@ -64,7 +64,7 @@ public isolated service class JwtInterceptor {
             };
         }
 
-        if employeeInfo.lead == true {
+        if employeeInfo.lead {
             userInfo.groups.push(LEAD_ROLE);
         }
 

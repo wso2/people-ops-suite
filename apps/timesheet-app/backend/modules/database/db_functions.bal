@@ -15,12 +15,12 @@
 // under the License.
 import ballerina/sql;
 
-# Fetch work policies of a company.
+# Fetch work policy of a company.
 #
 # + companyName - Company name to filter
-# + return - Work policies or an error
-public isolated function getWorkPolicies(string companyName) returns WorkPolicies|error? {
-    WorkPolicies|error policies = databaseClient->queryRow(getWorkPoliciesQuery(companyName));
+# + return - Work policy or an error
+public isolated function fetchWorkPolicy(string companyName) returns WorkPolicy|error? {
+    WorkPolicy|error policies = databaseClient->queryRow(getWorkPolicyQuery(companyName));
 
     if policies is sql:NoRowsError {
         return;
@@ -31,30 +31,30 @@ public isolated function getWorkPolicies(string companyName) returns WorkPolicie
 # Fetch work policies of companies.
 #
 # + return - Work policies or an error
-public isolated function getWorkPoliciesOfCompanies() returns WorkPolicies[]|error? {
-    stream<WorkPolicies, error?> workPolicyResult = databaseClient->query(getWorkPoliciesQuery(()));
+public isolated function fetchWorkPolicies() returns WorkPolicy[]|error {
+    stream<WorkPolicy, error?> workPolicyResult = databaseClient->query(getWorkPolicyQuery(()));
 
-    return from WorkPolicies workPolicies in workPolicyResult
+    return from WorkPolicy workPolicies in workPolicyResult
         select workPolicies;
 }
 
-# Function to update work policies of a company.
+# Function to update work policy of a company.
 #
 # + companyName - Name of the company to be updated
 # + workPolicies - Record to be updated
 # + invokerEmail - Email of the invoker
 # + return - An error if occurred
-public isolated function updateWorkPoliciesOfCompany(WorkPolicyUpdate workPolicies, string invokerEmail,
+public isolated function updateWorkPolicy(WorkPolicyUpdate workPolicies, string invokerEmail,
         string companyName) returns error? {
 
-    _ = check databaseClient->execute(updateWorkPoliciesOfCompanyQuery(workPolicies, invokerEmail, companyName));
+    _ = check databaseClient->execute(updateWorkPolicyQuery(workPolicies, invokerEmail, companyName));
 }
 
 # Function to get timesheet records using filters.
 #
 # + filter - Filter type for the records
 # + return - TimeLog records or an error
-public isolated function getTimesheetRecords(TimesheetCommonFilter filter) returns TimeLog[]|error? {
+public isolated function fetchTimesheetRecords(TimesheetCommonFilter filter) returns TimeLog[]|error? {
     stream<TimeLog, error?> recordsResult = databaseClient->query(getTimesheetRecordsOfEmployee(filter));
 
     return from TimeLog timesheetRecord in recordsResult
@@ -65,7 +65,7 @@ public isolated function getTimesheetRecords(TimesheetCommonFilter filter) retur
 #
 # + filter - Filter type for the records
 # + return - Timesheet record count or an error
-public isolated function getTotalRecordCount(TimesheetCommonFilter filter) returns int|error? {
+public isolated function fetchTotalRecordCount(TimesheetCommonFilter filter) returns int|error? {
     int|sql:Error count = databaseClient->queryRow(getTotalRecordCountQuery(filter));
     if count is sql:NoRowsError {
         return 0;
@@ -98,7 +98,7 @@ public isolated function insertTimesheetRecords(TimeLog[] timesheetRecords, stri
 #
 # + filter - Filter type for the timesheet information
 # + return - Timesheet info or an error
-public isolated function getTimesheetInfo(TimesheetCommonFilter filter) returns TimesheetInfo|error? {
+public isolated function fetchTimesheetInfo(TimesheetCommonFilter filter) returns TimesheetInfo|error? {
     return check databaseClient->queryRow(getTimesheetInfoQuery(filter));
 }
 
@@ -106,7 +106,7 @@ public isolated function getTimesheetInfo(TimesheetCommonFilter filter) returns 
 #
 # + filter - Filter type for the timesheet information
 # + return - Timesheet info or an error
-public isolated function getOvertimeInfo(TimesheetCommonFilter filter) returns OvertimeInfo|error {
+public isolated function fetchOvertimeInfo(TimesheetCommonFilter filter) returns OvertimeInfo|error {
     return check databaseClient->queryRow(getOvertimeInfoQuery(filter));
 }
 
