@@ -42,12 +42,13 @@ import FilterComponent from "@component/common/FilterModal";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import { useAppDispatch, useAppSelector } from "@slices/store";
+import { fetchEmployeeMetaData } from "@slices/metaSlice/meta";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import InformationHeader from "@component/common/InformationHeader";
 import { useConfirmationModalContext } from "@context/DialogContext";
-import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
 import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton, Avatar } from "@mui/material";
+import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
 
 const TimesheetAuditView = () => {
   const theme = useTheme();
@@ -69,7 +70,7 @@ const TimesheetAuditView = () => {
   const [filters, setFilters] = useState<Filter[]>([]);
   const availableFields = [
     { field: "status", label: "Status", type: "select", options: Object.values(TimesheetStatus) },
-    { field: "onApply", label: "Employee Email", type: "text" },
+    { field: "employeeEmail", label: "Employee Email", type: "text" },
     { field: "rangeStart", label: "Start Date", type: "date" },
     { field: "rangeEnd", label: "End Date", type: "date" },
   ];
@@ -345,7 +346,6 @@ const TimesheetAuditView = () => {
 
   const fetchData = async () => {
     if (!leadEmail) return;
-
     const filterParams = Object.fromEntries(filters.map(({ field, value }) => [field, value]));
 
     dispatch(
@@ -368,6 +368,12 @@ const TimesheetAuditView = () => {
     return () => {
       dispatch(resetTimesheetRecords());
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!leadEmail) return;
+    dispatch(fetchEmployeeMetaData({ leadEmail: leadEmail }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

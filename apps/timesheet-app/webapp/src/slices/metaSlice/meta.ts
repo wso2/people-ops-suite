@@ -16,7 +16,6 @@
 
 import { State } from "@utils/types";
 import { AppConfig } from "@config/config";
-import { Messages } from "@config/constant";
 import axios, { HttpStatusCode } from "axios";
 import { APIService } from "@utils/apiService";
 import { enqueueSnackbarMessage } from "../commonSlice/common";
@@ -47,9 +46,15 @@ interface MetaInfoState {
 
 export const fetchEmployeeMetaData = createAsyncThunk(
   "metaSlice/fetchEmployeeMetaData",
-  async (_, { dispatch, rejectWithValue }) => {
+  async (
+    params: { leadEmail?: string } | undefined,
+    { dispatch, rejectWithValue }: { dispatch: Function; rejectWithValue: Function }
+  ) => {
     try {
-      const response = await APIService.getInstance().get(AppConfig.serviceUrls.employees);
+      const url = params?.leadEmail
+        ? `${AppConfig.serviceUrls.employees}?leadEmail=${params.leadEmail}`
+        : AppConfig.serviceUrls.employees;
+      const response = await APIService.getInstance().get(url);
       return response.data;
     } catch (error) {
       if (axios.isCancel(error)) {
@@ -61,7 +66,7 @@ export const fetchEmployeeMetaData = createAsyncThunk(
           enqueueSnackbarMessage({
             message:
               error.response?.status === HttpStatusCode.InternalServerError
-                ? Messages.error.fetchRecords
+                ? "Unable to fetch employee details"
                 : String(error.response?.data?.message || error.message),
             type: "error",
           })

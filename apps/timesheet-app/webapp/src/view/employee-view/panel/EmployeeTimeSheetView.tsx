@@ -356,19 +356,13 @@ const TimesheetDataGrid = () => {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    console.log("Saving entry", editingEntry);
-
     const { overtimeStatus, overtimeRejectReason, ...entryWithoutStatus } = editingEntry;
-
-    console.log("entryWithoutStatus entry", entryWithoutStatus);
 
     const formattedEntry: TimesheetUpdate = {
       ...entryWithoutStatus,
       clockInTime: format(editingEntry.clockInTime, "HH:mm:ss"),
       clockOutTime: format(editingEntry.clockOutTime, "HH:mm:ss"),
     };
-
-    console.log("formattedEntry entry", formattedEntry);
 
     if (!userEmail) return;
     await dispatch(

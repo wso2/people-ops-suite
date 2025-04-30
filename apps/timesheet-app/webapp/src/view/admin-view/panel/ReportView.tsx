@@ -15,8 +15,8 @@
 // under the License.
 import "jspdf-autotable";
 import jsPDF from "jspdf";
-import { useState } from "react";
 import autoTable from "jspdf-autotable";
+import { useEffect, useState } from "react";
 import { Messages } from "@config/constant";
 import NoDataView from "@component/common/NoDataView";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -24,6 +24,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import { useAppDispatch, useAppSelector } from "@slices/store";
+import { fetchEmployeeMetaData } from "@slices/metaSlice/meta";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { fetchTimesheetRecords } from "@slices/recordSlice/record";
@@ -251,6 +252,11 @@ const ReportView = () => {
 
     doc.save("timesheet_records.pdf");
   };
+
+  useEffect(() => {
+    dispatch(fetchEmployeeMetaData());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
