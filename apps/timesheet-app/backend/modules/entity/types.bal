@@ -13,7 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import ballerina/graphql;
 
 # [Configurable] OAuth2 entity application configuration.
 type Oauth2Config record {|
@@ -59,18 +58,6 @@ public type Employee record {|
     string managerEmail;
 |};
 
-# Employee data.
-type EmployeeData record {
-    # Employee
-    Employee employee;
-};
-
-# Employee response.
-type EmployeeResponse record {
-    # Employee data
-    EmployeeData data;
-};
-
 # Basic employee information.
 public type EmployeeBasic record {|
     # First name of the employee
@@ -85,6 +72,18 @@ public type EmployeeBasic record {|
     string? managerEmail = ();
 |};
 
+# Employee data.
+type EmployeeData record {
+    # Employee
+    Employee employee;
+};
+
+# Employee response.
+type EmployeeResponse record {
+    # Employee data
+    EmployeeData data;
+};
+
 # Employees data.
 type EmployeesData record {
     # Array of employees
@@ -96,6 +95,18 @@ type EmployeesResponse record {
     # Employees data
     EmployeesData data;
 };
+
+# The EmployeeFilter record type represents the filter criteria for the employees.
+public type EmployeeFilter record {|
+    # The employee statuses
+    string[]? employeeStatus?;
+    # The employment types
+    string[]? employmentType?;
+    # The email
+    string? email?;
+    # The manager email
+    string? managerEmail?;
+|};
 
 # The EmployeeStatus represents the status of an employee.
 public enum EmployeeStatus {
@@ -119,23 +130,3 @@ const CACHE_EMPLOYEES = "CACHE_EMPLOYEES";
 
 # Constant type for the cached employee.
 const CACHE_EMPLOYEE = "CACHE_EMPLOYEE";
-
-# The EmployeeFilter record type represents the filter criteria for the employees.
-public type EmployeeFilter record {|
-    # The employee statuses
-    string[]? employeeStatus?;
-    # The employment types
-    string[]? employmentType?;
-    # The email
-    string? email?;
-    # The manager email
-    string? managerEmail?;
-|};
-
-# The GetEmployeesResponse record type represents the response of the getEmployees query.
-type GetEmployeesResponse readonly & record {|
-    *graphql:GenericResponseWithErrors;
-    record {
-        EmployeeBasic[] & readonly employees;
-    } data;
-|};

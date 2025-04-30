@@ -29,5 +29,3 @@
 [timesheet_app.authorization.authorizedRoles]
 employeeRole =
 adminRole =
-leadRole =
-

@@ -56,13 +56,18 @@ public isolated function fetchEmployeeBasicInfo(string workEmail) returns Employ
 
 # Retrieve Employee Data.
 #
+# + managerEmail - Optional field of the lead email
 # + return - Employee Info Array
-public isolated function getEmployees() returns EmployeeBasic[]|error {
+public isolated function getEmployees(string? managerEmail = ()) returns EmployeeBasic[]|error {
 
     EmployeeFilter filter = {
-        employeeStatus: getAuthorizedEmployeeTypes().cloneReadOnly(),
-        employmentType: getAuthorizedEmployeeStatusTypes().cloneReadOnly()
+        employeeStatus: getAuthorizedEmployeeStatusTypes().cloneReadOnly(),
+        employmentType: getAuthorizedEmployeeTypes().cloneReadOnly()
     };
+
+    if managerEmail is string {
+        filter.managerEmail = managerEmail;
+    }
 
     string document = string `query getAllEmployees($filter: EmployeeFilter!, $limit: Int, $offset: Int) {
         employees(filter: $filter, limit: $limit, offset: $offset) {

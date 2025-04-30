@@ -107,7 +107,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + ctx - The request context
     # + return - The employees information or an error
-    resource function get employees(http:RequestContext ctx)
+    resource function get employees(http:RequestContext ctx, string? leadEmail)
         returns entity:EmployeeBasic[]|http:InternalServerError|http:BadRequest|http:Forbidden {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -127,7 +127,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        entity:EmployeeBasic[]|error employees = entity:getEmployees();
+        entity:EmployeeBasic[]|error employees = entity:getEmployees(managerEmail = leadEmail);
         if employees is error {
             string customError = "Error occurred while retrieving employees!";
             log:printError(customError, employees);
