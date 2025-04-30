@@ -160,7 +160,7 @@ export const addMeetings = createAsyncThunk("meeting/addMeetings", async (payloa
 export const fetchMeetings = createAsyncThunk(
   "meeting/fetchMeetings",
   async (
-    { host, title, limit, offset }: { host: string | null; title: string | null; limit: number; offset: number },
+    { title, limit, offset }: { title: string | null; limit: number; offset: number },
     { dispatch }
   ) => {
     APIService.getCancelToken().cancel();
@@ -168,7 +168,7 @@ export const fetchMeetings = createAsyncThunk(
     return new Promise<Meetings>((resolve, reject) => {
       APIService.getInstance()
         .get(AppConfig.serviceUrls.meetings, {
-          params: { host, title, limit, offset },
+          params: { title, limit, offset },
           cancelToken: newCancelTokenSource.token,
         })
         .then((response) => {
@@ -248,6 +248,8 @@ export const fetchAttachments = createAsyncThunk(
               message:
                 error.response?.status === HttpStatusCode.InternalServerError
                   ? SnackMessage.error.fetchAttachments
+                  : error.response?.status === HttpStatusCode.Forbidden
+                  ? SnackMessage.error.insufficientPrivileges
                   : "An unknown error occurred.",
               type: "error",
             })

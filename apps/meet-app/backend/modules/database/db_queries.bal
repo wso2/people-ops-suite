@@ -65,16 +65,18 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 
 # Build query to retrieve meetings.
 #
+# + hostOrInternalParticipant - Filter by host or internal participant  
 # + title - Title to filter  
 # + host - Host filter  
 # + startTime - Start time filter  
 # + endTime - End time filter  
 # + internalParticipants - Participants filter
 # + 'limit - Limit of the data  
-# + offset - offset of the query  
+# + offset - offset of the query
 # + return - sql:ParameterizedQuery - Select query for the meeting table
-isolated function getMeetingsQuery(string? title, string? host, string? startTime, string? endTime,
-        string[]? internalParticipants, int? 'limit, int? offset) returns sql:ParameterizedQuery {
+isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? title, string? host,
+        string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
+    returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery mainQuery = `
             SELECT 
@@ -102,8 +104,37 @@ isolated function getMeetingsQuery(string? title, string? host, string? startTim
     // Setting the filters based on the meeting object.
     sql:ParameterizedQuery[] filters = [];
 
+    if host is string {
+        filters.push(sql:queryConcat(`host = `, `${host}`));
+    }
+    if hostOrInternalParticipant is string {
+        filters.push(sql:queryConcat(
+            `(host = ${hostOrInternalParticipant} OR wso2_participants LIKE ${"%" + hostOrInternalParticipant + "%"})`
+        ));
+    }
     if title is string {
         filters.push(sql:queryConcat(`title LIKE ${"%" + title + "%"}`));
+    }
+    if internalParticipants is string[] && internalParticipants.length() > 0 {
+        boolean first = true;
+        sql:ParameterizedQuery internalParticipantsFilter = `(`;
+        foreach string participant in internalParticipants {
+            if first {
+                internalParticipantsFilter = sql:queryConcat(
+                    internalParticipantsFilter,
+                    `wso2_participants LIKE ${"%" + participant + "%"}`
+                );
+                first = false;
+                continue;
+            }
+            // If the first participant is already added, add OR for the rest of the participants.
+            internalParticipantsFilter = sql:queryConcat(
+                internalParticipantsFilter,
+                ` OR wso2_participants LIKE ${"%" + participant + "%"}`
+            );
+        }
+        internalParticipantsFilter = sql:queryConcat(internalParticipantsFilter, `)`);
+        filters.push(internalParticipantsFilter);
     }
     if startTime is string {
         filters.push(sql:queryConcat(`start_time >= ${startTime}`));
@@ -111,23 +142,8 @@ isolated function getMeetingsQuery(string? title, string? host, string? startTim
     if endTime is string {
         filters.push(sql:queryConcat(`end_time <= ${endTime}`));
     }
-    if host is string {
-        filters.push(sql:queryConcat(`host = `, `${host}`));
-    }
-    if internalParticipants is string[] {
-        sql:ParameterizedQuery internalParticipantsQuery =
-            sql:queryConcat(` host IN (`, sql:arrayFlattenQuery(internalParticipants), `) `);
 
-        foreach string internalParticipant in internalParticipants {
-            internalParticipantsQuery = sql:queryConcat(
-                internalParticipantsQuery,
-                `OR wso2_participants LIKE ${"%" + internalParticipant + "%"}`
-            );
-
-        }
-        filters.push(internalParticipantsQuery);
-    }
-
+    // Building the WHERE clause.
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
 
     // Sorting the result by created_on.

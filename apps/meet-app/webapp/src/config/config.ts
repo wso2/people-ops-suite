@@ -27,6 +27,11 @@ declare global {
       AUTH_SIGN_IN_REDIRECT_URL: string;
       AUTH_SIGN_OUT_REDIRECT_URL: string;
       REACT_APP_BACKEND_BASE_URL: string;
+      IMPORTANT_CONTACTS: {
+        name: string;
+        email: string;
+        team: string;
+      }[]
     };
   }
 }
@@ -41,6 +46,7 @@ export const AsgardeoConfig: BaseURLAuthClientConfig = {
 
 export const APP_NAME = window.config?.APP_NAME ?? "";
 export const APP_DOMAIN = window.config?.APP_DOMAIN ?? "";
+export const IMPORTANT_CONTACTS = window.config?.IMPORTANT_CONTACTS ?? [];
 export const ServiceBaseUrl = window.config?.REACT_APP_BACKEND_BASE_URL ?? "";
 
 export const AppConfig = {
