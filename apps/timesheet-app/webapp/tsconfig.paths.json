@@ -8,7 +8,8 @@
       "@view/*": ["./src/view/*"],
       "@utils/*": ["./src/utils/*"],
       "@context/*": ["./src/context/*"],
-      "@slices/*": ["./src/slices/*"]
+      "@slices/*": ["./src/slices/*"],
+      "@images/*": ["./src/assets/images/*"]
     }
   }
 }
