@@ -145,7 +145,7 @@ isolated function fetchTotalRecordCountQuery(CommonFilter filter) returns sql:Pa
 # + companyName - Name of the company
 # + leadEmail - Email of the lead
 # + return - Insert query for the timesheet records
-isolated function insetTimeLogsQuery(TimeLog[] timeLogs, string employeeEmail,
+isolated function insertTimeLogsQuery(TimeLog[] timeLogs, string employeeEmail,
         string companyName, string leadEmail) returns sql:ParameterizedQuery[] =>
 
             from TimeLog timesheetRecord in timeLogs

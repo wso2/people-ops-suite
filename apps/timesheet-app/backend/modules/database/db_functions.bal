@@ -85,7 +85,7 @@ public isolated function insertTimesheetRecords(TimeLog[] timesheetRecords, stri
         string companyName, string leadEmail) returns error|int[] {
 
     sql:ExecutionResult[]|sql:Error executionResults =
-        databaseClient->batchExecute(insetTimeLogsQuery(timesheetRecords, employeeEmail, companyName,
+        databaseClient->batchExecute(insertTimeLogsQuery(timesheetRecords, employeeEmail, companyName,
             leadEmail));
 
     if executionResults is error {
