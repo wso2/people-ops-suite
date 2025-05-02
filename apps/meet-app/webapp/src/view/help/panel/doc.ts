@@ -1,5 +1,4 @@
 import { IMPORTANT_CONTACTS } from "@config/config";
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 
 function groupContactsByTeam(contacts: any[]) {
     const teams: { [team: string]: { name: string; email: string }[] } = {};
