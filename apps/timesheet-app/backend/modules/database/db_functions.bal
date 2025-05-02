@@ -47,7 +47,7 @@ public isolated function updateWorkPolicy(WorkPolicyUpdate workPolicy, string up
 
     sql:ExecutionResult result = check databaseClient->execute(updateWorkPolicyQuery(workPolicy, updatedBy));
     if result.affectedRowCount < 1 {
-        return error(string `Error while updating the WorkPolicy: ${workPolicy.companyName}`);
+        return error(string `Error while updating the Work Policy: ${workPolicy.companyName}`);
     }
 }
 
