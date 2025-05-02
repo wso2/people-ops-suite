@@ -119,9 +119,9 @@ The admins including team leads and leadership would be able to access all the r
 *   [Guidelines for Using Google Meets - Sales](https://docs.google.com/document/d/1amn8ICdOLAFtXnXgGd-tp3XpD2zoe2oN0IdLYEgNjUg/edit?usp=sharing) <br>
 (Includes details the Sales team must follow to obtain consent, store, and share call recordings externally)
 
-*   [Links to the Google Meets Enablement Session](https://pitstop-sales.wso2.com/sales-processes/tools/google-meets)
+*   [Google Meets Enablement Session](https://pitstop-sales.wso2.com/sales-processes/tools/google-meets)
 
-*   [Link to the Pitstop Page](https://pitstop-sales.wso2.com/essential/wso2-sales-meeting-scheduler)
+*   [Pitstop Page](https://pitstop-sales.wso2.com/essential/wso2-sales-meeting-scheduler)
 
 <br>
 
