@@ -21,7 +21,7 @@ CREATE TABLE
     );
 
 CREATE TABLE
-    timesheet_records (
+    time_log (
         ts_record_id INT PRIMARY KEY AUTO_INCREMENT,
         ts_employee_email VARCHAR(100) NOT NULL,
         ts_record_date DATE NOT NULL,

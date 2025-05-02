@@ -77,7 +77,7 @@ isolated function fetchTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) 
         tr.ts_ot_rejection_reason AS overtimeRejectReason,
         tr.ts_ot_status AS overtimeStatus
     FROM
-        timesheet_records tr
+        time_log tr
     `;
     sql:ParameterizedQuery[] filters = [];
     if filter.employeeEmail is string {
@@ -123,7 +123,7 @@ isolated function fetchTotalRecordCountQuery(TimesheetCommonFilter filter) retur
         SELECT
             COUNT(*) AS totalRecords
         FROM
-            timesheet_records
+            time_log
     `;
     sql:ParameterizedQuery[] filters = [];
     if filter.employeeEmail is string {
@@ -153,7 +153,7 @@ isolated function insertTimesheetRecordsQuery(TimeLog[] timesheetRecords, string
 let TimeLog {recordDate, clockInTime, clockOutTime, isLunchIncluded, overtimeDuration, overtimeReason,
 overtimeStatus} = timesheetRecord
 select `
-        INSERT INTO timesheet_records (
+        INSERT INTO time_log (
             ts_employee_email,
             ts_record_date,
             ts_company_name,
@@ -223,14 +223,14 @@ isolated function fetchTimesheetInfoQuery(TimesheetCommonFilter filter) returns 
                 END),
                 0) AS overtimeLeft
     FROM
-        timesheet_records
+        time_log
     `;
     sql:ParameterizedQuery[] filters = [];
     if filter.employeeEmail is string {
-        filters.push(sql:queryConcat(`timesheet_records.ts_employee_email = `, `${filter.employeeEmail}`));
+        filters.push(sql:queryConcat(`time_log.ts_employee_email = `, `${filter.employeeEmail}`));
     }
     if filter.leadEmail is string {
-        filters.push(sql:queryConcat(`timesheet_records.ts_lead_email =  `, `${filter.leadEmail}`));
+        filters.push(sql:queryConcat(`time_log.ts_lead_email =  `, `${filter.leadEmail}`));
     }
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
     return mainQuery;
@@ -245,7 +245,7 @@ isolated function updateTimesheetRecordQuery(TimeLogUpdate updateRecord, string 
     returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery updateQuery = `
-    UPDATE timesheet_records SET
+    UPDATE time_log SET
 `;
     updateQuery = sql:queryConcat(updateQuery, `ts_clock_in = COALESCE(${updateRecord.clockInTime}, ts_clock_in),`);
     updateQuery = sql:queryConcat(updateQuery, `ts_clock_out = COALESCE(${updateRecord.clockOutTime}, ts_clock_out),`);
@@ -294,7 +294,7 @@ isolated function fetchOvertimeInfoQuery(TimesheetCommonFilter filter) returns s
                 END),
                 0)) AS overtimeLeft
     FROM
-        timesheet_records
+        time_log
     WHERE
         ts_record_date >= DATE_FORMAT(CURDATE(), '%Y-01-01')
             AND ts_record_date <= DATE_FORMAT(CURDATE(), '%Y-12-31')
