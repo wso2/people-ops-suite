@@ -55,7 +55,7 @@ public isolated function updateWorkPolicy(WorkPolicyUpdate workPolicy, string up
 #
 # + filter - Filter type for the records
 # + return - TimeLog records or an error
-public isolated function fetchTimeLogs(CommonFilter filter) returns TimeLog[]|error? {
+public isolated function fetchTimeLogs(CommonFilter filter) returns TimeLog[]|error {
     stream<TimeLog, error?> recordsResult = databaseClient->query(fetchTimeLogsQuery(filter));
 
     return from TimeLog timesheetRecord in recordsResult

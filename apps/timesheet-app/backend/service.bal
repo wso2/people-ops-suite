@@ -221,7 +221,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             recordDates: newRecordDates
         };
 
-        database:TimeLog[]|error? existingRecords = database:fetchTimeLogs(filter);
+        database:TimeLog[]|error existingRecords = database:fetchTimeLogs(filter);
         if existingRecords is error {
             string customError = "Error occurred while retrieving the existing timesheet records!";
             log:printError(customError, existingRecords);
@@ -233,7 +233,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         string[] errorDuplicates = [];
-        if existingRecords !is () && existingRecords.length() > 0 {
+        if existingRecords.length() > 0 {
             foreach database:TimeLog existingRecord in existingRecords {
                 if existingRecord.overtimeStatus != database:REJECTED {
                     errorDuplicates.push(existingRecord.recordDate);
@@ -317,7 +317,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        database:TimeLog[]|error? timeLogs = database:fetchTimeLogs(commonFilter);
+        database:TimeLog[]|error timeLogs = database:fetchTimeLogs(commonFilter);
         if timeLogs is error {
             string customError = "Error occurred while retrieving the timeLogs!";
             log:printError(customError, timeLogs);
