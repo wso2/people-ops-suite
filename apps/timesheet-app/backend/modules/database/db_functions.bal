@@ -40,22 +40,23 @@ public isolated function fetchWorkPolicies() returns WorkPolicy[]|error {
 
 # Function to update work policy of a company.
 #
-# + companyName - Name of the company to be updated
-# + workPolicies - Record to be updated
-# + invokerEmail - Email of the invoker
+# + workPolicy - Record to be updated
+# + updatedBy - Email of the updated
 # + return - An error if occurred
-public isolated function updateWorkPolicy(WorkPolicyUpdate workPolicies, string invokerEmail,
-        string companyName) returns error? {
+public isolated function updateWorkPolicy(WorkPolicyUpdate workPolicy, string updatedBy) returns error? {
 
-    _ = check databaseClient->execute(updateWorkPolicyQuery(workPolicies, invokerEmail, companyName));
+    sql:ExecutionResult result = check databaseClient->execute(updateWorkPolicyQuery(workPolicy, updatedBy));
+    if result.affectedRowCount < 1 {
+        return error(string `Error while updating the WorkPolicy: ${workPolicy.companyName}`);
+    }
 }
 
 # Function to get timesheet records using filters.
 #
 # + filter - Filter type for the records
 # + return - TimeLog records or an error
-public isolated function fetchTimesheetRecords(TimesheetCommonFilter filter) returns TimeLog[]|error? {
-    stream<TimeLog, error?> recordsResult = databaseClient->query(fetchTimesheetRecordsOfEmployee(filter));
+public isolated function fetchTimeLogs(CommonFilter filter) returns TimeLog[]|error? {
+    stream<TimeLog, error?> recordsResult = databaseClient->query(fetchTimeLogsQuery(filter));
 
     return from TimeLog timesheetRecord in recordsResult
         select timesheetRecord;
@@ -65,7 +66,7 @@ public isolated function fetchTimesheetRecords(TimesheetCommonFilter filter) ret
 #
 # + filter - Filter type for the records
 # + return - Timesheet record count or an error
-public isolated function fetchTotalRecordCount(TimesheetCommonFilter filter) returns int|error? {
+public isolated function fetchTotalRecordCount(CommonFilter filter) returns int|error? {
     int|sql:Error count = databaseClient->queryRow(fetchTotalRecordCountQuery(filter));
     if count is sql:NoRowsError {
         return 0;
@@ -84,7 +85,7 @@ public isolated function insertTimesheetRecords(TimeLog[] timesheetRecords, stri
         string companyName, string leadEmail) returns error|int[] {
 
     sql:ExecutionResult[]|sql:Error executionResults =
-        databaseClient->batchExecute(insertTimesheetRecordsQuery(timesheetRecords, employeeEmail, companyName,
+        databaseClient->batchExecute(insetTimeLogsQuery(timesheetRecords, employeeEmail, companyName,
             leadEmail));
 
     if executionResults is error {
@@ -98,7 +99,7 @@ public isolated function insertTimesheetRecords(TimeLog[] timesheetRecords, stri
 #
 # + filter - Filter type for the timesheet information
 # + return - Timesheet info or an error
-public isolated function fetchTimesheetInfo(TimesheetCommonFilter filter) returns TimesheetInfo|error? {
+public isolated function fetchTimesheetInfo(CommonFilter filter) returns TimesheetInfo|error? {
     return check databaseClient->queryRow(fetchTimesheetInfoQuery(filter));
 }
 
@@ -106,16 +107,16 @@ public isolated function fetchTimesheetInfo(TimesheetCommonFilter filter) return
 #
 # + filter - Filter type for the timesheet information
 # + return - Timesheet info or an error
-public isolated function fetchOvertimeInfo(TimesheetCommonFilter filter) returns OvertimeInfo|error {
+public isolated function fetchOvertimeInfo(CommonFilter filter) returns OvertimeInfo|error {
     return check databaseClient->queryRow(fetchOvertimeInfoQuery(filter));
 }
 
 # Function to update timesheet records.
 #
 # + reviewRecord - TimeLogReview object containing records to be updated
-# + invokerEmail - Email of the invoker
+# + updatedBy - Email of the invoker
 # + return - An error if occurred
-public isolated function updateTimesheetRecords(string invokerEmail, TimeLogReview reviewRecord) returns error? {
+public isolated function updateTimesheetRecords(string updatedBy, TimeLogReview reviewRecord) returns error? {
     do {
         transaction {
             foreach int recordId in reviewRecord.recordIds {
@@ -124,7 +125,7 @@ public isolated function updateTimesheetRecords(string invokerEmail, TimeLogRevi
                     overtimeStatus: reviewRecord.overtimeStatus,
                     overtimeRejectReason: reviewRecord.overtimeRejectReason
                 };
-                _ = check databaseClient->execute(updateTimesheetRecordQuery(updateRecord, invokerEmail));
+                _ = check databaseClient->execute(updateTimeLogsQuery(updateRecord, updatedBy));
             }
             check commit;
         }
@@ -136,8 +137,8 @@ public isolated function updateTimesheetRecords(string invokerEmail, TimeLogRevi
 # Function to update a timesheet record.
 #
 # + timeLog - Record to be updated
-# + invokerEmail - Email of the invoker
+# + updatedBy - Email of the invoker
 # + return - An error if occurred
-public isolated function updateTimesheetRecord(TimeLogUpdate timeLog, string invokerEmail) returns error? {
-    _ = check databaseClient->execute(updateTimesheetRecordQuery(timeLog, invokerEmail));
+public isolated function updateTimesheetRecord(TimeLogUpdate timeLog, string updatedBy) returns error? {
+    _ = check databaseClient->execute(updateTimeLogsQuery(timeLog, updatedBy));
 }

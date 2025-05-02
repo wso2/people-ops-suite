@@ -86,8 +86,8 @@ public type TimeLog record {|
     TimesheetStatus overtimeStatus?;
 |};
 
-# Common filter for the timesheet records.
-public type TimesheetCommonFilter record {|
+# Common filter for the db queries.
+public type CommonFilter record {|
     # Employee email
     string? employeeEmail = ();
     # Email of the lead
@@ -162,6 +162,8 @@ public type TimeLogReview record {|
 
 # Update type for the work policies record.
 public type WorkPolicyUpdate record {|
+    # Company name
+    string companyName;
     # overtime hours per year
     decimal otHoursPerYear?;
     # working hours per day

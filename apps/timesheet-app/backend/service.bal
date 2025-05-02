@@ -191,7 +191,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             pendingOvertimeCount += newRecord.overtimeDuration ?: 0d;
         }
 
-        database:TimesheetCommonFilter overtimeFilter = {
+        database:CommonFilter overtimeFilter = {
             employeeEmail,
             companyName: loggedInUser.company
         };
@@ -215,13 +215,13 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        database:TimesheetCommonFilter filter = {
+        database:CommonFilter filter = {
             employeeEmail,
             leadEmail: loggedInUser.managerEmail,
             recordDates: newRecordDates
         };
 
-        database:TimeLog[]|error? existingRecords = database:fetchTimesheetRecords(filter);
+        database:TimeLog[]|error? existingRecords = database:fetchTimeLogs(filter);
         if existingRecords is error {
             string customError = "Error occurred while retrieving the existing timesheet records!";
             log:printError(customError, existingRecords);
@@ -296,7 +296,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        database:TimesheetCommonFilter commonFilter = {
+        database:CommonFilter commonFilter = {
             employeeEmail: employeeEmail,
             leadEmail: leadEmail,
             status: status,
@@ -317,7 +317,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        database:TimeLog[]|error? timeLogs = database:fetchTimesheetRecords(commonFilter);
+        database:TimeLog[]|error? timeLogs = database:fetchTimeLogs(commonFilter);
         if timeLogs is error {
             string customError = "Error occurred while retrieving the timeLogs!";
             log:printError(customError, timeLogs);
@@ -346,7 +346,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
         }
 
-        database:TimesheetCommonFilter infoFilter = {
+        database:CommonFilter infoFilter = {
             employeeEmail: emailToFilter is string ? () : employeeEmail,
             leadEmail: emailToFilter is string ? emailToFilter : (),
             companyName: loggedInUser.company
@@ -533,8 +533,8 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-
-        error? updateResult = database:updateWorkPolicy(recordPayload, userInfo.email, companyName);
+        recordPayload.companyName = companyName;
+        error? updateResult = database:updateWorkPolicy(recordPayload, userInfo.email);
         if updateResult is error {
             string customError = string `Error occurred while updating the ${companyName}'s work policy!`;
             log:printError(customError, updateResult);

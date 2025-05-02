@@ -38,11 +38,10 @@ isolated function fetchWorkPolicyQuery(string? companyName) returns sql:Paramete
 
 # Query to update work policy of a company.
 #
-# + companyName - Name of the company to be updated
 # + updateRecord - Update record type of the work policy
-# + invokerEmail - Email of the invoker
+# + updatedBy - Email of the updater
 # + return - Update query for a work policy record
-isolated function updateWorkPolicyQuery(WorkPolicyUpdate updateRecord, string invokerEmail, string companyName)
+isolated function updateWorkPolicyQuery(WorkPolicyUpdate updateRecord, string updatedBy)
     returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery updateQuery = `
@@ -54,8 +53,8 @@ isolated function updateWorkPolicyQuery(WorkPolicyUpdate updateRecord, string in
             working_hours_per_day),`);
     updateQuery = sql:queryConcat(updateQuery, `lunch_hours_per_day = COALESCE(${updateRecord.lunchHoursPerDay},
             lunch_hours_per_day),`);
-    updateQuery = sql:queryConcat(updateQuery, `wp_updated_by = COALESCE(${invokerEmail},
-            wp_updated_by) WHERE company_name = ${companyName}`);
+    updateQuery = sql:queryConcat(updateQuery, `wp_updated_by = COALESCE(${updatedBy},
+            wp_updated_by) WHERE company_name = ${updateRecord.companyName}`);
     return updateQuery;
 }
 
@@ -63,7 +62,7 @@ isolated function updateWorkPolicyQuery(WorkPolicyUpdate updateRecord, string in
 #
 # + filter - Filter type for the  records
 # + return - Select query timesheet records
-isolated function fetchTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
+isolated function fetchTimeLogsQuery(CommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
     SELECT
         tr.ts_record_id AS recordId,
@@ -118,7 +117,7 @@ isolated function fetchTimesheetRecordsOfEmployee(TimesheetCommonFilter filter) 
 #
 # + filter - Filter type for the records
 # + return - Select query to get total count of timesheet records
-isolated function fetchTotalRecordCountQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
+isolated function fetchTotalRecordCountQuery(CommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
         SELECT
             COUNT(*) AS totalRecords
@@ -141,15 +140,15 @@ isolated function fetchTotalRecordCountQuery(TimesheetCommonFilter filter) retur
 
 # Query to insert the timesheet records of an employee.
 #
-# + timesheetRecords - TimeLog record to be inserted
+# + timeLogs - TimeLog record to be inserted
 # + employeeEmail - Email of the employee
 # + companyName - Name of the company
 # + leadEmail - Email of the lead
 # + return - Insert query for the timesheet records
-isolated function insertTimesheetRecordsQuery(TimeLog[] timesheetRecords, string employeeEmail,
+isolated function insetTimeLogsQuery(TimeLog[] timeLogs, string employeeEmail,
         string companyName, string leadEmail) returns sql:ParameterizedQuery[] =>
 
-            from TimeLog timesheetRecord in timesheetRecords
+            from TimeLog timesheetRecord in timeLogs
 let TimeLog {recordDate, clockInTime, clockOutTime, isLunchIncluded, overtimeDuration, overtimeReason,
 overtimeStatus} = timesheetRecord
 select `
@@ -187,7 +186,7 @@ select `
 #
 # + filter - Filter type for the records
 # + return - Select query for the timesheet information
-isolated function fetchTimesheetInfoQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery {
+isolated function fetchTimesheetInfoQuery(CommonFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
     SELECT
         COALESCE(COUNT(*), 0) AS totalRecords,
@@ -239,9 +238,9 @@ isolated function fetchTimesheetInfoQuery(TimesheetCommonFilter filter) returns 
 # Query to update a timesheet record.
 #
 # + updateRecord - Update record type of the timesheet record
-# + invokerEmail - Email of the invoker
+# + updatedBy - Email of the updater
 # + return - Update query for a timesheet record
-isolated function updateTimesheetRecordQuery(TimeLogUpdate updateRecord, string invokerEmail)
+isolated function updateTimeLogsQuery(TimeLogUpdate updateRecord, string updatedBy)
     returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery updateQuery = `
@@ -256,7 +255,7 @@ isolated function updateTimesheetRecordQuery(TimeLogUpdate updateRecord, string 
     updateQuery = sql:queryConcat(updateQuery, `ts_ot_rejection_reason = COALESCE(${updateRecord.overtimeRejectReason},
             ts_ot_rejection_reason),`);
     updateQuery = sql:queryConcat(updateQuery, `ts_ot_status = COALESCE(${updateRecord.overtimeStatus}, ts_ot_status),`);
-    updateQuery = sql:queryConcat(updateQuery, `ts_updated_by = COALESCE(${invokerEmail}, ts_updated_by)
+    updateQuery = sql:queryConcat(updateQuery, `ts_updated_by = COALESCE(${updatedBy}, ts_updated_by)
         WHERE ts_record_id = ${updateRecord.recordId}`);
     return updateQuery;
 }
@@ -265,7 +264,7 @@ isolated function updateTimesheetRecordQuery(TimeLogUpdate updateRecord, string 
 #
 # + filter - Filter type for the records
 # + return - Select query for the overtime information
-isolated function fetchOvertimeInfoQuery(TimesheetCommonFilter filter) returns sql:ParameterizedQuery =>
+isolated function fetchOvertimeInfoQuery(CommonFilter filter) returns sql:ParameterizedQuery =>
 `
     SELECT
         COALESCE(SUM(CASE
