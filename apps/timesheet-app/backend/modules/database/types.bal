@@ -87,7 +87,7 @@ public type TimeLog record {|
 |};
 
 # Common filter for the db queries.
-public type CommonFilter record {|
+public type TimeLogFilter record {|
     # Employee email
     string? employeeEmail = ();
     # Email of the lead

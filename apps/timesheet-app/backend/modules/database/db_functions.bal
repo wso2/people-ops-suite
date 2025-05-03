@@ -55,7 +55,7 @@ public isolated function updateWorkPolicy(WorkPolicyUpdate workPolicy, string up
 #
 # + filter - Filter type for the records
 # + return - TimeLog records or an error
-public isolated function fetchTimeLogs(CommonFilter filter) returns TimeLog[]|error {
+public isolated function fetchTimeLogs(TimeLogFilter filter) returns TimeLog[]|error {
     stream<TimeLog, error?> recordsResult = databaseClient->query(fetchTimeLogsQuery(filter));
 
     return from TimeLog timesheetRecord in recordsResult
@@ -66,8 +66,8 @@ public isolated function fetchTimeLogs(CommonFilter filter) returns TimeLog[]|er
 #
 # + filter - Filter type for the records
 # + return - Timesheet record count or an error
-public isolated function fetchTotalRecordCount(CommonFilter filter) returns int|error? {
-    int|sql:Error count = databaseClient->queryRow(fetchTotalRecordCountQuery(filter));
+public isolated function fetchTimeLogCount(TimeLogFilter filter) returns int|error {
+    int|sql:Error count = databaseClient->queryRow(fetchTimeLogCountQuery(filter));
     if count is sql:NoRowsError {
         return 0;
     }
@@ -76,16 +76,16 @@ public isolated function fetchTotalRecordCount(CommonFilter filter) returns int|
 
 # Function to insert timesheet records.
 #
-# + timesheetRecords - Timesheet record payload
+# + timeLogs - Timesheet record payload
 # + employeeEmail - Email of the employee
 # + leadEmail - Email of the employee's lead
 # + companyName - Name of the company of the employee
 # + return - Execution result array or an error
-public isolated function insertTimesheetRecords(TimeLog[] timesheetRecords, string employeeEmail,
+public isolated function insertTimeLogs(TimeLog[] timeLogs, string employeeEmail,
         string companyName, string leadEmail) returns error|int[] {
 
-    sql:ExecutionResult[]|sql:Error executionResults =
-        databaseClient->batchExecute(insertTimeLogsQuery(timesheetRecords, employeeEmail, companyName,
+    sql:ExecutionResult[]|error executionResults =
+        databaseClient->batchExecute(insertTimeLogQueries(timeLogs, employeeEmail, companyName,
             leadEmail));
 
     if executionResults is error {
@@ -97,17 +97,20 @@ public isolated function insertTimesheetRecords(TimeLog[] timesheetRecords, stri
 
 # Function to fetch employee timesheet info.
 #
-# + filter - Filter type for the timesheet information
+# + companyName - Name of the company
+# + employeeEmail - Email of the employee
+# + leadEmail - Email of the lead
 # + return - Timesheet info or an error
-public isolated function fetchTimesheetInfo(CommonFilter filter) returns TimesheetInfo|error? {
-    return check databaseClient->queryRow(fetchTimesheetInfoQuery(filter));
+public isolated function fetchTimeLogStats(string? employeeEmail, string? leadEmail, string companyName)
+    returns TimesheetInfo|error {
+    return check databaseClient->queryRow(fetchTimeLogStatsQuery(employeeEmail, leadEmail, companyName));
 }
 
 # Function to fetch employee timesheet info.
 #
 # + filter - Filter type for the timesheet information
 # + return - Timesheet info or an error
-public isolated function fetchOvertimeInfo(CommonFilter filter) returns OvertimeInfo|error {
+public isolated function fetchOvertimeInfo(TimeLogFilter filter) returns OvertimeInfo|error {
     return check databaseClient->queryRow(fetchOvertimeInfoQuery(filter));
 }
 

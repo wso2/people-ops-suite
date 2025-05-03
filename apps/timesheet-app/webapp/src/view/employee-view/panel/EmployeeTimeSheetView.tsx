@@ -47,7 +47,6 @@ import SaveIcon from "@mui/icons-material/Save";
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
 import { DEFAULT_PAGE_SIZE } from "@config/config";
-import NoDataView from "@component/common/NoDataView";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
@@ -58,6 +57,7 @@ import InformationHeader from "@component/common/InformationHeader";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { CustomModal } from "@component/common/CustomComponentModal";
 import { differenceInMinutes, format, isWeekend, parseISO } from "date-fns";
+import NoDataView, { NoDataViewFunction } from "@component/common/NoDataView";
 import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
 import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecord } from "@slices/recordSlice/record";
 import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus, TimesheetUpdate } from "@utils/types";
@@ -432,63 +432,66 @@ const TimesheetDataGrid = () => {
                 overflow: "auto",
               }}
             >
-              {records && records.length > 0 ? (
-                <DataGrid
-                  pagination
-                  rows={records}
-                  columns={columns}
-                  disableDensitySelector
-                  paginationMode="server"
-                  rowCount={totalRecordCount}
-                  paginationModel={paginationModel}
-                  pageSizeOptions={[5]}
-                  onPaginationModelChange={setPaginationModel}
-                  loading={recordLoadingState === State.loading}
-                  getRowId={(row) => row.recordId}
-                  filterModel={filterModel}
-                  disableRowSelectionOnClick
-                  onFilterModelChange={setFilterModel}
-                  slotProps={{
-                    toolbar: {
-                      showQuickFilter: true,
-                      quickFilterProps: { debounceMs: 500 },
+              <DataGrid
+                pagination
+                rows={records}
+                columns={columns}
+                disableDensitySelector
+                paginationMode="server"
+                rowCount={totalRecordCount}
+                paginationModel={paginationModel}
+                pageSizeOptions={[5]}
+                onPaginationModelChange={setPaginationModel}
+                loading={recordLoadingState === State.loading}
+                getRowId={(row) => row.recordId}
+                filterModel={filterModel}
+                disableRowSelectionOnClick
+                onFilterModelChange={setFilterModel}
+                slotProps={{
+                  toolbar: {
+                    showQuickFilter: true,
+                    quickFilterProps: { debounceMs: 500 },
+                  },
+                  noRowsOverlay: {
+                    message: filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter,
+                    type: "search",
+                  } as any,
+                }}
+                slots={{
+                  noRowsOverlay: NoDataViewFunction,
+                }}
+                sx={{
+                  border: "none",
+                  "& .MuiDataGrid-columnHeaders": {
+                    backgroundColor: theme.palette.background.paper,
+                    borderBottom: `1px solid ${theme.palette.divider}`,
+                  },
+                  "& .MuiDataGrid-cell": {
+                    borderBottom: `1px solid ${theme.palette.divider}`,
+                  },
+                  "& .MuiDataGrid-virtualScroller": {
+                    backgroundColor: theme.palette.background.default,
+                  },
+                  "& .MuiDataGrid-footerContainer": {
+                    borderTop: `1px solid ${theme.palette.divider}`,
+                    backgroundColor: theme.palette.background.paper,
+                  },
+                  "& .MuiDataGrid-row": {
+                    "&:hover": {
+                      backgroundColor: theme.palette.action.hover,
                     },
-                  }}
-                  sx={{
-                    border: "none",
-                    "& .MuiDataGrid-columnHeaders": {
-                      backgroundColor: theme.palette.background.paper,
-                      borderBottom: `1px solid ${theme.palette.divider}`,
-                    },
-                    "& .MuiDataGrid-cell": {
-                      borderBottom: `1px solid ${theme.palette.divider}`,
-                    },
-                    "& .MuiDataGrid-virtualScroller": {
-                      backgroundColor: theme.palette.background.default,
-                    },
-                    "& .MuiDataGrid-footerContainer": {
-                      borderTop: `1px solid ${theme.palette.divider}`,
-                      backgroundColor: theme.palette.background.paper,
-                    },
-                    "& .MuiDataGrid-row": {
+                    "&.Mui-selected": {
+                      backgroundColor: theme.palette.action.selected,
                       "&:hover": {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                      "&.Mui-selected": {
                         backgroundColor: theme.palette.action.selected,
-                        "&:hover": {
-                          backgroundColor: theme.palette.action.selected,
-                        },
                       },
                     },
-                    overflow: "auto",
-                    height: "100%",
-                    width: "100%",
-                  }}
-                />
-              ) : (
-                <NoDataView message={Messages.info.noRecords} />
-              )}
+                  },
+                  overflow: "auto",
+                  height: "100%",
+                  width: "100%",
+                }}
+              />
             </Paper>
 
             <CustomModal open={openDialog} onClose={handleCloseDialog}>

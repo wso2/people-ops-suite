@@ -18,7 +18,6 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useEffect, useState } from "react";
 import { Messages } from "@config/constant";
-import NoDataView from "@component/common/NoDataView";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
@@ -29,6 +28,7 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { fetchTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import NoDataView, { NoDataViewFunction } from "@component/common/NoDataView";
 import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography } from "@mui/material";
 import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus } from "@utils/types";
 import { DataGrid, GridFilterModel, GridLogicOperator, GridRenderCellParams } from "@mui/x-data-grid";
@@ -297,67 +297,63 @@ const ReportView = () => {
           {timesheetLoadingInfo === State.failed ? (
             <NoDataView message={Messages.error.fetchRecords} type="error" />
           ) : (
-            <>
-              {records && records.length > 0 ? (
-                <DataGrid
-                  pagination
-                  rows={records}
-                  columns={columns}
-                  disableDensitySelector
-                  paginationMode="server"
-                  rowCount={totalRecordCount}
-                  disableRowSelectionOnClick
-                  loading={recordLoadingState === State.loading}
-                  getRowId={(row) => row.recordId}
-                  filterModel={filterModel}
-                  onFilterModelChange={setFilterModel}
-                  slotProps={{
-                    toolbar: {
-                      showQuickFilter: true,
-                      quickFilterProps: { debounceMs: 500 },
+            <DataGrid
+              pagination
+              rows={records}
+              columns={columns}
+              disableDensitySelector
+              paginationMode="server"
+              rowCount={totalRecordCount}
+              disableRowSelectionOnClick
+              loading={recordLoadingState === State.loading}
+              getRowId={(row) => row.recordId}
+              filterModel={filterModel}
+              onFilterModelChange={setFilterModel}
+              slotProps={{
+                toolbar: {
+                  showQuickFilter: true,
+                  quickFilterProps: { debounceMs: 500 },
+                },
+                noRowsOverlay: {
+                  message: filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter,
+                  type: "search",
+                } as any,
+              }}
+              slots={{
+                noRowsOverlay: NoDataViewFunction,
+              }}
+              sx={{
+                border: "none",
+                "& .MuiDataGrid-columnHeaders": {
+                  backgroundColor: theme.palette.background.paper,
+                  borderBottom: `1px solid ${theme.palette.divider}`,
+                },
+                "& .MuiDataGrid-cell": {
+                  borderBottom: `1px solid ${theme.palette.divider}`,
+                },
+                "& .MuiDataGrid-virtualScroller": {
+                  backgroundColor: theme.palette.background.default,
+                },
+                "& .MuiDataGrid-footerContainer": {
+                  borderTop: `1px solid ${theme.palette.divider}`,
+                  backgroundColor: theme.palette.background.paper,
+                },
+                "& .MuiDataGrid-row": {
+                  "&:hover": {
+                    backgroundColor: theme.palette.action.hover,
+                  },
+                  "&.Mui-selected": {
+                    backgroundColor: theme.palette.action.selected,
+                    "&:hover": {
+                      backgroundColor: theme.palette.action.selected,
                     },
-                  }}
-                  sx={{
-                    border: "none",
-                    "& .MuiDataGrid-columnHeaders": {
-                      backgroundColor: theme.palette.background.paper,
-                      borderBottom: `1px solid ${theme.palette.divider}`,
-                    },
-                    "& .MuiDataGrid-cell": {
-                      borderBottom: `1px solid ${theme.palette.divider}`,
-                    },
-                    "& .MuiDataGrid-virtualScroller": {
-                      backgroundColor: theme.palette.background.default,
-                    },
-                    "& .MuiDataGrid-footerContainer": {
-                      borderTop: `1px solid ${theme.palette.divider}`,
-                      backgroundColor: theme.palette.background.paper,
-                    },
-                    "& .MuiDataGrid-row": {
-                      "&:hover": {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                      "&.Mui-selected": {
-                        backgroundColor: theme.palette.action.selected,
-                        "&:hover": {
-                          backgroundColor: theme.palette.action.selected,
-                        },
-                      },
-                    },
-                    overflow: "auto",
-                    height: "100%",
-                    width: "100%",
-                  }}
-                />
-              ) : (
-                <NoDataView
-                  message={
-                    filters.length > 0 ? "No Matching Records Found" : "Use the Filters to get Employee Information"
-                  }
-                  type={filters.length > 0 ? "empty" : "search"}
-                />
-              )}
-            </>
+                  },
+                },
+                overflow: "auto",
+                height: "100%",
+                width: "100%",
+              }}
+            />
           )}
         </Paper>
       </Box>

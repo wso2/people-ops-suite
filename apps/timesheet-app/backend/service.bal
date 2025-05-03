@@ -191,7 +191,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             pendingOvertimeCount += newRecord.overtimeDuration ?: 0d;
         }
 
-        database:CommonFilter overtimeFilter = {
+        database:TimeLogFilter overtimeFilter = {
             employeeEmail,
             companyName: loggedInUser.company
         };
@@ -215,7 +215,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        database:CommonFilter filter = {
+        database:TimeLogFilter filter = {
             employeeEmail,
             leadEmail: loggedInUser.managerEmail,
             recordDates: newRecordDates
@@ -251,7 +251,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         }
 
-        error|int[] insertResult = database:insertTimesheetRecords(recordPayload,
+        error|int[] insertResult = database:insertTimeLogs(recordPayload,
                 loggedInUser.workEmail, loggedInUser.company, <string>loggedInUser.managerEmail);
 
         if insertResult is error {
@@ -296,7 +296,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        database:CommonFilter commonFilter = {
+        database:TimeLogFilter commonFilter = {
             employeeEmail: employeeEmail,
             leadEmail: leadEmail,
             status: status,
@@ -306,7 +306,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             rangeEnd: rangeEnd
         };
 
-        int|error? totalRecordCount = database:fetchTotalRecordCount(commonFilter);
+        int|error totalRecordCount = database:fetchTimeLogCount(commonFilter);
         if totalRecordCount is error {
             string customError = "Error occurred while retrieving the record count!";
             log:printError(customError, totalRecordCount);
@@ -339,19 +339,15 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        string|null emailToFilter = ();
-        if authorization:checkPermissions([authorization:LEAD_ROLE], userInfo.groups) {
-            if userInfo.email !== employeeEmail {
-                emailToFilter = userInfo.email;
-            }
-        }
+        string? emailToFilter =
+            authorization:checkPermissions([authorization:LEAD_ROLE], userInfo.groups) &&
+        userInfo.email !== employeeEmail ? userInfo.email : ();
 
-        database:CommonFilter infoFilter = {
-            employeeEmail: emailToFilter is string ? () : employeeEmail,
-            leadEmail: emailToFilter is string ? emailToFilter : (),
-            companyName: loggedInUser.company
-        };
-        database:TimesheetInfo|error? timesheetInfo = database:fetchTimesheetInfo(infoFilter);
+        string? employeeFilterEmail = emailToFilter is () ? employeeEmail : ();
+        string? leadFilterEmail = emailToFilter;
+
+        database:TimesheetInfo|error? timesheetInfo =
+            database:fetchTimeLogStats(employeeFilterEmail, leadFilterEmail, loggedInUser.company);
         if timesheetInfo is error {
             string customError = "Error occurred while retrieving the timesheet information!";
             log:printError(customError, timesheetInfo);
@@ -513,7 +509,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + recordPayload - WorkPolicyUpdate record payload
     # + return - Success status or error status's
-    isolated resource function patch work\-policies/[string companyName](http:RequestContext ctx,
+    isolated resource function patch work\-policy/[string companyName](http:RequestContext ctx,
             database:WorkPolicyUpdate recordPayload)
         returns http:InternalServerError|http:Ok|http:BadRequest|http:Forbidden {
 

@@ -33,7 +33,6 @@ import {
 import { useEffect, useState } from "react";
 import { Messages } from "@config/constant";
 import { DEFAULT_PAGE_SIZE } from "@config/config";
-import NoDataView from "@component/common/NoDataView";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -47,6 +46,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import InformationHeader from "@component/common/InformationHeader";
 import { useConfirmationModalContext } from "@context/DialogContext";
+import NoDataView, { NoDataViewFunction } from "@component/common/NoDataView";
 import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton, Avatar } from "@mui/material";
 import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
 
@@ -434,64 +434,67 @@ const TimesheetAuditView = () => {
                 overflow: "auto",
               }}
             >
-              {records && records.length > 0 ? (
-                <DataGrid
-                  pagination
-                  rows={records}
-                  columns={columns}
-                  disableDensitySelector
-                  paginationMode="server"
-                  rowCount={totalRecordCount}
-                  paginationModel={paginationModel}
-                  onPaginationModelChange={setPaginationModel}
-                  disableRowSelectionOnClick
-                  loading={recordLoadingState === State.loading}
-                  getRowId={(row) => row.recordId}
-                  filterModel={filterModel}
-                  onFilterModelChange={setFilterModel}
-                  onRowSelectionModelChange={handleSelectionChange}
-                  checkboxSelection
-                  slotProps={{
-                    toolbar: {
-                      showQuickFilter: true,
-                      quickFilterProps: { debounceMs: 500 },
+              <DataGrid
+                pagination
+                rows={records}
+                columns={columns}
+                disableDensitySelector
+                paginationMode="server"
+                rowCount={totalRecordCount}
+                paginationModel={paginationModel}
+                onPaginationModelChange={setPaginationModel}
+                disableRowSelectionOnClick
+                loading={recordLoadingState === State.loading}
+                getRowId={(row) => row.recordId}
+                filterModel={filterModel}
+                onFilterModelChange={setFilterModel}
+                onRowSelectionModelChange={handleSelectionChange}
+                checkboxSelection
+                slotProps={{
+                  toolbar: {
+                    showQuickFilter: true,
+                    quickFilterProps: { debounceMs: 500 },
+                  },
+                  noRowsOverlay: {
+                    message: filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter,
+                    type: "search",
+                  } as any,
+                }}
+                slots={{
+                  noRowsOverlay: NoDataViewFunction,
+                }}
+                sx={{
+                  border: "none",
+                  "& .MuiDataGrid-columnHeaders": {
+                    backgroundColor: theme.palette.background.paper,
+                    borderBottom: `1px solid ${theme.palette.divider}`,
+                  },
+                  "& .MuiDataGrid-cell": {
+                    borderBottom: `1px solid ${theme.palette.divider}`,
+                  },
+                  "& .MuiDataGrid-virtualScroller": {
+                    backgroundColor: theme.palette.background.default,
+                  },
+                  "& .MuiDataGrid-footerContainer": {
+                    borderTop: `1px solid ${theme.palette.divider}`,
+                    backgroundColor: theme.palette.background.paper,
+                  },
+                  "& .MuiDataGrid-row": {
+                    "&:hover": {
+                      backgroundColor: theme.palette.action.hover,
                     },
-                  }}
-                  sx={{
-                    border: "none",
-                    "& .MuiDataGrid-columnHeaders": {
-                      backgroundColor: theme.palette.background.paper,
-                      borderBottom: `1px solid ${theme.palette.divider}`,
-                    },
-                    "& .MuiDataGrid-cell": {
-                      borderBottom: `1px solid ${theme.palette.divider}`,
-                    },
-                    "& .MuiDataGrid-virtualScroller": {
-                      backgroundColor: theme.palette.background.default,
-                    },
-                    "& .MuiDataGrid-footerContainer": {
-                      borderTop: `1px solid ${theme.palette.divider}`,
-                      backgroundColor: theme.palette.background.paper,
-                    },
-                    "& .MuiDataGrid-row": {
+                    "&.Mui-selected": {
+                      backgroundColor: theme.palette.action.selected,
                       "&:hover": {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                      "&.Mui-selected": {
                         backgroundColor: theme.palette.action.selected,
-                        "&:hover": {
-                          backgroundColor: theme.palette.action.selected,
-                        },
                       },
                     },
-                    overflow: "auto",
-                    height: "100%",
-                    width: "100%",
-                  }}
-                />
-              ) : (
-                <NoDataView message={Messages.info.noRecords} />
-              )}
+                  },
+                  overflow: "auto",
+                  height: "100%",
+                  width: "100%",
+                }}
+              />
             </Paper>
           </Box>
         </LocalizationProvider>

@@ -174,3 +174,11 @@ export interface TimeLogReview {
   overtimeStatus: TimesheetStatus;
   overtimeRejectReason?: string;
 }
+
+export interface NoDataViewProps {
+  message?: string;
+  description?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  type?: "search" | "empty" | "error";
+}

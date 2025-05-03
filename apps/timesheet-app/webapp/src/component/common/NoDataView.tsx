@@ -1,4 +1,3 @@
-
 // Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
@@ -17,19 +16,21 @@
 
 import React from "react";
 import { Typography } from "@mui/material";
+import { NoDataViewProps } from "@utils/types";
+import { GridOverlay } from "@mui/x-data-grid";
 import { Button, Paper, Box } from "@mui/material";
 import { FileQuestion, Search, RefreshCw } from "lucide-react";
 
-interface NoDataViewProps {
-  message?: string;
-  description?: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  type?: "search" | "empty" | "error";
+export function NoDataViewFunction({ message, type }: NoDataViewProps) {
+  return (
+    <GridOverlay>
+      <NoDataView message={message} type={type} />
+    </GridOverlay>
+  );
 }
 
 const NoDataView: React.FC<NoDataViewProps> = ({
-  message = "No Data Found",
+  message = "No Records Found.",
   description,
   actionLabel,
   onAction,
@@ -159,10 +160,7 @@ const NoDataView: React.FC<NoDataViewProps> = ({
 
         {/* Action Button */}
         {actionLabel && onAction && (
-          <Button
-            variant="outlined"
-            onClick={onAction}
-          >
+          <Button variant="outlined" onClick={onAction}>
             {actionLabel}
           </Button>
         )}
