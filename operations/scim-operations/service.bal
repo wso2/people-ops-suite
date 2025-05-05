@@ -11,5 +11,4 @@ import ballerina/http;
     id: "scim/scim-operations"
 }
 service / on new http:Listener(9090) {
-
 }

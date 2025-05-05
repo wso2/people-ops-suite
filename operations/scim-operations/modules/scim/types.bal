@@ -111,4 +111,3 @@ public type ScimUser record {|
     # List of schemas associated with the user
     string[] schemas;
 |};
-
