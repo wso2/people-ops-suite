@@ -67,7 +67,7 @@ public type Name record {|
 |};
 
 # WSO2-specific schema record.
-public type WSO2Schema record {|
+public type Wso2Schema record {|
     # Indicates whether the user is required to set a password
     boolean askPassword;
     # Indicates whether the user account is disabled
@@ -105,7 +105,7 @@ public type ScimUser record {|
     # Unique username used for authentication
     string userName;
     # WSO2-specific schema containing additional attributes
-    WSO2Schema urn\:scim\:wso2\:schema;
+    Wso2Schema urn\:scim\:wso2\:schema;
     # List of phone numbers associated with the user
     PhoneNumber[] phoneNumbers;
     # List of schemas associated with the user
