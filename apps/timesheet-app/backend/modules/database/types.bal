@@ -161,7 +161,7 @@ public type TimeLogReview record {|
 |};
 
 # Update type for the work policies record.
-public type WorkPolicyUpdate record {|
+public type WorkPolicyUpdatePayload record {|
     # Company name
     string companyName;
     # overtime hours per year
@@ -170,6 +170,8 @@ public type WorkPolicyUpdate record {|
     decimal workingHoursPerDay?;
     # lunch time duration per day
     decimal lunchHoursPerDay?;
+    # Email of the updater
+    string updatedBy;
 |};
 
 # Timesheet information record type.

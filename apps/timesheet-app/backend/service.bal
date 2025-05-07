@@ -502,10 +502,10 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     # Endpoint to patch work policies of a company.
     #
-    # + recordPayload - WorkPolicyUpdate record payload
+    # + recordPayload - WorkPolicyUpdatePayload record payload
     # + return - Success status or error status's
     isolated resource function patch work\-policy/[string companyName](http:RequestContext ctx,
-            database:WorkPolicyUpdate recordPayload)
+            database:WorkPolicyUpdatePayload recordPayload)
         returns http:InternalServerError|http:Ok|http:BadRequest|http:Forbidden {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -525,7 +525,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
         recordPayload.companyName = companyName;
-        error? updateResult = database:updateWorkPolicy(recordPayload, userInfo.email);
+        recordPayload.updatedBy = userInfo.email;
+        error? updateResult = database:updateWorkPolicy(recordPayload);
         if updateResult is error {
             string customError = string `Error occurred while updating the ${companyName}'s work policy!`;
             log:printError(customError, updateResult);

@@ -21,10 +21,10 @@ import ballerina/sql;
 # + return - Work policy or an error
 public isolated function fetchWorkPolicy(string companyName) returns WorkPolicy|error? {
     WorkPolicy|error policy = databaseClient->queryRow(fetchWorkPoliciesQuery(companyName));
-
     if policy is sql:NoRowsError {
         return;
     }
+
     return policy;
 }
 
@@ -32,20 +32,18 @@ public isolated function fetchWorkPolicy(string companyName) returns WorkPolicy|
 #
 # + return - Work policies or an error
 public isolated function fetchWorkPolicies() returns WorkPolicy[]|error {
-    stream<WorkPolicy, error?> workPolicyResult = databaseClient->query(fetchWorkPoliciesQuery(()));
+    stream<WorkPolicy, error?> workPolicyStream = databaseClient->query(fetchWorkPoliciesQuery(()));
 
-    return from WorkPolicy policy in workPolicyResult
+    return from WorkPolicy policy in workPolicyStream
         select policy;
 }
 
 # Function to update work policy of a company.
 #
 # + workPolicy - Record to be updated
-# + updatedBy - Email of the updated
 # + return - An error if occurred
-public isolated function updateWorkPolicy(WorkPolicyUpdate workPolicy, string updatedBy) returns error? {
-
-    sql:ExecutionResult result = check databaseClient->execute(updateWorkPolicyQuery(workPolicy, updatedBy));
+public isolated function updateWorkPolicy(WorkPolicyUpdatePayload workPolicy) returns error? {
+    sql:ExecutionResult result = check databaseClient->execute(updateWorkPolicyQuery(workPolicy));
     if result.affectedRowCount < 1 {
         return error(string `Error while updating the Work Policy: ${workPolicy.companyName}`);
     }
@@ -56,10 +54,10 @@ public isolated function updateWorkPolicy(WorkPolicyUpdate workPolicy, string up
 # + filter - Filter type for the records
 # + return - TimeLog records or an error
 public isolated function fetchTimeLogs(TimeLogFilter filter) returns TimeLog[]|error {
-    stream<TimeLog, error?> recordsResult = databaseClient->query(fetchTimeLogsQuery(filter));
+    stream<TimeLog, error?> timeLogStream = databaseClient->query(fetchTimeLogsQuery(filter));
 
-    return from TimeLog timesheetRecord in recordsResult
-        select timesheetRecord;
+    return from TimeLog timeLog in timeLogStream
+        select timeLog;
 }
 
 # Function to retrieve the timesheet record count.
@@ -67,10 +65,11 @@ public isolated function fetchTimeLogs(TimeLogFilter filter) returns TimeLog[]|e
 # + filter - Filter type for the records
 # + return - Timesheet record count or an error
 public isolated function fetchTimeLogCount(TimeLogFilter filter) returns int|error {
-    int|sql:Error count = databaseClient->queryRow(fetchTimeLogCountQuery(filter));
+    int|error count = databaseClient->queryRow(fetchTimeLogCountQuery(filter));
     if count is sql:NoRowsError {
         return 0;
     }
+
     return count;
 }
 
@@ -87,10 +86,10 @@ public isolated function insertTimeLogs(TimeLog[] timeLogs, string employeeEmail
     sql:ExecutionResult[]|error executionResults =
         databaseClient->batchExecute(insertTimeLogQueries(timeLogs, employeeEmail, companyName,
             leadEmail));
-
     if executionResults is error {
         return executionResults;
     }
+
     return from sql:ExecutionResult executionResult in executionResults
         select check executionResult.lastInsertId.ensureType(int);
 }
@@ -103,6 +102,7 @@ public isolated function insertTimeLogs(TimeLog[] timeLogs, string employeeEmail
 # + return - Timesheet info or an error
 public isolated function fetchTimeLogStats(string? employeeEmail, string? leadEmail, string companyName)
     returns TimesheetInfo|error {
+
     return check databaseClient->queryRow(fetchTimeLogStatsQuery(employeeEmail, leadEmail, companyName));
 }
 
@@ -112,6 +112,7 @@ public isolated function fetchTimeLogStats(string? employeeEmail, string? leadEm
 # + employeeEmail - Email of the employee
 # + return - Timesheet info or an error
 public isolated function fetchOvertimeInfo(string companyName, string employeeEmail) returns OvertimeInfo|error {
+
     return check databaseClient->queryRow(fetchOvertimeInfoQuery(companyName, employeeEmail, getStartDateOfYear(),
         getEndDateOfYear()));
 }

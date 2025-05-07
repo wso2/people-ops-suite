@@ -39,9 +39,8 @@ isolated function fetchWorkPoliciesQuery(string? companyName) returns sql:Parame
 # Query to update work policy of a company.
 #
 # + updateRecord - Update record type of the work policy
-# + updatedBy - Email of the updater
 # + return - Update query for a work policy record
-isolated function updateWorkPolicyQuery(WorkPolicyUpdate updateRecord, string updatedBy)
+isolated function updateWorkPolicyQuery(WorkPolicyUpdatePayload updateRecord)
     returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery updateQuery = `
@@ -53,7 +52,7 @@ isolated function updateWorkPolicyQuery(WorkPolicyUpdate updateRecord, string up
             working_hours_per_day),`);
     updateQuery = sql:queryConcat(updateQuery, `lunch_hours_per_day = COALESCE(${updateRecord.lunchHoursPerDay},
             lunch_hours_per_day),`);
-    updateQuery = sql:queryConcat(updateQuery, `wp_updated_by = COALESCE(${updatedBy},
+    updateQuery = sql:queryConcat(updateQuery, `wp_updated_by = COALESCE(${updateRecord.updatedBy},
             wp_updated_by) WHERE company_name = ${updateRecord.companyName}`);
     return updateQuery;
 }
