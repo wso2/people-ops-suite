@@ -58,7 +58,7 @@ VALUES
         150,
         7.50,
         0.50,
-        'hr_manager',
+        'admin',
         'admin'
     ),
     ("WSO2 - UK", 250, 8.50, 1.00, 'admin', 'admin'),
@@ -67,7 +67,7 @@ VALUES
         100,
         7.00,
         0.75,
-        'hr_manager',
+        'admin',
         'admin'
     ),
     (
@@ -91,7 +91,7 @@ VALUES
         120,
         7.75,
         1.00,
-        'hr_manager',
+        'admin',
         'admin'
     ),
     ("WSO2 - UAE", 220, 8.25, 0.75, 'admin', 'admin'),

@@ -108,10 +108,12 @@ public isolated function fetchTimeLogStats(string? employeeEmail, string? leadEm
 
 # Function to fetch employee timesheet info.
 #
-# + filter - Filter type for the timesheet information
+# + companyName - Name of the company
+# + employeeEmail - Email of the employee
 # + return - Timesheet info or an error
-public isolated function fetchOvertimeInfo(TimeLogFilter filter) returns OvertimeInfo|error {
-    return check databaseClient->queryRow(fetchOvertimeInfoQuery(filter));
+public isolated function fetchOvertimeInfo(string companyName, string employeeEmail) returns OvertimeInfo|error {
+    return check databaseClient->queryRow(fetchOvertimeInfoQuery(companyName, employeeEmail, getStartDateOfYear(),
+        getEndDateOfYear()));
 }
 
 # Function to update timesheet records.

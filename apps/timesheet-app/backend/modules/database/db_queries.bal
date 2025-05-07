@@ -265,9 +265,13 @@ isolated function updateTimeLogsQuery(TimeLogUpdate updateRecord, string updated
 
 # Query to retrieve overtime information.
 #
-# + filter - Filter type for the records
+# + companyName - Name of the company
+# + employeeEmail - Email of the employee
+# + yearStartDate - Start date of year
+# + yearEndDate - End date of year
 # + return - Select query for the overtime information
-isolated function fetchOvertimeInfoQuery(TimeLogFilter filter) returns sql:ParameterizedQuery =>
+isolated function fetchOvertimeInfoQuery(string companyName, string employeeEmail, string yearStartDate,
+        string yearEndDate) returns sql:ParameterizedQuery =>
 `
     SELECT
         COALESCE(SUM(CASE
@@ -280,7 +284,7 @@ isolated function fetchOvertimeInfoQuery(TimeLogFilter filter) returns sql:Param
                     FROM
                         work_policy
                     WHERE
-                        company_name LIKE ${filter.companyName}
+                        company_name LIKE ${companyName}
                     LIMIT 1),
                 0) AS otHoursPerYear,
         (COALESCE((SELECT
@@ -288,7 +292,7 @@ isolated function fetchOvertimeInfoQuery(TimeLogFilter filter) returns sql:Param
                     FROM
                         work_policy
                     WHERE
-                        company_name LIKE ${filter.companyName}
+                        company_name LIKE ${companyName}
                     LIMIT 1),
                 0) - COALESCE(SUM(CASE
                     WHEN ts_ot_status IN (${PENDING}, ${APPROVED}) THEN ts_ot_hours
@@ -298,8 +302,8 @@ isolated function fetchOvertimeInfoQuery(TimeLogFilter filter) returns sql:Param
     FROM
         time_log
     WHERE
-        ts_record_date >= DATE_FORMAT(CURDATE(), '%Y-01-01')
-            AND ts_record_date <= DATE_FORMAT(CURDATE(), '%Y-12-31')
-            AND ts_company_name LIKE ${filter.companyName}
-            AND ts_employee_email = ${filter.employeeEmail};
+        ts_record_date >= ${yearStartDate}
+            AND ts_record_date <= ${yearEndDate}
+            AND ts_company_name LIKE ${companyName}
+            AND ts_employee_email = ${employeeEmail};
 `;

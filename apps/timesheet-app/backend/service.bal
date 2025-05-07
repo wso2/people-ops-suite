@@ -191,12 +191,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             pendingOvertimeCount += newRecord.overtimeDuration ?: 0d;
         }
 
-        database:TimeLogFilter overtimeFilter = {
-            employeeEmail,
-            companyName: loggedInUser.company
-        };
-
-        database:OvertimeInfo|error overtimeInfo = database:fetchOvertimeInfo(overtimeFilter);
+        database:OvertimeInfo|error overtimeInfo = database:fetchOvertimeInfo(employeeEmail, loggedInUser.company);
         if overtimeInfo is error {
             string customError = "Error occurred while retrieving the overtime information!";
             log:printError(customError, overtimeInfo);

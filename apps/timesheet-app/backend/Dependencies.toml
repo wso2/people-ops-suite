@@ -321,6 +321,9 @@ version = "2.5.0"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"}
 ]
+modules = [
+	{org = "ballerina", packageName = "time", moduleName = "time"}
+]
 
 [[package]]
 org = "ballerina"
@@ -443,6 +446,7 @@ dependencies = [
 	{org = "ballerina", name = "jwt"},
 	{org = "ballerina", name = "log"},
 	{org = "ballerina", name = "sql"},
+	{org = "ballerina", name = "time"},
 	{org = "ballerinai", name = "observe"},
 	{org = "ballerinai", name = "transaction"},
 	{org = "ballerinax", name = "java.jdbc"},
