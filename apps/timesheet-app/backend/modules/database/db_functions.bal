@@ -112,9 +112,9 @@ public isolated function fetchOvertimeStats(string employeeEmail, string company
 
 # Function to update timeLogs.
 #
-# + payload - TimeLogUpdate payload
+# + payload - TimeLogUpdatePayload payload
 # + return - An error if occurred
-public isolated function updateTimeLogs(TimeLogUpdate[] payload) returns int[]|error {
+public isolated function updateTimeLogs(TimeLogUpdatePayload[] payload) returns int[]|error {
 
     sql:ExecutionResult[]|error executionResults = databaseClient->batchExecute(updateTimeLogsQuery(payload));
     if executionResults is error {

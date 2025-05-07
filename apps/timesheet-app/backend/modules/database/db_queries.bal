@@ -224,7 +224,7 @@ isolated function fetchTimeLogStatsQuery(string? employeeEmail, string? leadEmai
 // #
 // # + updateRecord - Update record type of the timesheet record
 // # + return - Update query for a timesheet record
-// isolated function updateTimeLogsQuery(TimeLogUpdate updateRecord) returns sql:ParameterizedQuery {
+// isolated function updateTimeLogsQuery(TimeLogUpdatePayload updateRecord) returns sql:ParameterizedQuery {
 //     sql:ParameterizedQuery updateQuery = `
 //     UPDATE time_log SET
 // `;
@@ -291,9 +291,9 @@ isolated function fetchOvertimeStatsQuery(string employeeEmail, string companyNa
 #
 # + payloadArray - Update payload
 # + return - Update query for time logs
-isolated function updateTimeLogsQuery(TimeLogUpdate[] payloadArray) returns sql:ParameterizedQuery[] {
+isolated function updateTimeLogsQuery(TimeLogUpdatePayload[] payloadArray) returns sql:ParameterizedQuery[] {
     sql:ParameterizedQuery[] updateQueries = [];
-    foreach TimeLogUpdate timeLog in payloadArray {
+    foreach TimeLogUpdatePayload timeLog in payloadArray {
         sql:ParameterizedQuery updateQuery = `UPDATE time_log SET`;
 
         sql:ParameterizedQuery subQuery = `ts_updated_by = ${timeLog.updatedBy} WHERE ts_record_id = ${timeLog.recordId}`;

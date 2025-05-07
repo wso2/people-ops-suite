@@ -404,9 +404,9 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         string employeeEmail = userInfo.email;
-        database:TimeLogUpdate[] updateRecords = [];
+        database:TimeLogUpdatePayload[] updateRecords = [];
         foreach int recordId in recordPayload.recordIds {
-            database:TimeLogUpdate updateRecord = {
+            database:TimeLogUpdatePayload updateRecord = {
                 recordId: recordId,
                 overtimeStatus: recordPayload.overtimeStatus,
                 overtimeRejectReason: recordPayload.overtimeRejectReason,
@@ -434,7 +434,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + recordPayload - TimesheetUpdate record payload
     # + return - Ok status or error status's
     isolated resource function patch employees/[string employeeEmail]/time\-log/[int recordId](http:RequestContext ctx,
-            TimeLogUpdate recordPayload)
+            TimeLogUpdatePayload recordPayload)
         returns http:InternalServerError|http:Ok|http:BadRequest|http:Forbidden {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -461,7 +461,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-        database:TimeLogUpdate[] payload = [
+        database:TimeLogUpdatePayload[] payload = [
             {
                 recordId: recordPayload.recordId,
                 recordDate: recordPayload.recordDate,

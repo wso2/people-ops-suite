@@ -60,7 +60,7 @@ public type TimeLogReviews record {|
 |};
 
 # Update type for the time log record.
-public type TimeLogUpdate record {|
+public type TimeLogUpdatePayload record {|
     # Time log record id
     int recordId;
     # Record date
