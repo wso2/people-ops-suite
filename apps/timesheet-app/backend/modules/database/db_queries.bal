@@ -220,28 +220,6 @@ isolated function fetchTimeLogStatsQuery(string? employeeEmail, string? leadEmai
     return mainQuery;
 }
 
-// # Query to update a timesheet record.
-// #
-// # + updateRecord - Update record type of the timesheet record
-// # + return - Update query for a timesheet record
-// isolated function updateTimeLogsQuery(TimeLogUpdatePayload updateRecord) returns sql:ParameterizedQuery {
-//     sql:ParameterizedQuery updateQuery = `
-//     UPDATE time_log SET
-// `;
-//     updateQuery = sql:queryConcat(updateQuery, `ts_clock_in = COALESCE(${updateRecord.clockInTime}, ts_clock_in),`);
-//     updateQuery = sql:queryConcat(updateQuery, `ts_clock_out = COALESCE(${updateRecord.clockOutTime}, ts_clock_out),`);
-//     updateQuery = sql:queryConcat(updateQuery, `ts_lunch_included = COALESCE(${updateRecord.isLunchIncluded},
-//             ts_lunch_included),`);
-//     updateQuery = sql:queryConcat(updateQuery, `ts_ot_hours = COALESCE(${updateRecord.overtimeDuration}, ts_ot_hours),`);
-//     updateQuery = sql:queryConcat(updateQuery, `ts_ot_reason = COALESCE(${updateRecord.overtimeReason}, ts_ot_reason),`);
-//     updateQuery = sql:queryConcat(updateQuery, `ts_ot_rejection_reason = COALESCE(${updateRecord.overtimeRejectReason},
-//             ts_ot_rejection_reason),`);
-//     updateQuery = sql:queryConcat(updateQuery, `ts_ot_status = COALESCE(${updateRecord.overtimeStatus}, ts_ot_status),`);
-//     updateQuery = sql:queryConcat(updateQuery, `ts_updated_by = COALESCE(${updateRecord.updatedBy}, ts_updated_by)
-//         WHERE ts_record_id = ${updateRecord.recordId}`);
-//     return updateQuery;
-// }
-
 # Query to retrieve overtime information.
 #
 # + companyName - Name of the company
@@ -294,10 +272,9 @@ isolated function fetchOvertimeStatsQuery(string employeeEmail, string companyNa
 isolated function updateTimeLogsQuery(TimeLogUpdatePayload[] payloadArray) returns sql:ParameterizedQuery[] {
     sql:ParameterizedQuery[] updateQueries = [];
     foreach TimeLogUpdatePayload timeLog in payloadArray {
+
         sql:ParameterizedQuery updateQuery = `UPDATE time_log SET`;
-
         sql:ParameterizedQuery subQuery = `ts_updated_by = ${timeLog.updatedBy} WHERE ts_record_id = ${timeLog.recordId}`;
-
         sql:ParameterizedQuery[] updateFilters = [];
 
         if timeLog.clockInTime is string {
