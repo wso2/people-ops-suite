@@ -19,7 +19,7 @@ import ballerina/sql;
 #
 # + companyName - Company name to filter
 # + return - Select query for the work policies
-isolated function fetchWorkPolicyQuery(string? companyName) returns sql:ParameterizedQuery {
+isolated function fetchWorkPoliciesQuery(string? companyName) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
     SELECT
         company_name AS 'companyName',

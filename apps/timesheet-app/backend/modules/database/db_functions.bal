@@ -20,22 +20,22 @@ import ballerina/sql;
 # + companyName - Company name to filter
 # + return - Work policy or an error
 public isolated function fetchWorkPolicy(string companyName) returns WorkPolicy|error? {
-    WorkPolicy|error policies = databaseClient->queryRow(fetchWorkPolicyQuery(companyName));
+    WorkPolicy|error policy = databaseClient->queryRow(fetchWorkPoliciesQuery(companyName));
 
-    if policies is sql:NoRowsError {
+    if policy is sql:NoRowsError {
         return;
     }
-    return policies;
+    return policy;
 }
 
 # Fetch work policies of companies.
 #
 # + return - Work policies or an error
 public isolated function fetchWorkPolicies() returns WorkPolicy[]|error {
-    stream<WorkPolicy, error?> workPolicyResult = databaseClient->query(fetchWorkPolicyQuery(()));
+    stream<WorkPolicy, error?> workPolicyResult = databaseClient->query(fetchWorkPoliciesQuery(()));
 
-    return from WorkPolicy workPolicies in workPolicyResult
-        select workPolicies;
+    return from WorkPolicy policy in workPolicyResult
+        select policy;
 }
 
 # Function to update work policy of a company.
