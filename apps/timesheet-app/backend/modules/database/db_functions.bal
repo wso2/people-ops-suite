@@ -73,7 +73,7 @@ public isolated function fetchTimeLogCount(TimeLogFilter filter) returns int|err
     return count;
 }
 
-# Function to insert timeLogs.
+# Insert timeLogs of employee.
 #
 # + payload - TimeLogCreatePayload to be inserted
 # + return - Execution result array or an error
@@ -88,22 +88,22 @@ public isolated function insertTimeLogs(TimeLogCreatePayload payload) returns in
         select check executionResult.lastInsertId.ensureType(int);
 }
 
-# Function to fetch employee timeLogs info.
+# Fetch time log stats of a given employee.
 #
 # + employeeEmail - Email of the employee
 # + leadEmail - Email of the lead
-# + return - Timesheet info or an error
+# + return - TimeLog stats or an error
 public isolated function fetchTimeLogStats(string? employeeEmail, string? leadEmail) returns TimesheetStats|error {
     return check databaseClient->queryRow(fetchTimeLogStatsQuery(employeeEmail, leadEmail));
 }
 
-# Function to fetch employee timeLogs info.
+# Fetch overtime stats of a given employee
 #
 # + companyName - Name of the company
 # + employeeEmail - Email of the employee
 # + startDate - Start date
 # + endDate - End date
-# + return - OvertimeStats info or an error
+# + return - OvertimeStats or an error
 public isolated function fetchOvertimeStats(string employeeEmail, string companyName, string startDate, string endDate)
     returns OvertimeStats|error {
 
