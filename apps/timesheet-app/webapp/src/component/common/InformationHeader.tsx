@@ -58,11 +58,11 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({
 
   const {
     approvedRecords = 0,
-    overTimeLeft = 0,
     pendingRecords = 0,
     rejectedRecords = 0,
     totalOverTimeTaken = 0,
     totalRecords = 0,
+    overTimeLeft = workPolicies.otHoursPerYear - totalOverTimeTaken,
   } = timesheetInfo;
 
   const otUtilizationPercentage = Math.min(100, (totalOverTimeTaken / workPolicies.otHoursPerYear) * 100);
