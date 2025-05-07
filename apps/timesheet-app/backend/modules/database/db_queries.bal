@@ -87,7 +87,7 @@ isolated function fetchTimeLogsQuery(TimeLogFilter filter) returns sql:Parameter
     if filter.recordIds is int[] {
         filters.push(sql:queryConcat(`tr.ts_record_id IN (`, sql:arrayFlattenQuery(filter.recordIds ?: []), `)`));
     }
-    if filter.status is TimesheetStatus {
+    if filter.status is TimeLogStatus {
         filters.push(sql:queryConcat(`tr.ts_ot_status =  `, `${filter.status}`));
     }
     if filter.rangeStart is string {
@@ -127,7 +127,7 @@ isolated function fetchTimeLogCountQuery(TimeLogFilter filter) returns sql:Param
     if filter.employeeEmail is string {
         filters.push(sql:queryConcat(`ts_employee_email = `, `${filter.employeeEmail}`));
     }
-    if filter.status is TimesheetStatus {
+    if filter.status is TimeLogStatus {
         filters.push(sql:queryConcat(`ts_ot_status = `, `${filter.status}`));
     }
     if filter.leadEmail is string {
@@ -220,28 +220,27 @@ isolated function fetchTimeLogStatsQuery(string? employeeEmail, string? leadEmai
     return mainQuery;
 }
 
-# Query to update a timesheet record.
-#
-# + updateRecord - Update record type of the timesheet record
-# + updatedBy - Email of the updater
-# + return - Update query for a timesheet record
-isolated function updateTimeLogsQuery(TimeLogUpdate updateRecord, string updatedBy) returns sql:ParameterizedQuery {
-    sql:ParameterizedQuery updateQuery = `
-    UPDATE time_log SET
-`;
-    updateQuery = sql:queryConcat(updateQuery, `ts_clock_in = COALESCE(${updateRecord.clockInTime}, ts_clock_in),`);
-    updateQuery = sql:queryConcat(updateQuery, `ts_clock_out = COALESCE(${updateRecord.clockOutTime}, ts_clock_out),`);
-    updateQuery = sql:queryConcat(updateQuery, `ts_lunch_included = COALESCE(${updateRecord.isLunchIncluded},
-            ts_lunch_included),`);
-    updateQuery = sql:queryConcat(updateQuery, `ts_ot_hours = COALESCE(${updateRecord.overtimeDuration}, ts_ot_hours),`);
-    updateQuery = sql:queryConcat(updateQuery, `ts_ot_reason = COALESCE(${updateRecord.overtimeReason}, ts_ot_reason),`);
-    updateQuery = sql:queryConcat(updateQuery, `ts_ot_rejection_reason = COALESCE(${updateRecord.overtimeRejectReason},
-            ts_ot_rejection_reason),`);
-    updateQuery = sql:queryConcat(updateQuery, `ts_ot_status = COALESCE(${updateRecord.overtimeStatus}, ts_ot_status),`);
-    updateQuery = sql:queryConcat(updateQuery, `ts_updated_by = COALESCE(${updatedBy}, ts_updated_by)
-        WHERE ts_record_id = ${updateRecord.recordId}`);
-    return updateQuery;
-}
+// # Query to update a timesheet record.
+// #
+// # + updateRecord - Update record type of the timesheet record
+// # + return - Update query for a timesheet record
+// isolated function updateTimeLogsQuery(TimeLogUpdate updateRecord) returns sql:ParameterizedQuery {
+//     sql:ParameterizedQuery updateQuery = `
+//     UPDATE time_log SET
+// `;
+//     updateQuery = sql:queryConcat(updateQuery, `ts_clock_in = COALESCE(${updateRecord.clockInTime}, ts_clock_in),`);
+//     updateQuery = sql:queryConcat(updateQuery, `ts_clock_out = COALESCE(${updateRecord.clockOutTime}, ts_clock_out),`);
+//     updateQuery = sql:queryConcat(updateQuery, `ts_lunch_included = COALESCE(${updateRecord.isLunchIncluded},
+//             ts_lunch_included),`);
+//     updateQuery = sql:queryConcat(updateQuery, `ts_ot_hours = COALESCE(${updateRecord.overtimeDuration}, ts_ot_hours),`);
+//     updateQuery = sql:queryConcat(updateQuery, `ts_ot_reason = COALESCE(${updateRecord.overtimeReason}, ts_ot_reason),`);
+//     updateQuery = sql:queryConcat(updateQuery, `ts_ot_rejection_reason = COALESCE(${updateRecord.overtimeRejectReason},
+//             ts_ot_rejection_reason),`);
+//     updateQuery = sql:queryConcat(updateQuery, `ts_ot_status = COALESCE(${updateRecord.overtimeStatus}, ts_ot_status),`);
+//     updateQuery = sql:queryConcat(updateQuery, `ts_updated_by = COALESCE(${updateRecord.updatedBy}, ts_updated_by)
+//         WHERE ts_record_id = ${updateRecord.recordId}`);
+//     return updateQuery;
+// }
 
 # Query to retrieve overtime information.
 #
@@ -287,3 +286,44 @@ isolated function fetchOvertimeStatsQuery(string employeeEmail, string companyNa
             AND ts_company_name LIKE ${companyName}
             AND ts_employee_email = ${employeeEmail};
 `;
+
+# Query to update time logs.
+#
+# + payloadArray - Update payload
+# + return - Update query for time logs
+isolated function updateTimeLogsQuery(TimeLogUpdate[] payloadArray) returns sql:ParameterizedQuery[] {
+    sql:ParameterizedQuery[] updateQueries = [];
+    foreach TimeLogUpdate timeLog in payloadArray {
+        sql:ParameterizedQuery updateQuery = `UPDATE time_log SET`;
+
+        sql:ParameterizedQuery subQuery = `ts_updated_by = ${timeLog.updatedBy} WHERE ts_record_id = ${timeLog.recordId}`;
+
+        sql:ParameterizedQuery[] updateFilters = [];
+
+        if timeLog.clockInTime is string {
+            updateFilters.push(`ts_clock_in = ${timeLog.clockInTime}`);
+        }
+        if timeLog.clockOutTime is string {
+            updateFilters.push(`ts_clock_out = ${timeLog.clockOutTime}`);
+        }
+        if timeLog.isLunchIncluded is int {
+            updateFilters.push(`ts_lunch_included = ${timeLog.isLunchIncluded}`);
+        }
+        if timeLog.overtimeDuration is decimal {
+            updateFilters.push(`ts_ot_hours = ${timeLog.overtimeDuration}`);
+        }
+        if timeLog.overtimeReason is string {
+            updateFilters.push(`ts_ot_reason = ${timeLog.overtimeReason}`);
+        }
+        if timeLog.overtimeRejectReason is string {
+            updateFilters.push(`ts_ot_rejection_reason = ${timeLog.overtimeRejectReason}`);
+        }
+        if timeLog.overtimeStatus is TimeLogStatus {
+            updateFilters.push(`ts_ot_status = ${timeLog.overtimeStatus}`);
+        }
+        updateQuery = buildSqlUpdateQuery(updateQuery, updateFilters);
+        updateQuery = sql:queryConcat(updateQuery, subQuery);
+        updateQueries.push(updateQuery);
+    }
+    return updateQueries;
+}

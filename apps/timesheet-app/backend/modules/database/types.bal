@@ -51,8 +51,8 @@ public type WorkPolicy record {|
     decimal lunchHoursPerDay;
 |};
 
-# Enum type for the timesheet status.
-public enum TimesheetStatus {
+# Enum type for the time log status.
+public enum TimeLogStatus {
     PENDING = "PENDING",
     APPROVED = "APPROVED",
     REJECTED = "REJECTED"
@@ -83,7 +83,7 @@ public type TimeLog record {|
     # Overtime rejection reason
     string overtimeRejectReason?;
     # Overtime status
-    TimesheetStatus overtimeStatus?;
+    TimeLogStatus overtimeStatus?;
 |};
 
 # TimeLogCreatePayload record type.
@@ -108,8 +108,8 @@ public type TimeLogFilter record {|
     string? employeeEmail = ();
     # Email of the lead
     string? leadEmail = ();
-    # TimesheetStatus
-    TimesheetStatus? status = ();
+    # TimeLogStatus
+    TimeLogStatus? status = ();
     # Limit of the records
     int? recordsLimit = ();
     # Offset of the records
@@ -144,8 +144,6 @@ public type TimesheetStats record {|
 public type TimeLogUpdate record {|
     # Time log record id
     int recordId;
-    # Email of the employee
-    string employeeEmail?;
     # Record date
     string recordDate?;
     # Clock in time
@@ -161,17 +159,21 @@ public type TimeLogUpdate record {|
     # Overtime rejection reason
     string overtimeRejectReason?;
     # Overtime status
-    TimesheetStatus overtimeStatus?;
+    TimeLogStatus overtimeStatus?;
+    # Updated by email
+    string updatedBy;
 |};
 
 # Approve or reject time logs type.
-public type TimeLogReview record {|
+public type TimeLogReviews record {|
     # Time sheet record id
     int[] recordIds;
     # Overtime rejection reason
     string overtimeRejectReason?;
+    # Updated by email
+    string updatedBy;
     # Overtime status
-    TimesheetStatus overtimeStatus;
+    TimeLogStatus overtimeStatus;
 |};
 
 # Update type for the work policies record.

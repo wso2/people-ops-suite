@@ -112,32 +112,16 @@ public isolated function fetchOvertimeStats(string employeeEmail, string company
 
 # Function to update timeLogs.
 #
-# + reviewRecord - TimeLogReview object containing records to be updated
-# + updatedBy - Email of the invoker
+# + payload - TimeLogUpdate payload
 # + return - An error if occurred
-public isolated function updateTimeLogs(string updatedBy, TimeLogReview reviewRecord) returns error? {
-    do {
-        transaction {
-            foreach int recordId in reviewRecord.recordIds {
-                TimeLogUpdate updateRecord = {
-                    recordId: recordId,
-                    overtimeStatus: reviewRecord.overtimeStatus,
-                    overtimeRejectReason: reviewRecord.overtimeRejectReason
-                };
-                _ = check databaseClient->execute(updateTimeLogsQuery(updateRecord, updatedBy));
-            }
-            check commit;
-        }
-    } on fail error e {
-        return e;
-    }
-}
+public isolated function updateTimeLogs(TimeLogUpdate[] payload) returns int[]|error {
 
-# Function to update a timeLog.
-#
-# + timeLog - Record to be updated
-# + updatedBy - Email of the invoker
-# + return - An error if occurred
-public isolated function updateTimesheetRecord(TimeLogUpdate timeLog, string updatedBy) returns error? {
-    _ = check databaseClient->execute(updateTimeLogsQuery(timeLog, updatedBy));
+    sql:ExecutionResult[]|error executionResults = databaseClient->batchExecute(updateTimeLogsQuery(payload));
+    if executionResults is error {
+        return executionResults;
+    }
+
+    return from sql:ExecutionResult executionResult in executionResults
+        select check executionResult.lastInsertId.ensureType(int);
+
 }

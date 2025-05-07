@@ -49,6 +49,34 @@ public type TimeLogCreate record {|
     database:TimeLog[] timeLogs;
 |};
 
+# Approve or reject time logs type.
+public type TimeLogReviews record {|
+    # Time sheet record id
+    int[] recordIds;
+    # Overtime rejection reason
+    string overtimeRejectReason?;
+    # Overtime status
+    database:TimeLogStatus overtimeStatus;
+|};
+
+# Update type for the time log record.
+public type TimeLogUpdate record {|
+    # Time log record id
+    int recordId;
+    # Record date
+    string recordDate?;
+    # Clock in time
+    string clockInTime?;
+    # Clock out time
+    string clockOutTime?;
+    # Total work duration
+    int isLunchIncluded?;
+    # Overtime duration
+    decimal overtimeDuration?;
+    # Overtime reason
+    string overtimeReason?;
+|};
+
 # Constants for date formatting
 const YEAR_START_POSTFIX = "-01-01";
 const YEAR_END_POSTFIX = "-12-31";
