@@ -138,8 +138,6 @@ public type TimesheetInfo record {|
     decimal? rejectedRecords;
     # Total count of the overtime taken
     decimal? totalOverTimeTaken;
-    # Count of overtime left from yearly quota
-    decimal? overTimeLeft;
 |};
 
 # Update type for the time log record.

@@ -179,12 +179,10 @@ select `
 
 # Query to retrieve timesheet information.
 #
-# + companyName - Name of the company
 # + employeeEmail - Email of the employee
 # + leadEmail - Email of the lead
 # + return - Select query for the timesheet information
-isolated function fetchTimeLogStatsQuery(string? employeeEmail, string? leadEmail, string companyName)
-    returns sql:ParameterizedQuery {
+isolated function fetchTimeLogStatsQuery(string? employeeEmail, string? leadEmail) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
     SELECT
         COALESCE(COUNT(*), 0) AS totalRecords,
@@ -207,18 +205,7 @@ isolated function fetchTimeLogStatsQuery(string? employeeEmail, string? leadEmai
                     WHEN ts_ot_status IN (${PENDING}, ${APPROVED}) THEN ts_ot_hours
                     ELSE 0
                 END),
-                0) AS totalOvertimeTaken,
-        COALESCE((SELECT
-                        ot_hours_per_year
-                    FROM
-                        work_policy
-                    WHERE
-                        company_name LIKE ${companyName}),
-                0) - COALESCE(SUM(CASE
-                    WHEN ts_ot_status IN (${PENDING}, ${APPROVED}) THEN ts_ot_hours
-                    ELSE 0
-                END),
-                0) AS overtimeLeft
+                0) AS totalOvertimeTaken
     FROM
         time_log
     `;
@@ -238,9 +225,7 @@ isolated function fetchTimeLogStatsQuery(string? employeeEmail, string? leadEmai
 # + updateRecord - Update record type of the timesheet record
 # + updatedBy - Email of the updater
 # + return - Update query for a timesheet record
-isolated function updateTimeLogsQuery(TimeLogUpdate updateRecord, string updatedBy)
-    returns sql:ParameterizedQuery {
-
+isolated function updateTimeLogsQuery(TimeLogUpdate updateRecord, string updatedBy) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery updateQuery = `
     UPDATE time_log SET
 `;
@@ -265,8 +250,8 @@ isolated function updateTimeLogsQuery(TimeLogUpdate updateRecord, string updated
 # + startDate - Start date of year
 # + endDate - End date of year
 # + return - Select query for the overtime information
-isolated function fetchOvertimeInfoQuery(string employeeEmail, string companyName, string startDate,
-        string endDate) returns sql:ParameterizedQuery =>
+isolated function fetchOvertimeInfoQuery(string employeeEmail, string companyName, string startDate, string endDate)
+    returns sql:ParameterizedQuery =>
 `
     SELECT
         COALESCE(SUM(CASE

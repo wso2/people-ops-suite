@@ -350,8 +350,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         string? employeeFilterEmail = emailToFilter is () ? employeeEmail : ();
         string? leadFilterEmail = emailToFilter;
 
-        database:TimesheetInfo|error? timesheetInfo =
-            database:fetchTimeLogStats(employeeFilterEmail, leadFilterEmail, loggedInUser.company);
+        database:TimesheetInfo|error? timesheetInfo = database:fetchTimeLogStats(employeeFilterEmail, leadFilterEmail);
         if timesheetInfo is error {
             string customError = "Error occurred while retrieving the timesheet information!";
             log:printError(customError, timesheetInfo);
@@ -404,7 +403,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        error? updateResult = database:updateTimesheetRecords(userInfo.email, recordPayload);
+        error? updateResult = database:updateTimeLogs(userInfo.email, recordPayload);
         if updateResult is error {
             string customError = "Error occurred while updating the timesheet records!";
             log:printError(customError, updateResult);

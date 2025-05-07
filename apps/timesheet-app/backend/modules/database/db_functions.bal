@@ -49,7 +49,7 @@ public isolated function updateWorkPolicy(WorkPolicyUpdatePayload workPolicy) re
     }
 }
 
-# Function to get timesheet records using filters.
+# Function to get timeLogs using filters.
 #
 # + filter - Filter type for the records
 # + return - TimeLog records or an error
@@ -60,7 +60,7 @@ public isolated function fetchTimeLogs(TimeLogFilter filter) returns TimeLog[]|e
         select timeLog;
 }
 
-# Function to retrieve the timesheet record count.
+# Function to retrieve the timeLogs count.
 #
 # + filter - Filter type for the records
 # + return - Timesheet record count or an error
@@ -73,14 +73,13 @@ public isolated function fetchTimeLogCount(TimeLogFilter filter) returns int|err
     return count;
 }
 
-# Function to insert timesheet records.
+# Function to insert timeLogs.
 #
 # + payload - TimeLogCreatePayload to be inserted
 # + return - Execution result array or an error
-public isolated function insertTimeLogs(TimeLogCreatePayload payload) returns error|int[] {
+public isolated function insertTimeLogs(TimeLogCreatePayload payload) returns int[]|error {
 
-    sql:ExecutionResult[]|error executionResults =
-        databaseClient->batchExecute(insertTimeLogQueries(payload));
+    sql:ExecutionResult[]|error executionResults = databaseClient->batchExecute(insertTimeLogQueries(payload));
     if executionResults is error {
         return executionResults;
     }
@@ -89,19 +88,18 @@ public isolated function insertTimeLogs(TimeLogCreatePayload payload) returns er
         select check executionResult.lastInsertId.ensureType(int);
 }
 
-# Function to fetch employee timesheet info.
+# Function to fetch employee timeLogs info.
 #
-# + companyName - Name of the company
 # + employeeEmail - Email of the employee
 # + leadEmail - Email of the lead
 # + return - Timesheet info or an error
-public isolated function fetchTimeLogStats(string? employeeEmail, string? leadEmail, string companyName)
+public isolated function fetchTimeLogStats(string? employeeEmail, string? leadEmail)
     returns TimesheetInfo|error {
 
-    return check databaseClient->queryRow(fetchTimeLogStatsQuery(employeeEmail, leadEmail, companyName));
+    return check databaseClient->queryRow(fetchTimeLogStatsQuery(employeeEmail, leadEmail));
 }
 
-# Function to fetch employee timesheet info.
+# Function to fetch employee timeLogs info.
 #
 # + companyName - Name of the company
 # + employeeEmail - Email of the employee
@@ -114,12 +112,12 @@ public isolated function fetchOvertimeInfo(string employeeEmail, string companyN
     return check databaseClient->queryRow(fetchOvertimeInfoQuery(employeeEmail, companyName, startDate, endDate));
 }
 
-# Function to update timesheet records.
+# Function to update timeLogs.
 #
 # + reviewRecord - TimeLogReview object containing records to be updated
 # + updatedBy - Email of the invoker
 # + return - An error if occurred
-public isolated function updateTimesheetRecords(string updatedBy, TimeLogReview reviewRecord) returns error? {
+public isolated function updateTimeLogs(string updatedBy, TimeLogReview reviewRecord) returns error? {
     do {
         transaction {
             foreach int recordId in reviewRecord.recordIds {
@@ -137,7 +135,7 @@ public isolated function updateTimesheetRecords(string updatedBy, TimeLogReview 
     }
 }
 
-# Function to update a timesheet record.
+# Function to update a timeLog.
 #
 # + timeLog - Record to be updated
 # + updatedBy - Email of the invoker
