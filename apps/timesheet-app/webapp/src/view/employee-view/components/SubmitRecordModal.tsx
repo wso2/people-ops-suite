@@ -70,9 +70,9 @@ import { addTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { useConfirmationModalContext } from "@context/DialogContext";
-import { ConfirmationType, CreateUITimesheetRecord } from "@utils/types";
 import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { ConfirmationType, CreateTimeLogsPayload, CreateUITimesheetRecord } from "@utils/types";
 
 interface TimeTrackingFormProps {
   onClose?: () => void;
@@ -190,8 +190,11 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
       );
       return;
     } else {
-      const cleanedEntries = cleanTimeEntries(entries);
-      const resultAction = await dispatch(addTimesheetRecords({ employeeEmail: userEmail, payload: cleanedEntries }));
+      const payload: CreateTimeLogsPayload = {
+        timeLogs: cleanTimeEntries(entries),
+        employeeEmail: userEmail,
+      };
+      const resultAction = await dispatch(addTimesheetRecords({ payload: payload }));
       if (addTimesheetRecords.fulfilled.match(resultAction)) {
         onClose?.();
       }
@@ -288,8 +291,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
         }
       }
     }
-
-
     return errors;
   };
 

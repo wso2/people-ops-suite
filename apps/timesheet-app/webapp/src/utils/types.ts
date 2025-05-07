@@ -115,6 +115,21 @@ export interface CreateUITimesheetRecord {
   overtimeReason: string | null;
 }
 
+export interface CreateTimeLogs {
+  isLunchIncluded: number;
+  recordDate: string;
+  clockInTime: string;
+  clockOutTime: string;
+  recordId: number;
+  overtimeDuration: number;
+  overtimeReason: string | null;
+}
+
+export interface CreateTimeLogsPayload {
+  timeLogs: CreateTimeLogs[];
+  employeeEmail: string;
+}
+
 export interface TimesheetData {
   totalRecordCount: number;
   timeLogs: TimesheetRecord[];

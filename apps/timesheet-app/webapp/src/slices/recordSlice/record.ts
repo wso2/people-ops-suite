@@ -21,7 +21,14 @@ import { APIService } from "@utils/apiService";
 import { createSlice } from "@reduxjs/toolkit";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { enqueueSnackbarMessage } from "../commonSlice/common";
-import { State, TimeLogReview, TimesheetData, TimesheetStatus, TimesheetUpdate } from "@utils/types";
+import {
+  CreateTimeLogsPayload,
+  State,
+  TimeLogReview,
+  TimesheetData,
+  TimesheetStatus,
+  TimesheetUpdate,
+} from "@utils/types";
 
 interface TimesheetRecordState {
   retrievingState: State;
@@ -45,10 +52,10 @@ const initialState: TimesheetRecordState = {
 
 export const addTimesheetRecords = createAsyncThunk(
   "timesheet/addTimesheetRecords",
-  async ({ payload, employeeEmail }: { payload: any[]; employeeEmail: string }, { dispatch }) => {
+  async ({ payload }: { payload: CreateTimeLogsPayload }, { dispatch }) => {
     return new Promise((resolve, reject) => {
       APIService.getInstance()
-        .post(`${AppConfig.serviceUrls.timesheetRecords}/${employeeEmail}`, payload)
+        .post(`${AppConfig.serviceUrls.timesheetRecords}`, payload)
         .then((response) => {
           dispatch(
             enqueueSnackbarMessage({
