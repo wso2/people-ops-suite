@@ -94,7 +94,7 @@ public isolated function insertTimeLogs(TimeLogCreatePayload payload) returns in
 # + leadEmail - Email of the lead
 # + return - Timesheet info or an error
 public isolated function fetchTimeLogStats(string? employeeEmail, string? leadEmail)
-    returns TimesheetInfo|error {
+    returns TimesheetStats|error {
 
     return check databaseClient->queryRow(fetchTimeLogStatsQuery(employeeEmail, leadEmail));
 }

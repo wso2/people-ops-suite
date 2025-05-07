@@ -73,7 +73,7 @@ const TimesheetDataGrid = () => {
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs || []);
-  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetInfo);
+  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetStats);
   const regularLunchHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.lunchHoursPerDay);
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
   const regularWorkHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.workingHoursPerDay);

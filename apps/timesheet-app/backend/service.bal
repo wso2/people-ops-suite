@@ -350,10 +350,10 @@ service http:InterceptableService / on new http:Listener(9090) {
         string? employeeFilterEmail = emailToFilter is () ? employeeEmail : ();
         string? leadFilterEmail = emailToFilter;
 
-        database:TimesheetInfo|error? timesheetInfo = database:fetchTimeLogStats(employeeFilterEmail, leadFilterEmail);
-        if timesheetInfo is error {
+        database:TimesheetStats|error? timesheetStats = database:fetchTimeLogStats(employeeFilterEmail, leadFilterEmail);
+        if timesheetStats is error {
             string customError = "Error occurred while retrieving the timesheet information!";
-            log:printError(customError, timesheetInfo);
+            log:printError(customError, timesheetStats);
             return <http:InternalServerError>{
                 body: {
                     message: customError
@@ -364,7 +364,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         return {
             totalRecordCount,
             timeLogs,
-            timesheetInfo: timesheetInfo ?: ()
+            timesheetStats: timesheetStats ?: ()
         };
     }
 

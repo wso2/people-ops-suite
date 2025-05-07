@@ -38,7 +38,7 @@ public type TimeSheetRecords record {
     # List of timesheet records
     database:TimeLog[]? timeLogs;
     # Timesheet information for leads
-    database:TimesheetInfo? timesheetInfo;
+    database:TimesheetStats? timesheetStats;
 };
 
 # TimeLogCreate record type.

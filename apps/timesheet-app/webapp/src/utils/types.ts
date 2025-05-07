@@ -133,7 +133,7 @@ export interface CreateTimeLogsPayload {
 export interface TimesheetData {
   totalRecordCount: number;
   timeLogs: TimesheetRecord[];
-  timesheetInfo: TimesheetInfo;
+  timesheetStats: TimesheetInfo;
 }
 
 export interface WorkPolicies {

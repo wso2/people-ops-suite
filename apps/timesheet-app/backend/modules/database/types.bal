@@ -127,7 +127,7 @@ public type TimeLogFilter record {|
 |};
 
 # Timesheet information record type.
-public type TimesheetInfo record {|
+public type TimesheetStats record {|
     # Total count of the records
     int totalRecords;
     # Total count of the pending records
