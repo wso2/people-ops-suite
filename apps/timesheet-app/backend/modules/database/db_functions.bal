@@ -75,17 +75,12 @@ public isolated function fetchTimeLogCount(TimeLogFilter filter) returns int|err
 
 # Function to insert timesheet records.
 #
-# + timeLogs - Timesheet record payload
-# + employeeEmail - Email of the employee
-# + leadEmail - Email of the employee's lead
-# + companyName - Name of the company of the employee
+# + payload - TimeLogCreatePayload to be inserted
 # + return - Execution result array or an error
-public isolated function insertTimeLogs(TimeLog[] timeLogs, string employeeEmail,
-        string companyName, string leadEmail) returns error|int[] {
+public isolated function insertTimeLogs(TimeLogCreatePayload payload) returns error|int[] {
 
     sql:ExecutionResult[]|error executionResults =
-        databaseClient->batchExecute(insertTimeLogQueries(timeLogs, employeeEmail, companyName,
-            leadEmail));
+        databaseClient->batchExecute(insertTimeLogQueries(payload));
     if executionResults is error {
         return executionResults;
     }
@@ -110,11 +105,13 @@ public isolated function fetchTimeLogStats(string? employeeEmail, string? leadEm
 #
 # + companyName - Name of the company
 # + employeeEmail - Email of the employee
+# + startDate - Start date of year
+# + endDate - End date of year
 # + return - Timesheet info or an error
-public isolated function fetchOvertimeInfo(string companyName, string employeeEmail) returns OvertimeInfo|error {
+public isolated function fetchOvertimeInfo(string employeeEmail, string companyName, string startDate, string endDate)
+    returns OvertimeInfo|error {
 
-    return check databaseClient->queryRow(fetchOvertimeInfoQuery(companyName, employeeEmail, getStartDateOfYear(),
-        getEndDateOfYear()));
+    return check databaseClient->queryRow(fetchOvertimeInfoQuery(employeeEmail, companyName, startDate, endDate));
 }
 
 # Function to update timesheet records.

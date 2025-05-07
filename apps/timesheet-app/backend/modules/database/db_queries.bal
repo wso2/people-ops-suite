@@ -139,15 +139,11 @@ isolated function fetchTimeLogCountQuery(TimeLogFilter filter) returns sql:Param
 
 # Query to insert the timesheet records of an employee.
 #
-# + timeLogs - TimeLog record to be inserted
-# + employeeEmail - Email of the employee
-# + companyName - Name of the company
-# + leadEmail - Email of the lead
+# + payload - TimeLogCreatePayload to be inserted
 # + return - Insert query for the timesheet records
-isolated function insertTimeLogQueries(TimeLog[] timeLogs, string employeeEmail,
-        string companyName, string leadEmail) returns sql:ParameterizedQuery[] =>
+isolated function insertTimeLogQueries(TimeLogCreatePayload payload) returns sql:ParameterizedQuery[] =>
 
-            from TimeLog timesheetRecord in timeLogs
+            from TimeLog timesheetRecord in payload.timeLogs
 let TimeLog {recordDate, clockInTime, clockOutTime, isLunchIncluded, overtimeDuration, overtimeReason,
 overtimeStatus} = timesheetRecord
 select `
@@ -166,18 +162,18 @@ select `
             ts_updated_by
         )
         VALUES (
-            ${employeeEmail},
+            ${payload.employeeEmail},
             ${recordDate},
-            ${companyName},
+            ${payload.companyName},
             ${clockInTime},
             ${clockOutTime},
             ${isLunchIncluded},
             ${overtimeDuration},
             ${overtimeReason},
-            ${leadEmail},
+            ${payload.leadEmail},
             ${overtimeStatus},
-            ${employeeEmail},
-            ${employeeEmail}
+            ${payload.employeeEmail},
+            ${payload.employeeEmail}
         );
     `;
 
@@ -266,11 +262,11 @@ isolated function updateTimeLogsQuery(TimeLogUpdate updateRecord, string updated
 #
 # + companyName - Name of the company
 # + employeeEmail - Email of the employee
-# + yearStartDate - Start date of year
-# + yearEndDate - End date of year
+# + startDate - Start date of year
+# + endDate - End date of year
 # + return - Select query for the overtime information
-isolated function fetchOvertimeInfoQuery(string companyName, string employeeEmail, string yearStartDate,
-        string yearEndDate) returns sql:ParameterizedQuery =>
+isolated function fetchOvertimeInfoQuery(string employeeEmail, string companyName, string startDate,
+        string endDate) returns sql:ParameterizedQuery =>
 `
     SELECT
         COALESCE(SUM(CASE
@@ -301,8 +297,8 @@ isolated function fetchOvertimeInfoQuery(string companyName, string employeeEmai
     FROM
         time_log
     WHERE
-        ts_record_date >= ${yearStartDate}
-            AND ts_record_date <= ${yearEndDate}
+        ts_record_date >= ${startDate}
+            AND ts_record_date <= ${endDate}
             AND ts_company_name LIKE ${companyName}
             AND ts_employee_email = ${employeeEmail};
 `;

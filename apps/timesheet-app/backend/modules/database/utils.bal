@@ -14,7 +14,6 @@
 // specific language governing permissions and limitations
 // under the License.
 import ballerina/sql;
-import ballerina/time;
 
 # Build the database update query with dynamic attributes.
 #
@@ -62,20 +61,4 @@ isolated function buildSqlSelectQuery(sql:ParameterizedQuery mainQuery, sql:Para
     }
 
     return updatedQuery;
-}
-
-# Get start date of a given year or current year.
-#
-# + return - Start date of year
-public isolated function getStartDateOfYear() returns string {
-    time:Civil civilDate = time:utcToCivil(time:utcNow());
-    return string `${civilDate.year}-01-01`;
-}
-
-# Get end date of a given year or current year.
-#
-# + return - End date of year
-public isolated function getEndDateOfYear() returns string {
-    time:Civil civilDate = time:utcToCivil(time:utcNow());
-    return string `${civilDate.year}-12-31`;
 }

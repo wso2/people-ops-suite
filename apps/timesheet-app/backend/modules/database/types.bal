@@ -86,6 +86,22 @@ public type TimeLog record {|
     TimesheetStatus overtimeStatus?;
 |};
 
+# TimeLogCreatePayload record type.
+public type TimeLogCreatePayload record {|
+    # Employee's email address
+    string employeeEmail;
+    # Email of the creator
+    string createdBy;
+    # Email of the updater
+    string updatedBy;
+    # Company name
+    string companyName;
+    # Lead email
+    string leadEmail;
+    # TimeLogs array
+    TimeLog[] timeLogs;
+|};
+
 # Common filter for the db queries.
 public type TimeLogFilter record {|
     # Employee email

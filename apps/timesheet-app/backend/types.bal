@@ -40,3 +40,15 @@ public type TimeSheetRecords record {
     # Timesheet information for leads
     database:TimesheetInfo? timesheetInfo;
 };
+
+# TimeLogCreate record type.
+public type TimeLogCreate record {|
+    # Employee's email address
+    string employeeEmail;
+    # TimeLogs array
+    database:TimeLog[] timeLogs;
+|};
+
+# Constants for date formatting
+const YEAR_START_POSTFIX = "-01-01";
+const YEAR_END_POSTFIX = "-12-31";

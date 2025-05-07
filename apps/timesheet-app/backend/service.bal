@@ -20,6 +20,7 @@ import timesheet_app.entity;
 import ballerina/cache;
 import ballerina/http;
 import ballerina/log;
+import ballerina/time;
 
 final cache:Cache userInfoCache = new (capacity = 100, evictionFactor = 0.2);
 
@@ -131,11 +132,9 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     # Endpoint to save timesheet records of an employee.
     #
-    # + recordPayload - Timesheet record payload
-    # + employeeEmail - Email of the employee
+    # + payload - Timesheet record payload
     # + return - Created status or error status's
-    isolated resource function post time\-logs/[string employeeEmail](http:RequestContext ctx,
-            database:TimeLog[] recordPayload)
+    isolated resource function post time\-logs(http:RequestContext ctx, TimeLogCreate payload)
         returns http:InternalServerError|http:Created|http:BadRequest|http:Forbidden {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -154,7 +153,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-
+        string employeeEmail = payload.employeeEmail;
         if employeeEmail !== userInfo.email {
             return <http:Forbidden>{
                 body: {
@@ -175,7 +174,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         decimal pendingOvertimeCount = 0;
         string[] newRecordDates = [];
-        foreach database:TimeLog newRecord in recordPayload {
+        foreach database:TimeLog newRecord in payload.timeLogs {
             if newRecord.overtimeReason == "" && ((newRecord.overtimeDuration ?: 0d) > 0d) {
                 string customError = "Overtime reason required for records with overtime!";
                 log:printError(customError);
@@ -190,8 +189,12 @@ service http:InterceptableService / on new http:Listener(9090) {
             newRecordDates.push(newRecord.recordDate);
             pendingOvertimeCount += newRecord.overtimeDuration ?: 0d;
         }
+        int currentYear = time:utcToCivil(time:utcNow()).year;
+        string startDate = string `${currentYear}${YEAR_START_POSTFIX}`;
+        string endDate = string `${currentYear}${YEAR_END_POSTFIX}`;
 
-        database:OvertimeInfo|error overtimeInfo = database:fetchOvertimeInfo(employeeEmail, loggedInUser.company);
+        database:OvertimeInfo|error overtimeInfo =
+            database:fetchOvertimeInfo(employeeEmail, loggedInUser.company, startDate, endDate);
         if overtimeInfo is error {
             string customError = "Error occurred while retrieving the overtime information!";
             log:printError(customError, overtimeInfo);
@@ -245,9 +248,15 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
 
         }
-
-        error|int[] insertResult = database:insertTimeLogs(recordPayload,
-                loggedInUser.workEmail, loggedInUser.company, <string>loggedInUser.managerEmail);
+        database:TimeLogCreatePayload createPayload = {
+            employeeEmail,
+            createdBy: employeeEmail,
+            updatedBy: employeeEmail,
+            companyName: loggedInUser.company,
+            leadEmail: loggedInUser.managerEmail,
+            timeLogs: payload.timeLogs
+        };
+        error|int[] insertResult = database:insertTimeLogs(createPayload);
 
         if insertResult is error {
             string customError = string `Error occurred while saving the records for ${loggedInUser.workEmail}!`;
