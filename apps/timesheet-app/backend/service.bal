@@ -193,8 +193,8 @@ service http:InterceptableService / on new http:Listener(9090) {
         string startDate = string `${currentYear}${YEAR_START_POSTFIX}`;
         string endDate = string `${currentYear}${YEAR_END_POSTFIX}`;
 
-        database:OvertimeInfo|error overtimeInfo =
-            database:fetchOvertimeInfo(employeeEmail, loggedInUser.company, startDate, endDate);
+        database:OvertimeStats|error overtimeInfo =
+            database:fetchOvertimeStats(employeeEmail, loggedInUser.company, startDate, endDate);
         if overtimeInfo is error {
             string customError = "Error occurred while retrieving the overtime information!";
             log:printError(customError, overtimeInfo);

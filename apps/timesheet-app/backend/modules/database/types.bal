@@ -188,8 +188,8 @@ public type WorkPolicyUpdatePayload record {|
     string updatedBy;
 |};
 
-# Timesheet information record type.
-public type OvertimeInfo record {|
+# Overtime stats record type.
+public type OvertimeStats record {|
     # overtime hours per year
     int otHoursPerYear;
     # Total count of the overtime taken

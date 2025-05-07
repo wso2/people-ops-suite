@@ -101,13 +101,13 @@ public isolated function fetchTimeLogStats(string? employeeEmail, string? leadEm
 #
 # + companyName - Name of the company
 # + employeeEmail - Email of the employee
-# + startDate - Start date of year
-# + endDate - End date of year
-# + return - Timesheet info or an error
-public isolated function fetchOvertimeInfo(string employeeEmail, string companyName, string startDate, string endDate)
-    returns OvertimeInfo|error {
+# + startDate - Start date
+# + endDate - End date
+# + return - OvertimeStats info or an error
+public isolated function fetchOvertimeStats(string employeeEmail, string companyName, string startDate, string endDate)
+    returns OvertimeStats|error {
 
-    return check databaseClient->queryRow(fetchOvertimeInfoQuery(employeeEmail, companyName, startDate, endDate));
+    return check databaseClient->queryRow(fetchOvertimeStatsQuery(employeeEmail, companyName, startDate, endDate));
 }
 
 # Function to update timeLogs.

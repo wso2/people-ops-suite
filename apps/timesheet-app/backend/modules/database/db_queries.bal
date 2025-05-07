@@ -247,10 +247,10 @@ isolated function updateTimeLogsQuery(TimeLogUpdate updateRecord, string updated
 #
 # + companyName - Name of the company
 # + employeeEmail - Email of the employee
-# + startDate - Start date of year
-# + endDate - End date of year
+# + startDate - Start date
+# + endDate - End date
 # + return - Select query for the overtime information
-isolated function fetchOvertimeInfoQuery(string employeeEmail, string companyName, string startDate, string endDate)
+isolated function fetchOvertimeStatsQuery(string employeeEmail, string companyName, string startDate, string endDate)
     returns sql:ParameterizedQuery =>
 `
     SELECT
