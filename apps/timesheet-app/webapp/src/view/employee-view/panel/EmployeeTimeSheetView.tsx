@@ -62,7 +62,7 @@ import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-picker
 import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecord } from "@slices/recordSlice/record";
 import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus, TimesheetUpdate } from "@utils/types";
 
-const TimesheetDataGrid = () => {
+const EmployeeTimesheetView = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const handleOpenDialog = () => setOpenDialog(true);
@@ -345,7 +345,11 @@ const TimesheetDataGrid = () => {
       newErrors.clockOutTime = "Clock out time is required";
     }
 
-    if (editingEntry.clockInTime && editingEntry.clockOutTime && editingEntry.clockOutTime <= editingEntry.clockInTime) {
+    if (
+      editingEntry.clockInTime &&
+      editingEntry.clockOutTime &&
+      editingEntry.clockOutTime <= editingEntry.clockInTime
+    ) {
       newErrors.clockOutTime = "Clock out time must be after clock in time";
     }
 
@@ -611,4 +615,4 @@ const TimesheetDataGrid = () => {
     </Box>
   );
 };
-export default TimesheetDataGrid;
+export default EmployeeTimesheetView;
