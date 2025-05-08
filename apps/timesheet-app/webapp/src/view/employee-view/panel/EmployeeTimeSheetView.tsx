@@ -345,7 +345,7 @@ const TimesheetDataGrid = () => {
       newErrors.clockOutTime = "Clock out time is required";
     }
 
-    if (editingEntry.clockInTime && editingEntry.clockOutTime && editingEntry.clockOutTime < editingEntry.clockInTime) {
+    if (editingEntry.clockInTime && editingEntry.clockOutTime && editingEntry.clockOutTime <= editingEntry.clockInTime) {
       newErrors.clockOutTime = "Clock out time must be after clock in time";
     }
 

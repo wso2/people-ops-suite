@@ -61,6 +61,8 @@ public type TimeLogReviews record {|
 
 # Update type for the time log record.
 public type TimeLogUpdatePayload record {|
+    # Employee email
+    string employeeEmail;
     # Time log record id
     int recordId;
     # Record date

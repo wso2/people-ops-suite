@@ -273,8 +273,9 @@ isolated function updateTimeLogsQuery(TimeLogUpdatePayload[] payloadArray) retur
     sql:ParameterizedQuery[] updateQueries = [];
     foreach TimeLogUpdatePayload timeLog in payloadArray {
 
-        sql:ParameterizedQuery updateQuery = `UPDATE time_log SET`;
-        sql:ParameterizedQuery subQuery = `ts_updated_by = ${timeLog.updatedBy} WHERE ts_record_id = ${timeLog.recordId}`;
+        sql:ParameterizedQuery updateQuery = `UPDATE time_log SET `;
+        sql:ParameterizedQuery subQuery =
+            `,ts_updated_by = ${timeLog.updatedBy} WHERE ts_record_id = ${timeLog.recordId};`;
         sql:ParameterizedQuery[] updateFilters = [];
 
         if timeLog.clockInTime is string {
@@ -302,5 +303,8 @@ isolated function updateTimeLogsQuery(TimeLogUpdatePayload[] payloadArray) retur
         updateQuery = sql:queryConcat(updateQuery, subQuery);
         updateQueries.push(updateQuery);
     }
+    // foreach var query in updateQueries {
+    //     io:print("queries", query);
+    // }
     return updateQueries;
 }

@@ -153,11 +153,14 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
 
   const cleanTimeEntries = (entries: CreateUITimesheetRecord[]) => {
     return entries.map((entry) => {
-      const formattedRecordDate = entry.recordDate ? entry.recordDate.toISOString().split("T")[0] : "";
+      const formattedRecordDate = entry.recordDate ? new Date(entry.recordDate).toISOString().split("T")[0] : "";
 
       const formatTime = (dateTime: Date) => {
-        const date = new Date(dateTime);
-        return date.toISOString().split("T")[1].split(".")[0];
+        const d = new Date(dateTime);
+        const hours = String(d.getHours()).padStart(2, "0");
+        const minutes = String(d.getMinutes()).padStart(2, "0");
+        const seconds = String(d.getSeconds()).padStart(2, "0");
+        return `${hours}:${minutes}:${seconds}`;
       };
 
       return {
@@ -209,7 +212,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
 
   const validateEntry = (entry: CreateUITimesheetRecord): Record<string, string> => {
     const entryErrors: Record<string, string> = {};
-
     if (!entry.recordDate) {
       entryErrors.recordDate = "Date is required";
     }

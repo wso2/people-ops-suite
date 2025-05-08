@@ -115,13 +115,12 @@ public isolated function fetchOvertimeStats(string employeeEmail, string company
 # + payload - TimeLogUpdatePayload payload
 # + return - An error if occurred
 public isolated function updateTimeLogs(TimeLogUpdatePayload[] payload) returns int[]|error {
-
     sql:ExecutionResult[]|error executionResults = databaseClient->batchExecute(updateTimeLogsQuery(payload));
     if executionResults is error {
         return executionResults;
     }
 
     return from sql:ExecutionResult executionResult in executionResults
-        select check executionResult.lastInsertId.ensureType(int);
+        select check executionResult.affectedRowCount.ensureType(int);
 
 }
