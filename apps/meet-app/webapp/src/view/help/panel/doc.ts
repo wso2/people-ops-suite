@@ -1,22 +1,10 @@
-import { IMPORTANT_CONTACTS } from "@config/config";
+import { SUPPORT_TEAM_EMAILS } from "@config/config";
 
-function groupContactsByTeam(contacts: any[]) {
-    const teams: { [team: string]: { name: string; email: string }[] } = {};
-    contacts.forEach(({ name, email, team }) => {
-        if (!teams[team]) teams[team] = [];
-        teams[team].push({ name, email });
-    });
-    return teams;
-}
+let supportTeamEmails = "";
 
-let importantContactsMarkdown = "";
-const grouped = groupContactsByTeam(IMPORTANT_CONTACTS);
-for (const [team, members] of Object.entries(grouped)) {
-  const membersMarkdown = members
-    .map(member => `[**${member.name}**](mailto:${member.email})`)
-    .join(", ");
-    importantContactsMarkdown += `* ${membersMarkdown} from the ${team}\n`;
-}
+supportTeamEmails += SUPPORT_TEAM_EMAILS.map(
+    (contact) => `- **${contact.team}**: [${contact.email}](mailto:${contact.email})`
+).join("\n");
 
 let guide = `
 # **<font color="#FF7300">WSO2</font> Sales Meeting Scheduler User Guide**
@@ -129,4 +117,4 @@ The admins including team leads and leadership would be able to access all the r
 For any concerns, please reach out to:
 `
 
-export const doc = guide + importantContactsMarkdown;
+export const doc = guide + supportTeamEmails;
