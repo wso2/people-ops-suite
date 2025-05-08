@@ -64,43 +64,43 @@ isolated function updateWorkPolicyQuery(WorkPolicyUpdatePayload updateRecord)
 isolated function fetchTimeLogsQuery(TimeLogFilter filter) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery mainQuery = `
     SELECT
-        tr.ts_record_id AS recordId,
-        tr.ts_employee_email AS employeeEmail,
-        tr.ts_record_date AS recordDate,
-        tr.ts_clock_in AS clockInTime,
-        tr.ts_clock_out AS clockOutTime,
-        tr.ts_lunch_included AS isLunchIncluded,
-        tr.ts_ot_hours AS overtimeDuration,
-        tr.ts_ot_reason AS overtimeReason,
-        tr.ts_ot_rejection_reason AS overtimeRejectReason,
-        tr.ts_ot_status AS overtimeStatus
+        tr.record_id AS recordId,
+        tr.employee_email AS employeeEmail,
+        tr.record_date AS recordDate,
+        tr.clock_in AS clockInTime,
+        tr.clock_out AS clockOutTime,
+        tr.lunch_included AS isLunchIncluded,
+        tr.ot_hours AS overtimeDuration,
+        tr.ot_reason AS overtimeReason,
+        tr.ot_rejection_reason AS overtimeRejectReason,
+        tr.ot_status AS overtimeStatus
     FROM
         time_log tr
     `;
     sql:ParameterizedQuery[] filters = [];
     if filter.employeeEmail is string {
-        filters.push(sql:queryConcat(`tr.ts_employee_email = `, `${filter.employeeEmail}`));
+        filters.push(sql:queryConcat(`tr.employee_email = `, `${filter.employeeEmail}`));
     }
     if filter.recordDates is string[] {
-        filters.push(sql:queryConcat(`tr.ts_record_date IN (`, sql:arrayFlattenQuery(filter.recordDates ?: []), `)`));
+        filters.push(sql:queryConcat(`tr.record_date IN (`, sql:arrayFlattenQuery(filter.recordDates ?: []), `)`));
     }
     if filter.recordIds is int[] {
-        filters.push(sql:queryConcat(`tr.ts_record_id IN (`, sql:arrayFlattenQuery(filter.recordIds ?: []), `)`));
+        filters.push(sql:queryConcat(`tr.record_id IN (`, sql:arrayFlattenQuery(filter.recordIds ?: []), `)`));
     }
     if filter.status is TimeLogStatus {
-        filters.push(sql:queryConcat(`tr.ts_ot_status =  `, `${filter.status}`));
+        filters.push(sql:queryConcat(`tr.ot_status =  `, `${filter.status}`));
     }
     if filter.rangeStart is string {
-        filters.push(sql:queryConcat(`tr.ts_record_date >= ${filter.rangeStart}`));
+        filters.push(sql:queryConcat(`tr.record_date >= ${filter.rangeStart}`));
     }
     if filter.rangeEnd is string {
-        filters.push(sql:queryConcat(`tr.ts_record_date <= ${filter.rangeEnd}`));
+        filters.push(sql:queryConcat(`tr.record_date <= ${filter.rangeEnd}`));
     }
     if filter.leadEmail is string {
-        filters.push(sql:queryConcat(`tr.ts_lead_email =  `, `${filter.leadEmail}`));
+        filters.push(sql:queryConcat(`tr.lead_email =  `, `${filter.leadEmail}`));
     }
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
-    mainQuery = sql:queryConcat(mainQuery, `ORDER BY ts_record_date DESC`);
+    mainQuery = sql:queryConcat(mainQuery, `ORDER BY record_date DESC`);
     if filter.recordsLimit is int {
         mainQuery = sql:queryConcat(mainQuery, ` LIMIT ${filter.recordsLimit}`);
         if filter.recordOffset is int {
@@ -125,13 +125,13 @@ isolated function fetchTimeLogCountQuery(TimeLogFilter filter) returns sql:Param
     `;
     sql:ParameterizedQuery[] filters = [];
     if filter.employeeEmail is string {
-        filters.push(sql:queryConcat(`ts_employee_email = `, `${filter.employeeEmail}`));
+        filters.push(sql:queryConcat(`employee_email = `, `${filter.employeeEmail}`));
     }
     if filter.status is TimeLogStatus {
-        filters.push(sql:queryConcat(`ts_ot_status = `, `${filter.status}`));
+        filters.push(sql:queryConcat(`ot_status = `, `${filter.status}`));
     }
     if filter.leadEmail is string {
-        filters.push(sql:queryConcat(`ts_lead_email =  `, `${filter.leadEmail}`));
+        filters.push(sql:queryConcat(`lead_email =  `, `${filter.leadEmail}`));
     }
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
     return mainQuery;
@@ -148,18 +148,18 @@ let TimeLog {recordDate, clockInTime, clockOutTime, isLunchIncluded, overtimeDur
 overtimeStatus} = timesheetRecord
 select `
         INSERT INTO time_log (
-            ts_employee_email,
-            ts_record_date,
-            ts_company_name,
-            ts_clock_in,
-            ts_clock_out,
-            ts_lunch_included,
-            ts_ot_hours,
-            ts_ot_reason,
-            ts_lead_email,
-            ts_ot_status,
-            ts_created_by,
-            ts_updated_by
+            employee_email,
+            record_date,
+            company_name,
+            clock_in,
+            clock_out,
+            lunch_included,
+            ot_hours,
+            ot_reason,
+            lead_email,
+            ot_status,
+            created_by,
+            updated_by
         )
         VALUES (
             ${payload.employeeEmail},
@@ -187,22 +187,22 @@ isolated function fetchTimeLogStatsQuery(string? employeeEmail, string? leadEmai
     SELECT
         COALESCE(COUNT(*), 0) AS totalRecords,
         COALESCE(SUM(CASE
-                    WHEN ts_ot_status = ${PENDING} THEN 1
+                    WHEN ot_status = ${PENDING} THEN 1
                     ELSE 0
                 END),
                 0) AS pendingRecords,
         COALESCE(SUM(CASE
-                    WHEN ts_ot_status = ${REJECTED} THEN 1
+                    WHEN ot_status = ${REJECTED} THEN 1
                     ELSE 0
                 END),
                 0) AS rejectedRecords,
         COALESCE(SUM(CASE
-                    WHEN ts_ot_status = ${APPROVED} THEN 1
+                    WHEN ot_status = ${APPROVED} THEN 1
                     ELSE 0
                 END),
                 0) AS approvedRecords,
         COALESCE(SUM(CASE
-                    WHEN ts_ot_status IN (${PENDING}, ${APPROVED}) THEN ts_ot_hours
+                    WHEN ot_status IN (${PENDING}, ${APPROVED}) THEN ot_hours
                     ELSE 0
                 END),
                 0) AS totalOvertimeTaken
@@ -211,10 +211,10 @@ isolated function fetchTimeLogStatsQuery(string? employeeEmail, string? leadEmai
     `;
     sql:ParameterizedQuery[] filters = [];
     if employeeEmail is string {
-        filters.push(sql:queryConcat(`time_log.ts_employee_email = `, `${employeeEmail}`));
+        filters.push(sql:queryConcat(`time_log.employee_email = `, `${employeeEmail}`));
     }
     if leadEmail is string {
-        filters.push(sql:queryConcat(`time_log.ts_lead_email =  `, `${leadEmail}`));
+        filters.push(sql:queryConcat(`time_log.lead_email =  `, `${leadEmail}`));
     }
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
     return mainQuery;
@@ -232,7 +232,7 @@ isolated function fetchOvertimeStatsQuery(string employeeEmail, string companyNa
 `
     SELECT
         COALESCE(SUM(CASE
-                    WHEN ts_ot_status IN (${PENDING}, ${APPROVED}) THEN ts_ot_hours
+                    WHEN ot_status IN (${PENDING}, ${APPROVED}) THEN ot_hours
                     ELSE 0
                 END),
                 0) AS totalOvertimeTaken,
@@ -252,17 +252,17 @@ isolated function fetchOvertimeStatsQuery(string employeeEmail, string companyNa
                         company_name LIKE ${companyName}
                     LIMIT 1),
                 0) - COALESCE(SUM(CASE
-                    WHEN ts_ot_status IN (${PENDING}, ${APPROVED}) THEN ts_ot_hours
+                    WHEN ot_status IN (${PENDING}, ${APPROVED}) THEN ot_hours
                     ELSE 0
                 END),
                 0)) AS overtimeLeft
     FROM
         time_log
     WHERE
-        ts_record_date >= ${startDate}
-            AND ts_record_date <= ${endDate}
-            AND ts_company_name LIKE ${companyName}
-            AND ts_employee_email = ${employeeEmail};
+        record_date >= ${startDate}
+            AND record_date <= ${endDate}
+            AND company_name LIKE ${companyName}
+            AND employee_email = ${employeeEmail};
 `;
 
 # Query to update time logs.
@@ -275,36 +275,33 @@ isolated function updateTimeLogsQuery(TimeLogUpdatePayload[] payloadArray) retur
 
         sql:ParameterizedQuery updateQuery = `UPDATE time_log SET `;
         sql:ParameterizedQuery subQuery =
-            `,ts_updated_by = ${timeLog.updatedBy} WHERE ts_record_id = ${timeLog.recordId};`;
+            `,updated_by = ${timeLog.updatedBy} WHERE record_id = ${timeLog.recordId};`;
         sql:ParameterizedQuery[] updateFilters = [];
 
         if timeLog.clockInTime is string {
-            updateFilters.push(`ts_clock_in = ${timeLog.clockInTime}`);
+            updateFilters.push(`clock_in = ${timeLog.clockInTime}`);
         }
         if timeLog.clockOutTime is string {
-            updateFilters.push(`ts_clock_out = ${timeLog.clockOutTime}`);
+            updateFilters.push(`clock_out = ${timeLog.clockOutTime}`);
         }
         if timeLog.isLunchIncluded is int {
-            updateFilters.push(`ts_lunch_included = ${timeLog.isLunchIncluded}`);
+            updateFilters.push(`lunch_included = ${timeLog.isLunchIncluded}`);
         }
         if timeLog.overtimeDuration is decimal {
-            updateFilters.push(`ts_ot_hours = ${timeLog.overtimeDuration}`);
+            updateFilters.push(`ot_hours = ${timeLog.overtimeDuration}`);
         }
         if timeLog.overtimeReason is string {
-            updateFilters.push(`ts_ot_reason = ${timeLog.overtimeReason}`);
+            updateFilters.push(`ot_reason = ${timeLog.overtimeReason}`);
         }
         if timeLog.overtimeRejectReason is string {
-            updateFilters.push(`ts_ot_rejection_reason = ${timeLog.overtimeRejectReason}`);
+            updateFilters.push(`ot_rejection_reason = ${timeLog.overtimeRejectReason}`);
         }
         if timeLog.overtimeStatus is TimeLogStatus {
-            updateFilters.push(`ts_ot_status = ${timeLog.overtimeStatus}`);
+            updateFilters.push(`ot_status = ${timeLog.overtimeStatus}`);
         }
         updateQuery = buildSqlUpdateQuery(updateQuery, updateFilters);
         updateQuery = sql:queryConcat(updateQuery, subQuery);
         updateQueries.push(updateQuery);
     }
-    // foreach var query in updateQueries {
-    //     io:print("queries", query);
-    // }
     return updateQueries;
 }

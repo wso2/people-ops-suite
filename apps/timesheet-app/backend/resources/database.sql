@@ -22,23 +22,23 @@ CREATE TABLE
 
 CREATE TABLE
     time_log (
-        ts_record_id INT PRIMARY KEY AUTO_INCREMENT,
-        ts_employee_email VARCHAR(100) NOT NULL,
-        ts_record_date DATE NOT NULL,
-        ts_company_name VARCHAR(100) NULL,
-        ts_clock_in TIME NOT NULL,
-        ts_clock_out TIME NOT NULL,
-        ts_lunch_included INT DEFAULT 0,
-        ts_ot_hours DECIMAL(4, 2) DEFAULT 0.00,
-        ts_ot_reason TEXT,
-        ts_lead_email VARCHAR(100),
-        ts_ot_rejection_reason TEXT,
-        ts_ot_status ENUM ('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',
-        ts_created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        ts_created_by VARCHAR(100) NOT NULL,
-        ts_updated_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        ts_updated_by VARCHAR(100),
-        CONSTRAINT ts_fk_wp FOREIGN KEY (ts_company_name) REFERENCES work_policy (company_name) ON DELETE SET NULL
+        record_id INT PRIMARY KEY AUTO_INCREMENT,
+        employee_email VARCHAR(100) NOT NULL,
+        record_date DATE NOT NULL,
+        company_name VARCHAR(100) NULL,
+        clock_in TIME NOT NULL,
+        clock_out TIME NOT NULL,
+        lunch_included INT DEFAULT 0,
+        ot_hours DECIMAL(4, 2) DEFAULT 0.00,
+        ot_reason TEXT,
+        lead_email VARCHAR(100),
+        ot_rejection_reason TEXT,
+        ot_status ENUM ('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',
+        created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_by VARCHAR(100) NOT NULL,
+        updated_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        updated_by VARCHAR(100),
+        CONSTRAINT fk_wp FOREIGN KEY (company_name) REFERENCES work_policy (company_name) ON DELETE SET NULL
     );
 
 -- Sample data for work_policy
@@ -53,14 +53,7 @@ INSERT INTO
     )
 VALUES
     ("WSO2 - INDIA", 200, 8.00, 1.00, 'admin', 'admin'),
-    (
-        "WSO2 - USA",
-        150,
-        7.50,
-        0.50,
-        'admin',
-        'admin'
-    ),
+    ("WSO2 - USA", 150, 7.50, 0.50, 'admin', 'admin'),
     ("WSO2 - UK", 250, 8.50, 1.00, 'admin', 'admin'),
     (
         "WSO2 - BRAZIL",
