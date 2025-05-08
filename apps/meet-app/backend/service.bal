@@ -311,7 +311,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + meetingId - meetingId to get attachments 
     # + return - Attachments|Error
-    resource isolated function get meetings/[int meetingId]/attachments(http:RequestContext ctx)
+    resource function get meetings/[int meetingId]/attachments(http:RequestContext ctx)
         returns AttachmentListResponse|http:InternalServerError|http:Forbidden {
 
         // User information header.
