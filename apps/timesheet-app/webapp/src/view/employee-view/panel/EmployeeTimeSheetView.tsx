@@ -58,25 +58,58 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { CustomModal } from "@component/common/CustomComponentModal";
 import { differenceInMinutes, format, isWeekend, parseISO } from "date-fns";
 import NoDataView, { NoDataViewFunction } from "@component/common/NoDataView";
-import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
-import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecord } from "@slices/recordSlice/record";
-import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus, TimesheetUpdate } from "@utils/types";
+import {
+  DatePicker,
+  LocalizationProvider,
+  TimePicker,
+} from "@mui/x-date-pickers";
+import {
+  fetchTimesheetRecords,
+  resetTimesheetRecords,
+  updateTimesheetRecord,
+} from "@slices/recordSlice/record";
+import {
+  Filter,
+  State,
+  statusChipStyles,
+  TimesheetRecord,
+  TimesheetStatus,
+  TimesheetUpdate,
+} from "@utils/types";
 
-const EmployeeTimesheetView = () => {
+const EmployeeTimeSheetView = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const handleOpenDialog = () => setOpenDialog(true);
   const [openDialog, setOpenDialog] = useState(false);
   const userEmail = useAppSelector((state) => state.auth.userInfo?.email);
-  const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
-  const [errors, setErrors] = useState<Partial<Record<keyof TimesheetRecord, string>>>({});
-  const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
-  const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
-  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs || []);
-  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetStats);
-  const regularLunchHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.lunchHoursPerDay);
-  const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
-  const regularWorkHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.workingHoursPerDay);
+  const workPolicies = useAppSelector(
+    (state) => state.user.userInfo?.workPolicies
+  );
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof TimesheetRecord, string>>
+  >({});
+  const recordLoadingState = useAppSelector(
+    (state) => state.timesheetRecord.retrievingState
+  );
+  const timesheetLoadingInfo = useAppSelector(
+    (state) => state.timesheetRecord.retrievingState
+  );
+  const records = useAppSelector(
+    (state) => state.timesheetRecord.timesheetData?.timeLogs || []
+  );
+  const timesheetInfo = useAppSelector(
+    (state) => state.timesheetRecord.timesheetData?.timesheetStats
+  );
+  const regularLunchHoursPerDay = useAppSelector(
+    (state) => state.user.userInfo?.workPolicies.lunchHoursPerDay
+  );
+  const totalRecordCount = useAppSelector(
+    (state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0
+  );
+  const regularWorkHoursPerDay = useAppSelector(
+    (state) => state.user.userInfo?.workPolicies.workingHoursPerDay
+  );
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: DEFAULT_PAGE_SIZE,
@@ -125,8 +158,13 @@ const EmployeeTimesheetView = () => {
       flex: 0.3,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row" alignItems="center" gap={1}>
-          <LunchDiningIcon fontSize="small" color={params.row.isLunchIncluded ? "success" : "error"} />
-          <Typography variant="body2">{params.row.isLunchIncluded ? "Yes" : "No"}</Typography>
+          <LunchDiningIcon
+            fontSize="small"
+            color={params.row.isLunchIncluded ? "success" : "error"}
+          />
+          <Typography variant="body2">
+            {params.row.isLunchIncluded ? "Yes" : "No"}
+          </Typography>
         </Stack>
       ),
     },
@@ -135,7 +173,9 @@ const EmployeeTimesheetView = () => {
       headerName: "Overtime",
       flex: 2,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
+        <Box
+          sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}
+        >
           {params.row.overtimeDuration > 0 && (
             <Chip
               label={`${params.row.overtimeDuration}h`}
@@ -172,10 +212,13 @@ const EmployeeTimesheetView = () => {
       flex: 1,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Chip
-          icon={statusChipStyles[params.row.overtimeStatus as TimesheetStatus].icon}
+          icon={
+            statusChipStyles[params.row.overtimeStatus as TimesheetStatus].icon
+          }
           label={params.row.overtimeStatus}
           color={
-            statusChipStyles[params.row.overtimeStatus as TimesheetStatus].color as "success" | "error" | "warning"
+            statusChipStyles[params.row.overtimeStatus as TimesheetStatus]
+              .color as "success" | "error" | "warning"
           }
           variant="outlined"
           size="small"
@@ -220,7 +263,12 @@ const EmployeeTimesheetView = () => {
           {params.row.overtimeStatus === TimesheetStatus.PENDING && (
             <Tooltip title="Edit">
               <span>
-                <IconButton size="small" color="primary" onClick={() => openEditDialog(params.row)} sx={{ mr: 1 }}>
+                <IconButton
+                  size="small"
+                  color="primary"
+                  onClick={() => openEditDialog(params.row)}
+                  sx={{ mr: 1 }}
+                >
                   <EditIcon fontSize="small" />
                 </IconButton>
               </span>
@@ -232,7 +280,12 @@ const EmployeeTimesheetView = () => {
   ];
 
   const availableFields = [
-    { field: "status", label: "Status", type: "select", options: Object.values(TimesheetStatus) },
+    {
+      field: "status",
+      label: "Status",
+      type: "select",
+      options: Object.values(TimesheetStatus),
+    },
     { field: "rangeStart", label: "Start Date", type: "date" },
     { field: "rangeEnd", label: "End Date", type: "date" },
   ];
@@ -293,7 +346,14 @@ const EmployeeTimesheetView = () => {
         ...editingEntry,
         [field]: value,
       };
-      if (["recordDate", "clockInTime", "clockOutTime", "isLunchIncluded"].includes(field)) {
+      if (
+        [
+          "recordDate",
+          "clockInTime",
+          "clockOutTime",
+          "isLunchIncluded",
+        ].includes(field)
+      ) {
         setEditingEntry(calculateOvertime(updatedEntry));
       } else {
         setEditingEntry(updatedEntry);
@@ -302,19 +362,30 @@ const EmployeeTimesheetView = () => {
   };
 
   const calculateOvertime = (entry: TimesheetRecord): TimesheetRecord => {
-    if (!(entry.clockInTime && entry.clockOutTime && entry.recordDate)) return entry;
+    if (!(entry.clockInTime && entry.clockOutTime && entry.recordDate))
+      return entry;
 
-    const totalMinutes = differenceInMinutes(entry.clockOutTime, entry.clockInTime);
-    const lunchBreakMinutes = entry.isLunchIncluded ? (regularLunchHoursPerDay ?? 0) * 60 : 0;
+    const totalMinutes = differenceInMinutes(
+      entry.clockOutTime,
+      entry.clockInTime
+    );
+    const lunchBreakMinutes = entry.isLunchIncluded
+      ? (regularLunchHoursPerDay ?? 0) * 60
+      : 0;
     const regularWorkMinutes = (regularWorkHoursPerDay ?? 8) * 60;
     const workMinutes = Math.max(0, totalMinutes - lunchBreakMinutes);
-    const overtimeMinutes = isWeekend(entry.recordDate) ? totalMinutes : Math.max(0, workMinutes - regularWorkMinutes);
+    const overtimeMinutes = isWeekend(entry.recordDate)
+      ? totalMinutes
+      : Math.max(0, workMinutes - regularWorkMinutes);
 
     return {
       ...entry,
       overtimeDuration: parseFloat((overtimeMinutes / 60).toFixed(2)),
       overtimeReason:
-        overtimeMinutes > 0 ? entry.overtimeReason ?? (isWeekend(entry.recordDate) ? "Weekend work" : "") : "",
+        overtimeMinutes > 0
+          ? entry.overtimeReason ??
+            (isWeekend(entry.recordDate) ? "Weekend work" : "")
+          : "",
     };
   };
 
@@ -354,13 +425,15 @@ const EmployeeTimesheetView = () => {
     }
 
     if (editingEntry.overtimeDuration > 0 && !editingEntry.overtimeReason) {
-      newErrors.overtimeReason = "Overtime reason is required when there is overtime";
+      newErrors.overtimeReason =
+        "Overtime reason is required when there is overtime";
     }
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    const { overtimeStatus, overtimeRejectReason, ...entryWithoutStatus } = editingEntry;
+    const { overtimeStatus, overtimeRejectReason, ...entryWithoutStatus } =
+      editingEntry;
 
     const formattedEntry: TimesheetUpdate = {
       ...entryWithoutStatus,
@@ -399,11 +472,20 @@ const EmployeeTimesheetView = () => {
           <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
             {timesheetInfo && workPolicies && (
               <Box sx={{ width: "100%", height: "auto" }}>
-                <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} />
+                <InformationHeader
+                  timesheetInfo={timesheetInfo}
+                  workPolicies={workPolicies}
+                />
               </Box>
             )}
 
-            <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="right"
+              mb={1}
+              spacing={1}
+            >
               <FilterComponent
                 availableFields={availableFields}
                 filters={filters}
@@ -457,7 +539,10 @@ const EmployeeTimesheetView = () => {
                     quickFilterProps: { debounceMs: 500 },
                   },
                   noRowsOverlay: {
-                    message: filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter,
+                    message:
+                      filters.length > 0
+                        ? Messages.info.noRecords
+                        : Messages.info.useFilter,
                     type: "search",
                   } as any,
                 }}
@@ -502,7 +587,12 @@ const EmployeeTimesheetView = () => {
               <SubmitRecordModal onClose={handleCloseDialog} />
             </CustomModal>
 
-            <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
+            <Dialog
+              open={editDialogOpen}
+              onClose={() => setEditDialogOpen(false)}
+              maxWidth="md"
+              fullWidth
+            >
               <DialogTitle>Edit Time Entry</DialogTitle>
               <DialogContent>
                 {editingEntry && (
@@ -512,7 +602,9 @@ const EmployeeTimesheetView = () => {
                         label="Date"
                         value={editingEntry.recordDate}
                         disabled
-                        onChange={(newDate) => handleEditFieldChange("recordDate", newDate)}
+                        onChange={(newDate) =>
+                          handleEditFieldChange("recordDate", newDate)
+                        }
                         slotProps={{
                           textField: {
                             fullWidth: true,
@@ -527,8 +619,16 @@ const EmployeeTimesheetView = () => {
                       <FormControlLabel
                         control={
                           <Switch
-                            checked={editingEntry.isLunchIncluded === 1 || editingEntry.isLunchIncluded === true}
-                            onChange={(e) => handleEditFieldChange("isLunchIncluded", e.target.checked ? 1 : 0)}
+                            checked={
+                              editingEntry.isLunchIncluded === 1 ||
+                              editingEntry.isLunchIncluded === true
+                            }
+                            onChange={(e) =>
+                              handleEditFieldChange(
+                                "isLunchIncluded",
+                                e.target.checked ? 1 : 0
+                              )
+                            }
                             name="isLunchIncluded"
                             color="primary"
                           />
@@ -540,7 +640,9 @@ const EmployeeTimesheetView = () => {
                       <TimePicker
                         label="Clock In"
                         value={editingEntry.clockInTime}
-                        onChange={(newTime) => handleEditFieldChange("clockInTime", newTime)}
+                        onChange={(newTime) =>
+                          handleEditFieldChange("clockInTime", newTime)
+                        }
                         slotProps={{
                           textField: {
                             fullWidth: true,
@@ -555,7 +657,9 @@ const EmployeeTimesheetView = () => {
                       <TimePicker
                         label="Clock Out"
                         value={editingEntry.clockOutTime}
-                        onChange={(newTime) => handleEditFieldChange("clockOutTime", newTime)}
+                        onChange={(newTime) =>
+                          handleEditFieldChange("clockOutTime", newTime)
+                        }
                         slotProps={{
                           textField: {
                             fullWidth: true,
@@ -571,7 +675,12 @@ const EmployeeTimesheetView = () => {
                         <TextField
                           label="Overtime Reason"
                           value={editingEntry.overtimeReason}
-                          onChange={(e) => handleEditFieldChange("overtimeReason", e.target.value)}
+                          onChange={(e) =>
+                            handleEditFieldChange(
+                              "overtimeReason",
+                              e.target.value
+                            )
+                          }
                           error={!!errors.overtimeReason}
                           helperText={errors.overtimeReason}
                           variant="outlined"
@@ -579,10 +688,13 @@ const EmployeeTimesheetView = () => {
                           multiline
                           required={editingEntry.overtimeDuration > 0}
                           InputProps={{
-                            startAdornment: editingEntry.overtimeDuration > 0 && (
+                            startAdornment: editingEntry.overtimeDuration >
+                              0 && (
                               <InputAdornment position="start">
                                 <Chip
-                                  label={`OT: ${editingEntry.overtimeDuration.toFixed(2)} hrs`}
+                                  label={`OT: ${editingEntry.overtimeDuration.toFixed(
+                                    2
+                                  )} hrs`}
                                   color="primary"
                                   size="small"
                                 />
@@ -604,7 +716,12 @@ const EmployeeTimesheetView = () => {
                 >
                   Cancel
                 </Button>
-                <Button onClick={handleSaveEditedEntry} color="primary" startIcon={<SaveIcon />} variant="contained">
+                <Button
+                  onClick={handleSaveEditedEntry}
+                  color="primary"
+                  startIcon={<SaveIcon />}
+                  variant="contained"
+                >
                   Save Changes
                 </Button>
               </DialogActions>
@@ -615,4 +732,4 @@ const EmployeeTimesheetView = () => {
     </Box>
   );
 };
-export default EmployeeTimesheetView;
+export default EmployeeTimeSheetView;

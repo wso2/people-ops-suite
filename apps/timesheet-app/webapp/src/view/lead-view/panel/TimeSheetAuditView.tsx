@@ -47,29 +47,63 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import InformationHeader from "@component/common/InformationHeader";
 import { useConfirmationModalContext } from "@context/DialogContext";
 import NoDataView, { NoDataViewFunction } from "@component/common/NoDataView";
-import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton, Avatar } from "@mui/material";
-import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
+import {
+  Box,
+  Chip,
+  Stack,
+  Paper,
+  Button,
+  Tooltip,
+  useTheme,
+  Typography,
+  IconButton,
+  Avatar,
+} from "@mui/material";
+import {
+  fetchTimesheetRecords,
+  resetTimesheetRecords,
+  updateTimesheetRecords,
+} from "@slices/recordSlice/record";
 
-const TimesheetAuditView = () => {
+const TimeSheetAuditView = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const dialogContext = useConfirmationModalContext();
   const leadEmail = useAppSelector((state) => state.auth.userInfo?.email);
   const employeeMap = useAppSelector((state) => state.meteInfo.employeeMap);
-  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
-  const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
-  const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
-  const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
-  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs || []);
-  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetStats);
-  const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
+  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>(
+    []
+  );
+  const workPolicies = useAppSelector(
+    (state) => state.user.userInfo?.workPolicies
+  );
+  const recordLoadingState = useAppSelector(
+    (state) => state.timesheetRecord.retrievingState
+  );
+  const timesheetLoadingInfo = useAppSelector(
+    (state) => state.timesheetRecord.retrievingState
+  );
+  const records = useAppSelector(
+    (state) => state.timesheetRecord.timesheetData?.timeLogs || []
+  );
+  const timesheetInfo = useAppSelector(
+    (state) => state.timesheetRecord.timesheetData?.timesheetStats
+  );
+  const totalRecordCount = useAppSelector(
+    (state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0
+  );
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: DEFAULT_PAGE_SIZE,
   });
   const [filters, setFilters] = useState<Filter[]>([]);
   const availableFields = [
-    { field: "status", label: "Status", type: "select", options: Object.values(TimesheetStatus) },
+    {
+      field: "status",
+      label: "Status",
+      type: "select",
+      options: Object.values(TimesheetStatus),
+    },
     { field: "employeeEmail", label: "Employee Email", type: "text" },
     { field: "rangeStart", label: "Start Date", type: "date" },
     { field: "rangeEnd", label: "End Date", type: "date" },
@@ -89,7 +123,10 @@ const TimesheetAuditView = () => {
         <Box display="flex" alignItems="center" position="relative">
           <Avatar
             src={employeeMap[params.row?.employeeEmail]?.employeeThumbnail}
-            alt={employeeMap[params.row?.employeeEmail]?.employeeName || params.row?.employeeEmail}
+            alt={
+              employeeMap[params.row?.employeeEmail]?.employeeName ||
+              params.row?.employeeEmail
+            }
             sx={{ marginRight: 2, height: "2.2rem", width: "2.2rem" }}
           />
           <Box
@@ -105,7 +142,8 @@ const TimesheetAuditView = () => {
             }}
           >
             <Typography variant="body2">
-              {employeeMap[params.row?.employeeEmail]?.employeeName || params.row?.employeeEmail}
+              {employeeMap[params.row?.employeeEmail]?.employeeName ||
+                params.row?.employeeEmail}
             </Typography>
             <Box
               sx={{
@@ -178,8 +216,13 @@ const TimesheetAuditView = () => {
       flex: 0.5,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row" alignItems="center" gap={1}>
-          <LunchDiningIcon fontSize="small" color={params.row.isLunchIncluded ? "success" : "error"} />
-          <Typography variant="body2">{params.row.isLunchIncluded ? "Yes" : "No"}</Typography>
+          <LunchDiningIcon
+            fontSize="small"
+            color={params.row.isLunchIncluded ? "success" : "error"}
+          />
+          <Typography variant="body2">
+            {params.row.isLunchIncluded ? "Yes" : "No"}
+          </Typography>
         </Stack>
       ),
     },
@@ -214,10 +257,13 @@ const TimesheetAuditView = () => {
       flex: 1,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Chip
-          icon={statusChipStyles[params.row.overtimeStatus as TimesheetStatus].icon}
+          icon={
+            statusChipStyles[params.row.overtimeStatus as TimesheetStatus].icon
+          }
           label={params.row.overtimeStatus}
           color={
-            statusChipStyles[params.row.overtimeStatus as TimesheetStatus].color as "success" | "error" | "warning"
+            statusChipStyles[params.row.overtimeStatus as TimesheetStatus]
+              .color as "success" | "error" | "warning"
           }
           variant="outlined"
           size="small"
@@ -253,7 +299,10 @@ const TimesheetAuditView = () => {
                 size="small"
                 color="info"
                 onClick={() => handleApproveRecords(params.row.recordId)}
-                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
+                disabled={
+                  params.row.overtimeStatus !== TimesheetStatus.PENDING ||
+                  selectionModel.length > 1
+                }
                 sx={{ mr: 1 }}
               >
                 <ThumbUpIcon fontSize="small" />
@@ -265,7 +314,10 @@ const TimesheetAuditView = () => {
               <IconButton
                 size="small"
                 color="error"
-                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
+                disabled={
+                  params.row.overtimeStatus !== TimesheetStatus.PENDING ||
+                  selectionModel.length > 1
+                }
                 onClick={() => handleDeclineRecords(params.row.recordId)}
               >
                 <ThumbDownIcon fontSize="small" />
@@ -331,8 +383,15 @@ const TimesheetAuditView = () => {
     );
   };
 
-  const handleUpdateRecords = async (status: TimesheetStatus, recordId?: number, comment?: string) => {
-    const recordIds = selectionModel.length > 1 ? selectionModel.map((id) => id as number) : [recordId as number];
+  const handleUpdateRecords = async (
+    status: TimesheetStatus,
+    recordId?: number,
+    comment?: string
+  ) => {
+    const recordIds =
+      selectionModel.length > 1
+        ? selectionModel.map((id) => id as number)
+        : [recordId as number];
 
     const payload: TimeLogReview = {
       recordIds,
@@ -346,7 +405,9 @@ const TimesheetAuditView = () => {
 
   const fetchData = async () => {
     if (!leadEmail) return;
-    const filterParams = Object.fromEntries(filters.map(({ field, value }) => [field, value]));
+    const filterParams = Object.fromEntries(
+      filters.map(({ field, value }) => [field, value])
+    );
 
     dispatch(
       fetchTimesheetRecords({
@@ -386,11 +447,21 @@ const TimesheetAuditView = () => {
           <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
             {timesheetInfo && workPolicies && (
               <Box sx={{ width: "100%", height: "auto" }}>
-                <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} isLeadView={true} />
+                <InformationHeader
+                  timesheetInfo={timesheetInfo}
+                  workPolicies={workPolicies}
+                  isLeadView={true}
+                />
               </Box>
             )}
 
-            <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="right"
+              mb={1}
+              spacing={1}
+            >
               <FilterComponent
                 availableFields={availableFields}
                 filters={filters}
@@ -456,7 +527,10 @@ const TimesheetAuditView = () => {
                     quickFilterProps: { debounceMs: 500 },
                   },
                   noRowsOverlay: {
-                    message: filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter,
+                    message:
+                      filters.length > 0
+                        ? Messages.info.noRecords
+                        : Messages.info.useFilter,
                     type: "search",
                   } as any,
                 }}
@@ -502,4 +576,4 @@ const TimesheetAuditView = () => {
     </Box>
   );
 };
-export default TimesheetAuditView;
+export default TimeSheetAuditView;
