@@ -15,9 +15,9 @@
 // under the License.
 
 import React from "react";
-import { View } from "./view/index";
+import { View } from "@view/index";
 import { Roles } from "@utils/types";
-import { isIncludedRole } from "./utils/utils";
+import { isIncludedRole } from "@utils/utils";
 import Groups3Icon from "@mui/icons-material/Groups3";
 import LeaderboardIcon from "@mui/icons-material/Leaderboard";
 import { RouteObject, NonIndexRouteObject } from "react-router-dom";
