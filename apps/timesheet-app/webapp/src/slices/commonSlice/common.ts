@@ -39,7 +39,7 @@ export const CommonSlice = createSlice({
       state,
       action: PayloadAction<{
         message: string;
-        type: "success" | "error" | "warning";
+        type: "success" | "error" | "warning" | "info";
       }>
     ) => {
       state.message = action.payload.message;

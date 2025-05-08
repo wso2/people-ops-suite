@@ -15,21 +15,23 @@
 // under the License.
 
 import authReducer from "./authSlice";
+import { enableMapSet } from "immer";
+import metaReducer from "./metaSlice/meta";
 import userReducer from "./userSlice/user";
 import commonReducer from "./commonSlice/common";
-import collectionReducer from "@slices/collectionSlice/collection";
-import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
-import { enableMapSet } from "immer";
+import timesheetRecordReducer from "@slices/recordSlice/record";
+import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 
 enableMapSet();
 
 export const store = configureStore({
   reducer: {
-    collection: collectionReducer,
     auth: authReducer,
     user: userReducer,
     common: commonReducer,
+    meteInfo: metaReducer,
+    timesheetRecord: timesheetRecordReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

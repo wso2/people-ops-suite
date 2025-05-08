@@ -16,7 +16,7 @@
 
 import Grid from "@mui/material/Grid";
 import { Container, alpha, Paper, useTheme } from "@mui/material";
-import { ErrorHandlerProps } from "../../types/types";
+import { ErrorHandlerProps } from "@utils/types";
 import StateWithImage from "@component/ui/StateWithImage";
 
 const ErrorHandler = (props: ErrorHandlerProps) => {

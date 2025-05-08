@@ -15,26 +15,16 @@
 // under the License.
 
 import React from "react";
-import Typography from "@mui/material/Typography";
-import Toolbar from "@mui/material/Toolbar";
-import {
-  AppBar,
-  Avatar,
-  Box,
-  Menu,
-  MenuItem,
-  Stack,
-  Tooltip,
-} from "@mui/material";
-import { useAppAuthContext } from "@context/AuthContext";
 import { APP_NAME } from "@config/config";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import { useAppAuthContext } from "@context/AuthContext";
 import { RootState, useAppSelector } from "@slices/store";
+import { alpha, AppBar, Avatar, Box, Menu, MenuItem, Stack, Tooltip } from "@mui/material";
 
 const Header = () => {
   const authContext = useAppAuthContext();
-  const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(
-    null
-  );
+  const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
   const user = useAppSelector((state: RootState) => state.user);
 
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -52,10 +42,7 @@ const Header = () => {
         zIndex: (theme) => theme.zIndex.drawer + 1,
         color: "black",
 
-        background: (theme) =>
-          theme.palette.mode === "light"
-            ? theme.palette.common.white
-            : "#0d0d0d",
+        background: (theme) => (theme.palette.mode === "light" ? theme.palette.common.white : "#0d0d0d"),
         boxShadow: 1,
       }}
     >
@@ -84,61 +71,66 @@ const Header = () => {
             flexGrow: 1,
             fontWeight: 600,
           }}
+          color="primary"
         >
           {APP_NAME}
         </Typography>
 
         <Box sx={{ flexGrow: 0 }}>
-          {user.userInfo?.employeeThumbnail && (
-            <>
-              <Stack flexDirection={"row"} alignItems={"center"} gap={2}>
-                <Box>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                    {user.userInfo?.firstName + " " + user.userInfo.lastName}
-                  </Typography>
-                  <Typography variant="body2">
-                    {user.userInfo?.jobRole}
-                  </Typography>
-                </Box>
-                <Tooltip title="Open settings">
-                  <Avatar
-                    onClick={handleOpenUserMenu}
-                    sx={{ border: 1, borderColor: "primary.main" }}
-                    src={user.userInfo?.employeeThumbnail || ""}
-                    alt={user.userInfo?.firstName || "Avatar"}
-                  >
-                    {user.userInfo?.firstName?.charAt(0)}
-                  </Avatar>
-                </Tooltip>
-              </Stack>
-
-              <Menu
-                sx={{ mt: "45px" }}
-                id="menu-appbar"
-                anchorEl={anchorElUser}
-                anchorOrigin={{
-                  vertical: "top",
-                  horizontal: "right",
-                }}
-                keepMounted
-                transformOrigin={{
-                  vertical: "top",
-                  horizontal: "right",
-                }}
-                open={Boolean(anchorElUser)}
-                onClose={handleCloseUserMenu}
-              >
-                <MenuItem
-                  key={"logout"}
-                  onClick={() => {
-                    authContext.appSignOut();
+          <>
+            <Stack flexDirection={"row"} alignItems={"center"} gap={2}>
+              <Box>
+                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                  {user.userInfo?.employeeInfo.firstName + " " + user.userInfo?.employeeInfo.lastName}
+                </Typography>
+                <Typography variant="body2">{user.userInfo?.jobRole}</Typography>
+              </Box>
+              <Tooltip title="Open settings">
+                <Avatar
+                  onClick={handleOpenUserMenu}
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    boxShadow: (theme) =>
+                      `0 0 0 2px ${theme.palette.background.paper}, 0 0 0 4px ${alpha(
+                        theme.palette.primary.main,
+                        0.3
+                      )}`,
                   }}
+                  src={user.userInfo?.employeeInfo.employeeThumbnail || ""}
+                  alt={user.userInfo?.employeeInfo.firstName || "Avatar"}
                 >
-                  <Typography textAlign="center">Logout</Typography>
-                </MenuItem>
-              </Menu>
-            </>
-          )}
+                  {user.userInfo?.employeeInfo.firstName?.charAt(0)}
+                </Avatar>
+              </Tooltip>
+            </Stack>
+
+            <Menu
+              sx={{ mt: "45px" }}
+              id="menu-appbar"
+              anchorEl={anchorElUser}
+              anchorOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+              open={Boolean(anchorElUser)}
+              onClose={handleCloseUserMenu}
+            >
+              <MenuItem
+                key={"logout"}
+                onClick={() => {
+                  authContext.appSignOut();
+                }}
+              >
+                <Typography textAlign="center">Logout</Typography>
+              </MenuItem>
+            </Menu>
+          </>
         </Box>
       </Toolbar>
     </AppBar>

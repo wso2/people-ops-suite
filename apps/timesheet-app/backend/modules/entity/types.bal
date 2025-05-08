@@ -36,9 +36,8 @@ public type GraphQlRetryConfig record {|
     decimal maxWaitInterval = RETRY_MAX_INTERVAL;
 |};
 
-// Get employee graphQL service Responses.
 # Employee.
-public type Employee record {
+public type Employee record {|
     # Id of the employee
     string employeeId;
     # Email of the employee
@@ -50,8 +49,28 @@ public type Employee record {
     # Job role
     string jobRole;
     # Thumbnail of the employee
-    string employeeThumbnail;
-};
+    string? employeeThumbnail;
+    # Lead status
+    boolean lead;
+    # Company of the employee
+    string company;
+    # Manager of the employee
+    string managerEmail;
+|};
+
+# Basic employee information.
+public type EmployeeBasic record {|
+    # First name of the employee
+    string firstName;
+    # Last name of the employee
+    string lastName;
+    # Email of the employee
+    string workEmail;
+    # Thumbnail of the employee
+    string? employeeThumbnail = ();
+    # Manager of the employee
+    string? managerEmail = ();
+|};
 
 # Employee data.
 type EmployeeData record {
@@ -64,3 +83,50 @@ type EmployeeResponse record {
     # Employee data
     EmployeeData data;
 };
+
+# Employees data.
+type EmployeesData record {
+    # Array of employees
+    EmployeeBasic[] employees;
+};
+
+# Employees response.
+type EmployeesResponse record {
+    # Employees data
+    EmployeesData data;
+};
+
+# The EmployeeFilter record type represents the filter criteria for the employees.
+public type EmployeeFilter record {|
+    # The employee statuses
+    string[]? employeeStatus?;
+    # The employment types
+    string[]? employmentType?;
+    # The email
+    string? email?;
+    # The manager email
+    string? managerEmail?;
+|};
+
+# The EmployeeStatus represents the status of an employee.
+public enum EmployeeStatus {
+    EmployeeStatusMarkedLeaver = "Marked leaver",
+    EmployeeStatusActive = "Active",
+    EmployeeStatusLeft = "Left"
+}
+
+# The EmploymentType represents the employment type of an employee.
+public enum EmploymentType {
+    ADVISORY\ CONSULTANT,
+    CONSULTANCY,
+    INTERNSHIP,
+    PART\ TIME\ CONSULTANCY,
+    PERMANENT,
+    PROBATION
+}
+
+# Constant type for the cached employees.
+const CACHE_EMPLOYEES = "CACHE_EMPLOYEES";
+
+# Constant type for the cached employee.
+const CACHE_EMPLOYEE = "CACHE_EMPLOYEE";

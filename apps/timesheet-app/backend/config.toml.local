@@ -1,27 +1,31 @@
-[sample_app.entity]
-    hrEntityBaseUrl = ""
-    [sample_app.entity.oauthConfig]
-        tokenUrl = ""
-        clientId = ""
-        clientSecret = ""
+[timesheet_app.entity]
+    hrEntityBaseUrl =
+    employeeTypes = []
+    allowedEmployeeStatusTypes = []
+    [timesheet_app.entity.oauthConfig]
+        tokenUrl =
+        clientId =
+        clientSecret =
 
-    [sample_app.entity.retryConfig]
-        count = 
-        interval = 
-        backOffFactor = 
-        maxWaitInterval = 
 
-[sample_app.database.databaseConfig]
-    host = ""
-    user = ""
-    password = ""
-    database = ""
-    port = 
-    [sample_app.database.databaseConfig.connectionPool]
-        maxOpenConnections = 
-        maxConnectionLifeTime = 
-        minIdleConnections= 
+    [timesheet_app.entity.retryConfig]
+        count =
+        interval =
+        backOffFactor =
+        maxWaitInterval =
 
-[sample_app.authorization.authorizedRoles]
-    employeeRole  = ""
-    headPeopleOperationsRole = ""
+[timesheet_app.database.databaseConfig]
+    host =
+    user =
+    password =
+    database =
+    port =
+
+    [timesheet_app.database.databaseConfig.connectionPool]
+        maxOpenConnections =
+        maxConnectionLifeTime =
+        minIdleConnections =
+
+[timesheet_app.authorization.authorizedRoles]
+employeeRole =
+adminRole =

@@ -15,8 +15,10 @@
 // under the License.
 
 import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
-import { State } from "src/types/types";
-export type stateType = "failed" | "success" | "loading" | "idle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import PendingIcon from "@mui/icons-material/Pending";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import React from "react";
 
 export interface AuthState {
   status: State;
@@ -25,7 +27,6 @@ export interface AuthState {
   isAuthenticated: boolean;
   userInfo: BasicUserInfo | null;
   decodedIdToken: DecodedIDTokenPayload | null;
-  roles: string[];
 }
 
 export interface AuthData {
@@ -51,4 +52,148 @@ export interface Header {
 export enum ThemeMode {
   Light = "light",
   Dark = "dark",
+}
+
+export interface PreLoaderProps {
+  message: string | null;
+  hideLogo?: boolean;
+  isLoading?: boolean;
+}
+
+export interface ErrorHandlerProps {
+  message: string | null;
+}
+
+export enum State {
+  failed = "failed",
+  success = "success",
+  loading = "loading",
+  idle = "idle",
+}
+
+export enum ConfirmationType {
+  update = "update",
+  send = "send",
+  upload = "upload",
+  accept = "accept",
+}
+
+export enum Roles {
+  ADMIN = "ADMIN",
+  EMPLOYEE = "EMPLOYEE",
+  LEAD = "LEAD",
+}
+
+export enum TimesheetStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+}
+
+export interface TimesheetRecord {
+  recordId: number;
+  employeeEmail: string;
+  recordDate: number;
+  companyName: string;
+  clockInTime: number;
+  clockOutTime: number;
+  isLunchIncluded: boolean;
+  overtimeDuration: number;
+  overtimeReason: string | null;
+  leadEmail: string;
+  overtimeRejectReason: string | null;
+  overtimeStatus: TimesheetStatus;
+}
+
+export interface CreateUITimesheetRecord {
+  recordId: number;
+  recordDate: Date | null;
+  clockInTime: Date | null;
+  clockOutTime: Date | null;
+  isLunchIncluded: boolean;
+  overtimeDuration: number;
+  overtimeReason: string | null;
+}
+
+export interface CreateTimeLogs {
+  isLunchIncluded: number;
+  recordDate: string;
+  clockInTime: string;
+  clockOutTime: string;
+  recordId: number;
+  overtimeDuration: number;
+  overtimeReason: string | null;
+}
+
+export interface CreateTimeLogsPayload {
+  timeLogs: CreateTimeLogs[];
+  employeeEmail: string;
+}
+
+export interface TimesheetData {
+  totalRecordCount: number;
+  timeLogs: TimesheetRecord[];
+  timesheetStats: TimesheetInfo;
+}
+
+export interface WorkPolicies {
+  otHoursPerYear: number;
+  workingHoursPerDay: number;
+  lunchHoursPerDay: number;
+}
+
+export interface TimesheetInfo {
+  approvedRecords?: number;
+  overTimeLeft: number;
+  pendingRecords?: number;
+  rejectedRecords?: number;
+  totalOverTimeTaken?: number;
+  totalRecords?: number;
+}
+
+export interface TimesheetUpdate {
+  recordId: number;
+  recordDate?: string;
+  clockInTime?: number;
+  clockOutTime?: number;
+  isLunchIncluded?: boolean;
+  overtimeDuration?: string;
+  overtimeReason?: string;
+  overtimeRejectReason?: string;
+}
+
+export const statusChipStyles = {
+  [TimesheetStatus.APPROVED]: {
+    icon: React.createElement(CheckCircleIcon, { fontSize: "small" }),
+    color: "success",
+  },
+  [TimesheetStatus.PENDING]: {
+    icon: React.createElement(PendingIcon, { fontSize: "small" }),
+    color: "warning",
+  },
+  [TimesheetStatus.REJECTED]: {
+    icon: React.createElement(CancelIcon, { fontSize: "small" }),
+    color: "error",
+  },
+};
+
+export interface Filter {
+  id: string;
+  field: string;
+  operator: string;
+  value: any;
+}
+
+export interface TimeLogReview {
+  recordIds: number[];
+  overtimeStatus: TimesheetStatus;
+  overtimeRejectReason?: string;
+}
+
+export interface NoDataViewProps {
+  message?: string;
+  description?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  type?: "search" | "empty" | "error";
 }

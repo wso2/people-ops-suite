@@ -5,7 +5,7 @@
 
 [ballerina]
 dependencies-toml-version = "2"
-distribution-version = "2201.8.6"
+distribution-version = "2201.8.4"
 
 [[package]]
 org = "ballerina"
@@ -22,7 +22,7 @@ dependencies = [
 [[package]]
 org = "ballerina"
 name = "cache"
-version = "3.7.1"
+version = "3.8.0"
 dependencies = [
 	{org = "ballerina", name = "constraint"},
 	{org = "ballerina", name = "jballerina.java"},
@@ -95,7 +95,7 @@ modules = [
 [[package]]
 org = "ballerina"
 name = "http"
-version = "2.10.21"
+version = "2.10.22"
 dependencies = [
 	{org = "ballerina", name = "auth"},
 	{org = "ballerina", name = "cache"},
@@ -177,15 +177,6 @@ dependencies = [
 org = "ballerina"
 name = "lang.decimal"
 version = "0.0.0"
-dependencies = [
-	{org = "ballerina", name = "jballerina.java"}
-]
-
-[[package]]
-org = "ballerina"
-name = "lang.error"
-version = "0.0.0"
-scope = "testOnly"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"}
 ]
@@ -317,23 +308,13 @@ dependencies = [
 
 [[package]]
 org = "ballerina"
-name = "test"
-version = "0.0.0"
-scope = "testOnly"
-dependencies = [
-	{org = "ballerina", name = "jballerina.java"},
-	{org = "ballerina", name = "lang.error"}
-]
-modules = [
-	{org = "ballerina", packageName = "test", moduleName = "test"}
-]
-
-[[package]]
-org = "ballerina"
 name = "time"
-version = "2.4.0"
+version = "2.5.0"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"}
+]
+modules = [
+	{org = "ballerina", packageName = "time", moduleName = "time"}
 ]
 
 [[package]]
@@ -420,14 +401,14 @@ modules = [
 [[package]]
 org = "ballerinax"
 name = "mysql.driver"
-version = "1.6.0"
+version = "1.7.0"
 modules = [
 	{org = "ballerinax", packageName = "mysql.driver", moduleName = "mysql.driver"}
 ]
 
 [[package]]
 org = "wso2"
-name = "sample_app"
+name = "timesheet_app"
 version = "1.0.0"
 dependencies = [
 	{org = "ballerina", name = "cache"},
@@ -436,16 +417,16 @@ dependencies = [
 	{org = "ballerina", name = "jwt"},
 	{org = "ballerina", name = "log"},
 	{org = "ballerina", name = "sql"},
-	{org = "ballerina", name = "test"},
+	{org = "ballerina", name = "time"},
 	{org = "ballerinai", name = "observe"},
 	{org = "ballerinax", name = "java.jdbc"},
 	{org = "ballerinax", name = "mysql"},
 	{org = "ballerinax", name = "mysql.driver"}
 ]
 modules = [
-	{org = "wso2", packageName = "sample_app", moduleName = "sample_app"},
-	{org = "wso2", packageName = "sample_app", moduleName = "sample_app.authorization"},
-	{org = "wso2", packageName = "sample_app", moduleName = "sample_app.database"},
-	{org = "wso2", packageName = "sample_app", moduleName = "sample_app.entity"}
+	{org = "wso2", packageName = "timesheet_app", moduleName = "timesheet_app"},
+	{org = "wso2", packageName = "timesheet_app", moduleName = "timesheet_app.authorization"},
+	{org = "wso2", packageName = "timesheet_app", moduleName = "timesheet_app.database"},
+	{org = "wso2", packageName = "timesheet_app", moduleName = "timesheet_app.entity"}
 ]
 

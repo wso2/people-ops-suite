@@ -18,7 +18,7 @@ import ballerinax/mysql;
 
 # [Configurable] database configs.
 type DatabaseConfig record {|
-    # Database User 
+    # Database User
     string user;
     # Database Password
     string password;
@@ -39,24 +39,163 @@ type DatabaseClientConfig record {|
     mysql:Options? options;
 |};
 
-# [Database]SampleCollection type.
-public type SampleCollection record {|
-    # Id of the collection
-    int id;
-    # Name
-    string name;
-    # Timestamp, when created
-    string createdOn;
-    # Person, who created
+# Work policy record.
+public type WorkPolicy record {|
+    # Company name
+    string companyName;
+    # Number of OT hours per year
+    int otHoursPerYear;
+    # Number of working hours per day
+    decimal workingHoursPerDay;
+    # Lunch time duration per day
+    decimal lunchHoursPerDay;
+|};
+
+# Enum type for the time log status.
+public enum TimeLogStatus {
+    PENDING = "PENDING",
+    APPROVED = "APPROVED",
+    REJECTED = "REJECTED"
+};
+
+# TimeLog record type.
+public type TimeLog record {|
+    # Time log record id
+    int recordId;
+    # Employee's email address
+    string employeeEmail?;
+    # Record date
+    string recordDate;
+    # Company name
+    string companyName?;
+    # Clock in time
+    string clockInTime;
+    # Clock out time
+    string clockOutTime;
+    # Total work duration
+    int isLunchIncluded;
+    # Overtime duration
+    decimal overtimeDuration?;
+    # Overtime reason
+    string overtimeReason?;
+    # Email of the lead
+    string leadEmail?;
+    # Overtime rejection reason
+    string overtimeRejectReason?;
+    # Overtime status
+    TimeLogStatus overtimeStatus?;
+|};
+
+# TimeLogCreatePayload record type.
+public type TimeLogCreatePayload record {|
+    # Employee's email address
+    string employeeEmail;
+    # Email of the creator
     string createdBy;
-    # Timestamp, when updated
-    string updatedOn;
-    # Person, who updates
+    # Email of the updater
+    string updatedBy;
+    # Company name
+    string companyName;
+    # Lead email
+    string leadEmail;
+    # TimeLogs array
+    TimeLog[] timeLogs;
+|};
+
+# Common filter for the db queries.
+public type TimeLogFilter record {|
+    # Employee email
+    string? employeeEmail = ();
+    # Email of the lead
+    string? leadEmail = ();
+    # TimeLogStatus
+    TimeLogStatus? status = ();
+    # Limit of the records
+    int? recordsLimit = ();
+    # Offset of the records
+    int? recordOffset = ();
+    # Start date to filter
+    string? rangeStart = ();
+    # End date to filter
+    string? rangeEnd = ();
+    # Dates array to filter
+    string[]? recordDates = ();
+    # Company name to filter
+    string? companyName = ();
+    # Record id array to filter
+    int[]? recordIds = ();
+|};
+
+# Timesheet information record type.
+public type TimesheetStats record {|
+    # Total count of the records
+    int totalRecords;
+    # Total count of the pending records
+    decimal? pendingRecords;
+    # Total count of the approved records
+    decimal? approvedRecords;
+    # Total count of the rejected records
+    decimal? rejectedRecords;
+    # Total count of the overtime taken
+    decimal? totalOverTimeTaken;
+|};
+
+# Update type for the time log record.
+public type TimeLogUpdatePayload record {|
+    # Time log record id
+    int recordId;
+    # Record date
+    string recordDate?;
+    # Clock in time
+    string clockInTime?;
+    # Clock out time
+    string clockOutTime?;
+    # Total work duration
+    int isLunchIncluded?;
+    # Overtime duration
+    decimal overtimeDuration?;
+    # Overtime reason
+    string overtimeReason?;
+    # Overtime rejection reason
+    string overtimeRejectReason?;
+    # Overtime status
+    TimeLogStatus overtimeStatus?;
+    # Updated by email
     string updatedBy;
 |};
 
-# [Database]Collection insert type.
-public type AddSampleCollection record {|
-    # Name of the collection
-    string name;
+# Approve or reject time logs type.
+public type TimeLogReviews record {|
+    # Time sheet record id
+    int[] recordIds;
+    # Overtime rejection reason
+    string overtimeRejectReason?;
+    # Updated by email
+    string updatedBy;
+    # Overtime status
+    TimeLogStatus overtimeStatus;
+|};
+
+# Update type for the work policies record.
+public type WorkPolicyUpdatePayload record {|
+    # Company name
+    string companyName;
+    # overtime hours per year
+    decimal otHoursPerYear?;
+    # working hours per day
+    decimal workingHoursPerDay?;
+    # lunch time duration per day
+    decimal lunchHoursPerDay?;
+    # Email of the updater
+    string updatedBy;
+|};
+
+# Overtime stats record type.
+public type OvertimeStats record {|
+    # overtime hours per year
+    int otHoursPerYear;
+    # Total count of the overtime taken
+    decimal totalOverTimeTaken;
+    # Count of overtime left from yearly quota
+    decimal overtimeLeft;
 |};
