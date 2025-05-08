@@ -311,7 +311,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + meetingId - meetingId to get attachments 
     # + return - Attachments|Error
-    resource function get meetings/[int meetingId]/attachments(http:RequestContext ctx)
+    resource isolated function get meetings/[int meetingId]/attachments(http:RequestContext ctx)
         returns AttachmentListResponse|http:InternalServerError|http:Forbidden {
 
         // User information header.
@@ -350,8 +350,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         // Return Forbidden if a non-admin user views attachments of a meeting they did not host.
         string:RegExp r = re `,`;
         string user = userInfo.email;
-        if !isAdmin && meeting.host != user && 
-            !r.split(meeting.internalParticipants).some(participant => participant == user) {
+        if !isAdmin && meeting.host != user && r.split(meeting.internalParticipants).indexOf(user) == () {
             return <http:Forbidden>{
                 body: {message: "Insufficient privileges to view the attachments!"}
             };
