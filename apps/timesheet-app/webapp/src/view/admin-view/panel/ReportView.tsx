@@ -16,19 +16,23 @@
 import "jspdf-autotable";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import errorIcon from "@images/error.svg";
 import { useEffect, useState } from "react";
 import { Messages } from "@config/constant";
+import noDataIcon from "@images/no-data.svg";
+import StateWithImage from "@component/ui/StateWithImage";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import noSearchResults from "@images/no-search-results.svg";
 import FilterComponent from "@component/common/FilterModal";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { fetchEmployeeMetaData } from "@slices/metaSlice/meta";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import BackgroundLoader from "@component/common/BackgroundLoader";
 import { fetchTimesheetRecords } from "@slices/recordSlice/record";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import NoDataView, { NoDataViewFunction } from "@component/common/NoDataView";
 import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography } from "@mui/material";
 import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus } from "@utils/types";
 import { DataGrid, GridFilterModel, GridLogicOperator, GridRenderCellParams } from "@mui/x-data-grid";
@@ -36,6 +40,7 @@ import { DataGrid, GridFilterModel, GridLogicOperator, GridRenderCellParams } fr
 const ReportView = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
+  const employeeLoadingState = useAppSelector((state) => state.meteInfo.metaDataStatus || 0);
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs || []);
@@ -294,66 +299,78 @@ const ReportView = () => {
             overflow: "auto",
           }}
         >
-          {timesheetLoadingInfo === State.failed ? (
-            <NoDataView message={Messages.error.fetchRecords} type="error" />
-          ) : (
-            <DataGrid
-              pagination
-              rows={records}
-              columns={columns}
-              disableDensitySelector
-              paginationMode="server"
-              rowCount={totalRecordCount}
-              disableRowSelectionOnClick
-              loading={recordLoadingState === State.loading}
-              getRowId={(row) => row.recordId}
-              filterModel={filterModel}
-              onFilterModelChange={setFilterModel}
-              slotProps={{
-                toolbar: {
-                  showQuickFilter: true,
-                  quickFilterProps: { debounceMs: 500 },
-                },
-                noRowsOverlay: {
-                  message: filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter,
-                  type: "search",
-                } as any,
-              }}
-              slots={{
-                noRowsOverlay: NoDataViewFunction,
-              }}
-              sx={{
-                border: "none",
-                "& .MuiDataGrid-columnHeaders": {
-                  backgroundColor: theme.palette.background.paper,
-                  borderBottom: `1px solid ${theme.palette.divider}`,
-                },
-                "& .MuiDataGrid-cell": {
-                  borderBottom: `1px solid ${theme.palette.divider}`,
-                },
-                "& .MuiDataGrid-virtualScroller": {
-                  backgroundColor: theme.palette.background.default,
-                },
-                "& .MuiDataGrid-footerContainer": {
-                  borderTop: `1px solid ${theme.palette.divider}`,
-                  backgroundColor: theme.palette.background.paper,
-                },
-                "& .MuiDataGrid-row": {
-                  "&:hover": {
-                    backgroundColor: theme.palette.action.hover,
-                  },
-                  "&.Mui-selected": {
-                    backgroundColor: theme.palette.action.selected,
-                    "&:hover": {
-                      backgroundColor: theme.palette.action.selected,
+          {timesheetLoadingInfo === State.failed ||
+            (employeeLoadingState === State.failed && (
+              <StateWithImage message={Messages.error.fetchRecords} imageUrl={errorIcon} />
+            ))}
+
+          {timesheetLoadingInfo === State.loading ||
+            (employeeLoadingState === State.loading && (
+              <BackgroundLoader open={true} message={Messages.info.loadingText} />
+            ))}
+
+          {timesheetLoadingInfo === State.success && employeeLoadingState === State.success && (
+            <>
+              {totalRecordCount > 0 ? (
+                <DataGrid
+                  pagination
+                  rows={records}
+                  columns={columns}
+                  disableDensitySelector
+                  paginationMode="server"
+                  rowCount={totalRecordCount}
+                  disableRowSelectionOnClick
+                  loading={recordLoadingState === State.loading}
+                  getRowId={(row) => row.recordId}
+                  filterModel={filterModel}
+                  onFilterModelChange={setFilterModel}
+                  slotProps={{
+                    toolbar: {
+                      showQuickFilter: true,
+                      quickFilterProps: { debounceMs: 500 },
                     },
-                  },
-                },
-                overflow: "auto",
-                height: "100%",
-                width: "100%",
-              }}
-            />
+                  }}
+                  sx={{
+                    border: "none",
+                    "& .MuiDataGrid-columnHeaders": {
+                      backgroundColor: theme.palette.background.paper,
+                      borderBottom: `1px solid ${theme.palette.divider}`,
+                    },
+                    "& .MuiDataGrid-cell": {
+                      borderBottom: `1px solid ${theme.palette.divider}`,
+                    },
+                    "& .MuiDataGrid-virtualScroller": {
+                      backgroundColor: theme.palette.background.default,
+                    },
+                    "& .MuiDataGrid-footerContainer": {
+                      borderTop: `1px solid ${theme.palette.divider}`,
+                      backgroundColor: theme.palette.background.paper,
+                    },
+                    "& .MuiDataGrid-row": {
+                      "&:hover": {
+                        backgroundColor: theme.palette.action.hover,
+                      },
+                      "&.Mui-selected": {
+                        backgroundColor: theme.palette.action.selected,
+                        "&:hover": {
+                          backgroundColor: theme.palette.action.selected,
+                        },
+                      },
+                    },
+                    overflow: "auto",
+                    height: "100%",
+                    width: "100%",
+                  }}
+                />
+              ) : (
+                <Box height={"100%"} width={"100%"} display={"flex"}>
+                  <StateWithImage
+                    message={filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter}
+                    imageUrl={filters.length > 0 ? noSearchResults : noDataIcon}
+                  />
+                </Box>
+              )}
+            </>
           )}
         </Paper>
       </Box>

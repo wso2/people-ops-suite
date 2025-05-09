@@ -107,6 +107,7 @@
     ]
   },
   "devDependencies": {
+    "@types/unist": "^3.0.3",
     "babel-plugin-module-resolver": "^5.0.2",
     "react-app-rewired": "^2.2.1"
   }
