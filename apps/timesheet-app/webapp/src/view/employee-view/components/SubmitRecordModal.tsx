@@ -53,20 +53,13 @@ import {
   differenceInMinutes,
 } from "date-fns";
 import { Messages } from "@config/constant";
+import noDataIcon from "@images/no-data.svg";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PublishIcon from "@mui/icons-material/Publish";
 import { HourglassBottom } from "@mui/icons-material";
-
-import NoDataView from "@component/common/NoDataView";
-import notFoundIcon from "@images/not-found.svg";
-import noDataIcon from "@images/no-data.svg";
-import noSearchResults from "@images/no-search-results.svg";
-import loadingIcon from "@images/loading.svg";
-import errorIcon from "@images/error.svg";
-
 import { DEFAULT_TIME_ENTRY_SIZE } from "@config/config";
 import StateWithImage from "@component/ui/StateWithImage";
 import React, { useState, useRef, useEffect } from "react";
