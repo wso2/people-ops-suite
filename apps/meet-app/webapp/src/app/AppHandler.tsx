@@ -36,18 +36,10 @@ const AppHandler = () => {
 
   return (
     <>
-      {auth.status === "loading" && (
-        <PreLoader isLoading={true} message={auth.statusMessage} />
-      )}
-      {auth.status === "success" && auth.mode === "active" && (
-        <RouterProvider router={router} />
-      )}
-      {auth.status === "success" && auth.mode === "maintenance" && (
-        <MaintenancePage />
-      )}
-      {auth.status === "failed" && (
-        <ErrorHandler message={auth.statusMessage} />
-      )}
+      {auth.status === "loading" && <PreLoader isLoading={true} message={auth.statusMessage} />}
+      {auth.status === "success" && auth.mode === "active" && <RouterProvider router={router} />}
+      {auth.status === "success" && auth.mode === "maintenance" && <MaintenancePage />}
+      {auth.status === "failed" && <ErrorHandler message={auth.statusMessage} />}
     </>
   );
 };

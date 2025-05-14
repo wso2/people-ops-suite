@@ -458,7 +458,7 @@ function MeetingForm() {
           renderOption={(props, option) => {
             const { key, ...prop } = props;
             const employee = employees.find((emp) => emp.workEmail === option);
-            const initials = option.charAt(0).toUpperCase();
+            const initials = option ? option.charAt(0).toUpperCase() : "";
             return (
               <li key={key} {...prop} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px" }}>
                 {employee?.employeeThumbnail ? (
@@ -536,9 +536,15 @@ function MeetingForm() {
           limitTags={1}
           options={externalEmailInputValue.filter((email) => email.trim() !== "")}
           filterSelectedOptions
-          value={formik.values.externalParticipants.split(",").filter(Boolean)}
+          value={formik.values.externalParticipants.split(",").filter((email) => email.trim())}
           onChange={async (_, newValue) => {
-            const emails = newValue.map((email) => email.trim()).filter(Boolean);
+            const emails = newValue
+              .flatMap((item) => {
+                if (!item) return [];
+                const emailMatches = item.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g);
+                return emailMatches || [];
+              })
+              .filter((email, index, self): email is string => email !== undefined && self.indexOf(email) === index);
             await formik.setFieldValue("externalParticipants", emails.join(","));
             formik.setFieldTouched("externalParticipants", true);
           }}
@@ -570,7 +576,7 @@ function MeetingForm() {
             />
           )}
           renderOption={(props, option) => {
-            const initials = option.charAt(0).toUpperCase();
+            const initials = option?.charAt(0).toUpperCase() ?? "";
             const { key, ...prop } = props;
 
             return (
@@ -583,19 +589,23 @@ function MeetingForm() {
             );
           }}
           renderTags={(value, getTagProps) =>
-            value.map((email, index) => {
-              const initials = email.charAt(0).toUpperCase();
-              const { key, ...prop } = getTagProps({ index });
-              return (
-                <Chip
-                  avatar={<Avatar sx={{ width: 24, height: 24, fontSize: 14, bgcolor: "#74b3ce" }}>{initials}</Avatar>}
-                  label={email}
-                  {...prop}
-                  key={key}
-                  style={{ margin: 4 }}
-                />
-              );
-            })
+            value
+              .filter((email): email is string => email !== undefined)
+              .map((email: string, index: number) => {
+                const initials = email.charAt(0).toUpperCase();
+                const { key, ...prop } = getTagProps({ index });
+                return (
+                  <Chip
+                    avatar={
+                      <Avatar sx={{ width: 24, height: 24, fontSize: 14, bgcolor: "#74b3ce" }}>{initials}</Avatar>
+                    }
+                    label={email}
+                    {...prop}
+                    key={key}
+                    style={{ margin: 4 }}
+                  />
+                );
+              })
           }
           sx={{
             "& .MuiAutocomplete-inputRoot": {
