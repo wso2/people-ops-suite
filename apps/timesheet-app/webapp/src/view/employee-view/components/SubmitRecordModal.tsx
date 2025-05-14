@@ -458,6 +458,18 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     }
   };
 
+  const handleSaveEditedLogs = () => {
+    dialogContext.showConfirmation(
+      "Do you want to save the changes?",
+      "",
+      ConfirmationType.send,
+      () => {
+        handleBatchSubmit();
+      },
+      "Yes",
+      "No"
+    );
+  };
   const handleAddBulkEntries = () => {
     const errors = validateBulkEntry();
     if (Object.keys(errors).length > 0) {
@@ -755,7 +767,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
               <Button
                 variant="contained"
                 color="secondary"
-                onClick={handleBatchSubmit}
+                onClick={handleSaveEditedLogs}
                 sx={{ width: "160px", mx: 1 }}
                 startIcon={<PublishIcon />}
                 disabled={entriesCount === 0}

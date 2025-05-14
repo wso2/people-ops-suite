@@ -110,7 +110,6 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({
       icon: <HourglassTop />,
       color: otUtilizationPercentage > 80 ? "error" : "primary",
       progress: otUtilizationPercentage,
-      trend: getTrendIcon(totalOverTimeTaken, workPolicies.otHoursPerYear * 0.5),
     },
     {
       title: "OT Remaining",
@@ -223,9 +222,6 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({
                     <Box>
                       <Typography variant="body2" color="text.secondary">
                         {stat.title}
-                      </Typography>
-                      <Typography variant="h6">
-                        {stat.value} {stat.trend}
                       </Typography>
                     </Box>
                   </Box>

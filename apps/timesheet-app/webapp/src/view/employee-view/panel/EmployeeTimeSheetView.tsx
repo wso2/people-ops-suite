@@ -40,17 +40,22 @@ import {
   GridPaginationModel,
   GridRenderCellParams,
 } from "@mui/x-data-grid";
+import {
+  State,
+  Filter,
+  TimesheetRecord,
+  TimesheetStatus,
+  TimesheetUpdate,
+  ConfirmationType,
+  statusChipStyles,
+} from "@utils/types";
 import { useEffect, useState } from "react";
 import { Messages } from "@config/constant";
-import loadingIcon from "@images/loading.svg";
-
-import notFoundIcon from "@images/not-found.svg";
 import noDataIcon from "@images/no-data.svg";
-import noSearchResults from "@images/no-search-results.svg";
-
 import AddIcon from "@mui/icons-material/Add";
 import SaveIcon from "@mui/icons-material/Save";
 import EditIcon from "@mui/icons-material/Edit";
+import notFoundIcon from "@images/not-found.svg";
 import CloseIcon from "@mui/icons-material/Close";
 import { DEFAULT_PAGE_SIZE } from "@config/config";
 import StateWithImage from "@component/ui/StateWithImage";
@@ -61,21 +66,22 @@ import { useAppDispatch, useAppSelector } from "@slices/store";
 import SubmitRecordModal from "../components/SubmitRecordModal";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import InformationHeader from "@component/common/InformationHeader";
-import InformationHeaderSkeleton from "@component/common/InformationHeaderSkeleton";
-
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { CustomModal } from "@component/common/CustomComponentModal";
+import { useConfirmationModalContext } from "@context/DialogContext";
 import { differenceInMinutes, format, isWeekend, parseISO } from "date-fns";
 import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
+import InformationHeaderSkeleton from "@component/common/InformationHeaderSkeleton";
 import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecord } from "@slices/recordSlice/record";
-import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus, TimesheetUpdate } from "@utils/types";
 
 const EmployeeTimeSheetView = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const handleOpenDialog = () => setOpenDialog(true);
+  const dialogContext = useConfirmationModalContext();
   const [openDialog, setOpenDialog] = useState(false);
   const userEmail = useAppSelector((state) => state.auth.userInfo?.email);
+  const submitState = useAppSelector((state) => state.timesheetRecord.submitState);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const [errors, setErrors] = useState<Partial<Record<keyof TimesheetRecord, string>>>({});
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
@@ -341,6 +347,19 @@ const EmployeeTimeSheetView = () => {
     setEditDialogOpen(true);
   };
 
+  const handleSaveEditedLogs = () => {
+    dialogContext.showConfirmation(
+      "Do you want to save the changes?",
+      "",
+      ConfirmationType.send,
+      () => {
+        handleSaveEditedEntry();
+      },
+      "Yes",
+      "No"
+    );
+  };
+
   const handleSaveEditedEntry = async () => {
     if (!editingEntry) return;
 
@@ -406,7 +425,7 @@ const EmployeeTimeSheetView = () => {
   return (
     <Box sx={{ width: "100%", height: "100%" }}>
       {timesheetLoadingInfo === State.failed ? (
-        <StateWithImage message={Messages.error.fetchRecords} imageUrl={loadingIcon} />
+        <StateWithImage message={Messages.error.fetchRecords} imageUrl={notFoundIcon} />
       ) : (
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
@@ -416,7 +435,7 @@ const EmployeeTimeSheetView = () => {
               </Box>
             )}
             {recordLoadingState === State.loading && (
-              <Box sx={{ width: "100%", height: "auto" }}>
+              <Box sx={{ width: "100%", height: "auto", mb: 1 }}>
                 <InformationHeaderSkeleton isEmployeeView={true} />
               </Box>
             )}
@@ -445,7 +464,7 @@ const EmployeeTimeSheetView = () => {
             <Paper
               elevation={0}
               sx={{
-                height: "72%",
+                height: "76%",
                 width: "100%",
                 borderRadius: 2,
                 border: "1px solid",
@@ -474,14 +493,7 @@ const EmployeeTimeSheetView = () => {
                       showQuickFilter: true,
                       quickFilterProps: { debounceMs: 500 },
                     },
-                    // noRowsOverlay: {
-                    //   message: filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter,
-                    //   type: "search",
-                    // } as any,
                   }}
-                  // slots={{
-                  //   noRowsOverlay: NoDataViewFunction,
-                  // }}
                   sx={{
                     border: "none",
                     "& .MuiDataGrid-columnHeaders": {
@@ -516,10 +528,7 @@ const EmployeeTimeSheetView = () => {
                 />
               ) : (
                 <Box height={"100%"} width={"100%"} display={"flex"}>
-                  <StateWithImage
-                    message={filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter}
-                    imageUrl={filters.length > 0 ? noSearchResults : noDataIcon}
-                  />
+                  <StateWithImage message={Messages.info.noRecords} imageUrl={noDataIcon} />
                 </Box>
               )}
             </Paper>
@@ -630,7 +639,13 @@ const EmployeeTimeSheetView = () => {
                 >
                   Cancel
                 </Button>
-                <Button onClick={handleSaveEditedEntry} color="primary" startIcon={<SaveIcon />} variant="contained">
+                <Button
+                  onClick={handleSaveEditedLogs}
+                  color="primary"
+                  startIcon={<SaveIcon />}
+                  variant="contained"
+                  disabled={submitState !== State.idle}
+                >
                   Save Changes
                 </Button>
               </DialogActions>

@@ -34,27 +34,27 @@ import errorIcon from "@images/error.svg";
 import { useEffect, useState } from "react";
 import { Messages } from "@config/constant";
 import noDataIcon from "@images/no-data.svg";
+import notFoundIcon from "@images/not-found.svg";
 import { DEFAULT_PAGE_SIZE } from "@config/config";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import StateWithImage from "@component/ui/StateWithImage";
 import { LocalizationProvider } from "@mui/x-date-pickers";
-import noSearchResults from "@images/no-search-results.svg";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { fetchEmployeeMetaData } from "@slices/metaSlice/meta";
+import BackgroundLoader from "@component/common/BackgroundLoader";
 import { NoDataViewFunction } from "@component/common/NoDataView";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import InformationHeader from "@component/common/InformationHeader";
 import { useConfirmationModalContext } from "@context/DialogContext";
-import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton, Avatar } from "@mui/material";
-import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
 import InformationHeaderSkeleton from "@component/common/InformationHeaderSkeleton";
-import BackgroundLoader from "@component/common/BackgroundLoader";
+import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
+import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton, Avatar } from "@mui/material";
 
 const TimeSheetAuditView = () => {
   const theme = useTheme();
@@ -390,147 +390,143 @@ const TimeSheetAuditView = () => {
 
   return (
     <Box sx={{ width: "100%", height: "100%" }}>
-      <LocalizationProvider dateAdapter={AdapterDateFns}>
-        <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
-          {recordLoadingState === State.success && timesheetInfo && workPolicies && (
-            <Box sx={{ width: "100%", height: "auto" }}>
-              <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} isLeadView={true} />
-            </Box>
-          )}
-          {recordLoadingState === State.loading && (
-            <Box sx={{ width: "100%", height: "auto" }}>
-              <InformationHeaderSkeleton isLeadView={true} />
-            </Box>
-          )}
-          <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
-            <FilterComponent
-              availableFields={availableFields}
-              filters={filters}
-              setFilters={setFilters}
-              onApply={fetchData}
-              onReset={handleResetFilters}
-              isLead={true}
-            />
-            <Box>
-              <Button
-                variant="contained"
-                onClick={() => handleApproveRecords()}
-                sx={{ width: "160px", mx: 1 }}
-                startIcon={<ThumbUpIcon />}
-                disabled={selectionModel.length <= 1}
+      {employeeLoadingState === State.failed ? (
+        <StateWithImage message={Messages.error.fetchEmployees} imageUrl={notFoundIcon} />
+      ) : (
+        <>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
+              {recordLoadingState === State.success && timesheetInfo && workPolicies && (
+                <Box sx={{ width: "100%", height: "auto" }}>
+                  <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} isLeadView={true} />
+                </Box>
+              )}
+              {recordLoadingState === State.loading && (
+                <Box sx={{ width: "100%", height: "auto", mb: 1 }}>
+                  <InformationHeaderSkeleton isLeadView={true} />
+                </Box>
+              )}
+              <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
+                <FilterComponent
+                  availableFields={availableFields}
+                  filters={filters}
+                  setFilters={setFilters}
+                  onApply={fetchData}
+                  onReset={handleResetFilters}
+                  isLead={true}
+                />
+                <Box>
+                  <Button
+                    variant="contained"
+                    onClick={() => handleApproveRecords()}
+                    sx={{ width: "160px", mx: 1 }}
+                    startIcon={<ThumbUpIcon />}
+                    disabled={selectionModel.length <= 1}
+                  >
+                    Batch Approve
+                  </Button>
+
+                  <Button
+                    variant="contained"
+                    onClick={() => handleDeclineRecords()}
+                    color="error"
+                    sx={{ width: "160px", mx: 1 }}
+                    startIcon={<ThumbDownIcon />}
+                    disabled={selectionModel.length <= 1}
+                  >
+                    Batch Reject
+                  </Button>
+                </Box>
+              </Stack>
+              <Paper
+                elevation={0}
+                sx={{
+                  height: "85%",
+                  width: "100%",
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  overflow: "auto",
+                }}
               >
-                Batch Approve
-              </Button>
-
-              <Button
-                variant="contained"
-                onClick={() => handleDeclineRecords()}
-                color="error"
-                sx={{ width: "160px", mx: 1 }}
-                startIcon={<ThumbDownIcon />}
-                disabled={selectionModel.length <= 1}
-              >
-                Batch Reject
-              </Button>
-            </Box>
-          </Stack>
-          <Paper
-            elevation={0}
-            sx={{
-              height: "85%",
-              width: "100%",
-              borderRadius: 2,
-              border: "1px solid",
-              borderColor: "divider",
-              overflow: "auto",
-            }}
-          >
-            {recordLoadingState === State.failed ||
-              (employeeLoadingState === State.failed && (
-                <StateWithImage message={Messages.error.fetchRecords} imageUrl={errorIcon} />
-              ))}
-
-            {recordLoadingState === State.loading ||
-              (employeeLoadingState === State.loading && (
-                <BackgroundLoader open={true} message={Messages.info.loadingText} />
-              ))}
-
-            {recordLoadingState === State.success && employeeLoadingState === State.success && (
-              <>
-                {totalRecordCount > 0 ? (
-                  <DataGrid
-                    pagination
-                    rows={records}
-                    columns={columns}
-                    disableDensitySelector
-                    paginationMode="server"
-                    rowCount={totalRecordCount}
-                    paginationModel={paginationModel}
-                    onPaginationModelChange={setPaginationModel}
-                    disableRowSelectionOnClick
-                    getRowId={(row) => row.recordId}
-                    filterModel={filterModel}
-                    onFilterModelChange={setFilterModel}
-                    onRowSelectionModelChange={handleSelectionChange}
-                    checkboxSelection
-                    slotProps={{
-                      toolbar: {
-                        showQuickFilter: true,
-                        quickFilterProps: { debounceMs: 500 },
-                      },
-                      noRowsOverlay: {
-                        message: filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter,
-                        type: "search",
-                      } as any,
-                    }}
-                    slots={{
-                      noRowsOverlay: NoDataViewFunction,
-                    }}
-                    sx={{
-                      border: "none",
-                      "& .MuiDataGrid-columnHeaders": {
-                        backgroundColor: theme.palette.background.paper,
-                        borderBottom: `1px solid ${theme.palette.divider}`,
-                      },
-                      "& .MuiDataGrid-cell": {
-                        borderBottom: `1px solid ${theme.palette.divider}`,
-                      },
-                      "& .MuiDataGrid-virtualScroller": {
-                        backgroundColor: theme.palette.background.default,
-                      },
-                      "& .MuiDataGrid-footerContainer": {
-                        borderTop: `1px solid ${theme.palette.divider}`,
-                        backgroundColor: theme.palette.background.paper,
-                      },
-                      "& .MuiDataGrid-row": {
-                        "&:hover": {
-                          backgroundColor: theme.palette.action.hover,
-                        },
-                        "&.Mui-selected": {
-                          backgroundColor: theme.palette.action.selected,
-                          "&:hover": {
-                            backgroundColor: theme.palette.action.selected,
-                          },
-                        },
-                      },
-                      overflow: "auto",
-                      height: "100%",
-                      width: "100%",
-                    }}
-                  />
+                {recordLoadingState === State.failed ? (
+                  <StateWithImage message={Messages.error.fetchRecords} imageUrl={errorIcon} />
                 ) : (
-                  <Box height={"100%"} width={"100%"} display={"flex"}>
-                    <StateWithImage
-                      message={filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter}
-                      imageUrl={filters.length > 0 ? noSearchResults : noDataIcon}
-                    />
-                  </Box>
+                  <>
+                    {totalRecordCount > 0 ? (
+                      <DataGrid
+                        pagination
+                        rows={records}
+                        columns={columns}
+                        disableDensitySelector
+                        paginationMode="server"
+                        rowCount={totalRecordCount}
+                        paginationModel={paginationModel}
+                        onPaginationModelChange={setPaginationModel}
+                        disableRowSelectionOnClick
+                        getRowId={(row) => row.recordId}
+                        filterModel={filterModel}
+                        onFilterModelChange={setFilterModel}
+                        onRowSelectionModelChange={handleSelectionChange}
+                        checkboxSelection
+                        loading={recordLoadingState === State.loading}
+                        slotProps={{
+                          toolbar: {
+                            showQuickFilter: true,
+                            quickFilterProps: { debounceMs: 500 },
+                          },
+                          noRowsOverlay: {
+                            message: filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter,
+                            type: "search",
+                          } as any,
+                        }}
+                        slots={{
+                          noRowsOverlay: NoDataViewFunction,
+                        }}
+                        sx={{
+                          border: "none",
+                          "& .MuiDataGrid-columnHeaders": {
+                            backgroundColor: theme.palette.background.paper,
+                            borderBottom: `1px solid ${theme.palette.divider}`,
+                          },
+                          "& .MuiDataGrid-cell": {
+                            borderBottom: `1px solid ${theme.palette.divider}`,
+                          },
+                          "& .MuiDataGrid-virtualScroller": {
+                            backgroundColor: theme.palette.background.default,
+                          },
+                          "& .MuiDataGrid-footerContainer": {
+                            borderTop: `1px solid ${theme.palette.divider}`,
+                            backgroundColor: theme.palette.background.paper,
+                          },
+                          "& .MuiDataGrid-row": {
+                            "&:hover": {
+                              backgroundColor: theme.palette.action.hover,
+                            },
+                            "&.Mui-selected": {
+                              backgroundColor: theme.palette.action.selected,
+                              "&:hover": {
+                                backgroundColor: theme.palette.action.selected,
+                              },
+                            },
+                          },
+                          overflow: "auto",
+                          height: "100%",
+                          width: "100%",
+                        }}
+                      />
+                    ) : (
+                      <Box height={"100%"} width={"100%"} display={"flex"}>
+                        <StateWithImage message={Messages.info.noRecords} imageUrl={noDataIcon} />
+                      </Box>
+                    )}
+                  </>
                 )}
-              </>
-            )}
-          </Paper>
-        </Box>
-      </LocalizationProvider>
+              </Paper>
+            </Box>
+          </LocalizationProvider>
+        </>
+      )}
     </Box>
   );
 };
