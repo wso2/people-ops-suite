@@ -38,21 +38,20 @@ import notFoundIcon from "@images/not-found.svg";
 import { DEFAULT_PAGE_SIZE } from "@config/config";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
-import StateWithImage from "@component/ui/StateWithImage";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
+import noSearchResults from "@images/no-search-results.svg";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { fetchEmployeeMetaData } from "@slices/metaSlice/meta";
-import BackgroundLoader from "@component/common/BackgroundLoader";
-import { NoDataViewFunction } from "@component/common/NoDataView";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import InformationHeader from "@component/common/InformationHeader";
 import { useConfirmationModalContext } from "@context/DialogContext";
 import InformationHeaderSkeleton from "@component/common/InformationHeaderSkeleton";
+import StateWithImage, { StateWithImageFunction } from "@component/ui/StateWithImage";
 import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
 import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton, Avatar } from "@mui/material";
 
@@ -66,7 +65,7 @@ const TimeSheetAuditView = () => {
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
   const employeeLoadingState = useAppSelector((state) => state.meteInfo.metaDataStatus || 0);
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
-  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs || []);
+  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetStats);
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
@@ -388,10 +387,18 @@ const TimeSheetAuditView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    console.log("errorimage", errorIcon);
+    console.log("nodata", noDataIcon);
+    console.log("no result", noSearchResults);
+  }, []);
+
   return (
     <Box sx={{ width: "100%", height: "100%" }}>
       {employeeLoadingState === State.failed ? (
-        <StateWithImage message={Messages.error.fetchEmployees} imageUrl={notFoundIcon} />
+        <Box height={"100%"} width={"100%"} display={"flex"}>
+          <StateWithImage message={Messages.error.fetchEmployees} imageUrl={notFoundIcon} />
+        </Box>
       ) : (
         <>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -450,77 +457,71 @@ const TimeSheetAuditView = () => {
                 }}
               >
                 {recordLoadingState === State.failed ? (
-                  <StateWithImage message={Messages.error.fetchRecords} imageUrl={errorIcon} />
+                  <Box height={"100%"} width={"100%"} display={"flex"}>
+                    <StateWithImage message={Messages.error.fetchRecords} imageUrl={errorIcon} />
+                  </Box>
                 ) : (
-                  <>
-                    {totalRecordCount > 0 ? (
-                      <DataGrid
-                        pagination
-                        rows={records}
-                        columns={columns}
-                        disableDensitySelector
-                        paginationMode="server"
-                        rowCount={totalRecordCount}
-                        paginationModel={paginationModel}
-                        onPaginationModelChange={setPaginationModel}
-                        disableRowSelectionOnClick
-                        getRowId={(row) => row.recordId}
-                        filterModel={filterModel}
-                        onFilterModelChange={setFilterModel}
-                        onRowSelectionModelChange={handleSelectionChange}
-                        checkboxSelection
-                        loading={recordLoadingState === State.loading}
-                        slotProps={{
-                          toolbar: {
-                            showQuickFilter: true,
-                            quickFilterProps: { debounceMs: 500 },
+                  <DataGrid
+                    pagination
+                    rows={records || []}
+                    columns={columns}
+                    disableDensitySelector
+                    paginationMode="server"
+                    rowCount={totalRecordCount}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
+                    disableRowSelectionOnClick
+                    getRowId={(row) => row.recordId}
+                    filterModel={filterModel}
+                    onFilterModelChange={setFilterModel}
+                    onRowSelectionModelChange={handleSelectionChange}
+                    checkboxSelection
+                    loading={recordLoadingState === State.loading}
+                    slotProps={{
+                      toolbar: {
+                        showQuickFilter: true,
+                        quickFilterProps: { debounceMs: 500 },
+                      },
+                      noRowsOverlay: {
+                        message: records !== undefined ? Messages.info.noRecords : Messages.info.useFilter,
+                        imageUrl: records !== undefined ? noSearchResults : noDataIcon,
+                      } as any,
+                    }}
+                    slots={{
+                      noRowsOverlay: StateWithImageFunction,
+                    }}
+                    sx={{
+                      border: "none",
+                      "& .MuiDataGrid-columnHeaders": {
+                        backgroundColor: theme.palette.background.paper,
+                        borderBottom: `1px solid ${theme.palette.divider}`,
+                      },
+                      "& .MuiDataGrid-cell": {
+                        borderBottom: `1px solid ${theme.palette.divider}`,
+                      },
+                      "& .MuiDataGrid-virtualScroller": {
+                        backgroundColor: theme.palette.background.default,
+                      },
+                      "& .MuiDataGrid-footerContainer": {
+                        borderTop: `1px solid ${theme.palette.divider}`,
+                        backgroundColor: theme.palette.background.paper,
+                      },
+                      "& .MuiDataGrid-row": {
+                        "&:hover": {
+                          backgroundColor: theme.palette.action.hover,
+                        },
+                        "&.Mui-selected": {
+                          backgroundColor: theme.palette.action.selected,
+                          "&:hover": {
+                            backgroundColor: theme.palette.action.selected,
                           },
-                          noRowsOverlay: {
-                            message: filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter,
-                            type: "search",
-                          } as any,
-                        }}
-                        slots={{
-                          noRowsOverlay: NoDataViewFunction,
-                        }}
-                        sx={{
-                          border: "none",
-                          "& .MuiDataGrid-columnHeaders": {
-                            backgroundColor: theme.palette.background.paper,
-                            borderBottom: `1px solid ${theme.palette.divider}`,
-                          },
-                          "& .MuiDataGrid-cell": {
-                            borderBottom: `1px solid ${theme.palette.divider}`,
-                          },
-                          "& .MuiDataGrid-virtualScroller": {
-                            backgroundColor: theme.palette.background.default,
-                          },
-                          "& .MuiDataGrid-footerContainer": {
-                            borderTop: `1px solid ${theme.palette.divider}`,
-                            backgroundColor: theme.palette.background.paper,
-                          },
-                          "& .MuiDataGrid-row": {
-                            "&:hover": {
-                              backgroundColor: theme.palette.action.hover,
-                            },
-                            "&.Mui-selected": {
-                              backgroundColor: theme.palette.action.selected,
-                              "&:hover": {
-                                backgroundColor: theme.palette.action.selected,
-                              },
-                            },
-                          },
-                          overflow: "auto",
-                          height: "100%",
-                          width: "100%",
-                        }}
-                      />
-                    ) : (
-                      <Box height={"100%"} width={"100%"} display={"flex"}>
-                        <StateWithImage message={Messages.info.noRecords} imageUrl={noDataIcon} />
-                      </Box>
-                    )}
-                  </>
+                        },
+                      },
+                      overflow: "auto",
+                      height: "100%",
+                      width: "100%",
+                    }}
+                  />
                 )}
               </Paper>
             </Box>

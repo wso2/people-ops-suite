@@ -14,7 +14,18 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import { GridOverlay } from "@mui/x-data-grid";
 import { Box, Typography } from "@mui/material";
+import { StateWithImageProps } from "@utils/types";
+
+export function StateWithImageFunction({ message, imageUrl }: StateWithImageProps) {
+  console.log("imageUrl", imageUrl);
+  return (
+    <GridOverlay>
+      <StateWithImage message={message} imageUrl={imageUrl} />
+    </GridOverlay>
+  );
+}
 
 function StateWithImage(props: { message: string; imageUrl: string }) {
   return (

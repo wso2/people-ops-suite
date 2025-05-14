@@ -43,7 +43,7 @@ const ReportView = () => {
   const employeeLoadingState = useAppSelector((state) => state.meteInfo.metaDataStatus || 0);
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
-  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs || []);
+  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetStats);
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
 
@@ -203,7 +203,7 @@ const ReportView = () => {
   };
 
   const downloadPDF = () => {
-    if (!records.length) return;
+    if (!records?.length) return;
 
     const doc = new jsPDF();
 
@@ -264,121 +264,125 @@ const ReportView = () => {
   }, []);
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      {employeeLoadingState === State.failed ? (
-        <StateWithImage message={Messages.error.fetchRecords} imageUrl={errorIcon} />
-      ) : (
-        <>
-          <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
-              <FilterComponent
-                availableFields={availableFields}
-                filters={filters}
-                setFilters={setFilters}
-                onApply={fetchData}
-                onReset={handleResetFilters}
-              />
-              <Button
-                variant="contained"
-                startIcon={<PictureAsPdfIcon />}
-                onClick={downloadPDF}
-                disabled={records.length === 0}
+    <Box sx={{ width: "100%", height: "100%" }}>
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        {employeeLoadingState === State.failed ? (
+          <Box height={"100%"} width={"100%"} display={"flex"}>
+            <StateWithImage message={Messages.error.fetchEmployees} imageUrl={errorIcon} />
+          </Box>
+        ) : (
+          <>
+            <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
+                <FilterComponent
+                  availableFields={availableFields}
+                  filters={filters}
+                  setFilters={setFilters}
+                  onApply={fetchData}
+                  onReset={handleResetFilters}
+                />
+                <Button
+                  variant="contained"
+                  startIcon={<PictureAsPdfIcon />}
+                  onClick={downloadPDF}
+                  disabled={records?.length === 0}
+                  sx={{
+                    boxShadow: "none",
+                    "&:hover": { boxShadow: "none" },
+                  }}
+                >
+                  DOWNLOAD REPORT
+                </Button>
+              </Stack>
+              <Paper
+                elevation={0}
                 sx={{
-                  boxShadow: "none",
-                  "&:hover": { boxShadow: "none" },
+                  height: "95%",
+                  width: "100%",
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  overflow: "auto",
                 }}
               >
-                DOWNLOAD REPORT
-              </Button>
-            </Stack>
-            <Paper
-              elevation={0}
-              sx={{
-                height: "95%",
-                width: "100%",
-                borderRadius: 2,
-                border: "1px solid",
-                borderColor: "divider",
-                overflow: "auto",
-              }}
-            >
-              {timesheetLoadingInfo === State.failed && (
-                <StateWithImage message={Messages.error.fetchRecords} imageUrl={errorIcon} />
-              )}
-
-              {(timesheetLoadingInfo === State.loading || employeeLoadingState === State.loading) &&
-                timesheetLoadingInfo !== State.failed && (
-                  <BackgroundLoader open={true} message={Messages.info.loadingText} />
+                {timesheetLoadingInfo === State.failed && (
+                  <StateWithImage message={Messages.error.fetchRecords} imageUrl={errorIcon} />
                 )}
 
-              {timesheetLoadingInfo === State.success && employeeLoadingState === State.success && (
-                <>
-                  {totalRecordCount > 0 ? (
-                    <DataGrid
-                      pagination
-                      rows={records}
-                      columns={columns}
-                      disableDensitySelector
-                      paginationMode="server"
-                      rowCount={totalRecordCount}
-                      disableRowSelectionOnClick
-                      loading={recordLoadingState === State.loading}
-                      getRowId={(row) => row.recordId}
-                      filterModel={filterModel}
-                      onFilterModelChange={setFilterModel}
-                      slotProps={{
-                        toolbar: {
-                          showQuickFilter: true,
-                          quickFilterProps: { debounceMs: 500 },
-                        },
-                      }}
-                      sx={{
-                        border: "none",
-                        "& .MuiDataGrid-columnHeaders": {
-                          backgroundColor: theme.palette.background.paper,
-                          borderBottom: `1px solid ${theme.palette.divider}`,
-                        },
-                        "& .MuiDataGrid-cell": {
-                          borderBottom: `1px solid ${theme.palette.divider}`,
-                        },
-                        "& .MuiDataGrid-virtualScroller": {
-                          backgroundColor: theme.palette.background.default,
-                        },
-                        "& .MuiDataGrid-footerContainer": {
-                          borderTop: `1px solid ${theme.palette.divider}`,
-                          backgroundColor: theme.palette.background.paper,
-                        },
-                        "& .MuiDataGrid-row": {
-                          "&:hover": {
-                            backgroundColor: theme.palette.action.hover,
+                {(timesheetLoadingInfo === State.loading || employeeLoadingState === State.loading) &&
+                  timesheetLoadingInfo !== State.failed && (
+                    <BackgroundLoader open={true} message={Messages.info.loadingText} />
+                  )}
+
+                {timesheetLoadingInfo === State.success && employeeLoadingState === State.success && (
+                  <>
+                    {totalRecordCount > 0 ? (
+                      <DataGrid
+                        pagination
+                        rows={records || []}
+                        columns={columns}
+                        disableDensitySelector
+                        paginationMode="server"
+                        rowCount={totalRecordCount}
+                        disableRowSelectionOnClick
+                        loading={recordLoadingState === State.loading}
+                        getRowId={(row) => row.recordId}
+                        filterModel={filterModel}
+                        onFilterModelChange={setFilterModel}
+                        slotProps={{
+                          toolbar: {
+                            showQuickFilter: true,
+                            quickFilterProps: { debounceMs: 500 },
                           },
-                          "&.Mui-selected": {
-                            backgroundColor: theme.palette.action.selected,
+                        }}
+                        sx={{
+                          border: "none",
+                          "& .MuiDataGrid-columnHeaders": {
+                            backgroundColor: theme.palette.background.paper,
+                            borderBottom: `1px solid ${theme.palette.divider}`,
+                          },
+                          "& .MuiDataGrid-cell": {
+                            borderBottom: `1px solid ${theme.palette.divider}`,
+                          },
+                          "& .MuiDataGrid-virtualScroller": {
+                            backgroundColor: theme.palette.background.default,
+                          },
+                          "& .MuiDataGrid-footerContainer": {
+                            borderTop: `1px solid ${theme.palette.divider}`,
+                            backgroundColor: theme.palette.background.paper,
+                          },
+                          "& .MuiDataGrid-row": {
                             "&:hover": {
+                              backgroundColor: theme.palette.action.hover,
+                            },
+                            "&.Mui-selected": {
                               backgroundColor: theme.palette.action.selected,
+                              "&:hover": {
+                                backgroundColor: theme.palette.action.selected,
+                              },
                             },
                           },
-                        },
-                        overflow: "auto",
-                        height: "100%",
-                        width: "100%",
-                      }}
-                    />
-                  ) : (
-                    <Box height={"100%"} width={"100%"} display={"flex"}>
-                      <StateWithImage
-                        message={filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter}
-                        imageUrl={filters.length > 0 ? noSearchResults : noDataIcon}
+                          overflow: "auto",
+                          height: "100%",
+                          width: "100%",
+                        }}
                       />
-                    </Box>
-                  )}
-                </>
-              )}
-            </Paper>
-          </Box>
-        </>
-      )}
-    </LocalizationProvider>
+                    ) : (
+                      <Box height={"100%"} width={"100%"} display={"flex"}>
+                        <StateWithImage
+                          message={records !== undefined ? Messages.info.noRecords : Messages.info.useFilter}
+                          imageUrl={records !== undefined ? noSearchResults : noDataIcon}
+                        />
+                      </Box>
+                    )}
+                  </>
+                )}
+              </Paper>
+            </Box>
+          </>
+        )}
+      </LocalizationProvider>
+    </Box>
   );
 };
 export default ReportView;

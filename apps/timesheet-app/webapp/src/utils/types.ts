@@ -198,3 +198,8 @@ export interface NoDataViewProps {
   type?: "empty" | "search" | "error";
   svgIcon?: React.ReactNode;
 }
+
+export interface StateWithImageProps {
+  message: string;
+  imageUrl: string;
+}

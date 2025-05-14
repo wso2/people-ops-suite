@@ -58,7 +58,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import notFoundIcon from "@images/not-found.svg";
 import CloseIcon from "@mui/icons-material/Close";
 import { DEFAULT_PAGE_SIZE } from "@config/config";
-import StateWithImage from "@component/ui/StateWithImage";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
@@ -72,6 +71,7 @@ import { useConfirmationModalContext } from "@context/DialogContext";
 import { differenceInMinutes, format, isWeekend, parseISO } from "date-fns";
 import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
 import InformationHeaderSkeleton from "@component/common/InformationHeaderSkeleton";
+import StateWithImage, { StateWithImageFunction } from "@component/ui/StateWithImage";
 import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecord } from "@slices/recordSlice/record";
 
 const EmployeeTimeSheetView = () => {
@@ -425,7 +425,9 @@ const EmployeeTimeSheetView = () => {
   return (
     <Box sx={{ width: "100%", height: "100%" }}>
       {timesheetLoadingInfo === State.failed ? (
-        <StateWithImage message={Messages.error.fetchRecords} imageUrl={notFoundIcon} />
+        <Box height={"100%"} width={"100%"} display={"flex"}>
+          <StateWithImage message={Messages.error.fetchRecords} imageUrl={notFoundIcon} />
+        </Box>
       ) : (
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
@@ -464,7 +466,7 @@ const EmployeeTimeSheetView = () => {
             <Paper
               elevation={0}
               sx={{
-                height: "76%",
+                height: "75%",
                 width: "100%",
                 borderRadius: 2,
                 border: "1px solid",
@@ -472,65 +474,66 @@ const EmployeeTimeSheetView = () => {
                 overflow: "auto",
               }}
             >
-              {totalRecordCount > 0 ? (
-                <DataGrid
-                  pagination
-                  rows={records}
-                  columns={columns}
-                  disableDensitySelector
-                  paginationMode="server"
-                  rowCount={totalRecordCount}
-                  paginationModel={paginationModel}
-                  pageSizeOptions={[5]}
-                  onPaginationModelChange={setPaginationModel}
-                  loading={recordLoadingState === State.loading}
-                  getRowId={(row) => row.recordId}
-                  filterModel={filterModel}
-                  disableRowSelectionOnClick
-                  onFilterModelChange={setFilterModel}
-                  slotProps={{
-                    toolbar: {
-                      showQuickFilter: true,
-                      quickFilterProps: { debounceMs: 500 },
+              <DataGrid
+                pagination
+                rows={records}
+                columns={columns}
+                disableDensitySelector
+                paginationMode="server"
+                rowCount={totalRecordCount}
+                paginationModel={paginationModel}
+                pageSizeOptions={[5]}
+                onPaginationModelChange={setPaginationModel}
+                loading={recordLoadingState === State.loading}
+                getRowId={(row) => row.recordId}
+                filterModel={filterModel}
+                disableRowSelectionOnClick
+                onFilterModelChange={setFilterModel}
+                slotProps={{
+                  toolbar: {
+                    showQuickFilter: true,
+                    quickFilterProps: { debounceMs: 500 },
+                  },
+                  noRowsOverlay: {
+                    message: filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter,
+                    imageUrl: noDataIcon,
+                  } as any,
+                }}
+                slots={{
+                  noRowsOverlay: StateWithImageFunction,
+                }}
+                sx={{
+                  border: "none",
+                  "& .MuiDataGrid-columnHeaders": {
+                    backgroundColor: theme.palette.background.paper,
+                    borderBottom: `1px solid ${theme.palette.divider}`,
+                  },
+                  "& .MuiDataGrid-cell": {
+                    borderBottom: `1px solid ${theme.palette.divider}`,
+                  },
+                  "& .MuiDataGrid-virtualScroller": {
+                    backgroundColor: theme.palette.background.default,
+                  },
+                  "& .MuiDataGrid-footerContainer": {
+                    borderTop: `1px solid ${theme.palette.divider}`,
+                    backgroundColor: theme.palette.background.paper,
+                  },
+                  "& .MuiDataGrid-row": {
+                    "&:hover": {
+                      backgroundColor: theme.palette.action.hover,
                     },
-                  }}
-                  sx={{
-                    border: "none",
-                    "& .MuiDataGrid-columnHeaders": {
-                      backgroundColor: theme.palette.background.paper,
-                      borderBottom: `1px solid ${theme.palette.divider}`,
-                    },
-                    "& .MuiDataGrid-cell": {
-                      borderBottom: `1px solid ${theme.palette.divider}`,
-                    },
-                    "& .MuiDataGrid-virtualScroller": {
-                      backgroundColor: theme.palette.background.default,
-                    },
-                    "& .MuiDataGrid-footerContainer": {
-                      borderTop: `1px solid ${theme.palette.divider}`,
-                      backgroundColor: theme.palette.background.paper,
-                    },
-                    "& .MuiDataGrid-row": {
+                    "&.Mui-selected": {
+                      backgroundColor: theme.palette.action.selected,
                       "&:hover": {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                      "&.Mui-selected": {
                         backgroundColor: theme.palette.action.selected,
-                        "&:hover": {
-                          backgroundColor: theme.palette.action.selected,
-                        },
                       },
                     },
-                    overflow: "auto",
-                    height: "100%",
-                    width: "100%",
-                  }}
-                />
-              ) : (
-                <Box height={"100%"} width={"100%"} display={"flex"}>
-                  <StateWithImage message={Messages.info.noRecords} imageUrl={noDataIcon} />
-                </Box>
-              )}
+                  },
+                  overflow: "auto",
+                  height: "100%",
+                  width: "100%",
+                }}
+              />
             </Paper>
 
             <CustomModal open={openDialog} onClose={handleCloseDialog}>

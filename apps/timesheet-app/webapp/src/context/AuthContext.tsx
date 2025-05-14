@@ -25,7 +25,6 @@ import { getUserInfo } from "@slices/userSlice/user";
 import NoDataView from "@component/common/NoDataView";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import LoadingScreen from "@component/common/LoadingScreen";
 import StatusWithAction from "@component/ui/StatusWithAction";
 import React, { useContext, useEffect, useState } from "react";
 import DialogContentText from "@mui/material/DialogContentText";
@@ -184,7 +183,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
               )}
               {userInfoState === State.loading && (
                 <Box sx={{ width: "100%", height: "100vh" }}>
-                  <LoadingScreen message={userInfo.stateMessage || "Loading"} />
+                  <PreLoader isLoading={true} message={null} />
                 </Box>
               )}
             </>

@@ -61,8 +61,7 @@ const InformationHeaderSkeleton: React.FC<InformationHeaderSkeletonProps> = ({ i
                 <Grid item xs={12} sm={2.4} md={2.4} lg={2.4} key={`stat-${index}`}>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                     <Box>
-                      <Skeleton variant="text" width={100} height={24} />
-                      <Skeleton variant="text" width={80} height={32} />
+                      <Skeleton variant="text" width={80} height={30} />
                     </Box>
                   </Box>
                   <Skeleton variant="text" width={140} height={20} />
