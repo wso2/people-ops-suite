@@ -217,6 +217,7 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({
                       <Typography variant="body2" color="text.secondary">
                         {stat.title}
                       </Typography>
+                      <Typography variant="h6">{stat.value}</Typography>
                     </Box>
                   </Box>
                   <Typography variant="caption" color="text.secondary">

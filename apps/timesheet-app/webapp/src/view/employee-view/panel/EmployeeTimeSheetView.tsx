@@ -103,7 +103,7 @@ const EmployeeTimeSheetView = () => {
     {
       field: "recordDate",
       headerName: "Date",
-      flex: 0.5,
+      flex: 0.8,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row" alignItems="center" gap={1}>
           <CalendarMonthIcon fontSize="small" color="action" />
@@ -228,7 +228,7 @@ const EmployeeTimeSheetView = () => {
     {
       field: "actions",
       headerName: "Actions",
-      width: 120,
+      width: 100,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row">
           {params.row.overtimeStatus === TimesheetStatus.PENDING && (
@@ -588,7 +588,6 @@ const EmployeeTimeSheetView = () => {
                             helperText: errors.clockInTime,
                           },
                         }}
-                        desktopModeMediaQuery="none"
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -604,7 +603,6 @@ const EmployeeTimeSheetView = () => {
                             helperText: errors.clockOutTime,
                           },
                         }}
-                        desktopModeMediaQuery="none"
                       />
                     </Grid>
                     {editingEntry.overtimeDuration > 0 && (

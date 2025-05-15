@@ -184,7 +184,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
                 </AuthContext.Provider>
               )}
               {userInfoState === State.loading && (
-                <Box sx={{ width: "100%", height: "100vh" }}>
+                <Box sx={{ width: "100%", height: "100%" }}>
                   <PreLoader isLoading={true} message={null} />
                 </Box>
               )}

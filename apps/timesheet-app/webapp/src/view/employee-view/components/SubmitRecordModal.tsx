@@ -155,7 +155,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
 
   const cleanTimeEntries = (entries: CreateUITimesheetRecord[]) => {
     return entries.map((entry) => {
-      const formattedRecordDate = entry.recordDate ? new Date(entry.recordDate).toISOString().split("T")[0] : "";
+      const formattedRecordDate = entry.recordDate ? new Date(entry.recordDate).toLocaleDateString("sv-SE") : "";
 
       const formatTime = (dateTime: Date) => {
         const d = new Date(dateTime);
@@ -199,6 +199,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
         timeLogs: cleanTimeEntries(entries),
         employeeEmail: userEmail,
       };
+
       const resultAction = await dispatch(addTimesheetRecords({ payload: payload }));
       if (addTimesheetRecords.fulfilled.match(resultAction)) {
         onClose?.();
@@ -338,103 +339,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     }
   };
 
-  const handleDuplicateLastEntry = () => {
-    if (entriesCount === 0) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: "No entries available to duplicate",
-          type: "error",
-        })
-      );
-      return;
-    }
-
-    const lastEntry = entries[entriesCount - 1];
-    if (!lastEntry.recordDate) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: "Last entry must have a date to duplicate",
-          type: "error",
-        })
-      );
-      return;
-    }
-
-    let newDate = subDays(lastEntry.recordDate, 1);
-    let attempts = 0;
-    const maxAttempts = 7;
-
-    while (attempts < maxAttempts) {
-      if (isWeekend(newDate)) {
-        newDate = subDays(newDate, 1);
-        attempts++;
-        continue;
-      }
-
-      if (isAfter(newDate, new Date())) {
-        newDate = subDays(newDate, 1);
-        attempts++;
-        continue;
-      }
-
-      const entryExists = entries.some((entry) => entry.recordDate && isSameDay(entry.recordDate, newDate));
-      if (entryExists) {
-        newDate = subDays(newDate, 1);
-        attempts++;
-        continue;
-      }
-
-      break;
-    }
-
-    if (attempts >= maxAttempts) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: "Could not find a valid weekday to duplicate",
-          type: "error",
-        })
-      );
-      return;
-    }
-
-    const newEntry: CreateUITimesheetRecord = {
-      ...lastEntry,
-      recordId: (newRecordId.current += 1),
-      recordDate: newDate,
-      overtimeDuration: 0,
-    };
-
-    if (lastEntry.clockInTime) {
-      newEntry.clockInTime = new Date(
-        newDate.getFullYear(),
-        newDate.getMonth(),
-        newDate.getDate(),
-        lastEntry.clockInTime.getHours(),
-        lastEntry.clockInTime.getMinutes()
-      );
-    }
-
-    if (lastEntry.clockOutTime) {
-      newEntry.clockOutTime = new Date(
-        newDate.getFullYear(),
-        newDate.getMonth(),
-        newDate.getDate(),
-        lastEntry.clockOutTime.getHours(),
-        lastEntry.clockOutTime.getMinutes()
-      );
-    }
-
-    const entryWithOvertime = calculateOvertime(newEntry);
-    setEntries([...entries, entryWithOvertime]);
-
-    dispatch(
-      enqueueSnackbarMessage({
-        message: `Duplicated last entry to ${format(newDate, "MMM dd, yyyy")}`,
-        type: "info",
-      })
-    );
-  };
-
   const handleSubmitRecordModalClose = () => {
     if (entries.length > 0) {
       dialogContext.showConfirmation(
@@ -454,8 +358,8 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
 
   const handleSaveEditedLogs = () => {
     dialogContext.showConfirmation(
-      "Do you want to submit the time logs created ?",
-      "Logs containing overtime details must be approved by your lead.",
+      "Do you want to submit time logs?",
+      "Please note after submitting logs you can not update again.",
       ConfirmationType.send,
       () => {
         handleBatchSubmit();
@@ -464,6 +368,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
       "No"
     );
   };
+
   const handleAddBulkEntries = () => {
     const errors = validateBulkEntry();
     if (Object.keys(errors).length > 0) {
@@ -520,7 +425,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     if (newEntries.length === 0) {
       dispatch(
         enqueueSnackbarMessage({
-          message: "Dates already have entries",
+          message: "Dates are not valid",
           type: "warning",
         })
       );
@@ -736,27 +641,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                     </Button>
                   </span>
                 </Tooltip>
-                {/* Disabled until next development phase */}
-                {/* <Tooltip
-                  title={
-                    entriesCount < DEFAULT_TIME_ENTRY_SIZE
-                      ? `Duplicate the last entry with previous date.`
-                      : "Max entries reached"
-                  }
-                >
-                  <span>
-                    <Button
-                      variant="outlined"
-                      color="secondary"
-                      onClick={handleDuplicateLastEntry}
-                      startIcon={<ReceiptLongIcon />}
-                      disabled={entriesCount === 0 || entriesCount >= DEFAULT_TIME_ENTRY_SIZE}
-                      sx={{ mx: 1 }}
-                    >
-                      DUPLICATE LAST ENTRY
-                    </Button>
-                  </span>
-                </Tooltip> */}
               </Box>
               <Button
                 variant="contained"
@@ -827,7 +711,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                         helperText: errors.clockInTime,
                       },
                     }}
-                    desktopModeMediaQuery="none"
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -843,7 +726,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                         helperText: errors.clockOutTime,
                       },
                     }}
-                    desktopModeMediaQuery="none"
                   />
                 </Grid>
                 {editingEntry.overtimeDuration > 0 && (
@@ -961,7 +843,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                       helperText: errors.clockInTime,
                     },
                   }}
-                  desktopModeMediaQuery="none"
                 />
               </Grid>
               <Grid item xs={12} md={6}>
@@ -977,7 +858,6 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                       helperText: errors.clockOutTime,
                     },
                   }}
-                  desktopModeMediaQuery="none"
                 />
               </Grid>
               <Grid item xs={12}>
