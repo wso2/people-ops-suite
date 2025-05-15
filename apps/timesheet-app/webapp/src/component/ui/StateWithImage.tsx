@@ -19,7 +19,6 @@ import { Box, Typography } from "@mui/material";
 import { StateWithImageProps } from "@utils/types";
 
 export function StateWithImageFunction({ message, imageUrl }: StateWithImageProps) {
-  console.log("imageUrl", imageUrl);
   return (
     <GridOverlay>
       <StateWithImage message={message} imageUrl={imageUrl} />

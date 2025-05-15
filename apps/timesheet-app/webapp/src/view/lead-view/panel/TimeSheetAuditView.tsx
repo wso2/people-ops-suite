@@ -63,9 +63,10 @@ const TimeSheetAuditView = () => {
   const employeeMap = useAppSelector((state) => state.meteInfo.employeeMap);
   const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
+  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs);
+  const recordSubmitState = useAppSelector((state) => state.timesheetRecord.submitState);
   const employeeLoadingState = useAppSelector((state) => state.meteInfo.metaDataStatus || 0);
   const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
-  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetStats);
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
@@ -387,12 +388,6 @@ const TimeSheetAuditView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    console.log("errorimage", errorIcon);
-    console.log("nodata", noDataIcon);
-    console.log("no result", noSearchResults);
-  }, []);
-
   return (
     <Box sx={{ width: "100%", height: "100%" }}>
       {employeeLoadingState === State.failed ? (
@@ -476,7 +471,7 @@ const TimeSheetAuditView = () => {
                     onFilterModelChange={setFilterModel}
                     onRowSelectionModelChange={handleSelectionChange}
                     checkboxSelection
-                    loading={recordLoadingState === State.loading}
+                    loading={recordLoadingState === State.loading || recordSubmitState === State.loading}
                     slotProps={{
                       toolbar: {
                         showQuickFilter: true,

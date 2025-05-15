@@ -80,6 +80,9 @@ const EmployeeTimeSheetView = () => {
   const handleOpenDialog = () => setOpenDialog(true);
   const dialogContext = useConfirmationModalContext();
   const [openDialog, setOpenDialog] = useState(false);
+  const [filters, setFilters] = useState<Filter[]>([]);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<any | null>(null);
   const userEmail = useAppSelector((state) => state.auth.userInfo?.email);
   const submitState = useAppSelector((state) => state.timesheetRecord.submitState);
   const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
@@ -95,9 +98,6 @@ const EmployeeTimeSheetView = () => {
     page: 0,
     pageSize: DEFAULT_PAGE_SIZE,
   });
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<any | null>(null);
-  const [filters, setFilters] = useState<Filter[]>([]);
 
   const columns = [
     {
@@ -407,7 +407,7 @@ const EmployeeTimeSheetView = () => {
         employeeEmail: userEmail,
         recordId: editingEntry.recordId,
       })
-    );
+    ).unwrap();
 
     fetchData();
     setEditDialogOpen(false);
@@ -463,6 +463,7 @@ const EmployeeTimeSheetView = () => {
                 </Button>
               </Tooltip>
             </Stack>
+
             <Paper
               elevation={0}
               sx={{
@@ -647,7 +648,7 @@ const EmployeeTimeSheetView = () => {
                   color="primary"
                   startIcon={<SaveIcon />}
                   variant="contained"
-                  disabled={submitState !== State.idle}
+                  loading={submitState === State.loading}
                 >
                   Save Changes
                 </Button>

@@ -29,11 +29,9 @@ import {
 import {
   Work,
   Cancel,
-  TrendingUp,
   AccessTime,
   CheckCircle,
   HourglassTop,
-  TrendingDown,
   FreeBreakfast,
   PendingActions,
   HourglassBottom,
@@ -74,10 +72,6 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({
   const pendingRate = totalRecords > 0 ? (pendingRecords / totalRecords) * 100 : 0;
 
   const dailyWorkingHours = workPolicies.workingHoursPerDay;
-
-  const getTrendIcon = (value: number, threshold: number) => {
-    return value > threshold ? <TrendingUp color="error" /> : <TrendingDown color="success" />;
-  };
 
   const statusChips = [
     {
