@@ -16,10 +16,8 @@
 
 import { SUPPORT_TEAM_EMAILS } from "@config/config";
 
-let supportTeamEmails = "";
-
-supportTeamEmails += SUPPORT_TEAM_EMAILS.map(
-    (contact) => `- **${contact.team}**: [${contact.email}](mailto:${contact.email})`
+const supportTeams = SUPPORT_TEAM_EMAILS.map(({ team, email }) =>
+  `- For **${team.toLowerCase()}**, email: [${email}](mailto:${email})`
 ).join("\n");
 
 let guide = `
@@ -128,9 +126,9 @@ The admins including team leads and leadership would be able to access all the r
 
 <br>
 
-## **Important Contacts**
+## **Support & Assistance**
 
-For any concerns, please reach out to:
+For any inquiries or support needs, please reach out to the relevant team:
 `
 
-export const doc = guide + supportTeamEmails;
+export const doc = guide + supportTeams;
