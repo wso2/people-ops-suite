@@ -588,6 +588,7 @@ const EmployeeTimeSheetView = () => {
                             helperText: errors.clockInTime,
                           },
                         }}
+                        desktopModeMediaQuery="none"
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -603,6 +604,7 @@ const EmployeeTimeSheetView = () => {
                             helperText: errors.clockOutTime,
                           },
                         }}
+                        desktopModeMediaQuery="none"
                       />
                     </Grid>
                     {editingEntry.overtimeDuration > 0 && (

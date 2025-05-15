@@ -73,7 +73,7 @@ import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { useConfirmationModalContext } from "@context/DialogContext";
 import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { ConfirmationType, CreateTimeLogsPayload, CreateUITimesheetRecord } from "@utils/types";
+import { ConfirmationType, CreateTimeLogsPayload, CreateUITimesheetRecord, State } from "@utils/types";
 
 interface TimeTrackingFormProps {
   onClose?: () => void;
@@ -92,12 +92,13 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   const [bulkLunchIncluded, setBulkLunchIncluded] = useState(true);
   const [bulkOvertimeReason, setBulkOvertimeReason] = useState("");
   const [bulkEndDate, setBulkEndDate] = useState<Date | null>(null);
+  const [bulkOvertimeDuration, setBulkOvertimeDuration] = useState(0);
   const [entries, setEntries] = useState<CreateUITimesheetRecord[]>([]);
   const [bulkStartDate, setBulkStartDate] = useState<Date | null>(null);
   const [bulkClockInTime, setBulkClockInTime] = useState<Date | null>(null);
   const [bulkClockOutTime, setBulkClockOutTime] = useState<Date | null>(null);
   const [bulkOvertimeReasonNeeded, setBulkOvertimeReasonNeeded] = useState(false);
-  const [bulkOvertimeDuration, setBulkOvertimeDuration] = useState(0);
+  const submitState = useAppSelector((state) => state.timesheetRecord.submitState);
   const [editingEntry, setEditingEntry] = useState<CreateUITimesheetRecord | null>(null);
   const userEmail = useAppSelector((state) => state.user.userInfo!.employeeInfo.workEmail);
   const totalOvertimeHours = entries.reduce((sum, entry) => sum + entry.overtimeDuration, 0);
@@ -453,8 +454,8 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
 
   const handleSaveEditedLogs = () => {
     dialogContext.showConfirmation(
-      "Do you want to save the changes?",
-      "",
+      "Do you want to submit the time logs created ?",
+      "Logs containing overtime details must be approved by your lead.",
       ConfirmationType.send,
       () => {
         handleBatchSubmit();
@@ -764,6 +765,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                 sx={{ width: "160px", mx: 1 }}
                 startIcon={<PublishIcon />}
                 disabled={entriesCount === 0}
+                loading={submitState === State.loading}
               >
                 Submit Entries
               </Button>
@@ -825,6 +827,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                         helperText: errors.clockInTime,
                       },
                     }}
+                    desktopModeMediaQuery="none"
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -840,6 +843,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                         helperText: errors.clockOutTime,
                       },
                     }}
+                    desktopModeMediaQuery="none"
                   />
                 </Grid>
                 {editingEntry.overtimeDuration > 0 && (
@@ -957,6 +961,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                       helperText: errors.clockInTime,
                     },
                   }}
+                  desktopModeMediaQuery="none"
                 />
               </Grid>
               <Grid item xs={12} md={6}>
@@ -972,6 +977,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                       helperText: errors.clockOutTime,
                     },
                   }}
+                  desktopModeMediaQuery="none"
                 />
               </Grid>
               <Grid item xs={12}>
