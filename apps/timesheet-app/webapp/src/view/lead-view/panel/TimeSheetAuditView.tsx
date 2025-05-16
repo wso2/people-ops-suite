@@ -319,7 +319,7 @@ const TimeSheetAuditView = () => {
       () => {
         handleUpdateRecords(TimesheetStatus.APPROVED, recordId);
       },
-      "Approve",
+      "Yes",
       "Cancel"
     );
   };
@@ -332,7 +332,7 @@ const TimeSheetAuditView = () => {
       (comment) => {
         handleUpdateRecords(TimesheetStatus.REJECTED, recordId, comment);
       },
-      "Decline",
+      "Yes",
       "Cancel",
       {
         label: "Reason for decline",

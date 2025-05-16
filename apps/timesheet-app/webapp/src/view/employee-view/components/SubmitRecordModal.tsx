@@ -42,16 +42,6 @@ import {
   InputAdornment,
   FormControlLabel,
 } from "@mui/material";
-import {
-  format,
-  isAfter,
-  subDays,
-  isWeekend,
-  isSameDay,
-  startOfDay,
-  eachDayOfInterval,
-  differenceInMinutes,
-} from "date-fns";
 import { Messages } from "@config/constant";
 import noDataIcon from "@images/no-data.svg";
 import AddIcon from "@mui/icons-material/Add";
@@ -74,6 +64,7 @@ import { useConfirmationModalContext } from "@context/DialogContext";
 import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { ConfirmationType, CreateTimeLogsPayload, CreateUITimesheetRecord, State } from "@utils/types";
+import { format, isAfter, isWeekend, isSameDay, startOfDay, eachDayOfInterval, differenceInMinutes } from "date-fns";
 
 interface TimeTrackingFormProps {
   onClose?: () => void;
@@ -343,7 +334,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     if (entries.length > 0) {
       dialogContext.showConfirmation(
         "Do you want to close this window?",
-        "Entries will be lost unless you submit them.",
+        "Please note that drafted entries will be lost if not submitted.",
         ConfirmationType.accept,
         () => {
           onClose?.();
@@ -359,7 +350,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   const handleSaveEditedLogs = () => {
     dialogContext.showConfirmation(
       "Do you want to submit time logs?",
-      "Please note after submitting logs you can not update again.",
+      "logs have been submitted, they cannot be edited or removed.",
       ConfirmationType.send,
       () => {
         handleBatchSubmit();
