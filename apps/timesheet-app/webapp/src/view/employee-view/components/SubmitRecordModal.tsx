@@ -42,25 +42,16 @@ import {
   InputAdornment,
   FormControlLabel,
 } from "@mui/material";
-import {
-  format,
-  isAfter,
-  subDays,
-  isWeekend,
-  isSameDay,
-  startOfDay,
-  eachDayOfInterval,
-  differenceInMinutes,
-} from "date-fns";
 import { Messages } from "@config/constant";
+import noDataIcon from "@images/no-data.svg";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PublishIcon from "@mui/icons-material/Publish";
 import { HourglassBottom } from "@mui/icons-material";
-import NoDataView from "@component/common/NoDataView";
 import { DEFAULT_TIME_ENTRY_SIZE } from "@config/config";
+import StateWithImage from "@component/ui/StateWithImage";
 import React, { useState, useRef, useEffect } from "react";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
@@ -72,7 +63,8 @@ import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 import { useConfirmationModalContext } from "@context/DialogContext";
 import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { ConfirmationType, CreateTimeLogsPayload, CreateUITimesheetRecord } from "@utils/types";
+import { ConfirmationType, CreateTimeLogsPayload, CreateUITimesheetRecord, State } from "@utils/types";
+import { format, isAfter, isWeekend, isSameDay, startOfDay, eachDayOfInterval, differenceInMinutes } from "date-fns";
 
 interface TimeTrackingFormProps {
   onClose?: () => void;
@@ -91,12 +83,13 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   const [bulkLunchIncluded, setBulkLunchIncluded] = useState(true);
   const [bulkOvertimeReason, setBulkOvertimeReason] = useState("");
   const [bulkEndDate, setBulkEndDate] = useState<Date | null>(null);
+  const [bulkOvertimeDuration, setBulkOvertimeDuration] = useState(0);
   const [entries, setEntries] = useState<CreateUITimesheetRecord[]>([]);
   const [bulkStartDate, setBulkStartDate] = useState<Date | null>(null);
   const [bulkClockInTime, setBulkClockInTime] = useState<Date | null>(null);
   const [bulkClockOutTime, setBulkClockOutTime] = useState<Date | null>(null);
   const [bulkOvertimeReasonNeeded, setBulkOvertimeReasonNeeded] = useState(false);
-  const [bulkOvertimeDuration, setBulkOvertimeDuration] = useState(0);
+  const submitState = useAppSelector((state) => state.timesheetRecord.submitState);
   const [editingEntry, setEditingEntry] = useState<CreateUITimesheetRecord | null>(null);
   const userEmail = useAppSelector((state) => state.user.userInfo!.employeeInfo.workEmail);
   const totalOvertimeHours = entries.reduce((sum, entry) => sum + entry.overtimeDuration, 0);
@@ -153,7 +146,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
 
   const cleanTimeEntries = (entries: CreateUITimesheetRecord[]) => {
     return entries.map((entry) => {
-      const formattedRecordDate = entry.recordDate ? new Date(entry.recordDate).toISOString().split("T")[0] : "";
+      const formattedRecordDate = entry.recordDate ? new Date(entry.recordDate).toLocaleDateString("sv-SE") : "";
 
       const formatTime = (dateTime: Date) => {
         const d = new Date(dateTime);
@@ -197,6 +190,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
         timeLogs: cleanTimeEntries(entries),
         employeeEmail: userEmail,
       };
+
       const resultAction = await dispatch(addTimesheetRecords({ payload: payload }));
       if (addTimesheetRecords.fulfilled.match(resultAction)) {
         onClose?.();
@@ -336,108 +330,11 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     }
   };
 
-  const handleDuplicateLastEntry = () => {
-    if (entriesCount === 0) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: "No entries available to duplicate",
-          type: "error",
-        })
-      );
-      return;
-    }
-
-    const lastEntry = entries[entriesCount - 1];
-    if (!lastEntry.recordDate) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: "Last entry must have a date to duplicate",
-          type: "error",
-        })
-      );
-      return;
-    }
-
-    let newDate = subDays(lastEntry.recordDate, 1);
-    let attempts = 0;
-    const maxAttempts = 7;
-
-    while (attempts < maxAttempts) {
-      if (isWeekend(newDate)) {
-        newDate = subDays(newDate, 1);
-        attempts++;
-        continue;
-      }
-
-      if (isAfter(newDate, new Date())) {
-        newDate = subDays(newDate, 1);
-        attempts++;
-        continue;
-      }
-
-      const entryExists = entries.some((entry) => entry.recordDate && isSameDay(entry.recordDate, newDate));
-      if (entryExists) {
-        newDate = subDays(newDate, 1);
-        attempts++;
-        continue;
-      }
-
-      break;
-    }
-
-    if (attempts >= maxAttempts) {
-      dispatch(
-        enqueueSnackbarMessage({
-          message: "Could not find a valid weekday to duplicate",
-          type: "error",
-        })
-      );
-      return;
-    }
-
-    const newEntry: CreateUITimesheetRecord = {
-      ...lastEntry,
-      recordId: (newRecordId.current += 1),
-      recordDate: newDate,
-      overtimeDuration: 0,
-    };
-
-    if (lastEntry.clockInTime) {
-      newEntry.clockInTime = new Date(
-        newDate.getFullYear(),
-        newDate.getMonth(),
-        newDate.getDate(),
-        lastEntry.clockInTime.getHours(),
-        lastEntry.clockInTime.getMinutes()
-      );
-    }
-
-    if (lastEntry.clockOutTime) {
-      newEntry.clockOutTime = new Date(
-        newDate.getFullYear(),
-        newDate.getMonth(),
-        newDate.getDate(),
-        lastEntry.clockOutTime.getHours(),
-        lastEntry.clockOutTime.getMinutes()
-      );
-    }
-
-    const entryWithOvertime = calculateOvertime(newEntry);
-    setEntries([...entries, entryWithOvertime]);
-
-    dispatch(
-      enqueueSnackbarMessage({
-        message: `Duplicated last entry to ${format(newDate, "MMM dd, yyyy")}`,
-        type: "info",
-      })
-    );
-  };
-
   const handleSubmitRecordModalClose = () => {
     if (entries.length > 0) {
       dialogContext.showConfirmation(
         "Do you want to close this window?",
-        "Entries will be lost unless you submit them.",
+        "Please note that drafted entries will be lost if not submitted.",
         ConfirmationType.accept,
         () => {
           onClose?.();
@@ -448,6 +345,19 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     } else {
       onClose?.();
     }
+  };
+
+  const handleSaveEditedLogs = () => {
+    dialogContext.showConfirmation(
+      "Do you want to submit time logs?",
+      "Please be advised that once logs have been submitted, they cannot be edited or removed",
+      ConfirmationType.send,
+      () => {
+        handleBatchSubmit();
+      },
+      "Yes",
+      "No"
+    );
   };
 
   const handleAddBulkEntries = () => {
@@ -506,7 +416,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
     if (newEntries.length === 0) {
       dispatch(
         enqueueSnackbarMessage({
-          message: "Dates already have entries",
+          message: "Dates are not valid",
           type: "warning",
         })
       );
@@ -675,7 +585,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                 </Box>
               </Box>
             ) : (
-              <NoDataView message="Add entries to get started" />
+              <StateWithImage message={Messages.info.addEntries} imageUrl={noDataIcon} />
             )}
           </CardContent>
 
@@ -722,35 +632,15 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                     </Button>
                   </span>
                 </Tooltip>
-                {/* Disabled until next development phase */}
-                {/* <Tooltip
-                  title={
-                    entriesCount < DEFAULT_TIME_ENTRY_SIZE
-                      ? `Duplicate the last entry with previous date.`
-                      : "Max entries reached"
-                  }
-                >
-                  <span>
-                    <Button
-                      variant="outlined"
-                      color="secondary"
-                      onClick={handleDuplicateLastEntry}
-                      startIcon={<ReceiptLongIcon />}
-                      disabled={entriesCount === 0 || entriesCount >= DEFAULT_TIME_ENTRY_SIZE}
-                      sx={{ mx: 1 }}
-                    >
-                      DUPLICATE LAST ENTRY
-                    </Button>
-                  </span>
-                </Tooltip> */}
               </Box>
               <Button
                 variant="contained"
                 color="secondary"
-                onClick={handleBatchSubmit}
+                onClick={handleSaveEditedLogs}
                 sx={{ width: "160px", mx: 1 }}
                 startIcon={<PublishIcon />}
                 disabled={entriesCount === 0}
+                loading={submitState === State.loading}
               >
                 Submit Entries
               </Button>

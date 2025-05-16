@@ -25,11 +25,14 @@ export const Messages = {
     sendRecords: "Unable to save timesheet records",
     otExceeds: "This entries exceeds the available overtime quota",
     updateRecords: "Unable to update the records",
+    fetchEmployees : "Unable to fetch employee information."
   },
   warning: {},
   info: {
     adminHelperAlert: " Use the filter to get employee timesheet information",
     noRecords: "No records found",
     useFilter: "Use the filter to find records ",
+    addEntries: "Add entries to get started",
+    loadingText: "Loading...",
   },
 };

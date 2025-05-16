@@ -27,7 +27,7 @@
     "@inovua/reactdatagrid-community": "^5.8.4",
     "@mui/icons-material": "^5.10.16",
     "@mui/lab": "^5.0.0-alpha.113",
-    "@mui/material": "^5.17.1",
+    "@mui/material": "^6.4.11",
     "@mui/x-data-grid": "^6.10.2",
     "@mui/x-data-grid-generator": "^5.17.20",
     "@mui/x-date-pickers": "^6.20.2",
@@ -107,6 +107,7 @@
     ]
   },
   "devDependencies": {
+    "@types/unist": "^3.0.3",
     "babel-plugin-module-resolver": "^5.0.2",
     "react-app-rewired": "^2.2.1"
   }

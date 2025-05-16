@@ -429,4 +429,3 @@ modules = [
 	{org = "wso2", packageName = "timesheet_app", moduleName = "timesheet_app.database"},
 	{org = "wso2", packageName = "timesheet_app", moduleName = "timesheet_app.entity"}
 ]
-

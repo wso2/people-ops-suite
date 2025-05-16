@@ -13,7 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
 import React from "react";
 import { Typography } from "@mui/material";
 import { NoDataViewProps } from "@utils/types";
@@ -35,12 +34,29 @@ const NoDataView: React.FC<NoDataViewProps> = ({
   actionLabel,
   onAction,
   type = "empty",
+  svgIcon,
 }) => {
   const handleRefresh = () => {
     window.location.reload();
   };
 
   const getIcon = () => {
+    if (svgIcon) {
+      return (
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {svgIcon}
+        </div>
+      );
+    }
+
     switch (type) {
       case "search":
         return <Search className="text-primary" size={48} />;
@@ -98,13 +114,13 @@ const NoDataView: React.FC<NoDataViewProps> = ({
           maxWidth: "400px",
         }}
       >
-        {/* Icon with animated background */}
+        {/* Icon with animated background - only show animation if no svgIcon is provided */}
         <Box
           sx={{
             position: "relative",
             mb: 3,
             "&::before": {
-              content: '""',
+              content: svgIcon ? "none" : '""',
               position: "absolute",
               top: "50%",
               left: "50%",
@@ -131,7 +147,6 @@ const NoDataView: React.FC<NoDataViewProps> = ({
                 theme.palette.mode === "dark" ? "#888888" : "#444444"
               } 50%, ${theme.palette.mode === "dark" ? "#ffffff" : "#000000"} 75%)`,
             backgroundSize: "2000px 100%",
-
             backgroundClip: "text",
             WebkitBackgroundClip: "text",
             color: "transparent",

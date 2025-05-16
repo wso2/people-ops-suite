@@ -30,14 +30,18 @@ import {
   GridRenderCellParams,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
+import errorIcon from "@images/error.svg";
 import { useEffect, useState } from "react";
 import { Messages } from "@config/constant";
+import noDataIcon from "@images/no-data.svg";
+import notFoundIcon from "@images/not-found.svg";
 import { DEFAULT_PAGE_SIZE } from "@config/config";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
+import noSearchResults from "@images/no-search-results.svg";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import { useAppDispatch, useAppSelector } from "@slices/store";
@@ -46,24 +50,10 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import InformationHeader from "@component/common/InformationHeader";
 import { useConfirmationModalContext } from "@context/DialogContext";
-import NoDataView, { NoDataViewFunction } from "@component/common/NoDataView";
-import {
-  Box,
-  Chip,
-  Stack,
-  Paper,
-  Button,
-  Tooltip,
-  useTheme,
-  Typography,
-  IconButton,
-  Avatar,
-} from "@mui/material";
-import {
-  fetchTimesheetRecords,
-  resetTimesheetRecords,
-  updateTimesheetRecords,
-} from "@slices/recordSlice/record";
+import InformationHeaderSkeleton from "@component/common/InformationHeaderSkeleton";
+import StateWithImage, { StateWithImageFunction } from "@component/ui/StateWithImage";
+import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
+import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton, Avatar } from "@mui/material";
 
 const TimeSheetAuditView = () => {
   const theme = useTheme();
@@ -71,27 +61,14 @@ const TimeSheetAuditView = () => {
   const dialogContext = useConfirmationModalContext();
   const leadEmail = useAppSelector((state) => state.auth.userInfo?.email);
   const employeeMap = useAppSelector((state) => state.meteInfo.employeeMap);
-  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>(
-    []
-  );
-  const workPolicies = useAppSelector(
-    (state) => state.user.userInfo?.workPolicies
-  );
-  const recordLoadingState = useAppSelector(
-    (state) => state.timesheetRecord.retrievingState
-  );
-  const timesheetLoadingInfo = useAppSelector(
-    (state) => state.timesheetRecord.retrievingState
-  );
-  const records = useAppSelector(
-    (state) => state.timesheetRecord.timesheetData?.timeLogs || []
-  );
-  const timesheetInfo = useAppSelector(
-    (state) => state.timesheetRecord.timesheetData?.timesheetStats
-  );
-  const totalRecordCount = useAppSelector(
-    (state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0
-  );
+  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
+  const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
+  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs);
+  const recordSubmitState = useAppSelector((state) => state.timesheetRecord.submitState);
+  const employeeLoadingState = useAppSelector((state) => state.meteInfo.metaDataStatus || 0);
+  const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
+  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetStats);
+  const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: DEFAULT_PAGE_SIZE,
@@ -123,10 +100,7 @@ const TimeSheetAuditView = () => {
         <Box display="flex" alignItems="center" position="relative">
           <Avatar
             src={employeeMap[params.row?.employeeEmail]?.employeeThumbnail}
-            alt={
-              employeeMap[params.row?.employeeEmail]?.employeeName ||
-              params.row?.employeeEmail
-            }
+            alt={employeeMap[params.row?.employeeEmail]?.employeeName || params.row?.employeeEmail}
             sx={{ marginRight: 2, height: "2.2rem", width: "2.2rem" }}
           />
           <Box
@@ -142,8 +116,7 @@ const TimeSheetAuditView = () => {
             }}
           >
             <Typography variant="body2">
-              {employeeMap[params.row?.employeeEmail]?.employeeName ||
-                params.row?.employeeEmail}
+              {employeeMap[params.row?.employeeEmail]?.employeeName || params.row?.employeeEmail}
             </Typography>
             <Box
               sx={{
@@ -216,13 +189,8 @@ const TimeSheetAuditView = () => {
       flex: 0.5,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row" alignItems="center" gap={1}>
-          <LunchDiningIcon
-            fontSize="small"
-            color={params.row.isLunchIncluded ? "success" : "error"}
-          />
-          <Typography variant="body2">
-            {params.row.isLunchIncluded ? "Yes" : "No"}
-          </Typography>
+          <LunchDiningIcon fontSize="small" color={params.row.isLunchIncluded ? "success" : "error"} />
+          <Typography variant="body2">{params.row.isLunchIncluded ? "Yes" : "No"}</Typography>
         </Stack>
       ),
     },
@@ -257,13 +225,10 @@ const TimeSheetAuditView = () => {
       flex: 1,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Chip
-          icon={
-            statusChipStyles[params.row.overtimeStatus as TimesheetStatus].icon
-          }
+          icon={statusChipStyles[params.row.overtimeStatus as TimesheetStatus].icon}
           label={params.row.overtimeStatus}
           color={
-            statusChipStyles[params.row.overtimeStatus as TimesheetStatus]
-              .color as "success" | "error" | "warning"
+            statusChipStyles[params.row.overtimeStatus as TimesheetStatus].color as "success" | "error" | "warning"
           }
           variant="outlined"
           size="small"
@@ -299,10 +264,7 @@ const TimeSheetAuditView = () => {
                 size="small"
                 color="info"
                 onClick={() => handleApproveRecords(params.row.recordId)}
-                disabled={
-                  params.row.overtimeStatus !== TimesheetStatus.PENDING ||
-                  selectionModel.length > 1
-                }
+                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
                 sx={{ mr: 1 }}
               >
                 <ThumbUpIcon fontSize="small" />
@@ -314,10 +276,7 @@ const TimeSheetAuditView = () => {
               <IconButton
                 size="small"
                 color="error"
-                disabled={
-                  params.row.overtimeStatus !== TimesheetStatus.PENDING ||
-                  selectionModel.length > 1
-                }
+                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
                 onClick={() => handleDeclineRecords(params.row.recordId)}
               >
                 <ThumbDownIcon fontSize="small" />
@@ -360,7 +319,7 @@ const TimeSheetAuditView = () => {
       () => {
         handleUpdateRecords(TimesheetStatus.APPROVED, recordId);
       },
-      "Approve",
+      "Yes",
       "Cancel"
     );
   };
@@ -373,7 +332,7 @@ const TimeSheetAuditView = () => {
       (comment) => {
         handleUpdateRecords(TimesheetStatus.REJECTED, recordId, comment);
       },
-      "Decline",
+      "Yes",
       "Cancel",
       {
         label: "Reason for decline",
@@ -383,15 +342,8 @@ const TimeSheetAuditView = () => {
     );
   };
 
-  const handleUpdateRecords = async (
-    status: TimesheetStatus,
-    recordId?: number,
-    comment?: string
-  ) => {
-    const recordIds =
-      selectionModel.length > 1
-        ? selectionModel.map((id) => id as number)
-        : [recordId as number];
+  const handleUpdateRecords = async (status: TimesheetStatus, recordId?: number, comment?: string) => {
+    const recordIds = selectionModel.length > 1 ? selectionModel.map((id) => id as number) : [recordId as number];
 
     const payload: TimeLogReview = {
       recordIds,
@@ -405,9 +357,7 @@ const TimeSheetAuditView = () => {
 
   const fetchData = async () => {
     if (!leadEmail) return;
-    const filterParams = Object.fromEntries(
-      filters.map(({ field, value }) => [field, value])
-    );
+    const filterParams = Object.fromEntries(filters.map(({ field, value }) => [field, value]));
 
     dispatch(
       fetchTimesheetRecords({
@@ -440,138 +390,138 @@ const TimeSheetAuditView = () => {
 
   return (
     <Box sx={{ width: "100%", height: "100%" }}>
-      {timesheetLoadingInfo === State.failed ? (
-        <NoDataView message={Messages.error.fetchRecords} type="error" />
+      {employeeLoadingState === State.failed ? (
+        <Box height={"100%"} width={"100%"} display={"flex"}>
+          <StateWithImage message={Messages.error.fetchEmployees} imageUrl={notFoundIcon} />
+        </Box>
       ) : (
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
-            {timesheetInfo && workPolicies && (
-              <Box sx={{ width: "100%", height: "auto" }}>
-                <InformationHeader
-                  timesheetInfo={timesheetInfo}
-                  workPolicies={workPolicies}
-                  isLeadView={true}
+        <>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
+              {recordLoadingState === State.success && timesheetInfo && workPolicies && (
+                <Box sx={{ width: "100%", height: "auto" }}>
+                  <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} isLeadView={true} />
+                </Box>
+              )}
+              {recordLoadingState === State.loading && (
+                <Box sx={{ width: "100%", height: "auto", mb: 1 }}>
+                  <InformationHeaderSkeleton isLeadView={true} />
+                </Box>
+              )}
+              <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
+                <FilterComponent
+                  availableFields={availableFields}
+                  filters={filters}
+                  setFilters={setFilters}
+                  onApply={fetchData}
+                  onReset={handleResetFilters}
+                  isLead={true}
                 />
-              </Box>
-            )}
+                <Box>
+                  <Button
+                    variant="contained"
+                    onClick={() => handleApproveRecords()}
+                    sx={{ width: "160px", mx: 1 }}
+                    startIcon={<ThumbUpIcon />}
+                    disabled={selectionModel.length <= 1}
+                  >
+                    Batch Approve
+                  </Button>
 
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="right"
-              mb={1}
-              spacing={1}
-            >
-              <FilterComponent
-                availableFields={availableFields}
-                filters={filters}
-                setFilters={setFilters}
-                onApply={fetchData}
-                onReset={handleResetFilters}
-                isLead={true}
-              />
-              <Box>
-                <Button
-                  variant="contained"
-                  onClick={() => handleApproveRecords()}
-                  sx={{ width: "160px", mx: 1 }}
-                  startIcon={<ThumbUpIcon />}
-                  disabled={selectionModel.length <= 1}
-                >
-                  Batch Approve
-                </Button>
-
-                <Button
-                  variant="contained"
-                  onClick={() => handleDeclineRecords()}
-                  color="error"
-                  sx={{ width: "160px", mx: 1 }}
-                  startIcon={<ThumbDownIcon />}
-                  disabled={selectionModel.length <= 1}
-                >
-                  Batch Reject
-                </Button>
-              </Box>
-            </Stack>
-
-            <Paper
-              elevation={0}
-              sx={{
-                height: "85%",
-                width: "100%",
-                borderRadius: 2,
-                border: "1px solid",
-                borderColor: "divider",
-                overflow: "auto",
-              }}
-            >
-              <DataGrid
-                pagination
-                rows={records}
-                columns={columns}
-                disableDensitySelector
-                paginationMode="server"
-                rowCount={totalRecordCount}
-                paginationModel={paginationModel}
-                onPaginationModelChange={setPaginationModel}
-                disableRowSelectionOnClick
-                loading={recordLoadingState === State.loading}
-                getRowId={(row) => row.recordId}
-                filterModel={filterModel}
-                onFilterModelChange={setFilterModel}
-                onRowSelectionModelChange={handleSelectionChange}
-                checkboxSelection
-                slotProps={{
-                  toolbar: {
-                    showQuickFilter: true,
-                    quickFilterProps: { debounceMs: 500 },
-                  },
-                  noRowsOverlay: {
-                    message:
-                      filters.length > 0
-                        ? Messages.info.noRecords
-                        : Messages.info.useFilter,
-                    type: "search",
-                  } as any,
-                }}
-                slots={{
-                  noRowsOverlay: NoDataViewFunction,
-                }}
+                  <Button
+                    variant="contained"
+                    onClick={() => handleDeclineRecords()}
+                    color="error"
+                    sx={{ width: "160px", mx: 1 }}
+                    startIcon={<ThumbDownIcon />}
+                    disabled={selectionModel.length <= 1}
+                  >
+                    Batch Reject
+                  </Button>
+                </Box>
+              </Stack>
+              <Paper
+                elevation={0}
                 sx={{
-                  border: "none",
-                  "& .MuiDataGrid-columnHeaders": {
-                    backgroundColor: theme.palette.background.paper,
-                    borderBottom: `1px solid ${theme.palette.divider}`,
-                  },
-                  "& .MuiDataGrid-cell": {
-                    borderBottom: `1px solid ${theme.palette.divider}`,
-                  },
-                  "& .MuiDataGrid-virtualScroller": {
-                    backgroundColor: theme.palette.background.default,
-                  },
-                  "& .MuiDataGrid-footerContainer": {
-                    borderTop: `1px solid ${theme.palette.divider}`,
-                    backgroundColor: theme.palette.background.paper,
-                  },
-                  "& .MuiDataGrid-row": {
-                    "&:hover": {
-                      backgroundColor: theme.palette.action.hover,
-                    },
-                    "&.Mui-selected": {
-                      backgroundColor: theme.palette.action.selected,
-                      "&:hover": {
-                        backgroundColor: theme.palette.action.selected,
-                      },
-                    },
-                  },
-                  overflow: "auto",
-                  height: "100%",
+                  height: "85%",
                   width: "100%",
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  overflow: "auto",
                 }}
-              />
-            </Paper>
-          </Box>
-        </LocalizationProvider>
+              >
+                {recordLoadingState === State.failed ? (
+                  <Box height={"100%"} width={"100%"} display={"flex"}>
+                    <StateWithImage message={Messages.error.fetchRecords} imageUrl={errorIcon} />
+                  </Box>
+                ) : (
+                  <DataGrid
+                    pagination
+                    rows={records || []}
+                    columns={columns}
+                    disableDensitySelector
+                    paginationMode="server"
+                    rowCount={totalRecordCount}
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
+                    disableRowSelectionOnClick
+                    getRowId={(row) => row.recordId}
+                    filterModel={filterModel}
+                    onFilterModelChange={setFilterModel}
+                    onRowSelectionModelChange={handleSelectionChange}
+                    checkboxSelection
+                    loading={recordLoadingState === State.loading || recordSubmitState === State.loading}
+                    slotProps={{
+                      toolbar: {
+                        showQuickFilter: true,
+                        quickFilterProps: { debounceMs: 500 },
+                      },
+                      noRowsOverlay: {
+                        message: records !== undefined ? Messages.info.noRecords : Messages.info.useFilter,
+                        imageUrl: records !== undefined ? noSearchResults : noDataIcon,
+                      } as any,
+                    }}
+                    slots={{
+                      noRowsOverlay: StateWithImageFunction,
+                    }}
+                    sx={{
+                      border: "none",
+                      "& .MuiDataGrid-columnHeaders": {
+                        backgroundColor: theme.palette.background.paper,
+                        borderBottom: `1px solid ${theme.palette.divider}`,
+                      },
+                      "& .MuiDataGrid-cell": {
+                        borderBottom: `1px solid ${theme.palette.divider}`,
+                      },
+                      "& .MuiDataGrid-virtualScroller": {
+                        backgroundColor: theme.palette.background.default,
+                      },
+                      "& .MuiDataGrid-footerContainer": {
+                        borderTop: `1px solid ${theme.palette.divider}`,
+                        backgroundColor: theme.palette.background.paper,
+                      },
+                      "& .MuiDataGrid-row": {
+                        "&:hover": {
+                          backgroundColor: theme.palette.action.hover,
+                        },
+                        "&.Mui-selected": {
+                          backgroundColor: theme.palette.action.selected,
+                          "&:hover": {
+                            backgroundColor: theme.palette.action.selected,
+                          },
+                        },
+                      },
+                      overflow: "auto",
+                      height: "100%",
+                      width: "100%",
+                    }}
+                  />
+                )}
+              </Paper>
+            </Box>
+          </LocalizationProvider>
+        </>
       )}
     </Box>
   );

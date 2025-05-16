@@ -195,5 +195,11 @@ export interface NoDataViewProps {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
-  type?: "search" | "empty" | "error";
+  type?: "empty" | "search" | "error";
+  svgIcon?: React.ReactNode;
+}
+
+export interface StateWithImageProps {
+  message: string;
+  imageUrl: string;
 }

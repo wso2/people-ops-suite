@@ -32,30 +32,29 @@ export const ColorModeContext = createContext({ toggleColorMode: () => {} });
 function App() {
   document.title = APP_NAME;
   const processLocalThemeMode = (): ThemeMode => {
-    var localMode: ThemeMode | null = localStorage.getItem(
-      "internal-app-theme"
-    ) as ThemeMode;
+    try {
+      const savedTheme = localStorage.getItem("internal-app-theme");
+      if (savedTheme === ThemeMode.Light || savedTheme === ThemeMode.Dark) {
+        return savedTheme;
+      }
 
-    if (localMode) {
-      return localMode;
-    } else {
-      localStorage.setItem("internal-app-theme", ThemeMode.Dark);
-      return ThemeMode.Dark;
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const systemTheme = prefersDark ? ThemeMode.Dark : ThemeMode.Light;
+
+      localStorage.setItem("internal-app-theme", systemTheme);
+      return systemTheme;
+    } catch (err) {
+      console.error("Theme detection failed, defaulting to light mode.", err);
+      return ThemeMode.Light;
     }
   };
-
   const [mode, setMode] = useState<ThemeMode>(processLocalThemeMode());
 
   const colorMode = useMemo(
     () => ({
       toggleColorMode: () => {
-        localStorage.setItem(
-          "internal-app-theme",
-          mode === ThemeMode.Light ? ThemeMode.Dark : ThemeMode.Light
-        );
-        setMode((prevMode) =>
-          prevMode === ThemeMode.Light ? ThemeMode.Dark : ThemeMode.Light
-        );
+        localStorage.setItem("internal-app-theme", mode === ThemeMode.Light ? ThemeMode.Dark : ThemeMode.Light);
+        setMode((prevMode) => (prevMode === ThemeMode.Light ? ThemeMode.Dark : ThemeMode.Light));
       },
     }),
     [mode]

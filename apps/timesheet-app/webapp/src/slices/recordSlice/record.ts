@@ -270,7 +270,7 @@ const TimesheetRecordSlice = createSlice({
     },
     resetTimesheetRecords(state) {
       state.timesheetData = null;
-      state.submitState = State.idle;
+      state.retrievingState = State.idle;
     },
   },
   extraReducers: (builder) => {
@@ -309,6 +309,18 @@ const TimesheetRecordSlice = createSlice({
         state.stateMessage = "Successfully updated!";
       })
       .addCase(updateTimesheetRecords.rejected, (state) => {
+        state.submitState = State.failed;
+        state.stateMessage = "Failed to update!";
+      })
+      .addCase(updateTimesheetRecord.pending, (state) => {
+        state.submitState = State.loading;
+        state.stateMessage = "Updating record...";
+      })
+      .addCase(updateTimesheetRecord.fulfilled, (state) => {
+        state.submitState = State.success;
+        state.stateMessage = "Successfully updated!";
+      })
+      .addCase(updateTimesheetRecord.rejected, (state) => {
         state.submitState = State.failed;
         state.stateMessage = "Failed to update!";
       });
