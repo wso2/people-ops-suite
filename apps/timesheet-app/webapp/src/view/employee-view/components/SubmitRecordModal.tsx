@@ -350,7 +350,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
   const handleSaveEditedLogs = () => {
     dialogContext.showConfirmation(
       "Do you want to submit time logs?",
-      "logs have been submitted, they cannot be edited or removed.",
+      "Please be advised that once logs have been submitted, they cannot be edited or removed",
       ConfirmationType.send,
       () => {
         handleBatchSubmit();
