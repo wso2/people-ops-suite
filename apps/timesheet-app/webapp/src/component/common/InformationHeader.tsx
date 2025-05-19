@@ -29,11 +29,9 @@ import {
 import {
   Work,
   Cancel,
-  TrendingUp,
   AccessTime,
   CheckCircle,
   HourglassTop,
-  TrendingDown,
   FreeBreakfast,
   PendingActions,
   HourglassBottom,
@@ -75,10 +73,6 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({
 
   const dailyWorkingHours = workPolicies.workingHoursPerDay;
 
-  const getTrendIcon = (value: number, threshold: number) => {
-    return value > threshold ? <TrendingUp color="error" /> : <TrendingDown color="success" />;
-  };
-
   const statusChips = [
     {
       label: `Approved: ${approvedRecords}`,
@@ -110,7 +104,6 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({
       icon: <HourglassTop />,
       color: otUtilizationPercentage > 80 ? "error" : "primary",
       progress: otUtilizationPercentage,
-      trend: getTrendIcon(totalOverTimeTaken, workPolicies.otHoursPerYear * 0.5),
     },
     {
       title: "OT Remaining",
@@ -224,9 +217,7 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({
                       <Typography variant="body2" color="text.secondary">
                         {stat.title}
                       </Typography>
-                      <Typography variant="h6">
-                        {stat.value} {stat.trend}
-                      </Typography>
+                      <Typography variant="h6">{stat.value}</Typography>
                     </Box>
                   </Box>
                   <Typography variant="caption" color="text.secondary">

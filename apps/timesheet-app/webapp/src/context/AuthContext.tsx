@@ -15,17 +15,18 @@
 // under the License.
 
 import { State } from "@utils/types";
+import errorIcon from "@images/error.svg";
 import Dialog from "@mui/material/Dialog";
 import { Box, Button } from "@mui/material";
+import { Messages } from "@config/constant";
 import { APIService } from "@utils/apiService";
 import PreLoader from "@component/common/PreLoader";
 import DialogTitle from "@mui/material/DialogTitle";
 import { setUserAuthData } from "@slices/authSlice";
 import { getUserInfo } from "@slices/userSlice/user";
-import NoDataView from "@component/common/NoDataView";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import LoadingScreen from "@component/common/LoadingScreen";
+import StateWithImage from "@component/ui/StateWithImage";
 import StatusWithAction from "@component/ui/StatusWithAction";
 import React, { useContext, useEffect, useState } from "react";
 import DialogContentText from "@mui/material/DialogContentText";
@@ -173,8 +174,8 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
           {appState === "active" ? (
             <>
               {userInfoState === State.failed && (
-                <Box sx={{ width: "100%", height: "90vh" }}>
-                  <NoDataView message={userInfo.stateMessage || "No Data Found"} type="error" />
+                <Box height={"100vh"} width={"100%"} display={"flex"}>
+                  <StateWithImage message={Messages.error.fetchEmployees} imageUrl={errorIcon} />
                 </Box>
               )}
               {userInfoState === State.success && (
@@ -183,8 +184,8 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
                 </AuthContext.Provider>
               )}
               {userInfoState === State.loading && (
-                <Box sx={{ width: "100%", height: "100vh" }}>
-                  <LoadingScreen message={userInfo.stateMessage || "Loading"} />
+                <Box sx={{ width: "100%", height: "100%" }}>
+                  <PreLoader isLoading={true} message={null} />
                 </Box>
               )}
             </>

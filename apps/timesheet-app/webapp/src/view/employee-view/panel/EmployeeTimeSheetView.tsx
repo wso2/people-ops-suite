@@ -40,11 +40,22 @@ import {
   GridPaginationModel,
   GridRenderCellParams,
 } from "@mui/x-data-grid";
+import {
+  State,
+  Filter,
+  TimesheetRecord,
+  TimesheetStatus,
+  TimesheetUpdate,
+  ConfirmationType,
+  statusChipStyles,
+} from "@utils/types";
 import { useEffect, useState } from "react";
 import { Messages } from "@config/constant";
+import noDataIcon from "@images/no-data.svg";
 import AddIcon from "@mui/icons-material/Add";
 import SaveIcon from "@mui/icons-material/Save";
 import EditIcon from "@mui/icons-material/Edit";
+import notFoundIcon from "@images/not-found.svg";
 import CloseIcon from "@mui/icons-material/Close";
 import { DEFAULT_PAGE_SIZE } from "@config/config";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
@@ -56,73 +67,43 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import InformationHeader from "@component/common/InformationHeader";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { CustomModal } from "@component/common/CustomComponentModal";
+import { useConfirmationModalContext } from "@context/DialogContext";
 import { differenceInMinutes, format, isWeekend, parseISO } from "date-fns";
-import NoDataView, { NoDataViewFunction } from "@component/common/NoDataView";
-import {
-  DatePicker,
-  LocalizationProvider,
-  TimePicker,
-} from "@mui/x-date-pickers";
-import {
-  fetchTimesheetRecords,
-  resetTimesheetRecords,
-  updateTimesheetRecord,
-} from "@slices/recordSlice/record";
-import {
-  Filter,
-  State,
-  statusChipStyles,
-  TimesheetRecord,
-  TimesheetStatus,
-  TimesheetUpdate,
-} from "@utils/types";
+import { DatePicker, LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
+import InformationHeaderSkeleton from "@component/common/InformationHeaderSkeleton";
+import StateWithImage, { StateWithImageFunction } from "@component/ui/StateWithImage";
+import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecord } from "@slices/recordSlice/record";
 
 const EmployeeTimeSheetView = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const handleOpenDialog = () => setOpenDialog(true);
+  const dialogContext = useConfirmationModalContext();
   const [openDialog, setOpenDialog] = useState(false);
+  const [filters, setFilters] = useState<Filter[]>([]);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<any | null>(null);
   const userEmail = useAppSelector((state) => state.auth.userInfo?.email);
-  const workPolicies = useAppSelector(
-    (state) => state.user.userInfo?.workPolicies
-  );
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof TimesheetRecord, string>>
-  >({});
-  const recordLoadingState = useAppSelector(
-    (state) => state.timesheetRecord.retrievingState
-  );
-  const timesheetLoadingInfo = useAppSelector(
-    (state) => state.timesheetRecord.retrievingState
-  );
-  const records = useAppSelector(
-    (state) => state.timesheetRecord.timesheetData?.timeLogs || []
-  );
-  const timesheetInfo = useAppSelector(
-    (state) => state.timesheetRecord.timesheetData?.timesheetStats
-  );
-  const regularLunchHoursPerDay = useAppSelector(
-    (state) => state.user.userInfo?.workPolicies.lunchHoursPerDay
-  );
-  const totalRecordCount = useAppSelector(
-    (state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0
-  );
-  const regularWorkHoursPerDay = useAppSelector(
-    (state) => state.user.userInfo?.workPolicies.workingHoursPerDay
-  );
+  const submitState = useAppSelector((state) => state.timesheetRecord.submitState);
+  const workPolicies = useAppSelector((state) => state.user.userInfo?.workPolicies);
+  const [errors, setErrors] = useState<Partial<Record<keyof TimesheetRecord, string>>>({});
+  const recordLoadingState = useAppSelector((state) => state.timesheetRecord.retrievingState);
+  const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
+  const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs || []);
+  const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetStats);
+  const regularLunchHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.lunchHoursPerDay);
+  const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
+  const regularWorkHoursPerDay = useAppSelector((state) => state.user.userInfo?.workPolicies.workingHoursPerDay);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: DEFAULT_PAGE_SIZE,
   });
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<any | null>(null);
-  const [filters, setFilters] = useState<Filter[]>([]);
 
   const columns = [
     {
       field: "recordDate",
       headerName: "Date",
-      flex: 0.5,
+      flex: 0.8,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row" alignItems="center" gap={1}>
           <CalendarMonthIcon fontSize="small" color="action" />
@@ -155,27 +136,20 @@ const EmployeeTimeSheetView = () => {
     {
       field: "isLunchIncluded",
       headerName: "Lunch",
-      flex: 0.3,
+      flex: 0.5,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row" alignItems="center" gap={1}>
-          <LunchDiningIcon
-            fontSize="small"
-            color={params.row.isLunchIncluded ? "success" : "error"}
-          />
-          <Typography variant="body2">
-            {params.row.isLunchIncluded ? "Yes" : "No"}
-          </Typography>
+          <LunchDiningIcon fontSize="small" color={params.row.isLunchIncluded ? "success" : "error"} />
+          <Typography variant="body2">{params.row.isLunchIncluded ? "Yes" : "No"}</Typography>
         </Stack>
       ),
     },
     {
       field: "overtimeDuration",
-      headerName: "Overtime",
+      headerName: "Overtime Duration & Reason",
       flex: 2,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
-        <Box
-          sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}
-        >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
           {params.row.overtimeDuration > 0 && (
             <Chip
               label={`${params.row.overtimeDuration}h`}
@@ -207,28 +181,8 @@ const EmployeeTimeSheetView = () => {
       ),
     },
     {
-      field: "recordStatus",
-      headerName: "Status",
-      flex: 1,
-      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
-        <Chip
-          icon={
-            statusChipStyles[params.row.overtimeStatus as TimesheetStatus].icon
-          }
-          label={params.row.overtimeStatus}
-          color={
-            statusChipStyles[params.row.overtimeStatus as TimesheetStatus]
-              .color as "success" | "error" | "warning"
-          }
-          variant="outlined"
-          size="small"
-          sx={{ width: "110px" }}
-        />
-      ),
-    },
-    {
       field: "overtimeRejectReason",
-      headerName: "",
+      headerName: "OT Rejection Reason",
       flex: 2,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <>
@@ -255,20 +209,32 @@ const EmployeeTimeSheetView = () => {
       ),
     },
     {
+      field: "recordStatus",
+      headerName: "Status",
+      flex: 1,
+      renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
+        <Chip
+          icon={statusChipStyles[params.row.overtimeStatus as TimesheetStatus].icon}
+          label={params.row.overtimeStatus}
+          color={
+            statusChipStyles[params.row.overtimeStatus as TimesheetStatus].color as "success" | "error" | "warning"
+          }
+          variant="outlined"
+          size="small"
+          sx={{ width: "110px" }}
+        />
+      ),
+    },
+    {
       field: "actions",
       headerName: "Actions",
-      width: 120,
+      width: 100,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row">
           {params.row.overtimeStatus === TimesheetStatus.PENDING && (
             <Tooltip title="Edit">
               <span>
-                <IconButton
-                  size="small"
-                  color="primary"
-                  onClick={() => openEditDialog(params.row)}
-                  sx={{ mr: 1 }}
-                >
+                <IconButton size="small" color="primary" onClick={() => openEditDialog(params.row)} sx={{ mr: 1 }}>
                   <EditIcon fontSize="small" />
                 </IconButton>
               </span>
@@ -346,14 +312,7 @@ const EmployeeTimeSheetView = () => {
         ...editingEntry,
         [field]: value,
       };
-      if (
-        [
-          "recordDate",
-          "clockInTime",
-          "clockOutTime",
-          "isLunchIncluded",
-        ].includes(field)
-      ) {
+      if (["recordDate", "clockInTime", "clockOutTime", "isLunchIncluded"].includes(field)) {
         setEditingEntry(calculateOvertime(updatedEntry));
       } else {
         setEditingEntry(updatedEntry);
@@ -362,30 +321,19 @@ const EmployeeTimeSheetView = () => {
   };
 
   const calculateOvertime = (entry: TimesheetRecord): TimesheetRecord => {
-    if (!(entry.clockInTime && entry.clockOutTime && entry.recordDate))
-      return entry;
+    if (!(entry.clockInTime && entry.clockOutTime && entry.recordDate)) return entry;
 
-    const totalMinutes = differenceInMinutes(
-      entry.clockOutTime,
-      entry.clockInTime
-    );
-    const lunchBreakMinutes = entry.isLunchIncluded
-      ? (regularLunchHoursPerDay ?? 0) * 60
-      : 0;
+    const totalMinutes = differenceInMinutes(entry.clockOutTime, entry.clockInTime);
+    const lunchBreakMinutes = entry.isLunchIncluded ? (regularLunchHoursPerDay ?? 0) * 60 : 0;
     const regularWorkMinutes = (regularWorkHoursPerDay ?? 8) * 60;
     const workMinutes = Math.max(0, totalMinutes - lunchBreakMinutes);
-    const overtimeMinutes = isWeekend(entry.recordDate)
-      ? totalMinutes
-      : Math.max(0, workMinutes - regularWorkMinutes);
+    const overtimeMinutes = isWeekend(entry.recordDate) ? totalMinutes : Math.max(0, workMinutes - regularWorkMinutes);
 
     return {
       ...entry,
       overtimeDuration: parseFloat((overtimeMinutes / 60).toFixed(2)),
       overtimeReason:
-        overtimeMinutes > 0
-          ? entry.overtimeReason ??
-            (isWeekend(entry.recordDate) ? "Weekend work" : "")
-          : "",
+        overtimeMinutes > 0 ? entry.overtimeReason ?? (isWeekend(entry.recordDate) ? "Weekend work" : "") : "",
     };
   };
 
@@ -397,6 +345,19 @@ const EmployeeTimeSheetView = () => {
       clockOutTime: parseISO(`1970-01-01T${entry.clockOutTime}`),
     });
     setEditDialogOpen(true);
+  };
+
+  const handleSaveEditedLogs = () => {
+    dialogContext.showConfirmation(
+      "Do you want to save the changes?",
+      "",
+      ConfirmationType.send,
+      () => {
+        handleSaveEditedEntry();
+      },
+      "Yes",
+      "No"
+    );
   };
 
   const handleSaveEditedEntry = async () => {
@@ -425,15 +386,13 @@ const EmployeeTimeSheetView = () => {
     }
 
     if (editingEntry.overtimeDuration > 0 && !editingEntry.overtimeReason) {
-      newErrors.overtimeReason =
-        "Overtime reason is required when there is overtime";
+      newErrors.overtimeReason = "Overtime reason is required when there is overtime";
     }
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    const { overtimeStatus, overtimeRejectReason, ...entryWithoutStatus } =
-      editingEntry;
+    const { overtimeStatus, overtimeRejectReason, ...entryWithoutStatus } = editingEntry;
 
     const formattedEntry: TimesheetUpdate = {
       ...entryWithoutStatus,
@@ -448,7 +407,7 @@ const EmployeeTimeSheetView = () => {
         employeeEmail: userEmail,
         recordId: editingEntry.recordId,
       })
-    );
+    ).unwrap();
 
     fetchData();
     setEditDialogOpen(false);
@@ -466,26 +425,23 @@ const EmployeeTimeSheetView = () => {
   return (
     <Box sx={{ width: "100%", height: "100%" }}>
       {timesheetLoadingInfo === State.failed ? (
-        <NoDataView message={Messages.error.fetchRecords} type="error" />
+        <Box height={"100%"} width={"100%"} display={"flex"}>
+          <StateWithImage message={Messages.error.fetchRecords} imageUrl={notFoundIcon} />
+        </Box>
       ) : (
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
-            {timesheetInfo && workPolicies && (
+            {recordLoadingState === State.success && timesheetInfo && workPolicies && (
               <Box sx={{ width: "100%", height: "auto" }}>
-                <InformationHeader
-                  timesheetInfo={timesheetInfo}
-                  workPolicies={workPolicies}
-                />
+                <InformationHeader timesheetInfo={timesheetInfo} workPolicies={workPolicies} />
               </Box>
             )}
-
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="right"
-              mb={1}
-              spacing={1}
-            >
+            {recordLoadingState === State.loading && (
+              <Box sx={{ width: "100%", height: "auto", mb: 1 }}>
+                <InformationHeaderSkeleton isEmployeeView={true} />
+              </Box>
+            )}
+            <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
               <FilterComponent
                 availableFields={availableFields}
                 filters={filters}
@@ -507,6 +463,7 @@ const EmployeeTimeSheetView = () => {
                 </Button>
               </Tooltip>
             </Stack>
+
             <Paper
               elevation={0}
               sx={{
@@ -539,15 +496,12 @@ const EmployeeTimeSheetView = () => {
                     quickFilterProps: { debounceMs: 500 },
                   },
                   noRowsOverlay: {
-                    message:
-                      filters.length > 0
-                        ? Messages.info.noRecords
-                        : Messages.info.useFilter,
-                    type: "search",
+                    message: Messages.info.noRecords,
+                    imageUrl: noDataIcon,
                   } as any,
                 }}
                 slots={{
-                  noRowsOverlay: NoDataViewFunction,
+                  noRowsOverlay: StateWithImageFunction,
                 }}
                 sx={{
                   border: "none",
@@ -587,12 +541,7 @@ const EmployeeTimeSheetView = () => {
               <SubmitRecordModal onClose={handleCloseDialog} />
             </CustomModal>
 
-            <Dialog
-              open={editDialogOpen}
-              onClose={() => setEditDialogOpen(false)}
-              maxWidth="md"
-              fullWidth
-            >
+            <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
               <DialogTitle>Edit Time Entry</DialogTitle>
               <DialogContent>
                 {editingEntry && (
@@ -602,9 +551,7 @@ const EmployeeTimeSheetView = () => {
                         label="Date"
                         value={editingEntry.recordDate}
                         disabled
-                        onChange={(newDate) =>
-                          handleEditFieldChange("recordDate", newDate)
-                        }
+                        onChange={(newDate) => handleEditFieldChange("recordDate", newDate)}
                         slotProps={{
                           textField: {
                             fullWidth: true,
@@ -619,16 +566,8 @@ const EmployeeTimeSheetView = () => {
                       <FormControlLabel
                         control={
                           <Switch
-                            checked={
-                              editingEntry.isLunchIncluded === 1 ||
-                              editingEntry.isLunchIncluded === true
-                            }
-                            onChange={(e) =>
-                              handleEditFieldChange(
-                                "isLunchIncluded",
-                                e.target.checked ? 1 : 0
-                              )
-                            }
+                            checked={editingEntry.isLunchIncluded === 1 || editingEntry.isLunchIncluded === true}
+                            onChange={(e) => handleEditFieldChange("isLunchIncluded", e.target.checked ? 1 : 0)}
                             name="isLunchIncluded"
                             color="primary"
                           />
@@ -640,9 +579,7 @@ const EmployeeTimeSheetView = () => {
                       <TimePicker
                         label="Clock In"
                         value={editingEntry.clockInTime}
-                        onChange={(newTime) =>
-                          handleEditFieldChange("clockInTime", newTime)
-                        }
+                        onChange={(newTime) => handleEditFieldChange("clockInTime", newTime)}
                         slotProps={{
                           textField: {
                             fullWidth: true,
@@ -657,9 +594,7 @@ const EmployeeTimeSheetView = () => {
                       <TimePicker
                         label="Clock Out"
                         value={editingEntry.clockOutTime}
-                        onChange={(newTime) =>
-                          handleEditFieldChange("clockOutTime", newTime)
-                        }
+                        onChange={(newTime) => handleEditFieldChange("clockOutTime", newTime)}
                         slotProps={{
                           textField: {
                             fullWidth: true,
@@ -675,12 +610,7 @@ const EmployeeTimeSheetView = () => {
                         <TextField
                           label="Overtime Reason"
                           value={editingEntry.overtimeReason}
-                          onChange={(e) =>
-                            handleEditFieldChange(
-                              "overtimeReason",
-                              e.target.value
-                            )
-                          }
+                          onChange={(e) => handleEditFieldChange("overtimeReason", e.target.value)}
                           error={!!errors.overtimeReason}
                           helperText={errors.overtimeReason}
                           variant="outlined"
@@ -688,13 +618,10 @@ const EmployeeTimeSheetView = () => {
                           multiline
                           required={editingEntry.overtimeDuration > 0}
                           InputProps={{
-                            startAdornment: editingEntry.overtimeDuration >
-                              0 && (
+                            startAdornment: editingEntry.overtimeDuration > 0 && (
                               <InputAdornment position="start">
                                 <Chip
-                                  label={`OT: ${editingEntry.overtimeDuration.toFixed(
-                                    2
-                                  )} hrs`}
+                                  label={`OT: ${editingEntry.overtimeDuration.toFixed(2)} hrs`}
                                   color="primary"
                                   size="small"
                                 />
@@ -717,10 +644,11 @@ const EmployeeTimeSheetView = () => {
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleSaveEditedEntry}
+                  onClick={handleSaveEditedLogs}
                   color="primary"
                   startIcon={<SaveIcon />}
                   variant="contained"
+                  loading={submitState === State.loading}
                 >
                   Save Changes
                 </Button>

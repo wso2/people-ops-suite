@@ -14,48 +14,31 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { Grid, Typography } from "@mui/material";
+import { GridOverlay } from "@mui/x-data-grid";
+import { Box, Typography } from "@mui/material";
+import { StateWithImageProps } from "@utils/types";
 
-function StateWithImage(props: {
-  message: string;
-  imageUrl: string;
-  hideImage?: boolean;
-}) {
+export function StateWithImageFunction({ message, imageUrl }: StateWithImageProps) {
   return (
-    <Grid
-      container
-      direction="column"
-      justifyContent="center"
-      alignItems="center"
-      sx={{ mt: 2 }}
-      gap={2}
-    >
-      {!props.hideImage && (
-        <Grid
-          item
-          xs={12}
-          style={{
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          <img alt="logo" width="120" height="auto" src={props.imageUrl}></img>
-        </Grid>
-      )}
-      <Grid
-        item
-        xs={12}
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          mt: 2,
-          color: (theme) => theme.palette.secondary.dark,
-        }}
-      >
-        <Typography variant="h5">{props.message}</Typography>
-      </Grid>
-    </Grid>
+    <GridOverlay>
+      <StateWithImage message={message} imageUrl={imageUrl} />
+    </GridOverlay>
   );
 }
 
+function StateWithImage(props: { message: string; imageUrl: string }) {
+  return (
+    <Box width="100%" display="flex" flexDirection="column" alignItems="center" justifyContent="center" mt={2} gap={2}>
+      <Box
+        component="img"
+        alt="logo"
+        src={props.imageUrl}
+        sx={{ width: "300px", height: "auto", maxHeight: "600px" }}
+      />
+      <Typography variant="h5" sx={{ color: (theme) => theme.palette.secondary.dark, textAlign: "center" }}>
+        {props.message}
+      </Typography>
+    </Box>
+  );
+}
 export default StateWithImage;
