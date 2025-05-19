@@ -204,4 +204,3 @@ isolated function cancelMeetingStatusQuery(int meetingId) returns sql:Parameteri
     WHERE 
         meeting_id = ${meetingId};
 `;
-

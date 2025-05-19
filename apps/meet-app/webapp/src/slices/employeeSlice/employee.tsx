@@ -90,7 +90,7 @@ const EmployeeSlice = createSlice({
     builder
       .addCase(fetchEmployees.pending, (state) => {
         state.state = State.loading;
-        state.stateMessage = "Fetching meeting types...";
+        state.stateMessage = "Fetching employee data...";
       })
       .addCase(fetchEmployees.fulfilled, (state, action) => {
         state.state = State.success;
