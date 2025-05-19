@@ -58,6 +58,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import notFoundIcon from "@images/not-found.svg";
 import CloseIcon from "@mui/icons-material/Close";
 import { DEFAULT_PAGE_SIZE } from "@config/config";
+import LoadingButton from "@mui/lab/LoadingButton";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
@@ -643,7 +644,7 @@ const EmployeeTimeSheetView = () => {
                 >
                   Cancel
                 </Button>
-                <Button
+                <LoadingButton
                   onClick={handleSaveEditedLogs}
                   color="primary"
                   startIcon={<SaveIcon />}
@@ -651,7 +652,7 @@ const EmployeeTimeSheetView = () => {
                   loading={submitState === State.loading}
                 >
                   Save Changes
-                </Button>
+                </LoadingButton>
               </DialogActions>
             </Dialog>
           </Box>
