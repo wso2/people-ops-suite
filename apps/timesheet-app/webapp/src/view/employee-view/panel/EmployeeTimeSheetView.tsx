@@ -467,7 +467,7 @@ const EmployeeTimeSheetView = () => {
             <Paper
               elevation={0}
               sx={{
-                height: "75%",
+                height: "72%",
                 width: "100%",
                 borderRadius: 2,
                 border: "1px solid",
@@ -496,7 +496,7 @@ const EmployeeTimeSheetView = () => {
                     quickFilterProps: { debounceMs: 500 },
                   },
                   noRowsOverlay: {
-                    message: filters.length > 0 ? Messages.info.noRecords : Messages.info.useFilter,
+                    message: Messages.info.noRecords,
                     imageUrl: noDataIcon,
                   } as any,
                 }}
