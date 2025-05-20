@@ -230,6 +230,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
         sx={{
           borderColor: "divider",
           "&:hover": { borderColor: "divider" },
+          width: "180px",
         }}
       >
         Filters

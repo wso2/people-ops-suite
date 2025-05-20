@@ -292,6 +292,7 @@ const ReportView = () => {
                       boxShadow: "none",
                       "&:hover": { boxShadow: "none" },
                       mr: 1,
+                      width: "180px",
                     }}
                   >
                     GENERATE REPORT
@@ -304,6 +305,7 @@ const ReportView = () => {
                     sx={{
                       boxShadow: "none",
                       "&:hover": { boxShadow: "none" },
+                      width: "180px",
                     }}
                   >
                     EXPORT AS CSV
@@ -319,6 +321,7 @@ const ReportView = () => {
                   border: "1px solid",
                   borderColor: "divider",
                   overflow: "auto",
+                  display: "grid",
                 }}
               >
                 {timesheetLoadingInfo === State.failed ? (
