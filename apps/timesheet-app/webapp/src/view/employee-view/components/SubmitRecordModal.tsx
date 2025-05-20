@@ -47,6 +47,7 @@ import noDataIcon from "@images/no-data.svg";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
+import LoadingButton from "@mui/lab/LoadingButton";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PublishIcon from "@mui/icons-material/Publish";
 import { HourglassBottom } from "@mui/icons-material";
@@ -633,7 +634,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                   </span>
                 </Tooltip>
               </Box>
-              <Button
+              <LoadingButton
                 variant="contained"
                 color="secondary"
                 onClick={handleSaveEditedLogs}
@@ -643,7 +644,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                 loading={submitState === State.loading}
               >
                 Submit Entries
-              </Button>
+              </LoadingButton>
             </Box>
           </CardActions>
         </Card>
