@@ -474,6 +474,7 @@ const EmployeeTimeSheetView = () => {
                 border: "1px solid",
                 borderColor: "divider",
                 overflow: "auto",
+                display: "grid",
               }}
             >
               <DataGrid

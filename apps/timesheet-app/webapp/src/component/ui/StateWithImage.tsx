@@ -33,7 +33,7 @@ function StateWithImage(props: { message: string; imageUrl: string }) {
         component="img"
         alt="logo"
         src={props.imageUrl}
-        sx={{ width: "300px", height: "auto", maxHeight: "600px" }}
+        sx={{ width: "10%", height: "auto", maxWidth: "150px", maxHeight: "150px" }}
       />
       <Typography variant="h5" sx={{ color: (theme) => theme.palette.secondary.dark, textAlign: "center" }}>
         {props.message}

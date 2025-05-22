@@ -624,10 +624,10 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                     <Button
                       variant="outlined"
                       color="primary"
+                      sx={{ width: "180px", mx: 1 }}
                       onClick={handleAddBatchEntriesOpen}
                       disabled={!(DEFAULT_TIME_ENTRY_SIZE - entriesCount > 1)}
                       startIcon={<AutoAwesomeMotionIcon />}
-                      sx={{ mx: 1 }}
                     >
                       CREATE BULK ENTRIES
                     </Button>
@@ -638,7 +638,7 @@ const SubmitRecordModal: React.FC<TimeTrackingFormProps> = ({ onClose }) => {
                 variant="contained"
                 color="secondary"
                 onClick={handleSaveEditedLogs}
-                sx={{ width: "160px", mx: 1 }}
+                sx={{ width: "180px", mx: 1 }}
                 startIcon={<PublishIcon />}
                 disabled={entriesCount === 0}
                 loading={submitState === State.loading}

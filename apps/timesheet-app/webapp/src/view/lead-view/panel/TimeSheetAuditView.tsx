@@ -421,7 +421,7 @@ const TimeSheetAuditView = () => {
                   <Button
                     variant="contained"
                     onClick={() => handleApproveRecords()}
-                    sx={{ width: "160px", mx: 1 }}
+                    sx={{ width: "180px", mx: 1 }}
                     startIcon={<ThumbUpIcon />}
                     disabled={selectionModel.length <= 1}
                   >
@@ -432,7 +432,7 @@ const TimeSheetAuditView = () => {
                     variant="contained"
                     onClick={() => handleDeclineRecords()}
                     color="error"
-                    sx={{ width: "160px", mx: 1 }}
+                    sx={{ width: "180px", mx: 1 }}
                     startIcon={<ThumbDownIcon />}
                     disabled={selectionModel.length <= 1}
                   >
@@ -449,6 +449,7 @@ const TimeSheetAuditView = () => {
                   border: "1px solid",
                   borderColor: "divider",
                   overflow: "auto",
+                  display: "grid",
                 }}
               >
                 {recordLoadingState === State.failed ? (
