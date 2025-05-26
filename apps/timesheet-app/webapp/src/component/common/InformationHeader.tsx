@@ -60,18 +60,15 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({
     rejectedRecords = 0,
     totalOverTimeTaken = 0,
     totalRecords = 0,
-    overTimeLeft = workPolicies.otHoursPerYear - totalOverTimeTaken,
   } = timesheetInfo;
 
-  const otUtilizationPercentage = Math.min(100, (totalOverTimeTaken / workPolicies.otHoursPerYear) * 100);
-
-  const approvalRate = totalRecords > 0 ? (approvedRecords / totalRecords) * 100 : 0;
-
-  const rejectionRate = totalRecords > 0 ? (rejectedRecords / totalRecords) * 100 : 0;
-
+  const otHoursPerYear = workPolicies?.otHoursPerYear ?? 0;
+  const workingHoursPerDay = workPolicies?.workingHoursPerDay ?? 0;
   const pendingRate = totalRecords > 0 ? (pendingRecords / totalRecords) * 100 : 0;
-
-  const dailyWorkingHours = workPolicies.workingHoursPerDay;
+  const overTimeLeft = otHoursPerYear > 0 ? otHoursPerYear - totalOverTimeTaken : 0;
+  const approvalRate = totalRecords > 0 ? (approvedRecords / totalRecords) * 100 : 0;
+  const rejectionRate = totalRecords > 0 ? (rejectedRecords / totalRecords) * 100 : 0;
+  const otUtilizationPercentage = otHoursPerYear > 0 ? Math.min(100, (totalOverTimeTaken / otHoursPerYear) * 100) : 0;
 
   const statusChips = [
     {
@@ -90,7 +87,7 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({
       color: "error" as const,
     },
     {
-      label: `Total Records ${totalRecords}`,
+      label: `Total Records: ${totalRecords}`,
       icon: <AccessTime fontSize="small" />,
       color: "info" as const,
     },
@@ -108,10 +105,10 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({
     {
       title: "OT Remaining",
       value: `${overTimeLeft.toFixed(1)}h`,
-      subtitle: `${((overTimeLeft / workPolicies.otHoursPerYear) * 100).toFixed(0)}% left`,
+      subtitle: `${(otHoursPerYear > 0 ? (overTimeLeft / otHoursPerYear) * 100 : 0).toFixed(0)}% left`,
       icon: <HourglassBottom />,
       color: "success",
-      progress: (overTimeLeft / workPolicies.otHoursPerYear) * 100,
+      progress: otHoursPerYear > 0 ? (overTimeLeft / otHoursPerYear) * 100 : 0,
     },
     {
       title: "Approval Rate",
@@ -194,7 +191,7 @@ const InformationHeader: React.FC<InformationHeaderProps> = ({
               />
               <Chip
                 icon={<Work />}
-                label={`Work TIme ${dailyWorkingHours}h`}
+                label={`Work TIme ${workingHoursPerDay}h`}
                 color="secondary"
                 variant="outlined"
                 sx={{
