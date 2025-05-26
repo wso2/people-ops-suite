@@ -52,80 +52,19 @@ INSERT INTO
         wp_updated_by
     )
 VALUES
-    ("WSO2 - INDIA", 200, 8.00, 1.00, 'admin', 'admin'),
-    ("WSO2 - USA", 150, 7.50, 0.50, 'admin', 'admin'),
-    ("WSO2 - UK", 250, 8.50, 1.00, 'admin', 'admin'),
-    (
-        "WSO2 - BRAZIL",
-        100,
-        7.00,
-        0.75,
-        'admin',
-        'admin'
-    ),
-    (
-        "WSO2 - GERMANY",
-        300,
-        9.00,
-        1.00,
-        'admin',
-        'admin'
-    ),
-    (
-        "WSO2 - AUSTRALIA",
-        180,
-        8.00,
-        0.50,
-        'admin',
-        'admin'
-    ),
-    (
-        "WSO2 - SRI LANKA",
-        120,
-        7.75,
-        1.00,
-        'admin',
-        'admin'
-    ),
-    ("WSO2 - UAE", 220, 8.25, 0.75, 'admin', 'admin'),
-    (
-        "WSO2 - SINGAPORE",
-        220,
-        8.25,
-        0.75,
-        'admin',
-        'admin'
-    ),
-    (
-        "WSO2 - MALAYSIA",
-        220,
-        8.25,
-        0.75,
-        'admin',
-        'admin'
-    ),
-    (
-        "WSO2 - CANADA",
-        220,
-        8.25,
-        0.75,
-        'admin',
-        'admin'
-    ),
-    (
-        "WSO2 - PACIFIC CONTROL SYSTEMS",
-        220,
-        8.25,
-        0.75,
-        'admin',
-        'admin'
-    ),
-    ("WSO2 - SPAIN", 220, 8.25, 0.75, 'admin', 'admin'),
-    (
-        "WSO2 - NEW ZEALAND",
-        220,
-        8.25,
-        0.75,
-        'admin',
-        'admin'
-    );
+    ("WSO2 - USA", 0, 24.00, 0.50, 'admin', 'admin'),
+    ("WSO2 - UK", 0, 24.00, 1.00, 'admin', 'admin'),
+    ("WSO2 - UAE", 624, 8.00, 1, 'admin', 'admin'),
+    ("WSO2 - SRI LANKA", 0, 24.00, 1.00, 'admin', 'admin'),
+    ("WSO2 - SPAIN", 80, 8.00, 1.00, 'admin', 'admin'),
+    ("WSO2 - SINGAPORE",0, 24.00, 1.00,'admin','admin'),
+    ("WSO2 - NEW ZEALAND", 0, 24.00,1.00,'admin','admin'),
+    ("WSO2 - MALAYSIA",0, 24.00, 1.00, 'admin','admin'),
+    ("WSO2 - INDIA", 0,24.00, 1.00, 'admin', 'admin'),
+    ("WSO2 - GERMANY",0, 24.00, 1.00,'admin','admin'),
+    ("WSO2 - CANADA",0, 24.00, 0.50,'admin','admin'),
+    ("WSO2 - BRAZIL", 0, 24.00, 1.00, 'admin','admin'),
+    ("WSO2 - AUSTRALIA", 0, 24.00, 0.50, 'admin', 'admin' ),
+    ("WSO2 - SWEDEN",200,8.00,1.00,'admin','admin'),
+    ("WSO2 - SOUTH AFRICA",460,9.00,1.00,'admin','admin'),
+    ("WSO2 - FRANCE",220,7.00,1.00,'admin','admin');
