@@ -33,7 +33,7 @@ CREATE TABLE
         ot_reason TEXT,
         lead_email VARCHAR(100),
         ot_rejection_reason TEXT,
-        ot_status ENUM ('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',
+        status ENUM ('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',
         created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_by VARCHAR(100) NOT NULL,
         updated_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

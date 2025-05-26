@@ -73,7 +73,7 @@ isolated function fetchTimeLogsQuery(TimeLogFilter filter) returns sql:Parameter
         tr.ot_hours AS overtimeDuration,
         tr.ot_reason AS overtimeReason,
         tr.ot_rejection_reason AS overtimeRejectReason,
-        tr.ot_status AS overtimeStatus
+        tr.status AS overtimeStatus
     FROM
         time_log tr
     `;
@@ -88,7 +88,7 @@ isolated function fetchTimeLogsQuery(TimeLogFilter filter) returns sql:Parameter
         filters.push(sql:queryConcat(`tr.record_id IN (`, sql:arrayFlattenQuery(filter.recordIds ?: []), `)`));
     }
     if filter.status is TimeLogStatus {
-        filters.push(sql:queryConcat(`tr.ot_status =  `, `${filter.status}`));
+        filters.push(sql:queryConcat(`tr.status =  `, `${filter.status}`));
     }
     if filter.rangeStart is string {
         filters.push(sql:queryConcat(`tr.record_date >= ${filter.rangeStart}`));
@@ -128,7 +128,7 @@ isolated function fetchTimeLogCountQuery(TimeLogFilter filter) returns sql:Param
         filters.push(sql:queryConcat(`employee_email = `, `${filter.employeeEmail}`));
     }
     if filter.status is TimeLogStatus {
-        filters.push(sql:queryConcat(`ot_status = `, `${filter.status}`));
+        filters.push(sql:queryConcat(`status = `, `${filter.status}`));
     }
     if filter.leadEmail is string {
         filters.push(sql:queryConcat(`lead_email =  `, `${filter.leadEmail}`));
@@ -157,7 +157,7 @@ select `
             ot_hours,
             ot_reason,
             lead_email,
-            ot_status,
+            status,
             created_by,
             updated_by
         )
@@ -187,22 +187,22 @@ isolated function fetchTimeLogStatsQuery(string? employeeEmail, string? leadEmai
     SELECT
         COALESCE(COUNT(*), 0) AS totalRecords,
         COALESCE(SUM(CASE
-                    WHEN ot_status = ${PENDING} THEN 1
+                    WHEN status = ${PENDING} THEN 1
                     ELSE 0
                 END),
                 0) AS pendingRecords,
         COALESCE(SUM(CASE
-                    WHEN ot_status = ${REJECTED} THEN 1
+                    WHEN status = ${REJECTED} THEN 1
                     ELSE 0
                 END),
                 0) AS rejectedRecords,
         COALESCE(SUM(CASE
-                    WHEN ot_status = ${APPROVED} THEN 1
+                    WHEN status = ${APPROVED} THEN 1
                     ELSE 0
                 END),
                 0) AS approvedRecords,
         COALESCE(SUM(CASE
-                    WHEN ot_status IN (${PENDING}, ${APPROVED}) THEN ot_hours
+                    WHEN status IN (${PENDING}, ${APPROVED}) THEN ot_hours
                     ELSE 0
                 END),
                 0) AS totalOvertimeTaken
@@ -232,7 +232,7 @@ isolated function fetchOvertimeStatsQuery(string employeeEmail, string companyNa
 `
     SELECT
         COALESCE(SUM(CASE
-                    WHEN ot_status IN (${PENDING}, ${APPROVED}) THEN ot_hours
+                    WHEN status IN (${PENDING}, ${APPROVED}) THEN ot_hours
                     ELSE 0
                 END),
                 0) AS totalOvertimeTaken,
@@ -252,7 +252,7 @@ isolated function fetchOvertimeStatsQuery(string employeeEmail, string companyNa
                         company_name LIKE ${companyName}
                     LIMIT 1),
                 0) - COALESCE(SUM(CASE
-                    WHEN ot_status IN (${PENDING}, ${APPROVED}) THEN ot_hours
+                    WHEN status IN (${PENDING}, ${APPROVED}) THEN ot_hours
                     ELSE 0
                 END),
                 0)) AS overtimeLeft
@@ -297,7 +297,7 @@ isolated function updateTimeLogsQuery(TimeLogUpdatePayload[] payloadArray) retur
             updateFilters.push(`ot_rejection_reason = ${timeLog.overtimeRejectReason}`);
         }
         if timeLog.overtimeStatus is TimeLogStatus {
-            updateFilters.push(`ot_status = ${timeLog.overtimeStatus}`);
+            updateFilters.push(`status = ${timeLog.overtimeStatus}`);
         }
         updateQuery = buildSqlUpdateQuery(updateQuery, updateFilters);
         updateQuery = sql:queryConcat(updateQuery, subQuery);
