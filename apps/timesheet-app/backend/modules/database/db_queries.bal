@@ -73,7 +73,7 @@ isolated function fetchTimeLogsQuery(TimeLogFilter filter) returns sql:Parameter
         tr.ot_hours AS overtimeDuration,
         tr.ot_reason AS overtimeReason,
         tr.ot_rejection_reason AS overtimeRejectReason,
-        tr.ot_status AS overtimeStatus
+        tr.time_log_status AS timeLogStatus
     FROM
         time_log tr
     `;
@@ -88,7 +88,7 @@ isolated function fetchTimeLogsQuery(TimeLogFilter filter) returns sql:Parameter
         filters.push(sql:queryConcat(`tr.record_id IN (`, sql:arrayFlattenQuery(filter.recordIds ?: []), `)`));
     }
     if filter.status is TimeLogStatus {
-        filters.push(sql:queryConcat(`tr.ot_status =  `, `${filter.status}`));
+        filters.push(sql:queryConcat(`tr.time_log_status =  `, `${filter.status}`));
     }
     if filter.rangeStart is string {
         filters.push(sql:queryConcat(`tr.record_date >= ${filter.rangeStart}`));
@@ -128,7 +128,7 @@ isolated function fetchTimeLogCountQuery(TimeLogFilter filter) returns sql:Param
         filters.push(sql:queryConcat(`employee_email = `, `${filter.employeeEmail}`));
     }
     if filter.status is TimeLogStatus {
-        filters.push(sql:queryConcat(`ot_status = `, `${filter.status}`));
+        filters.push(sql:queryConcat(`time_log_status = `, `${filter.status}`));
     }
     if filter.leadEmail is string {
         filters.push(sql:queryConcat(`lead_email =  `, `${filter.leadEmail}`));
@@ -145,7 +145,7 @@ isolated function insertTimeLogQueries(TimeLogCreatePayload payload) returns sql
 
             from TimeLog timesheetRecord in payload.timeLogs
 let TimeLog {recordDate, clockInTime, clockOutTime, isLunchIncluded, overtimeDuration, overtimeReason,
-overtimeStatus} = timesheetRecord
+timeLogStatus} = timesheetRecord
 select `
         INSERT INTO time_log (
             employee_email,
@@ -157,7 +157,7 @@ select `
             ot_hours,
             ot_reason,
             lead_email,
-            ot_status,
+            time_log_status,
             created_by,
             updated_by
         )
@@ -171,7 +171,7 @@ select `
             ${overtimeDuration},
             ${overtimeReason},
             ${payload.leadEmail},
-            ${overtimeStatus},
+            ${timeLogStatus},
             ${payload.employeeEmail},
             ${payload.employeeEmail}
         );
@@ -187,22 +187,22 @@ isolated function fetchTimeLogStatsQuery(string? employeeEmail, string? leadEmai
     SELECT
         COALESCE(COUNT(*), 0) AS totalRecords,
         COALESCE(SUM(CASE
-                    WHEN ot_status = ${PENDING} THEN 1
+                    WHEN time_log_status = ${PENDING} THEN 1
                     ELSE 0
                 END),
                 0) AS pendingRecords,
         COALESCE(SUM(CASE
-                    WHEN ot_status = ${REJECTED} THEN 1
+                    WHEN time_log_status = ${REJECTED} THEN 1
                     ELSE 0
                 END),
                 0) AS rejectedRecords,
         COALESCE(SUM(CASE
-                    WHEN ot_status = ${APPROVED} THEN 1
+                    WHEN time_log_status = ${APPROVED} THEN 1
                     ELSE 0
                 END),
                 0) AS approvedRecords,
         COALESCE(SUM(CASE
-                    WHEN ot_status IN (${PENDING}, ${APPROVED}) THEN ot_hours
+                    WHEN time_log_status IN (${PENDING}, ${APPROVED}) THEN ot_hours
                     ELSE 0
                 END),
                 0) AS totalOvertimeTaken
@@ -232,7 +232,7 @@ isolated function fetchOvertimeStatsQuery(string employeeEmail, string companyNa
 `
     SELECT
         COALESCE(SUM(CASE
-                    WHEN ot_status IN (${PENDING}, ${APPROVED}) THEN ot_hours
+                    WHEN time_log_status IN (${PENDING}, ${APPROVED}) THEN ot_hours
                     ELSE 0
                 END),
                 0) AS totalOvertimeTaken,
@@ -252,7 +252,7 @@ isolated function fetchOvertimeStatsQuery(string employeeEmail, string companyNa
                         company_name LIKE ${companyName}
                     LIMIT 1),
                 0) - COALESCE(SUM(CASE
-                    WHEN ot_status IN (${PENDING}, ${APPROVED}) THEN ot_hours
+                    WHEN time_log_status IN (${PENDING}, ${APPROVED}) THEN ot_hours
                     ELSE 0
                 END),
                 0)) AS overtimeLeft
@@ -296,8 +296,8 @@ isolated function updateTimeLogsQuery(TimeLogUpdatePayload[] payloadArray) retur
         if timeLog.overtimeRejectReason is string {
             updateFilters.push(`ot_rejection_reason = ${timeLog.overtimeRejectReason}`);
         }
-        if timeLog.overtimeStatus is TimeLogStatus {
-            updateFilters.push(`ot_status = ${timeLog.overtimeStatus}`);
+        if timeLog.timeLogStatus is TimeLogStatus {
+            updateFilters.push(`time_log_status = ${timeLog.timeLogStatus}`);
         }
         updateQuery = buildSqlUpdateQuery(updateQuery, updateFilters);
         updateQuery = sql:queryConcat(updateQuery, subQuery);
