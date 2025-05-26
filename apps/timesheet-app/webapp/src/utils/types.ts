@@ -102,7 +102,7 @@ export interface TimesheetRecord {
   overtimeReason: string | null;
   leadEmail: string;
   overtimeRejectReason: string | null;
-  overtimeStatus: TimesheetStatus;
+  timeLogStatus: TimesheetStatus;
 }
 
 export interface CreateUITimesheetRecord {
@@ -186,7 +186,7 @@ export interface Filter {
 
 export interface TimeLogReview {
   recordIds: number[];
-  overtimeStatus: TimesheetStatus;
+  timeLogStatus: TimesheetStatus;
   overtimeRejectReason?: string;
 }
 

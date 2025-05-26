@@ -187,7 +187,7 @@ const EmployeeTimeSheetView = () => {
       flex: 2,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <>
-          {params.row.overtimeStatus === TimesheetStatus.REJECTED && (
+          {params.row.timeLogStatus === TimesheetStatus.REJECTED && (
             <Tooltip title={params.row.overtimeRejectReason}>
               <Typography
                 color="text.secondary"
@@ -215,10 +215,10 @@ const EmployeeTimeSheetView = () => {
       flex: 1,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Chip
-          icon={statusChipStyles[params.row.overtimeStatus as TimesheetStatus].icon}
-          label={params.row.overtimeStatus}
+          icon={statusChipStyles[params.row.timeLogStatus as TimesheetStatus].icon}
+          label={params.row.timeLogStatus}
           color={
-            statusChipStyles[params.row.overtimeStatus as TimesheetStatus].color as "success" | "error" | "warning"
+            statusChipStyles[params.row.timeLogStatus as TimesheetStatus].color as "success" | "error" | "warning"
           }
           variant="outlined"
           size="small"
@@ -232,7 +232,7 @@ const EmployeeTimeSheetView = () => {
       width: 100,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Stack direction="row">
-          {params.row.overtimeStatus === TimesheetStatus.PENDING && (
+          {params.row.timeLogStatus === TimesheetStatus.PENDING && (
             <Tooltip title="Edit">
               <span>
                 <IconButton size="small" color="primary" onClick={() => openEditDialog(params.row)} sx={{ mr: 1 }}>
@@ -393,7 +393,7 @@ const EmployeeTimeSheetView = () => {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    const { overtimeStatus, overtimeRejectReason, ...entryWithoutStatus } = editingEntry;
+    const { timeLogStatus, overtimeRejectReason, ...entryWithoutStatus } = editingEntry;
 
     const formattedEntry: TimesheetUpdate = {
       ...entryWithoutStatus,

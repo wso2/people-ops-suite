@@ -225,10 +225,10 @@ const TimeSheetAuditView = () => {
       flex: 1,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Chip
-          icon={statusChipStyles[params.row.overtimeStatus as TimesheetStatus].icon}
-          label={params.row.overtimeStatus}
+          icon={statusChipStyles[params.row.timeLogStatus as TimesheetStatus].icon}
+          label={params.row.timeLogStatus}
           color={
-            statusChipStyles[params.row.overtimeStatus as TimesheetStatus].color as "success" | "error" | "warning"
+            statusChipStyles[params.row.timeLogStatus as TimesheetStatus].color as "success" | "error" | "warning"
           }
           variant="outlined"
           size="small"
@@ -242,7 +242,7 @@ const TimeSheetAuditView = () => {
       flex: 2,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <>
-          {params.row.overtimeStatus === TimesheetStatus.REJECTED && (
+          {params.row.timeLogStatus === TimesheetStatus.REJECTED && (
             <Tooltip title={params.row.overtimeRejectReason}>
               <Typography color="text.secondary" noWrap variant="body2">
                 {params.row.overtimeRejectReason}
@@ -264,7 +264,7 @@ const TimeSheetAuditView = () => {
                 size="small"
                 color="info"
                 onClick={() => handleApproveRecords(params.row.recordId)}
-                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
+                disabled={params.row.timeLogStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
                 sx={{ mr: 1 }}
               >
                 <ThumbUpIcon fontSize="small" />
@@ -276,7 +276,7 @@ const TimeSheetAuditView = () => {
               <IconButton
                 size="small"
                 color="error"
-                disabled={params.row.overtimeStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
+                disabled={params.row.timeLogStatus !== TimesheetStatus.PENDING || selectionModel.length > 1}
                 onClick={() => handleDeclineRecords(params.row.recordId)}
               >
                 <ThumbDownIcon fontSize="small" />
@@ -348,7 +348,7 @@ const TimeSheetAuditView = () => {
     const payload: TimeLogReview = {
       recordIds,
       overtimeRejectReason: comment,
-      overtimeStatus: status,
+      timeLogStatus: status,
     };
 
     await dispatch(updateTimesheetRecords({ payload }));

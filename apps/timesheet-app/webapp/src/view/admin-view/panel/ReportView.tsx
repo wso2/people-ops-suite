@@ -147,7 +147,7 @@ const ReportView = () => {
       flex: 2,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <>
-          {params.row.overtimeStatus === TimesheetStatus.REJECTED && (
+          {params.row.timeLogStatus === TimesheetStatus.REJECTED && (
             <Tooltip title={params.row.overtimeRejectReason}>
               <Typography
                 color="text.secondary"
@@ -174,10 +174,10 @@ const ReportView = () => {
       flex: 1,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
         <Chip
-          icon={statusChipStyles[params.row.overtimeStatus as TimesheetStatus].icon}
-          label={params.row.overtimeStatus}
+          icon={statusChipStyles[params.row.timeLogStatus as TimesheetStatus].icon}
+          label={params.row.timeLogStatus}
           color={
-            statusChipStyles[params.row.overtimeStatus as TimesheetStatus].color as "success" | "error" | "warning"
+            statusChipStyles[params.row.timeLogStatus as TimesheetStatus].color as "success" | "error" | "warning"
           }
           variant="outlined"
           size="small"
@@ -236,7 +236,7 @@ const ReportView = () => {
         isLunchIncluded,
         overtimeDuration,
         overtimeReason,
-        overtimeStatus,
+        timeLogStatus,
         overtimeRejectReason,
       }) => [
         recordDate,
@@ -245,7 +245,7 @@ const ReportView = () => {
         isLunchIncluded ? "Yes" : "No",
         overtimeDuration > 0 ? `${overtimeDuration}h` : "-",
         overtimeDuration > 0 ? overtimeReason || "N/A" : "-",
-        overtimeStatus,
+        timeLogStatus,
         overtimeRejectReason ?? "-",
       ]
     );
