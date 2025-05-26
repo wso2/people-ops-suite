@@ -83,7 +83,7 @@ public type TimeLog record {|
     # Overtime rejection reason
     string overtimeRejectReason?;
     # Overtime status
-    TimeLogStatus overtimeStatus?;
+    TimeLogStatus timeLogStatus?;
 |};
 
 # TimeLogCreatePayload record type.
@@ -159,7 +159,7 @@ public type TimeLogUpdatePayload record {|
     # Overtime rejection reason
     string overtimeRejectReason?;
     # Overtime status
-    TimeLogStatus overtimeStatus?;
+    TimeLogStatus timeLogStatus?;
     # Updated by email
     string updatedBy;
 |};
@@ -173,7 +173,7 @@ public type TimeLogReviews record {|
     # Updated by email
     string updatedBy;
     # Overtime status
-    TimeLogStatus overtimeStatus;
+    TimeLogStatus timeLogStatus;
 |};
 
 # Update type for the work policies record.

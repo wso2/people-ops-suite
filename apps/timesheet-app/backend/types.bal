@@ -56,7 +56,7 @@ public type TimeLogReviews record {|
     # Overtime rejection reason
     string overtimeRejectReason?;
     # Overtime status
-    database:TimeLogStatus overtimeStatus;
+    database:TimeLogStatus timeLogStatus;
 |};
 
 # Update type for the time log record.

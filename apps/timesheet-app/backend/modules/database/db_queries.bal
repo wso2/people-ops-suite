@@ -73,7 +73,7 @@ isolated function fetchTimeLogsQuery(TimeLogFilter filter) returns sql:Parameter
         tr.ot_hours AS overtimeDuration,
         tr.ot_reason AS overtimeReason,
         tr.ot_rejection_reason AS overtimeRejectReason,
-        tr.time_log_status AS overtimeStatus
+        tr.time_log_status AS timeLogStatus
     FROM
         time_log tr
     `;
@@ -145,7 +145,7 @@ isolated function insertTimeLogQueries(TimeLogCreatePayload payload) returns sql
 
             from TimeLog timesheetRecord in payload.timeLogs
 let TimeLog {recordDate, clockInTime, clockOutTime, isLunchIncluded, overtimeDuration, overtimeReason,
-overtimeStatus} = timesheetRecord
+timeLogStatus} = timesheetRecord
 select `
         INSERT INTO time_log (
             employee_email,
@@ -171,7 +171,7 @@ select `
             ${overtimeDuration},
             ${overtimeReason},
             ${payload.leadEmail},
-            ${overtimeStatus},
+            ${timeLogStatus},
             ${payload.employeeEmail},
             ${payload.employeeEmail}
         );
@@ -296,8 +296,8 @@ isolated function updateTimeLogsQuery(TimeLogUpdatePayload[] payloadArray) retur
         if timeLog.overtimeRejectReason is string {
             updateFilters.push(`ot_rejection_reason = ${timeLog.overtimeRejectReason}`);
         }
-        if timeLog.overtimeStatus is TimeLogStatus {
-            updateFilters.push(`time_log_status = ${timeLog.overtimeStatus}`);
+        if timeLog.timeLogStatus is TimeLogStatus {
+            updateFilters.push(`time_log_status = ${timeLog.timeLogStatus}`);
         }
         updateQuery = buildSqlUpdateQuery(updateQuery, updateFilters);
         updateQuery = sql:queryConcat(updateQuery, subQuery);

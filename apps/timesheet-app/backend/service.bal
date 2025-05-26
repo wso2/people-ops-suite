@@ -184,7 +184,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     }
                 };
             }
-            newRecord.overtimeStatus = (newRecord.overtimeReason is string)
+            newRecord.timeLogStatus = (newRecord.overtimeReason is string)
                 && ((newRecord.overtimeDuration ?: 0d) > 0d) ? database:PENDING : database:APPROVED;
             newRecordDates.push(newRecord.recordDate);
             pendingOvertimeCount += newRecord.overtimeDuration ?: 0d;
@@ -233,7 +233,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         string[] errorDuplicates = [];
         if existingRecords.length() > 0 {
             foreach database:TimeLog existingRecord in existingRecords {
-                if existingRecord.overtimeStatus != database:REJECTED {
+                if existingRecord.timeLogStatus != database:REJECTED {
                     errorDuplicates.push(existingRecord.recordDate);
                 }
             }
@@ -392,7 +392,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        if recordPayload.overtimeStatus == database:REJECTED &&
+        if recordPayload.timeLogStatus == database:REJECTED &&
             (recordPayload.overtimeRejectReason == "" || recordPayload.overtimeRejectReason is ()) {
             string customError = "Overtime rejection reason required for rejected records!";
             log:printError(customError);
@@ -408,7 +408,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         foreach int recordId in recordPayload.recordIds {
             database:TimeLogUpdatePayload updateRecord = {
                 recordId: recordId,
-                overtimeStatus: recordPayload.overtimeStatus,
+                timeLogStatus: recordPayload.timeLogStatus,
                 overtimeRejectReason: recordPayload.overtimeRejectReason,
                 updatedBy: employeeEmail
             };
