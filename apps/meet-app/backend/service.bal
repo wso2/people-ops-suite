@@ -16,6 +16,7 @@
 import meet_app.authorization;
 import meet_app.calendar;
 import meet_app.database;
+import meet_app.drive;
 import meet_app.entity;
 
 import ballerina/cache;
@@ -367,6 +368,20 @@ service http:InterceptableService / on new http:Listener(9090) {
                     message: customError
                 }
             };
+        }
+
+        // Update editor permissions for all available video/mp4 attachments of the meeting.
+        foreach gcalendar:Attachment attachment in calendarEventAttachments ?: [] {
+            if attachment.mimeType == "video/mp4" {
+                drive:DrivePermissionResponse|error permissionResult = drive:setFilePermission(
+                    <string>attachment.fileId, drive:EDITOR, drive:USER, meeting.host
+                );
+
+                if permissionResult is error {
+                    string customError = string `Failed to update Editor permission for the host!`;
+                    log:printError(customError, permissionResult);
+                }
+            }
         }
 
         return {attachments: calendarEventAttachments ?: []};
