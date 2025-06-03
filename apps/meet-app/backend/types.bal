@@ -84,3 +84,17 @@ public type MeetingDeletionResponse record {|
     # Success message
     string message;
 |};
+
+# Represent the name and email address of a support team.
+public type SupportTeamEmail record {|
+    # Name of the support team
+    string team;
+    # Email address of the support team
+    string email;
+|};
+
+# List of App Configurations.
+public type AppConfig record {|
+    # List of support team emails
+    SupportTeamEmail[] supportTeamEmails;
+|};

@@ -34,8 +34,8 @@ import { useEffect, useState } from "react";
 import { ConfirmationType } from "@/types/types";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { fetchEmployees } from "@slices/employeeSlice/employee";
 import { useConfirmationModalContext } from "@context/DialogContext";
-import { fetchEmployees } from "@root/src/slices/employeeSlice/employee";
 import { addMeetings, fetchMeetingTypes } from "@slices/meetingSlice/meeting";
 import { DatePicker, TimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 
