@@ -170,7 +170,9 @@ function MeetingForm() {
       try {
         if (!formik.isValid) return;
         const formattedData = {
-          title: [values.meetingType, values.customerName, values.customTitle?.trim()].filter(Boolean).join(" - "),
+          title: `WSO2: ${[values.customerName, values.meetingType, values.customTitle?.trim()]
+            .filter(Boolean)
+            .join(" - ")}`,
           description: values.description,
           startTime:
             values.date && values.startTime ? formatDateTime(values.date, values.startTime)?.toISOString() ?? "" : "",
