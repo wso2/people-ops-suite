@@ -32,9 +32,9 @@ Retrieve the logged in user's details.
   ```json
   {
     "employeeId": "LK01",
-    "workEmail": "patric@wso2.com",
-    "firstName": "Patric",
-    "lastName": "Nilackshan",
+    "workEmail": "user1@example.com",
+    "firstName": "User",
+    "lastName": "1",
     "jobRole": "Software Engineer",
     "employeeThumbnail": "https://example.com/thumbnails/user",
     "privileges": [
@@ -50,7 +50,7 @@ Retrieve the logged in user's details.
   
   ```json
   {
-    "message": "Error occurred while retrieving user data: patric@wso2.com"
+    "message": "Error occurred while retrieving user data: user1@example.com"
   }
   ```
   </td>
@@ -221,8 +221,8 @@ Create a new meeting.
   "startTime": "2025-03-31T12:00:00.000Z",
   "endTime": "2025-03-31T13:00:00.000Z",
   "timeZone": "Asia/Colombo",
-  "internalParticipants": ["patric@wso2.com"],
-  "externalParticipants": ["nilackshanp@gmail.com"]
+  "internalParticipants": ["user1@example.com"],
+  "externalParticipants": ["user2@example.com"]
 }
 ```
 
@@ -319,10 +319,10 @@ Fetch meetings based on filters.
       "meetingId": 1,
       "title": "Sales Discovery Call",
       "googleEventId": "abcd1234",
-      "host": "user@wso2.com",
+      "host": "user1@example.com",
       "startTime": "2025-04-01 05:00:00",
       "endTime": "2025-04-01 06:00:00",
-      "internalParticipants": ["user1@wso2.com", "user2@wso2.com"],
+      "internalParticipants": ["user2@example.com", "user3@example.com"],
       "meetingStatus": "Active",
       "timeStatus": "Upcoming"
     },
@@ -330,10 +330,10 @@ Fetch meetings based on filters.
       "meetingId": 2,
       "title": "Technical Demo",
       "googleEventId": "abcd5678",
-      "host": "user@wso2.com",
+      "host": "user1@example.com",
       "startTime": "2025-04-01 06:00:00",
       "endTime": "2025-04-01 07:00:00",
-      "internalParticipants": "user3@wso2.com",
+      "internalParticipants": "user2@example.com",
       "meetingStatus": "ACTIVE",
       "timeStatus": "UPCOMING"
     }
@@ -403,14 +403,14 @@ When this endpoint is called, the meeting host is granted editor access to the r
     "attachments": [
       {
         "fileUrl": "https://drive.google.com/open?id=exampleid1",
-        "title": "Sales Discovery Call - Patric - 2025/03/06 13:00 GMT+05:30 - Recording",
+        "title": "Sales Discovery Call - User - 2025/03/06 13:00 GMT+05:30 - Recording",
         "mimeType": "video/mp4",
         "iconLink": "https://drive-thirdparty.googleusercontent.com/32/type/video/mp4",
         "fileId": "fileId1"
       },
       {
         "fileUrl": "https://drive.google.com/open?id=https://drive.google.com/open?id=exampleid2",
-        "title": "Technical Demo - Patric - 2025/03/06 13:00 GMT+05:30 - Notes by Gemini",
+        "title": "Technical Demo - User - 2025/03/06 13:00 GMT+05:30 - Notes by Gemini",
         "mimeType": "application/vnd.google-apps.document",
         "iconLink": "https://drive-thirdparty.googleusercontent.com/32/type/application/vnd.google-apps.document",
         "fileId": "fileId2"
