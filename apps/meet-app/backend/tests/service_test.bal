@@ -56,7 +56,7 @@ public function postMeetingsTest() returns error? {
                 "patric@wso2.com"
             ],
             "externalParticipants": [
-                "cptap2n@gmail.com"
+                "nilackshanp@gmail.com"
             ]
         }
     );
@@ -78,7 +78,7 @@ public function postMeetingsTest() returns error? {
                 "patric@wso2.com"
             ],
             "externalParticipants": [
-                "cptap2n@gmail.com"
+                "nilackshanp@gmail.com"
             ]
         },
         headers = {"x-jwt-assertion": jwtKey}

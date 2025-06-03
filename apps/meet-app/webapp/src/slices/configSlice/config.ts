@@ -27,7 +27,7 @@ interface SupportTeamEmail {
   email: string;
 }
 
-interface AppConfig {
+interface AppConfigInfo {
   supportTeamEmails: SupportTeamEmail[];
 }
 
@@ -35,7 +35,7 @@ interface AppConfigState {
   state: State;
   stateMessage: string | null;
   errorMessage: string | null;
-  config: AppConfig | null;
+  config: AppConfigInfo | null;
 }
 
 const initialState: AppConfigState = {
@@ -50,7 +50,7 @@ export const fetchAppConfig = createAsyncThunk(
   async (_, {dispatch, rejectWithValue }) => {
     APIService.getCancelToken().cancel();
     const newCancelTokenSource = APIService.updateCancelToken();
-    return new Promise<AppConfig>((resolve, reject) => {
+    return new Promise<AppConfigInfo>((resolve, reject) => {
       APIService.getInstance()
         .get(AppConfig.serviceUrls.appConfig, {
           cancelToken: newCancelTokenSource.token,

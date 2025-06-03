@@ -32,9 +32,9 @@ Retrieve the logged in user's details.
   ```json
   {
     "employeeId": "LK01",
-    "workEmail": "user@wso2.com",
-    "firstName": "Jon",
-    "lastName": "Smith",
+    "workEmail": "patric@wso2.com",
+    "firstName": "Patric",
+    "lastName": "Nilackshan",
     "jobRole": "Software Engineer",
     "employeeThumbnail": "https://example.com/thumbnails/user",
     "privileges": [
@@ -50,7 +50,7 @@ Retrieve the logged in user's details.
   
   ```json
   {
-    "message": "Error occurred while retrieving user data: user@wso2.com"
+    "message": "Error occurred while retrieving user data: patric@wso2.com"
   }
   ```
   </td>
@@ -65,7 +65,7 @@ Retrieve the logged in user's details.
 
 ##### Summary:
 
-Retrieve the list of employees.
+Retrieve the list of internal employees.
 
 ##### Parameters
 
@@ -188,6 +188,98 @@ Fetch the meeting types.
 
 ### /meetings
 
+#### POST
+
+##### Summary:
+
+Create a new meeting.
+
+##### Parameters
+
+<table>
+<thead>
+  <tr>
+    <th>Name</th>
+    <th>Located in</th>
+    <th>Description</th>
+    <th>Required</th>
+    <th>Schema</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>createCalendarEventRequest</td>
+    <td>body</td>
+    <td>Calendar event details</td>
+    <td>Yes</td>
+    <td>
+
+```json
+{
+  "title": "Sample Meet",
+  "description": "Sample Meet Description",
+  "startTime": "2025-03-31T12:00:00.000Z",
+  "endTime": "2025-03-31T13:00:00.000Z",
+  "timeZone": "Asia/Colombo",
+  "internalParticipants": ["patric@wso2.com"],
+  "externalParticipants": ["nilackshanp@gmail.com"]
+}
+```
+
+  </td>
+    </tr>
+  </tbody>
+</table>
+
+##### Responses
+
+<table>
+  <thead>
+    <tr>
+      <th>Code</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td> 200 </td><td> Ok <br/>
+
+```json
+{
+  "message": "Meeting created successfully.",
+  "meetingId": 123
+}
+```
+
+</td>
+  <tr>
+    <td> 500 </td><td> Internal Server Error <br/>
+
+```json
+{
+  "message": "Error occurred while creating the calendar event!"
+}
+```
+
+  </td>
+    </tr>
+    </tr>
+    <tr>
+      <td> 403 </td><td> Forbidden <br/>
+  
+  ```json
+  {
+    "message": "Insufficient privileges!"
+  }
+  ```
+
+  </td>
+    </tr>
+  </tbody>
+</table>
+
+### /meetings
+
 #### GET
 
 ##### Summary:
@@ -275,98 +367,6 @@ Fetch meetings based on filters.
   </tbody>
 </table>
 
-### /meetings
-
-#### POST
-
-##### Summary:
-
-Create a new meeting.
-
-##### Parameters
-
-<table>
-<thead>
-  <tr>
-    <th>Name</th>
-    <th>Located in</th>
-    <th>Description</th>
-    <th>Required</th>
-    <th>Schema</th>
-  </tr>
-</thead>
-<tbody>
-  <tr>
-    <td>createCalendarEventRequest</td>
-    <td>body</td>
-    <td>Calendar event details</td>
-    <td>Yes</td>
-    <td>
-
-```json
-{
-  "title": "Sample Meet",
-  "description": "Sample Meet Description",
-  "startTime": "2025-03-31T12:00:00.000Z",
-  "endTime": "2025-03-31T13:00:00.000Z",
-  "timeZone": "Asia/Colombo",
-  "internalParticipants": ["patric@wso2.com"],
-  "externalParticipants": ["cptap2n@gmail.com"]
-}
-```
-
-  </td>
-    </tr>
-  </tbody>
-</table>
-
-##### Responses
-
-<table>
-  <thead>
-    <tr>
-      <th>Code</th>
-      <th>Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td> 200 </td><td> Ok <br/>
-
-```json
-{
-  "message": "Meeting created successfully.",
-  "meetingId": 123
-}
-```
-
-</td>
-  <tr>
-    <td> 500 </td><td> Internal Server Error <br/>
-
-```json
-{
-  "message": "Error occurred while creating the calendar event!"
-}
-```
-
-  </td>
-    </tr>
-    </tr>
-    <tr>
-      <td> 403 </td><td> Forbidden <br/>
-  
-  ```json
-  {
-    "message": "Insufficient privileges!"
-  }
-  ```
-
-  </td>
-    </tr>
-  </tbody>
-</table>
-
 ### /meetings/{meetingId}/attachments
 
 #### GET
@@ -380,6 +380,10 @@ Get attachments for a specific meeting.
 | Name      | Located in | Description           | Required | Schema |
 | --------- | ---------- | --------------------- | -------- | ------ |
 | meetingId | path       | The ID of the meeting | Yes      | int    |
+
+##### Behavior
+
+When this endpoint is called, the meeting host is granted editor access to the recording, if a recording is included in the attachments.
 
 ##### Responses
 
