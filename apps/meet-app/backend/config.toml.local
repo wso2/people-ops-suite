@@ -29,6 +29,20 @@
         backOffFactor = 
         maxWaitInterval = 
 
+[meet_app.drive]
+    driveBaseUrl = ""
+    [meet_app.drive.oauthConfig]
+        refreshUrl = ""
+        clientId = ""
+        clientSecret = ""
+        refreshToken = ""
+
+    [meet_app.drive.retryConfig]
+        count = 
+        interval = 
+        backOffFactor = 
+        maxWaitInterval = 
+
 [meet_app.database.dbConfig]
     host = ""
     user = ""
@@ -45,3 +59,15 @@
 [meet_app.authorization.authorizedRoles]
     SALES_TEAM  = ""
     SALES_ADMIN = ""
+
+[meet_app.appConfig]
+    supportTeamEmails = [
+        {
+            team = "",
+            email = ""
+        },
+        {
+            team = "",
+            email = ""
+        }
+    ]

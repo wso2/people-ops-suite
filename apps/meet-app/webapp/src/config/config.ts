@@ -27,10 +27,6 @@ declare global {
       AUTH_SIGN_IN_REDIRECT_URL: string;
       AUTH_SIGN_OUT_REDIRECT_URL: string;
       REACT_APP_BACKEND_BASE_URL: string;
-      SUPPORT_TEAM_EMAILS: {
-        team: string;
-        email: string;
-      }[]
     };
   }
 }
@@ -45,7 +41,6 @@ export const AsgardeoConfig: BaseURLAuthClientConfig = {
 
 export const APP_NAME = window.config?.APP_NAME ?? "";
 export const APP_DOMAIN = window.config?.APP_DOMAIN ?? "";
-export const SUPPORT_TEAM_EMAILS = window.config?.SUPPORT_TEAM_EMAILS ?? [];
 export const ServiceBaseUrl = window.config?.REACT_APP_BACKEND_BASE_URL ?? "";
 
 export const AppConfig = {
@@ -53,6 +48,7 @@ export const AppConfig = {
     meetings: ServiceBaseUrl + "/meetings",
     userInfo: ServiceBaseUrl + "/user-info",
     employees: ServiceBaseUrl + "/employees",
+    appConfig: ServiceBaseUrl + "/app-config",
     meetingTypes: ServiceBaseUrl + "/meetings/types?domain=" + APP_DOMAIN,
   },
 };

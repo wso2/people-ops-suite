@@ -28,6 +28,7 @@ export const SnackMessage = {
     fetchEmployees: "Unable to retrieve list of Employees",
     fetchAttachments: "Unable to retrieve list of Attachments",
     fetchMeetingTypes: "Unable to retrieve list of Meeting Types",
+    fetchAppConfigMessage: "Unable to retrieve app configurations",
   },
   warning: {},
 };

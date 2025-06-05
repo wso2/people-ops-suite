@@ -24,6 +24,8 @@ import ballerina/http;
 import ballerina/log;
 import ballerinax/googleapis.calendar as gcalendar;
 
+public configurable AppConfig appConfig = ?;
+
 final cache:Cache cache = new ({
     capacity: 2000,
     defaultMaxAge: 1800.0,
@@ -61,6 +63,11 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + return - authorization:JwtInterceptor, ErrorInterceptor
     public function createInterceptors() returns http:Interceptor[] =>
         [new authorization:JwtInterceptor(), new ErrorInterceptor()];
+
+    # Retrieve application configurations.
+    #
+    # + return - Application configuration object or error
+    resource function get app\-config() returns AppConfig => appConfig;
 
     # Fetch user information of the logged in users.
     #

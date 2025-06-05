@@ -34,8 +34,8 @@ import { useEffect, useState } from "react";
 import { ConfirmationType } from "@/types/types";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { fetchEmployees } from "@slices/employeeSlice/employee";
 import { useConfirmationModalContext } from "@context/DialogContext";
-import { fetchEmployees } from "@root/src/slices/employeeSlice/employee";
 import { addMeetings, fetchMeetingTypes } from "@slices/meetingSlice/meeting";
 import { DatePicker, TimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 
@@ -170,7 +170,9 @@ function MeetingForm() {
       try {
         if (!formik.isValid) return;
         const formattedData = {
-          title: [values.meetingType, values.customerName, values.customTitle?.trim()].filter(Boolean).join(" - "),
+          title: `WSO2: ${[values.customerName, values.meetingType, values.customTitle?.trim()]
+            .filter(Boolean)
+            .join(" - ")}`,
           description: values.description,
           startTime:
             values.date && values.startTime ? formatDateTime(values.date, values.startTime)?.toISOString() ?? "" : "",
