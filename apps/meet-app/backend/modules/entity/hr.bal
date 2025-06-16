@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-# Fetch Employee Data.
+# Retrieves basic employee details by work email.
 #
 # + workEmail - WSO2 email address
 # + return - Employee | Error
@@ -39,7 +39,7 @@ public isolated function fetchEmployeesBasicInfo(string workEmail) returns Emplo
     return response.data.employee;
 }
 
-# Retrieve Employee Data.
+# Retrieves all active or marked-leaver employees with specific employment types.
 #
 # + return - Employee Info Array
 public isolated function getEmployees() returns EmployeeBasic[]|error {

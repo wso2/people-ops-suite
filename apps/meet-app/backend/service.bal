@@ -12,12 +12,13 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License. 
+// under the License.
 import meet_app.authorization;
 import meet_app.calendar;
 import meet_app.database;
 import meet_app.drive;
 import meet_app.entity;
+import meet_app.sales;
 
 import ballerina/cache;
 import ballerina/http;
@@ -168,6 +169,100 @@ service http:InterceptableService / on new http:Listener(9090) {
             log:printError("An error occurred while writing employees to the cache", cacheError);
         }
         return employees;
+    }
+
+    # Fetch list of customers from Salesforce.
+    #
+    # + ctx - Request object
+    # + return - List  of customers | Error
+    resource function get customers(http:RequestContext ctx)
+        returns sales:CustomerBasic[]|http:InternalServerError {
+
+        // Check if the customers are already cached.
+        if cache.hasKey(CUSTOMERS_CACHE_KEY) {
+            sales:CustomerBasic[]|error cachedCustomers = cache.get(CUSTOMERS_CACHE_KEY).ensureType();
+            if cachedCustomers is sales:CustomerBasic[] {
+                return cachedCustomers;
+            }
+        }
+
+        sales:CustomerBasic[]|error customers = sales:getCustomers();
+        if customers is error {
+            string customError = string `Error occurred while retrieving customers!`;
+            log:printError(customError, customers);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        customers = from var customer in customers
+            order by customer.name.toLowerAscii() ascending
+            select customer;
+
+        if customers is error {
+            string customError = string `Error occurred while retrieving customers!`;
+            log:printError(customError, customers);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        error? cacheError = cache.put(CUSTOMERS_CACHE_KEY, customers);
+        if cacheError is error {
+            log:printError("An error occurred while writing customers to the cache", cacheError);
+        }
+        return customers;
+    }
+
+    # Fetch list of contacts from Salesforce for a given customer ID.
+    #
+    # + ctx - Request object
+    # + return - List  of contacts | Error
+    resource function get contacts(http:RequestContext ctx, string customerId)
+        returns sales:ContactBasic[]|http:InternalServerError {
+
+        // Check if the contacts are already cached.
+        if cache.hasKey(customerId) {
+            sales:ContactBasic[]|error cachedContact = cache.get(customerId).ensureType();
+            if cachedContact is sales:ContactBasic[] {
+                return cachedContact;
+            }
+        }
+
+        sales:ContactBasic[]|error contacts = sales:getContacts(customerId);
+        if contacts is error {
+            string customError = string `Error occurred while retrieving contacts!`;
+            log:printError(customError, contacts);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        contacts = from var contact in contacts
+            order by contact.name.toLowerAscii() ascending
+            select contact;
+
+        if contacts is error {
+            string customError = string `Error occurred while retrieving contacts!`;
+            log:printError(customError, contacts);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        error? cacheError = cache.put(customerId, contacts);
+        if cacheError is error {
+            log:printError("An error occurred while writing customers to the cache", cacheError);
+        }
+        return contacts;
     }
 
     # Fetch meeting types from the database.

@@ -13,9 +13,23 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License. 
+import ballerina/graphql;
 
-# Cache key of employees.
-const string EMPLOYEES_CACHE_KEY = "employees";
+configurable string salesEntityBaseUrl = ?;
+configurable GraphQlRetryConfig retryConfig = ?;
+configurable Oauth2Config oauthConfig = ?;
 
-# Cache key of customers.
-const string CUSTOMERS_CACHE_KEY = "customers";
+# Sales Entity -> GraphQL Service Credentials.
+@display {
+    label: "Sales Entity GraphQL Service",
+    id: "sales/entity-graphql-service"
+}
+
+final graphql:Client salesClient = check new (salesEntityBaseUrl, {
+    auth: {
+        ...oauthConfig
+    },
+    retryConfig: {
+        ...retryConfig
+    }
+});
