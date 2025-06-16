@@ -245,7 +245,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         contacts = from var contact in contacts
-            order by contact.name.toLowerAscii() ascending
+            order by contact.email.toLowerAscii() ascending
             select contact;
 
         if contacts is error {

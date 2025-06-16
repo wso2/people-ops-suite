@@ -66,7 +66,7 @@ public isolated function getContacts(string customerId) returns ContactBasic[]|e
 
     string document = string `query getContacts($filter: ContactFilter!, $limit: Int, $offset: Int) {
         contacts(filter: $filter, limit: $limit, offset: $offset) {
-            id name email
+            name email
         }
     }`;
 

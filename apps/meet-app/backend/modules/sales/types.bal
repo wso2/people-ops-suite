@@ -70,8 +70,6 @@ public type ContactFilter record {|
 
 # Basic Contact information.
 public type ContactBasic record {|
-    # ID of the contact
-    string id;
     # Name of the contact
     string name;
     # Email of the contact
