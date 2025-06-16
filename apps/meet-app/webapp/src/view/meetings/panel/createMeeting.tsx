@@ -32,7 +32,9 @@ import { useFormik } from "formik";
 import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useState } from "react";
 import { ConfirmationType } from "@/types/types";
+import { fetchContacts } from "@slices/contactSlice/contact";
 import { useAppDispatch, useAppSelector } from "@slices/store";
+import { fetchCustomers } from "@slices/customerSlice/customer";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { fetchEmployees } from "@slices/employeeSlice/employee";
 import { useConfirmationModalContext } from "@context/DialogContext";
@@ -133,9 +135,13 @@ function MeetingForm() {
   const filter = createFilterOptions<string>();
   const [loading, setLoading] = useState(false);
   const dialogContext = useConfirmationModalContext();
-  const [meetingTypeInputValue, setMeetingTypeInputValue] = useState("");
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const contacts = useAppSelector((state) => state.contact.contacts) || [];
   const employees = useAppSelector((state) => state.employee.employees) || [];
+  const customers = useAppSelector((state) => state.customer.customers) || [];
   const meetingTypes = useAppSelector((state) => state.meeting.meetingTypes) || [];
+  const [customerInputValue, setCustomerInputValue] = useState("");
+  const [meetingTypeInputValue, setMeetingTypeInputValue] = useState("");
   const [externalEmailInputValue, setExternalEmailInputValue] = useState<string[]>([]);
 
   useEffect(() => {
@@ -149,6 +155,18 @@ function MeetingForm() {
       dispatch(fetchEmployees());
     }
   }, [dispatch, employees.length]);
+
+  useEffect(() => {
+    if (!customers.length) {
+      dispatch(fetchCustomers());
+    }
+  }, [dispatch, customers.length]);
+
+  useEffect(() => {
+    if (customerId) {
+      dispatch(fetchContacts({ customerId }));
+    }
+  }, [dispatch, customerId]);
 
   const formik = useFormik<MeetingRequest>({
     initialValues: {
@@ -190,7 +208,10 @@ function MeetingForm() {
         };
         await dispatch(addMeetings(formattedData)).unwrap();
         resetForm();
+        setCustomerId(null);
+        setCustomerInputValue("");
         setMeetingTypeInputValue("");
+        setExternalEmailInputValue([]);
       } finally {
         setLoading(false);
       }
@@ -292,21 +313,51 @@ function MeetingForm() {
             )}
           />
 
-          <TextField
-            required
-            fullWidth
-            id="customerName"
-            name="customerName"
-            label="Customer Name"
-            value={formik.values.customerName}
-            onBlur={formik.handleBlur}
-            onChange={formik.handleChange}
-            error={formik.touched.customerName && Boolean(formik.errors.customerName)}
-            helperText={formik.touched.customerName && formik.errors.customerName}
-            autoCorrect="off"
-            autoCapitalize="none"
-            spellCheck={false}
+          <Autocomplete
             sx={{ flex: 1 }}
+            freeSolo
+            clearOnEscape
+            options={customers.map((customer) => customer.name)}
+            filterOptions={(options, params) => {
+              const filtered = filter(options, params);
+              const { inputValue } = params;
+              if (inputValue !== "" && !options.includes(inputValue)) {
+                filtered.push(`Add "${inputValue}"`);
+              }
+              return filtered;
+            }}
+            value={formik.values.customerName}
+            inputValue={customerInputValue}
+            onInputChange={(_, newInputValue, reason) => {
+              if (reason === "input") {
+                setCustomerInputValue(newInputValue);
+                setCustomerId(customers.find((customer) => customer.name === newInputValue)?.id || null);
+              }
+            }}
+            onChange={(_, newValue) => {
+              let finalValue = newValue;
+              if (typeof newValue === "string" && newValue.startsWith('Add "')) {
+                finalValue = newValue.slice(5, -1);
+              }
+              setCustomerInputValue(finalValue || "");
+              setCustomerId(customers.find((customer) => customer.name === finalValue)?.id || null);
+              formik.setFieldValue("customerName", finalValue || "");
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                required
+                fullWidth
+                id="customerName"
+                name="customerName"
+                label="Customer Name"
+                value={formik.values.customerName}
+                onBlur={formik.handleBlur}
+                onChange={formik.handleChange}
+                error={formik.touched.customerName && Boolean(formik.errors.customerName)}
+                helperText={formik.touched.customerName && formik.errors.customerName}
+              />
+            )}
           />
         </Box>
         <TextField
@@ -536,7 +587,10 @@ function MeetingForm() {
           multiple
           freeSolo
           limitTags={1}
-          options={externalEmailInputValue.filter((email) => email.trim() !== "")}
+          options={[
+            ...externalEmailInputValue.filter((email) => email.trim() !== ""),
+            ...contacts.map((contact) => contact.email),
+          ]}
           filterSelectedOptions
           value={formik.values.externalParticipants.split(",").filter((email) => email.trim())}
           onChange={async (_, newValue) => {
