@@ -30,14 +30,21 @@ import {
 import * as yup from "yup";
 import { useFormik } from "formik";
 import dayjs, { Dayjs } from "dayjs";
-import { useEffect, useState } from "react";
-import { ConfirmationType } from "@/types/types";
-import { fetchContacts } from "@slices/contactSlice/contact";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+// Extend dayjs with timezone and UTC functionality
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+import { useEffect, useState, useMemo } from "react";
+import { ConfirmationType, State } from "@/types/types";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { fetchCustomers } from "@slices/customerSlice/customer";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { fetchEmployees } from "@slices/employeeSlice/employee";
 import { useConfirmationModalContext } from "@context/DialogContext";
+import { fetchContacts, resetContacts } from "@slices/contactSlice/contact";
 import { addMeetings, fetchMeetingTypes } from "@slices/meetingSlice/meeting";
 import { DatePicker, TimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 
@@ -54,9 +61,11 @@ interface MeetingRequest {
   externalParticipants: string;
 }
 
-function formatDateTime(date: Dayjs | null, time: Dayjs | null): Dayjs | null {
+function formatDateTime(date: Dayjs | null, time: Dayjs | null, timeZone: string): string | null {
   if (!date || !time) return null;
-  return date.hour(time.hour()).minute(time.minute()).second(0);
+  const combined = date.hour(time.hour()).minute(time.minute()).second(0);
+  const zonedTime = dayjs.tz(combined.format("YYYY-MM-DDTHH:mm:ss"), timeZone);
+  return zonedTime.utc().toISOString();
 }
 
 const validationSchema = yup.object({
@@ -79,10 +88,10 @@ const validationSchema = yup.object({
     .mixed<Dayjs>()
     .required("Start time is required")
     .test("is-future-time", "Start time must be in the future", function (value) {
-      const { date } = this.parent;
+      const { date, timeZone } = this.parent;
       if (date && value) {
-        const combinedStartTime = formatDateTime(date, value);
-        return combinedStartTime ? combinedStartTime.isAfter(dayjs(), "minute") : false;
+        const combinedStartTime = formatDateTime(date, value, timeZone);
+        return combinedStartTime ? dayjs(combinedStartTime).isAfter(dayjs(), "minute") : false;
       }
       return false;
     }),
@@ -90,15 +99,17 @@ const validationSchema = yup.object({
     .mixed<Dayjs>()
     .required("End time is required")
     .test("is-after-startTime", "End time must be after start time", function (value) {
-      const { startTime, date } = this.parent;
+      const { startTime, date, timeZone } = this.parent;
       if (date && value) {
-        const combinedStartTime = formatDateTime(date, startTime);
-        const combinedEndTime = formatDateTime(date, value);
-        return combinedStartTime && combinedEndTime ? combinedEndTime.isAfter(combinedStartTime, "minute") : false;
+        const combinedStartTime = formatDateTime(date, startTime, timeZone);
+        const combinedEndTime = formatDateTime(date, value, timeZone);
+        return combinedStartTime && combinedEndTime
+          ? dayjs(combinedEndTime).isAfter(dayjs(combinedStartTime), "minute")
+          : false;
       }
       return false;
     }),
-  timeZone: yup.string().required("Failed to detect timezone"),
+  timeZone: yup.string().required("Timezone is required"),
   internalParticipants: yup
     .string()
     .test("internal-or-external", "At least one participant is required *", function (value) {
@@ -136,6 +147,7 @@ function MeetingForm() {
   const [loading, setLoading] = useState(false);
   const dialogContext = useConfirmationModalContext();
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const contactsState = useAppSelector((state) => state.contact.state);
   const contacts = useAppSelector((state) => state.contact.contacts) || [];
   const employees = useAppSelector((state) => state.employee.employees) || [];
   const customers = useAppSelector((state) => state.customer.customers) || [];
@@ -143,6 +155,9 @@ function MeetingForm() {
   const [customerInputValue, setCustomerInputValue] = useState("");
   const [meetingTypeInputValue, setMeetingTypeInputValue] = useState("");
   const [externalEmailInputValue, setExternalEmailInputValue] = useState<string[]>([]);
+  const timeZones = useMemo(() => {
+    return typeof (Intl as any).supportedValuesOf === "function" ? (Intl as any).supportedValuesOf("timeZone") : [];
+  }, []);
 
   useEffect(() => {
     if (!meetingTypes.length) {
@@ -164,7 +179,10 @@ function MeetingForm() {
 
   useEffect(() => {
     if (customerId) {
+      dispatch(resetContacts());
       dispatch(fetchContacts({ customerId }));
+    } else {
+      dispatch(resetContacts());
     }
   }, [dispatch, customerId]);
 
@@ -193,10 +211,10 @@ function MeetingForm() {
             .join(" - ")}`,
           description: values.description,
           startTime:
-            values.date && values.startTime ? formatDateTime(values.date, values.startTime)?.toISOString() ?? "" : "",
+            values.date && values.startTime ? formatDateTime(values.date, values.startTime, values.timeZone) ?? "" : "",
           endTime:
-            values.date && values.endTime ? formatDateTime(values.date, values.endTime)?.toISOString() ?? "" : "",
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            values.date && values.endTime ? formatDateTime(values.date, values.endTime, values.timeZone) ?? "" : "",
+          timeZone: values.timeZone,
           internalParticipants: values.internalParticipants
             .split(",")
             .map((email) => email.trim())
@@ -209,6 +227,7 @@ function MeetingForm() {
         await dispatch(addMeetings(formattedData)).unwrap();
         resetForm();
         setCustomerId(null);
+        dispatch(resetContacts());
         setCustomerInputValue("");
         setMeetingTypeInputValue("");
         setExternalEmailInputValue([]);
@@ -386,35 +405,56 @@ function MeetingForm() {
           multiline
           rows={2}
         />
-        <DatePicker
-          name="date"
-          label="Meeting Date *"
-          format="DD/MM/YYYY"
-          value={formik.values.date}
-          minDate={dayjs()}
-          onChange={async (value) => {
-            await formik.setFieldValue("date", value);
-            formik.setFieldTouched("date", true);
-            await formik.setFieldValue("startTime", null);
-            formik.setFieldTouched("startTime", false);
-            await formik.setFieldValue("endTime", null);
-            formik.setFieldTouched("endTime", false);
-          }}
-          onAccept={async (value) => {
-            await formik.setFieldValue("date", value);
-            formik.setFieldTouched("date", true);
-            await formik.setFieldValue("startTime", null);
-            formik.setFieldTouched("startTime", false);
-            await formik.setFieldValue("endTime", null);
-            formik.setFieldTouched("endTime", false);
-          }}
-          slotProps={{
-            textField: {
-              onBlur: () => formik.setFieldTouched("date", true),
-              error: formik.touched.date && Boolean(formik.errors.date),
-            },
-          }}
-        />
+        <Box sx={{ display: "flex", gap: 2, pb: 0.5 }}>
+          <Autocomplete
+            fullWidth
+            options={timeZones}
+            value={formik.values.timeZone}
+            onChange={async (_, tz) => await formik.setFieldValue("timeZone", tz ?? "")}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                id="timeZone"
+                name="timeZone"
+                label="Timezone"
+                onBlur={formik.handleBlur}
+                error={formik.touched.timeZone && Boolean(formik.errors.timeZone)}
+                helperText={formik.touched.timeZone && formik.errors.timeZone}
+              />
+            )}
+            sx={{ flex: 1 }}
+          />
+          <DatePicker
+            name="date"
+            label="Meeting Date *"
+            format="DD/MM/YYYY"
+            value={formik.values.date}
+            minDate={dayjs()}
+            onChange={async (value) => {
+              await formik.setFieldValue("date", value);
+              formik.setFieldTouched("date", true);
+              await formik.setFieldValue("startTime", null);
+              formik.setFieldTouched("startTime", false);
+              await formik.setFieldValue("endTime", null);
+              formik.setFieldTouched("endTime", false);
+            }}
+            onAccept={async (value) => {
+              await formik.setFieldValue("date", value);
+              formik.setFieldTouched("date", true);
+              await formik.setFieldValue("startTime", null);
+              formik.setFieldTouched("startTime", false);
+              await formik.setFieldValue("endTime", null);
+              formik.setFieldTouched("endTime", false);
+            }}
+            slotProps={{
+              textField: {
+                onBlur: () => formik.setFieldTouched("date", true),
+                error: formik.touched.date && Boolean(formik.errors.date),
+              },
+            }}
+            sx={{ flex: 1 }}
+          />
+        </Box>
 
         <Box sx={{ display: "flex", gap: 2, pb: 0.5 }}>
           <TimePicker
@@ -588,6 +628,7 @@ function MeetingForm() {
           multiple
           freeSolo
           limitTags={1}
+          loading={contactsState === State.loading}
           options={[
             ...externalEmailInputValue.filter((email) => email.trim() !== ""),
             ...contacts.map((contact) => contact.email),

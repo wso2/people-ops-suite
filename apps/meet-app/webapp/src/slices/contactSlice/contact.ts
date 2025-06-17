@@ -88,6 +88,11 @@ const ContactSlice = createSlice({
     resetSubmitState(state) {
       state.submitState = State.idle;
     },
+    resetContacts(state) {
+      state.contacts = null;
+      state.state = State.idle;
+      state.stateMessage = "";
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -107,5 +112,5 @@ const ContactSlice = createSlice({
   },
 });
 
-export const { resetSubmitState } = ContactSlice.actions;
+export const { resetSubmitState, resetContacts } = ContactSlice.actions;
 export default ContactSlice.reducer;
