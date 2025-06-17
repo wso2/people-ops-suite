@@ -48,13 +48,22 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
   const userInfo = useAppSelector((state: RootState) => state.user);
   const userInfoState = useAppSelector((state: RootState) => state.user.state);
 
-  const { signIn, getIDToken, signOut, getDecodedIDToken, getBasicUserInfo, state } = useAuthContext();
+  const {
+    state,
+    signIn,
+    signOut,
+    getIDToken,
+    isAuthenticated,
+    getBasicUserInfo,
+    getDecodedIDToken,
+    refreshAccessToken,
+  } = useAuthContext();
 
   useEffect(() => {
-    var appStatus = localStorage.getItem("hris-app-state");
+    var appStatus = localStorage.getItem("timesheet-app-state");
 
-    if (!localStorage.getItem("hris-app-redirect-url")) {
-      localStorage.setItem("hris-app-redirect-url", window.location.href.replace(window.location.origin, ""));
+    if (!localStorage.getItem("timesheet-app-redirect-url")) {
+      localStorage.setItem("timesheet-app-redirect-url", window.location.href.replace(window.location.origin, ""));
     }
 
     if (appStatus && appStatus === "logout") {
@@ -90,57 +99,50 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
   }, [state.isAuthenticated]);
 
   useEffect(() => {
-    let isMounted = true;
-
     if (appState === "active") {
       if (state.isAuthenticated) {
         if (userInfo.state !== "loading") {
-          Promise.all([dispatch(getUserInfo())]).catch((error) => {
-            if (isMounted) {
-              console.error("Error fetching data:", error);
-            }
-          });
+          const fetchData = async () => {
+            await dispatch(getUserInfo());
+          };
+          fetchData();
         }
       } else {
         signIn();
       }
     } else if (appState === "loading") {
-      <PreLoader isLoading={true} message={auth.statusMessage} />;
+      <PreLoader isLoading={true} message={auth.statusMessage}></PreLoader>;
     }
-
-    return () => {
-      isMounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.userInfo]);
 
-  useEffect(() => {
-    if (appState === "active") {
-      if (state.isAuthenticated) {
-        if (userInfoState === State.failed) {
-          console.log(userInfo.state);
-          console.log(userInfo.stateMessage);
-        }
+  const refreshTokens = () => {
+    return new Promise<{ idToken: string }>(async (resolve) => {
+      const userIsAuthenticated = await isAuthenticated();
+      if (userIsAuthenticated) {
+        resolve({ idToken: await getIDToken() });
+      } else {
+        refreshAccessToken()
+          .then(async (res) => {
+            const accessToken = await getIDToken();
+            resolve({ idToken: accessToken });
+          })
+          .catch((_) => {
+            appSignOut();
+          });
       }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userInfo]);
-
-  const refreshTokens = async () => {
-    const idToken = await getIDToken();
-    return { idToken: idToken };
+    });
   };
 
   const appSignOut = async () => {
     setAppState("loading");
-    localStorage.setItem("hris-app-state", "logout");
+    localStorage.setItem("timesheet-app-state", "logout");
     await signOut();
     setAppState("logout");
   };
 
   const appSignIn = async () => {
     setAppState("active");
-    localStorage.setItem("hris-app-state", "active");
+    localStorage.setItem("timesheet-app-state", "active");
   };
 
   const authContext: AuthContextType = {
@@ -172,23 +174,19 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
             </DialogActions>
           </Dialog>
           {appState === "active" ? (
-            <>
+            <AuthContext.Provider value={authContext}>
               {userInfoState === State.failed && (
                 <Box height={"100vh"} width={"100%"} display={"flex"}>
                   <StateWithImage message={Messages.error.fetchEmployees} imageUrl={errorIcon} />
                 </Box>
               )}
-              {userInfoState === State.success && (
-                <AuthContext.Provider value={authContext}>
-                  <SecureApp>{props.children}</SecureApp>
-                </AuthContext.Provider>
-              )}
+              {userInfoState === State.success && <SecureApp>{props.children}</SecureApp>}
               {userInfoState === State.loading && (
                 <Box sx={{ width: "100%", height: "100%" }}>
                   <PreLoader isLoading={true} message={null} />
                 </Box>
               )}
-            </>
+            </AuthContext.Provider>
           ) : (
             <StatusWithAction action={() => appSignIn()} />
           )}
