@@ -32,11 +32,6 @@ import { useFormik } from "formik";
 import dayjs, { Dayjs } from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
-
-// Extend dayjs with timezone and UTC functionality
-dayjs.extend(utc);
-dayjs.extend(timezone);
-
 import { useEffect, useState, useMemo } from "react";
 import { ConfirmationType, State } from "@/types/types";
 import { useAppDispatch, useAppSelector } from "@slices/store";
@@ -48,6 +43,9 @@ import { fetchContacts, resetContacts } from "@slices/contactSlice/contact";
 import { addMeetings, fetchMeetingTypes } from "@slices/meetingSlice/meeting";
 import { DatePicker, TimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 
+// Extend dayjs with timezone and UTC functionality
+dayjs.extend(utc);
+dayjs.extend(timezone);
 interface MeetingRequest {
   meetingType: string;
   customerName: string;
