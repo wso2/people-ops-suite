@@ -317,6 +317,7 @@ function MeetingForm() {
             sx={{ flex: 1 }}
             freeSolo
             clearOnEscape
+            loading={!customers.length}
             options={customers.map((customer) => customer.name)}
             filterOptions={(options, params) => {
               const filtered = filter(options, params);
