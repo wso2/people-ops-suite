@@ -35,14 +35,14 @@
         maxWaitInterval = <Max waiting interval: 20.0>
 
 # Entity Configurations.
-[meet_app.entity]
+[meet_app.people]
     hrEntityBaseUrl = "<Entity URL>"
-    [meet_app.entity.oauthConfig]
+    [meet_app.people.oauthConfig]
         tokenUrl = "<Refresh URL>"
         clientId = "<Client ID of the Asgardeo app>"
         clientSecret = "<Client secret of the Asgardeo app>"
 
-    [meet_app.entity.retryConfig]
+    [meet_app.people.retryConfig]
         count = <Retry count: 3>
         interval = <Retry interval: 3.0>
         backOffFactor = <Backoff factor: 2.0>

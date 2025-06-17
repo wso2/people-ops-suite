@@ -1,16 +1,16 @@
 [meet_app]
     jwtKey = ""
 
-[meet_app.entity]
+[meet_app.people]
     # hrEntityBaseUrl = ""
     hrEntityBaseUrl = ""
     disclaimerMessage = ""
-    [meet_app.entity.oauthConfig]
+    [meet_app.people.oauthConfig]
         tokenUrl = ""
         clientId = ""
         clientSecret = ""
 
-    [meet_app.entity.retryConfig]
+    [meet_app.people.retryConfig]
         count = 
         interval = 
         backOffFactor = 

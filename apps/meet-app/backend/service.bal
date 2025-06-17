@@ -17,7 +17,7 @@ import meet_app.authorization;
 import meet_app.calendar;
 import meet_app.database;
 import meet_app.drive;
-import meet_app.entity;
+import meet_app.people;
 import meet_app.sales;
 
 import ballerina/cache;
@@ -94,8 +94,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
         }
 
-        // Fetch the user information from the entity service.
-        entity:Employee|error loggedInUser = entity:fetchEmployeesBasicInfo(userInfo.email);
+        // Fetch the user information from the people service.
+        people:Employee|error loggedInUser = people:fetchEmployeesBasicInfo(userInfo.email);
         if loggedInUser is error {
             string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
             log:printError(customError, loggedInUser);
@@ -129,17 +129,17 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + ctx - Request object
     # + return - List  of employees | Error
     resource function get employees(http:RequestContext ctx)
-        returns entity:EmployeeBasic[]|http:InternalServerError {
+        returns people:EmployeeBasic[]|http:InternalServerError {
 
         // Check if the employees are already cached.
         if cache.hasKey(EMPLOYEES_CACHE_KEY) {
-            entity:EmployeeBasic[]|error cachedEmployees = cache.get(EMPLOYEES_CACHE_KEY).ensureType();
-            if cachedEmployees is entity:EmployeeBasic[] {
+            people:EmployeeBasic[]|error cachedEmployees = cache.get(EMPLOYEES_CACHE_KEY).ensureType();
+            if cachedEmployees is people:EmployeeBasic[] {
                 return cachedEmployees;
             }
         }
 
-        entity:EmployeeBasic[]|error employees = entity:getEmployees();
+        people:EmployeeBasic[]|error employees = people:getEmployees();
         if employees is error {
             string customError = string `Error occurred while retrieving employees!`;
             log:printError(customError, employees);
