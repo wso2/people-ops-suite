@@ -61,10 +61,16 @@ interface MeetingRequest {
 }
 
 function formatDateTime(date: Dayjs | null, time: Dayjs | null, timeZone: string): string | null {
-  if (!date || !time) return null;
-  const combined = date.hour(time.hour()).minute(time.minute()).second(0);
-  const zonedTime = dayjs.tz(combined.format("YYYY-MM-DDTHH:mm:ss"), timeZone);
-  return zonedTime.utc().toISOString();
+  if (!date || !time || !dayjs(date).isValid() || !dayjs(time).isValid()) return null;
+  
+  try {
+    const combined = date.hour(time.hour()).minute(time.minute()).second(0);
+    const zonedTime = dayjs.tz(combined.format("YYYY-MM-DDTHH:mm:ss"), timeZone);
+    return zonedTime.utc().toISOString();
+  } catch (error) {
+    console.warn("Error formatting date time:", error);
+    return null;
+  }
 }
 
 const validationSchema = yup.object({
@@ -86,9 +92,12 @@ const validationSchema = yup.object({
   startTime: yup
     .mixed<Dayjs>()
     .required("Start time is required")
+    .test("is-valid-time", "Invalid time format", (value) => {
+      return value ? dayjs(value).isValid() : false;
+    })
     .test("is-future-time", "Start time must be in the future", function (value) {
       const { date, timeZone } = this.parent;
-      if (date && value) {
+      if (date && value && dayjs(value).isValid() && dayjs(date).isValid()) {
         const combinedStartTime = formatDateTime(date, value, timeZone);
         return combinedStartTime ? dayjs(combinedStartTime).isAfter(dayjs(), "minute") : false;
       }
@@ -97,9 +106,13 @@ const validationSchema = yup.object({
   endTime: yup
     .mixed<Dayjs>()
     .required("End time is required")
+    .test("is-valid-time", "Invalid time format", (value) => {
+      return value ? dayjs(value).isValid() : false;
+    })
     .test("is-after-startTime", "End time must be after start time", function (value) {
       const { startTime, date, timeZone } = this.parent;
-      if (date && value) {
+      if (date && value && startTime && 
+          dayjs(value).isValid() && dayjs(startTime).isValid() && dayjs(date).isValid()) {
         const combinedStartTime = formatDateTime(date, startTime, timeZone);
         const combinedEndTime = formatDateTime(date, value, timeZone);
         return combinedStartTime && combinedEndTime
@@ -462,10 +475,15 @@ function MeetingForm() {
             value={formik.values.startTime}
             disabled={!formik.values.date || Boolean(formik.errors.date)}
             onChange={async (value) => {
-              await formik.setFieldValue("startTime", value);
-              formik.setFieldTouched("startTime", true);
-              await formik.setFieldValue("endTime", null);
-              formik.setFieldTouched("endTime", false);
+              if (value && dayjs(value).isValid()) {
+                await formik.setFieldValue("startTime", value);
+                formik.setFieldTouched("startTime", true);
+                await formik.setFieldValue("endTime", null);
+                formik.setFieldTouched("endTime", false);
+              } else if (value === null) {
+                await formik.setFieldValue("startTime", null);
+                formik.setFieldTouched("startTime", true);
+              }
             }}
             onAccept={async (value) => {
               await formik.setFieldValue("startTime", value);
@@ -488,8 +506,13 @@ function MeetingForm() {
             value={formik.values.endTime}
             disabled={!formik.values.startTime || Boolean(formik.errors.startTime)}
             onChange={async (value) => {
-              await formik.setFieldValue("endTime", value);
-              formik.setFieldTouched("endTime", true);
+              if (value && dayjs(value).isValid()) {
+                await formik.setFieldValue("endTime", value);
+                formik.setFieldTouched("endTime", true);
+              } else if (value === null) {
+                await formik.setFieldValue("endTime", null);
+                formik.setFieldTouched("endTime", true);
+              }
             }}
             onAccept={async (value) => {
               await formik.setFieldValue("endTime", value);
