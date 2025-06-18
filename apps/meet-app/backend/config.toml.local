@@ -16,14 +16,27 @@
         backOffFactor = 
         maxWaitInterval =
 
-[meet_app.entity]
+[meet_app.people]
     hrEntityBaseUrl = ""
-    [meet_app.entity.oauthConfig]
+    [meet_app.people.oauthConfig]
         tokenUrl = ""
         clientId = ""
         clientSecret = ""
 
-    [meet_app.entity.retryConfig]
+    [meet_app.people.retryConfig]
+        count = 
+        interval = 
+        backOffFactor = 
+        maxWaitInterval = 
+
+[meet_app.sales]
+    salesEntityBaseUrl = ""
+    [meet_app.sales.oauthConfig]
+        tokenUrl = ""
+        clientId = ""
+        clientSecret = ""
+
+    [meet_app.sales.retryConfig]
         count = 
         interval = 
         backOffFactor = 
