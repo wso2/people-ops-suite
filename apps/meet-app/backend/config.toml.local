@@ -29,6 +29,19 @@
         backOffFactor = 
         maxWaitInterval = 
 
+[meet_app.sales]
+    salesEntityBaseUrl = ""
+    [meet_app.sales.oauthConfig]
+        tokenUrl = ""
+        clientId = ""
+        clientSecret = ""
+
+    [meet_app.sales.retryConfig]
+        count = 
+        interval = 
+        backOffFactor = 
+        maxWaitInterval = 
+
 [meet_app.drive]
     driveBaseUrl = ""
     [meet_app.drive.oauthConfig]
