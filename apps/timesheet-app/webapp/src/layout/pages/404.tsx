@@ -42,7 +42,7 @@ export default function Error() {
       <Typography variant="h1" sx={{ color: "gray" }}>
         404
       </Typography>
-      <Typography variant="h1" sx={{ color: "gray" }}>
+      <Typography variant="h3" sx={{ color: "gray" }}>
         The page you’re looking for doesn’t exist.
       </Typography>
       <Button component={Link} to={"/"} variant="contained">

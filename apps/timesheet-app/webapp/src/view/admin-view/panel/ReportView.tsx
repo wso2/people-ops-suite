@@ -13,7 +13,14 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import { DataGrid, useGridApiRef, GridFilterModel, GridLogicOperator, GridRenderCellParams } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  useGridApiRef,
+  GridFilterModel,
+  GridLogicOperator,
+  GridRenderCellParams,
+} from "@mui/x-data-grid";
 import "jspdf-autotable";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -24,6 +31,7 @@ import noDataIcon from "@images/no-data.svg";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
+import GridAvatarCard from "@component/common/GridAvatarCard";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { fetchEmployeeMetaData } from "@slices/metaSlice/meta";
@@ -40,20 +48,22 @@ import { Filter, State, statusChipStyles, TimesheetRecord, TimesheetStatus } fro
 const ReportView = () => {
   const theme = useTheme();
   const apiRef = useGridApiRef();
-
   const dispatch = useAppDispatch();
+  const [filters, setFilters] = useState<Filter[]>([]);
+  const [filteringEmployee, setFilteringEmployee] = useState<string>("");
+  const [isFilteringOnlyByEmployee, setIsFilteringByEmployee] = useState<boolean>(false);
   const employeeLoadingState = useAppSelector((state) => state.meteInfo.metaDataStatus || 0);
   const timesheetLoadingInfo = useAppSelector((state) => state.timesheetRecord.retrievingState);
   const records = useAppSelector((state) => state.timesheetRecord.timesheetData?.timeLogs || []);
   const timesheetInfo = useAppSelector((state) => state.timesheetRecord.timesheetData?.timesheetStats);
   const totalRecordCount = useAppSelector((state) => state.timesheetRecord.timesheetData?.totalRecordCount || 0);
 
-  const [filters, setFilters] = useState<Filter[]>([]);
   const availableFields = [
     { field: "employeeEmail", label: "Employee Email", type: "text" },
     { field: "rangeStart", label: "Start Date", type: "date" },
     { field: "rangeEnd", label: "End Date", type: "date" },
   ];
+
   const [filterModel, setFilterModel] = useState<GridFilterModel>({
     items: [],
     logicOperator: GridLogicOperator.And,
@@ -61,6 +71,19 @@ const ReportView = () => {
   });
 
   const columns = [
+    ...(isFilteringOnlyByEmployee
+      ? []
+      : ([
+          {
+            field: "employeeEmail",
+            headerName: "Employee",
+            flex: 2,
+            renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
+              <GridAvatarCard email={params.row?.employeeEmail} />
+            ),
+          },
+        ] as GridColDef[])),
+
     {
       field: "recordDate",
       headerName: "Date",
@@ -176,9 +199,7 @@ const ReportView = () => {
         <Chip
           icon={statusChipStyles[params.row.timeLogStatus as TimesheetStatus].icon}
           label={params.row.timeLogStatus}
-          color={
-            statusChipStyles[params.row.timeLogStatus as TimesheetStatus].color as "success" | "error" | "warning"
-          }
+          color={statusChipStyles[params.row.timeLogStatus as TimesheetStatus].color as "success" | "error" | "warning"}
           variant="outlined"
           size="small"
           sx={{ width: "110px" }}
@@ -188,10 +209,17 @@ const ReportView = () => {
   ];
 
   const fetchData = async () => {
-    const filterParams = filters.reduce((acc, filter) => {
+    const filterParams = filters.reduce<Record<string, string>>((acc, filter) => {
       return { ...acc, [filter.field]: filter.value };
     }, {});
 
+    if (filterParams.employeeEmail) {
+      setIsFilteringByEmployee(true);
+      setFilteringEmployee(filterParams.employeeEmail);
+    } else {
+      setIsFilteringByEmployee(false);
+      setFilteringEmployee("");
+    }
     dispatch(
       fetchTimesheetRecords({
         ...filterParams,
@@ -275,13 +303,16 @@ const ReportView = () => {
           <>
             <Box sx={{ width: "100%", height: "99%", overflow: "auto", p: 1 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="right" mb={1} spacing={1}>
-                <FilterComponent
-                  availableFields={availableFields}
-                  filters={filters}
-                  setFilters={setFilters}
-                  onApply={fetchData}
-                  onReset={handleResetFilters}
-                />
+                <Stack direction="row" justifyContent="space-between" spacing={1}>
+                  <FilterComponent
+                    availableFields={availableFields}
+                    filters={filters}
+                    setFilters={setFilters}
+                    onApply={fetchData}
+                    onReset={handleResetFilters}
+                  />
+                  {filteringEmployee && <GridAvatarCard email={filteringEmployee} />}
+                </Stack>
                 <Box>
                   <Button
                     variant="contained"
