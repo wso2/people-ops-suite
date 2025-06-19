@@ -14,18 +14,18 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { createContext, useState, useMemo } from "react";
-import { Provider } from "react-redux";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { store } from "./slices/store";
-import { ThemeMode } from "@utils/types";
-import { APP_NAME, AsgardeoConfig } from "./config/config";
-import AppHandler from "@app/AppHandler";
-import { themeSettings } from "./theme";
 import "./App.scss";
+import { Provider } from "react-redux";
+import { store } from "./slices/store";
+import { themeSettings } from "./theme";
+import { ThemeMode } from "@utils/types";
+import AppHandler from "@app/AppHandler";
+import { SnackbarProvider } from "notistack";
 import AppAuthProvider from "@context/AuthContext";
 import { AuthProvider } from "@asgardeo/auth-react";
-import { SnackbarProvider } from "notistack";
+import { createContext, useState, useMemo } from "react";
+import { APP_NAME, AsgardeoConfig } from "./config/config";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
 
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
 

@@ -42,8 +42,8 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FilterComponent from "@component/common/FilterModal";
 import noSearchResults from "@images/no-search-results.svg";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LunchDiningIcon from "@mui/icons-material/LunchDining";
+import GridAvatarCard from "@component/common/GridAvatarCard";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { fetchEmployeeMetaData } from "@slices/metaSlice/meta";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -53,7 +53,7 @@ import { useConfirmationModalContext } from "@context/DialogContext";
 import InformationHeaderSkeleton from "@component/common/InformationHeaderSkeleton";
 import StateWithImage, { StateWithImageFunction } from "@component/ui/StateWithImage";
 import { fetchTimesheetRecords, resetTimesheetRecords, updateTimesheetRecords } from "@slices/recordSlice/record";
-import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton, Avatar } from "@mui/material";
+import { Box, Chip, Stack, Paper, Button, Tooltip, useTheme, Typography, IconButton } from "@mui/material";
 
 const TimeSheetAuditView = () => {
   const theme = useTheme();
@@ -97,57 +97,7 @@ const TimeSheetAuditView = () => {
       headerName: "Employee",
       flex: 2,
       renderCell: (params: GridRenderCellParams<TimesheetRecord>) => (
-        <Box display="flex" alignItems="center" position="relative">
-          <Avatar
-            src={employeeMap[params.row?.employeeEmail]?.employeeThumbnail}
-            alt={employeeMap[params.row?.employeeEmail]?.employeeName || params.row?.employeeEmail}
-            sx={{ marginRight: 2, height: "2.2rem", width: "2.2rem" }}
-          />
-          <Box
-            sx={{
-              position: "relative",
-              transition: "transform 0.3s ease",
-              "&:hover": {
-                transform: "translateY(-10px)",
-              },
-              "&:hover > div": {
-                opacity: 1,
-              },
-            }}
-          >
-            <Typography variant="body2">
-              {employeeMap[params.row?.employeeEmail]?.employeeName || params.row?.employeeEmail}
-            </Typography>
-            <Box
-              sx={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                display: "flex",
-                alignItems: "center",
-                padding: "1px 0",
-                borderRadius: "4px",
-                opacity: 0,
-                transition: "opacity 0.3s",
-              }}
-            >
-              <Typography color={"GrayText"} variant="caption" mr={1}>
-                {params.row?.employeeEmail}
-              </Typography>
-              <Tooltip title="Copy Email">
-                <IconButton
-                  size="small"
-                  aria-label="Copy Email"
-                  onClick={() => {
-                    navigator.clipboard.writeText(params.row?.employeeEmail);
-                  }}
-                >
-                  <ContentCopyIcon sx={{ fontSize: "15px" }} />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </Box>
-        </Box>
+        <GridAvatarCard email={params.row?.employeeEmail} />
       ),
     },
     {
@@ -227,9 +177,7 @@ const TimeSheetAuditView = () => {
         <Chip
           icon={statusChipStyles[params.row.timeLogStatus as TimesheetStatus].icon}
           label={params.row.timeLogStatus}
-          color={
-            statusChipStyles[params.row.timeLogStatus as TimesheetStatus].color as "success" | "error" | "warning"
-          }
+          color={statusChipStyles[params.row.timeLogStatus as TimesheetStatus].color as "success" | "error" | "warning"}
           variant="outlined"
           size="small"
           sx={{ width: "110px" }}

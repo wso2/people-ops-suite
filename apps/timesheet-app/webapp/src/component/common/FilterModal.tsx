@@ -137,6 +137,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
       },
     ]);
   };
+
   const handleRemoveFilter = (id: string) => {
     setFilters(filters.filter((filter) => filter.id !== id));
   };
