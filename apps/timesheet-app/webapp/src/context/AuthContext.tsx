@@ -113,7 +113,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
     } else if (appState === "loading") {
       <PreLoader isLoading={true} message={auth.statusMessage}></PreLoader>;
     }
-  }, [auth.userInfo]);
+  }, [auth.userInfo, appState]);
 
   const refreshTokens = () => {
     return new Promise<{ idToken: string }>(async (resolve) => {
@@ -122,7 +122,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
         resolve({ idToken: await getIDToken() });
       } else {
         refreshAccessToken()
-          .then(async (res) => {
+          .then(async (_) => {
             const accessToken = await getIDToken();
             resolve({ idToken: accessToken });
           })

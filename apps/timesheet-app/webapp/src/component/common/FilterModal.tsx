@@ -56,8 +56,8 @@ interface FilterComponentProps {
 }
 
 const FilterComponent: React.FC<FilterComponentProps> = ({
-  filters,
   isLead,
+  filters,
   onApply,
   onReset,
   setFilters,
@@ -89,6 +89,10 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
 
   const handleFilterChange = (id: string, field: string, value: any) => {
     if (field === "field") {
+      const isDuplicate = filters.some((f) => f.field === value && f.id !== id);
+      if (isDuplicate) {
+        return;
+      }
       const fieldConfig = availableFields.find((f) => f.field === value);
 
       if (fieldConfig?.type === "date") {
@@ -104,7 +108,17 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
           )
         );
       } else {
-        setFilters(filters.map((filter) => (filter.id === id ? { ...filter, field: value, value: "" } : filter)));
+        setFilters(
+          filters.map((filter) =>
+            filter.id === id
+              ? {
+                  ...filter,
+                  field: value,
+                  value: "",
+                }
+              : filter
+          )
+        );
       }
       return;
     }
@@ -113,9 +127,27 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     const fieldConfig = availableFields.find((f) => f.field === currentFilter?.field);
 
     if (fieldConfig?.type === "date" && value instanceof Date) {
-      setFilters(filters.map((filter) => (filter.id === id ? { ...filter, value: formatDateForAPI(value) } : filter)));
+      setFilters(
+        filters.map((filter) =>
+          filter.id === id
+            ? {
+                ...filter,
+                value: formatDateForAPI(value),
+              }
+            : filter
+        )
+      );
     } else {
-      setFilters(filters.map((filter) => (filter.id === id ? { ...filter, [field]: value } : filter)));
+      setFilters(
+        filters.map((filter) =>
+          filter.id === id
+            ? {
+                ...filter,
+                [field]: value,
+              }
+            : filter
+        )
+      );
     }
   };
 
