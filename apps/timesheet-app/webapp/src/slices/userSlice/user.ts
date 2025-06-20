@@ -31,7 +31,7 @@ const initialState: UserState = {
   workPolicies: {} as WorkPolicies,
 };
 
-interface UserState {
+export interface UserState {
   state: State;
   stateMessage: string | null;
   errorMessage: string | null;
