@@ -29,20 +29,49 @@
         clientSecret = "<Client secret of the Asgardeo app>"
 
     [meet_app.calendar.retryConfig]
-        count = 3
-        interval = 3.0
-        backOffFactor = 2.0
-        maxWaitInterval = 20.0
+        count = <Retry count: 3>
+        interval = <Retry interval: 3.0>
+        backOffFactor = <Backoff factor: 2.0>
+        maxWaitInterval = <Max waiting interval: 20.0>
 
-# Entity Configurations.
-[meet_app.entity]
-    hrEntityBaseUrl = "<Entity URL>"
-    [meet_app.entity.oauthConfig]
+# HR Entity Configurations.
+[meet_app.people]
+    hrEntityBaseUrl = "<HR Entity URL>"
+    [meet_app.people.oauthConfig]
         tokenUrl = "<Refresh URL>"
         clientId = "<Client ID of the Asgardeo app>"
         clientSecret = "<Client secret of the Asgardeo app>"
 
-    [meet_app.entity.retryConfig]
+    [meet_app.people.retryConfig]
+        count = <Retry count: 3>
+        interval = <Retry interval: 3.0>
+        backOffFactor = <Backoff factor: 2.0>
+        maxWaitInterval = <Max waiting interval: 20.0>
+
+# Sales Entity Configurations.
+[meet_app.sales]
+    salesEntityBaseUrl = "<Sales Entity URL>"
+    [meet_app.sales.oauthConfig]
+        tokenUrl = "<Refresh URL>"
+        clientId = "<Client ID of the Asgardeo app>"
+        clientSecret = "<Client secret of the Asgardeo app>"
+
+    [meet_app.sales.retryConfig]
+        count = <Retry count: 3>
+        interval = <Retry interval: 3.0>
+        backOffFactor = <Backoff factor: 2.0>
+        maxWaitInterval = <Max waiting interval: 20.0>
+
+# Drive Configurations.
+[meet_app.drive]
+    driveBaseUrl = "<Drive Service URL>"
+    [meet_app.drive.oauthConfig]
+        refreshUrl = "<Refresh URL>"
+        clientId = "<Client ID of the app>"
+        clientSecret = "<Client secret of the app>"
+        refreshToken = "<Refresh Token>"
+
+    [meet_app.drive.retryConfig]
         count = <Retry count: 3>
         interval = <Retry interval: 3.0>
         backOffFactor = <Backoff factor: 2.0>
@@ -68,6 +97,18 @@
 [meet_app.authorization.authorizedRoles]
     SALES_TEAM  = "<Asgardeo role mapped to this application role>"
     SALES_ADMIN = "<Asgardeo role mapped to this application role>"
+
+# Support Team Contacts
+[meet_app.appConfig]
+    # List of support teams and their corresponding email addresses.
+    # Each entry must include:
+    #   - team: The name of the support team.
+    #   - email: The email address for the team.
+    supportTeamEmails = [
+        { team = "<Team name, e.g., Technical Issues>", email = "<Team email address>" },
+        { team = "<Team name, e.g., Security Concerns>", email = "<Team email address>" },
+        { team = "<Team name, e.g., Sales Enablement Matters>", email = "<Team email address>" }
+    ]
 ```
 
 ## Execute

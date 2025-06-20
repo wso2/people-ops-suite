@@ -53,10 +53,10 @@ public function postMeetingsTest() returns error? {
             "endTime": "2025-04-01T07:30:00.000Z",
             "timeZone": "Asia/Colombo",
             "internalParticipants": [
-                "patric@wso2.com"
+                "user1@example.com"
             ],
             "externalParticipants": [
-                "cptap2n@gmail.com"
+                "user2@example.com"
             ]
         }
     );
@@ -75,10 +75,10 @@ public function postMeetingsTest() returns error? {
             "endTime": "2025-03-25T07:30:00.000Z",
             "timeZone": "Asia/Colombo",
             "internalParticipants": [
-                "patric@wso2.com"
+                "user1@example.com"
             ],
             "externalParticipants": [
-                "cptap2n@gmail.com"
+                "user2@example.com"
             ]
         },
         headers = {"x-jwt-assertion": jwtKey}

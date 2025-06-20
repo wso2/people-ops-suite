@@ -17,7 +17,6 @@ CREATE TABLE meeting (
   PRIMARY KEY (`meeting_id`)                    -- Primary key for the table
 );
 
-
 -- Create the meeting_type table to store meeting domain and types
 CREATE TABLE meeting_type (
   `domain` VARCHAR(100) NOT NULL,               -- Domain name (e.g., Sales, Marketing, etc.)
@@ -33,4 +32,4 @@ CREATE TABLE meeting_type (
 INSERT INTO meeting_type (`domain`, `types`, `created_by`, `updated_by`)
 VALUES
   ('Sales', 'Discovery Call, Technical Call, Demo Call, POC Call, Legal Chat, Procurement Chat, Pricing Chat',
-  'patric@wso2.com', 'patric@wso2.com');
+  'system', 'system');

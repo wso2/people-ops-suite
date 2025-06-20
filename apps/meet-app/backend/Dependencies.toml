@@ -478,6 +478,8 @@ modules = [
 	{org = "wso2", packageName = "meet_app", moduleName = "meet_app.authorization"},
 	{org = "wso2", packageName = "meet_app", moduleName = "meet_app.calendar"},
 	{org = "wso2", packageName = "meet_app", moduleName = "meet_app.database"},
-	{org = "wso2", packageName = "meet_app", moduleName = "meet_app.entity"}
+	{org = "wso2", packageName = "meet_app", moduleName = "meet_app.drive"},
+	{org = "wso2", packageName = "meet_app", moduleName = "meet_app.people"},
+	{org = "wso2", packageName = "meet_app", moduleName = "meet_app.sales"}
 ]
 

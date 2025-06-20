@@ -20,6 +20,9 @@ import userReducer from "@slices/userSlice/user";
 import { configureStore } from "@reduxjs/toolkit";
 import commonReducer from "@slices/commonSlice/common";
 import meetingReducer from "@slices/meetingSlice/meeting";
+import appConfigReducer from "@slices/configSlice/config";
+import contactReducer from "@slices/contactSlice/contact";
+import customerReducer from "@slices/customerSlice/customer";
 import employeeReducer from "@slices/employeeSlice/employee";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 
@@ -31,7 +34,10 @@ export const store = configureStore({
     user: userReducer,
     common: commonReducer,
     meeting: meetingReducer,
+    contact: contactReducer,
     employee: employeeReducer,
+    customer: customerReducer,
+    appConfig: appConfigReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

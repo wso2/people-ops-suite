@@ -12,10 +12,20 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License. 
+// under the License.
+import ballerina/http;
 
-# Cache key of employees.
-const string EMPLOYEES_CACHE_KEY = "employees";
+configurable string driveBaseUrl = ?;
+configurable DriveRetryConfig retryConfig = ?;
+configurable Oauth2Config oauthConfig = ?;
 
-# Cache key of customers.
-const string CUSTOMERS_CACHE_KEY = "customers";
+final http:Client driveClient = check new (driveBaseUrl, {
+    auth: {
+        ...oauthConfig
+    },
+    httpVersion: http:HTTP_1_1,
+    http1Settings: {keepAlive: http:KEEPALIVE_NEVER},
+    retryConfig: {
+        ...retryConfig
+    }
+});

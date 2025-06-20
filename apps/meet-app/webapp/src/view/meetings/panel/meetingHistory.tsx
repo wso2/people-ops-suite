@@ -191,7 +191,32 @@ function MeetingHistory() {
         return (
           <>
             <Tooltip title="View Attachments" arrow>
-              <IconButton color="info" onClick={() => handleViewAttachments(params.row.meetingId)}>
+              <IconButton 
+                color="info" 
+                onClick={() => handleViewAttachments(params.row.meetingId)}
+                sx={{
+                  backgroundColor: (theme) => theme.palette.info.main,
+                  borderRadius: 2,
+                  width: 25,
+                  height: 25,
+                  border: (theme) => `2px solid ${theme.palette.info.dark}`,
+                  boxShadow: (theme) => `0 2px 4px ${theme.palette.info.dark}30`,
+                  '&:hover': {
+                    backgroundColor: (theme) => theme.palette.info.dark,
+                    transform: 'translateY(-1px)',
+                    boxShadow: (theme) => `0 4px 8px ${theme.palette.info.dark}40`,
+                  },
+                  '&:active': {
+                    transform: 'translateY(0px)',
+                    boxShadow: (theme) => `0 1px 2px ${theme.palette.info.dark}60`,
+                  },
+                  '& .MuiSvgIcon-root': {
+                    color: (theme) => theme.palette.info.contrastText,
+                    fontSize: '1.1rem',
+                  },
+                  transition: 'all 0.2s ease-in-out',
+                }}
+              >
                 <Visibility />
               </IconButton>
             </Tooltip>
@@ -217,6 +242,28 @@ function MeetingHistory() {
                   color="error"
                   onClick={() => {
                     handleDeleteMeeting(params.row.meetingId, params.row.title);
+                  }}
+                  sx={{
+                    backgroundColor: (theme) => theme.palette.error.main,
+                    borderRadius: 2,
+                    width: 25,
+                    height: 25,
+                    border: (theme) => `2px solid ${theme.palette.error.dark}`,
+                    boxShadow: (theme) => `0 2px 4px ${theme.palette.error.dark}30`,
+                    '&:hover': {
+                      backgroundColor: (theme) => theme.palette.error.dark,
+                      transform: 'translateY(-1px)',
+                      boxShadow: (theme) => `0 4px 8px ${theme.palette.error.dark}40`,
+                    },
+                    '&:active': {
+                      transform: 'translateY(0px)',
+                      boxShadow: (theme) => `0 1px 2px ${theme.palette.error.dark}60`,
+                    },
+                    '& .MuiSvgIcon-root': {
+                      color: (theme) => theme.palette.error.contrastText,
+                      fontSize: '1.1rem',
+                    },
+                    transition: 'all 0.2s ease-in-out',
                   }}
                 >
                   <DeleteForever />
