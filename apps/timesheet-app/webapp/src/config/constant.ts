@@ -25,7 +25,9 @@ export const Messages = {
     sendRecords: "Unable to save timesheet records",
     otExceeds: "This entries exceeds the available overtime quota",
     updateRecords: "Unable to update the records",
-    fetchEmployees : "Unable to fetch employee information."
+    insufficientPrivileges: "Insufficient Privileges",
+    fetchPrivileges: "Failed to fetch Privileges",
+    fetchEmployees: "Unable to fetch employee information.",
   },
   warning: {},
   info: {

@@ -20,9 +20,9 @@ import Dialog from "@mui/material/Dialog";
 import { Box, Button } from "@mui/material";
 import { Messages } from "@config/constant";
 import { APIService } from "@utils/apiService";
+import { useIdleTimer } from "react-idle-timer";
 import PreLoader from "@component/common/PreLoader";
 import DialogTitle from "@mui/material/DialogTitle";
-import { setUserAuthData } from "@slices/authSlice";
 import { getUserInfo } from "@slices/userSlice/user";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
@@ -31,6 +31,7 @@ import StatusWithAction from "@component/ui/StatusWithAction";
 import React, { useContext, useEffect, useState } from "react";
 import DialogContentText from "@mui/material/DialogContentText";
 import { useAuthContext, SecureApp } from "@asgardeo/auth-react";
+import { loadPrivileges, setUserAuthData } from "@slices/authSlice";
 import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
 
 type AuthContextType = {
@@ -39,14 +40,27 @@ type AuthContextType = {
 };
 const AuthContext = React.createContext<AuthContextType>({} as AuthContextType);
 
+const timeout = 1800_000;
+const promptBeforeIdle = 4_000;
+
 const AppAuthProvider = (props: { children: React.ReactNode }) => {
   const [open, setOpen] = useState<boolean>(false);
   const [appState, setAppState] = useState<"logout" | "active" | "loading">("loading");
-
   const dispatch = useAppDispatch();
   const auth = useAppSelector((state: RootState) => state.auth);
   const userInfo = useAppSelector((state: RootState) => state.user);
   const userInfoState = useAppSelector((state: RootState) => state.user.state);
+
+  const onPrompt = () => {
+    appState === "active" && setOpen(true);
+  };
+
+  const { getRemainingTime, activate } = useIdleTimer({
+    onPrompt,
+    timeout,
+    promptBeforeIdle,
+    throttle: 500,
+  });
 
   const {
     state,
@@ -75,37 +89,32 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    const isSignInInitiated = localStorage.getItem("signInInitiated") === "true";
-    if (state.isAuthenticated) {
-      Promise.all([getBasicUserInfo(), getIDToken(), getDecodedIDToken()]).then(
-        async ([userInfo, idToken, decodedIdToken]) => {
-          dispatch(
-            setUserAuthData({
-              userInfo: userInfo,
-              idToken: idToken,
-              decodedIdToken: decodedIdToken,
-            })
-          );
-
-          new APIService(idToken, refreshTokens);
-          localStorage.setItem("signInInitiated", "false");
-        }
-      );
-    } else if (!isSignInInitiated) {
-      localStorage.setItem("signInInitiated", "true");
-      signIn();
+    if (appState === "active") {
+      if (state.isAuthenticated) {
+        Promise.all([getBasicUserInfo(), getIDToken(), getDecodedIDToken()]).then(
+          async ([userInfo, idToken, decodedIdToken]) => {
+            dispatch(
+              setUserAuthData({
+                userInfo: userInfo,
+                idToken: idToken,
+                decodedIdToken: decodedIdToken,
+              })
+            );
+            new APIService(idToken, refreshToken);
+          }
+        );
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.isAuthenticated]);
+  }, [appState, state.isAuthenticated]);
 
   useEffect(() => {
     if (appState === "active") {
       if (state.isAuthenticated) {
         if (userInfo.state !== "loading") {
-          const fetchData = async () => {
-            await dispatch(getUserInfo());
-          };
-          fetchData();
+          dispatch(getUserInfo()).then(() => {
+            dispatch(loadPrivileges());
+          });
         }
       } else {
         signIn();
@@ -115,7 +124,7 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
     }
   }, [auth.userInfo]);
 
-  const refreshTokens = () => {
+  const refreshToken = () => {
     return new Promise<{ idToken: string }>(async (resolve) => {
       const userIsAuthenticated = await isAuthenticated();
       if (userIsAuthenticated) {
@@ -123,8 +132,8 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
       } else {
         refreshAccessToken()
           .then(async (_) => {
-            const accessToken = await getIDToken();
-            resolve({ idToken: accessToken });
+            const idToken = await getIDToken();
+            resolve({ idToken: idToken });
           })
           .catch((_) => {
             appSignOut();
@@ -175,17 +184,19 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
           </Dialog>
           {appState === "active" ? (
             <AuthContext.Provider value={authContext}>
-              {userInfoState === State.failed && (
-                <Box height={"100vh"} width={"100%"} display={"flex"}>
-                  <StateWithImage message={Messages.error.fetchEmployees} imageUrl={errorIcon} />
-                </Box>
-              )}
-              {userInfoState === State.success && <SecureApp>{props.children}</SecureApp>}
-              {userInfoState === State.loading && (
-                <Box sx={{ width: "100%", height: "100%" }}>
-                  <PreLoader isLoading={true} message={null} />
-                </Box>
-              )}
+              <SecureApp>
+                {userInfoState === State.failed && (
+                  <Box height={"100vh"} width={"100%"} display={"flex"}>
+                    <StateWithImage message={Messages.error.fetchEmployees} imageUrl={errorIcon} />
+                  </Box>
+                )}
+                {userInfoState === State.success && <>{props.children}</>}
+                {userInfoState === State.loading && (
+                  <Box sx={{ width: "100%", height: "100%" }}>
+                    <PreLoader isLoading={true} message={null} />
+                  </Box>
+                )}
+              </SecureApp>
             </AuthContext.Provider>
           ) : (
             <StatusWithAction action={() => appSignIn()} />

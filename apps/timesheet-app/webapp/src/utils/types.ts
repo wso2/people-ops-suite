@@ -14,10 +14,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
 import CancelIcon from "@mui/icons-material/Cancel";
 import PendingIcon from "@mui/icons-material/Pending";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { BasicUserInfo, DecodedIDTokenPayload } from "@asgardeo/auth-spa";
 import React from "react";
 
 export interface AuthState {
@@ -27,6 +27,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   userInfo: BasicUserInfo | null;
   decodedIdToken: DecodedIDTokenPayload | null;
+  roles: Roles[];
 }
 
 export interface AuthData {
