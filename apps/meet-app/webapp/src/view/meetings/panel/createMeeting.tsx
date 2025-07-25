@@ -84,11 +84,11 @@ const validationSchema = yup.object({
     .required("Date is required")
     .test("is-valid-date", "Invalid date", (value) => dayjs(value).isValid())
     .test("is-future-date", "Date must be in the future", function (value) {
-      const tz = this.parent.timeZone;     
-      if (!value || !tz) return false;
-      const picked = dayjs.tz(value.format("YYYY-MM-DD"), tz);
-      const today  = dayjs().tz(tz).startOf("day");
-      return picked.isSameOrAfter(today, "day");
+      const selectedTimeZone = this.parent.timeZone;     
+      if (!value || !selectedTimeZone) return false;
+      const selectedDate = dayjs.tz(value.format("YYYY-MM-DD"), selectedTimeZone);
+      const currentDate  = dayjs().tz(selectedTimeZone).startOf("day");
+      return selectedDate.isSameOrAfter(currentDate, "day");
     }),
   startTime: yup
     .mixed<Dayjs>()
@@ -98,9 +98,9 @@ const validationSchema = yup.object({
     .test("is-future-time", "Start time must be in the future", function (value) {
       const { date, timeZone } = this.parent;
       if (!date || !value) return false;
-      const meetingStart = dayjs.tz(
+      const selectedStartDateTime = dayjs.tz(
         `${date.format("YYYY-MM-DD")}T${value.format("HH:mm")}`,timeZone);
-      return meetingStart.isAfter(dayjs());
+      return selectedStartDateTime.isAfter(dayjs());
     }),
   endTime: yup
     .mixed<Dayjs>()
