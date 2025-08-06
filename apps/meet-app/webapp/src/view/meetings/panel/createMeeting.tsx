@@ -32,6 +32,7 @@ import { useFormik } from "formik";
 import dayjs, { Dayjs } from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import { useEffect, useState, useMemo } from "react";
 import { ConfirmationType, State } from "@/types/types";
 import { useAppDispatch, useAppSelector } from "@slices/store";
@@ -46,7 +47,7 @@ import { DatePicker, TimePicker, LocalizationProvider } from "@mui/x-date-picker
 // Extend dayjs with timezone and UTC functionality
 dayjs.extend(utc);
 dayjs.extend(timezone);
-
+dayjs.extend(isSameOrAfter);
 interface MeetingRequest {
   meetingType: string;
   customerName: string;
@@ -82,44 +83,39 @@ const validationSchema = yup.object({
     .mixed<Dayjs>()
     .required("Date is required")
     .test("is-valid-date", "Invalid date", (value) => dayjs(value).isValid())
-    .test("is-future-date", "Date must be in the future", (value) => {
-      if (value) {
-        const today = dayjs().startOf("day");
-        return value.isAfter(today, "day") || value.isSame(today, "day");
-      }
-      return false;
+    .test("is-future-date", "Date must be in the future", function (value) {
+      const selectedTimeZone = this.parent.timeZone;     
+      if (!value || !selectedTimeZone) return false;
+      const selectedDate = dayjs.tz(value.format("YYYY-MM-DD"), selectedTimeZone);
+      const currentDate  = dayjs().tz(selectedTimeZone).startOf("day");
+      return selectedDate.isSameOrAfter(currentDate, "day");
     }),
   startTime: yup
     .mixed<Dayjs>()
     .required("Start time is required")
     .test("is-valid-time", "Invalid time format", (value) => {
-      return value ? dayjs(value).isValid() : false;
-    })
+      return value ? dayjs(value).isValid() : false;})
     .test("is-future-time", "Start time must be in the future", function (value) {
       const { date, timeZone } = this.parent;
-      if (date && value && dayjs(value).isValid() && dayjs(date).isValid()) {
-        const combinedStartTime = formatDateTime(date, value, timeZone);
-        return combinedStartTime ? dayjs(combinedStartTime).isAfter(dayjs(), "minute") : false;
-      }
-      return false;
+      if (!date || !value) return false;
+      const selectedStartDateTime = dayjs.tz(
+        `${date.format("YYYY-MM-DD")}T${value.format("HH:mm")}`,timeZone);
+      return selectedStartDateTime.isAfter(dayjs());
     }),
   endTime: yup
     .mixed<Dayjs>()
     .required("End time is required")
     .test("is-valid-time", "Invalid time format", (value) => {
-      return value ? dayjs(value).isValid() : false;
-    })
+      return value ? dayjs(value).isValid() : false;})
     .test("is-after-startTime", "End time must be after start time", function (value) {
       const { startTime, date, timeZone } = this.parent;
-      if (date && value && startTime && 
-          dayjs(value).isValid() && dayjs(startTime).isValid() && dayjs(date).isValid()) {
-        const combinedStartTime = formatDateTime(date, startTime, timeZone);
-        const combinedEndTime = formatDateTime(date, value, timeZone);
-        return combinedStartTime && combinedEndTime
-          ? dayjs(combinedEndTime).isAfter(dayjs(combinedStartTime), "minute")
-          : false;
-      }
-      return false;
+      if (!date || !startTime || !value) return false;
+      const start = dayjs.tz(
+        `${date.format("YYYY-MM-DD")}T${startTime.format("HH:mm")}`,timeZone);
+      const end = dayjs.tz(
+        `${date.format("YYYY-MM-DD")}T${value.format("HH:mm")}`,
+        timeZone);
+      return end.isAfter(start);
     }),
   timeZone: yup.string().required("Timezone is required"),
   internalParticipants: yup
@@ -422,7 +418,7 @@ function MeetingForm() {
             fullWidth
             options={timeZones}
             value={formik.values.timeZone}
-            onChange={async (_, tz) => await formik.setFieldValue("timeZone", tz ?? "")}
+            onChange={async (_, tz) => await formik.setFieldValue("timeZone", tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone)}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -441,7 +437,7 @@ function MeetingForm() {
             label="Meeting Date *"
             format="DD/MM/YYYY"
             value={formik.values.date}
-            minDate={dayjs()}
+            minDate={dayjs().tz(formik.values.timeZone).startOf("day")}
             onChange={async (value) => {
               await formik.setFieldValue("date", value);
               formik.setFieldTouched("date", true);
