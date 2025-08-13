@@ -773,7 +773,7 @@ function CreateMeeting() {
           width: "100%",
         }}
       >
-        <ErrorHandler message="Oops! Something went wrong. Please contact Internal Apps Team at internal-apps-team@wso2.com" />
+        <ErrorHandler message="Oops! Something went wrong. Please contact Internal Apps Team at internal-apps-team@wso2.com." />
       </Box>
     );
   }
