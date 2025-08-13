@@ -114,7 +114,7 @@ const AppAuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (!cancelled) setUI("active");
       } catch (err: unknown) {
-        console.error("Failed to loging :", err);
+        console.error("Failed to logging in :", err);
 
         const status = (err as any)?.response?.status ?? (err as any)?.status;
         if (status === 401 || status === 403) {
