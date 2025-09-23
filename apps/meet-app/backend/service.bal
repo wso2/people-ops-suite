@@ -306,8 +306,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         string originalTitle = createCalendarEventRequest.title;
-        string:RegExp separator = re ` - `;
-        string[] titleParts = separator.split(originalTitle);
+        string[] titleParts = re`-`.split(createCalendarEventRequest.title);
         if titleParts.length() == 3 {
             createCalendarEventRequest.title = string `${titleParts[0]} - ${titleParts[2]}`;
         }
