@@ -276,7 +276,6 @@ function MeetingForm() {
   };
 
   return (
-
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Stack
         component="form"
