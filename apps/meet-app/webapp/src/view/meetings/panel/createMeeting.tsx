@@ -43,6 +43,8 @@ import { useConfirmationModalContext } from "@context/DialogContext";
 import { fetchContacts, resetContacts } from "@slices/contactSlice/contact";
 import { addMeetings, fetchMeetingTypes } from "@slices/meetingSlice/meeting";
 import { DatePicker, TimePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { useAppAuthContext } from "@root/src/context/AuthContext";
+import ErrorHandler from "@root/src/component/common/ErrorHandler";
 
 // Extend dayjs with timezone and UTC functionality
 dayjs.extend(utc);
@@ -150,12 +152,14 @@ const validationSchema = yup.object({
 });
 
 function MeetingForm() {
+  const auth = useAppAuthContext();
   const dispatch = useAppDispatch();
   const filter = createFilterOptions<string>();
   const [loading, setLoading] = useState(false);
   const dialogContext = useConfirmationModalContext();
   const [customerId, setCustomerId] = useState<string | null>(null);
   const contactsState = useAppSelector((state) => state.contact.state);
+  const employeeState = useAppSelector((state) => state.employee.state);
   const contacts = useAppSelector((state) => state.contact.contacts) || [];
   const employees = useAppSelector((state) => state.employee.employees) || [];
   const customers = useAppSelector((state) => state.customer.customers) || [];
@@ -299,6 +303,7 @@ function MeetingForm() {
             sx={{ flex: 1 }}
             freeSolo
             clearOnEscape
+            loading={!meetingTypes.length}
             options={[...new Set(meetingTypes)]}
             filterOptions={(options, params) => {
               const filtered = filter(options, params);
@@ -539,6 +544,7 @@ function MeetingForm() {
         <Autocomplete
           multiple
           limitTags={1}
+          loading={!employees.length}
           options={employees.map((emp) => emp.workEmail)}
           filterOptions={createFilterOptions({
             stringify: (email) => {
@@ -754,6 +760,22 @@ function MeetingForm() {
 }
 
 function CreateMeeting() {
+  const employeeState = useAppSelector((s) => s.employee.state);
+    if (employeeState === State.failed) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+          width: "100%",
+        }}
+      >
+        <ErrorHandler message="Oops! Something went wrong. Please contact Internal Apps Team at internal-apps-team@wso2.com." />
+      </Box>
+    );
+  }
   return (
     <Box
       sx={{

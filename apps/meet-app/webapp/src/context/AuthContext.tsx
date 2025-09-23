@@ -29,6 +29,7 @@ import DialogContentText from "@mui/material/DialogContentText";
 import { useAuthContext, SecureApp } from "@asgardeo/auth-react";
 import { loadPrivileges, setUserAuthData } from "@slices/authSlice/auth";
 import { RootState, useAppDispatch, useAppSelector } from "@slices/store";
+import ErrorHandler from "@component/common/ErrorHandler";
 
 type AuthContextType = {
   appSignIn: () => void;
@@ -39,29 +40,13 @@ const AuthContext = React.createContext<AuthContextType>({} as AuthContextType);
 const timeout = 1800_000;
 const promptBeforeIdle = 4_000;
 
-const AppAuthProvider = (props: { children: React.ReactNode }) => {
-  const [open, setOpen] = useState<boolean>(false);
-  const [appState, setAppState] = useState<"logout" | "active" | "loading">("loading");
+const AppAuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [idlePromptOpen, setIdlePromptOpen] = useState(false);
+  const [ui, setUI] = useState<"loading" | "active" | "logout" | "error">("loading");
 
   const dispatch = useAppDispatch();
   const auth = useAppSelector((state: RootState) => state.auth);
   const userInfo = useAppSelector((state: RootState) => state.user);
-
-  const onPrompt = () => {
-    appState === "active" && setOpen(true);
-  };
-
-  const { activate } = useIdleTimer({
-    onPrompt,
-    timeout,
-    promptBeforeIdle,
-    throttle: 500,
-  });
-
-  const handleContinue = () => {
-    setOpen(false);
-    activate();
-  };
 
   const {
     signIn,
@@ -71,125 +56,162 @@ const AppAuthProvider = (props: { children: React.ReactNode }) => {
     refreshAccessToken,
     isAuthenticated,
     getIDToken,
-    state,
+    state: asg,
   } = useAuthContext();
 
-  useEffect(() => {
-    var appStatus = localStorage.getItem("meet-app-state");
+  useIdleTimer({
+    timeout,
+    promptBeforeIdle,
+    throttle: 500,
+    onPrompt: () => ui === "active" && setIdlePromptOpen(true),
+  });
 
-    if (!localStorage.getItem("meet-app-redirect-url")) {
-      localStorage.setItem("meet-app-redirect-url", window.location.href.replace(window.location.origin, ""));
-    }
+  const handleContinue = () => setIdlePromptOpen(false);
 
-    if (appStatus && appStatus === "logout") {
-      setAppState("logout");
-    } else {
-      setAppState("active");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (appState === "active") {
-      if (state.isAuthenticated) {
-        Promise.all([getBasicUserInfo(), getIDToken(), getDecodedIDToken()]).then(
-          async ([userInfo, idToken, decodedIdToken]) => {
-            dispatch(
-              setUserAuthData({
-                userInfo: userInfo,
-                idToken: idToken,
-                decodedIdToken: decodedIdToken,
-              })
-            );
-            new APIService(idToken, refreshToken);
-          }
-        );
-      }
-    }
-  }, [appState, state.isAuthenticated]);
-
-  useEffect(() => {
-    if (appState === "active") {
-      if (state.isAuthenticated) {
-        if (userInfo.state !== "loading") {
-          dispatch(getUserInfo()).then(() => {
-            dispatch(loadPrivileges());
-          });
+  const refreshToken = () =>
+    new Promise<{ idToken: string }>(async (resolve, reject) => {
+      try {
+        if (await isAuthenticated()) {
+          resolve({ idToken: await getIDToken() });
+        } else {
+          await refreshAccessToken();
+          resolve({ idToken: await getIDToken() });
         }
-      } else {
-        signIn();
-      }
-    } else if (appState === "loading") {
-      <PreLoader isLoading={true} message={auth.statusMessage}></PreLoader>;
-    }
-  }, [auth.userInfo]);
-
-  const refreshToken = () => {
-    return new Promise<{ idToken: string }>(async (resolve) => {
-      const userIsAuthenticated = await isAuthenticated();
-      if (userIsAuthenticated) {
-        resolve({ idToken: await getIDToken() });
-      } else {
-        refreshAccessToken()
-          .then(async (res) => {
-            const idToken = await getIDToken();
-            resolve({ idToken: idToken });
-          })
-          .catch((error) => {
-            appSignOut();
-          });
+      } catch (e) {
+        reject(e);
+        appSignOut();
       }
     });
-  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const bootstrap = async () => {
+      if (asg.isLoading) return;
+      if (localStorage.getItem("meet-app-state") === "logout") {
+        setUI("logout");
+        return;
+      }
+
+      if (!localStorage.getItem("meet-app-redirect-url")) {
+        localStorage.setItem("meet-app-redirect-url", window.location.href.replace(window.location.origin, ""));
+      }
+
+      if (!asg.isAuthenticated) {
+        await signIn();
+        return;
+      }
+
+      try {
+        const [basic, idToken, decoded] = await Promise.all([getBasicUserInfo(), getIDToken(), getDecodedIDToken()]);
+        if (cancelled) return;
+
+        dispatch(setUserAuthData({ userInfo: basic, idToken, decodedIdToken: decoded }));
+        new APIService(idToken, refreshToken);
+
+        await dispatch(getUserInfo()).unwrap();
+        await dispatch(loadPrivileges()).unwrap();
+
+        if (!cancelled) setUI("active");
+      } catch (err: unknown) {
+        console.error("Failed to logging in :", err);
+
+        const status = (err as any)?.response?.status ?? (err as any)?.status;
+        if (status === 401 || status === 403) {
+          if (!cancelled) {
+            localStorage.removeItem("meet-app-state");
+            await signIn();
+          }
+          return;
+        }
+
+        try {
+          const stillAuth = await isAuthenticated();
+          if (!stillAuth) {
+            await signIn();
+            return;
+          }
+        } catch {
+          await signIn();
+          return;
+        }
+
+        if (!cancelled) setUI("error");
+      }
+    };
+
+    bootstrap();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    asg.isAuthenticated,
+    asg.isLoading,
+    signIn,
+    dispatch,
+    getBasicUserInfo,
+    getIDToken,
+    getDecodedIDToken,
+    isAuthenticated,
+  ]);
+
+  useEffect(() => {
+    if (ui === "active" && !asg.isAuthenticated) {
+      signIn();
+    }
+  }, [ui, asg.isAuthenticated, signIn]);
 
   const appSignOut = async () => {
-    setAppState("loading");
+    setUI("loading");
     localStorage.setItem("meet-app-state", "logout");
     await signOut();
-    setAppState("logout");
+    setUI("logout");
   };
 
-  const appSignIn = async () => {
-    setAppState("active");
+  const appSignIn = () => {
     localStorage.setItem("meet-app-state", "active");
+    window.location.reload();
   };
 
-  const authContext: AuthContextType = {
-    appSignIn: appSignIn,
-    appSignOut: appSignOut,
-  };
+  if (ui === "loading") {
+    if (!asg.isAuthenticated && !asg.isLoading) {
+      return null;
+    }
+    return <PreLoader isLoading={true} message={auth.statusMessage || ""} />;
+  }
+
+  if (ui === "logout") {
+    return <StatusWithAction action={appSignIn} />;
+  }
+
+  if (ui === "error") {
+    const msg = userInfo.errorMessage || auth.statusMessage || "You are not authorized to access this application.";
+    return <ErrorHandler message={msg} />;
+  }
 
   return (
     <>
-      {appState === "loading" ? (
-        <PreLoader isLoading={true} message="" />
-      ) : (
-        <>
-          <Dialog
-            open={open}
-            onClose={handleContinue}
-            aria-labelledby="alert-dialog-title"
-            aria-describedby="alert-dialog-description"
-          >
-            <DialogTitle id="alert-dialog-title">{"Are you still there?"}</DialogTitle>
-            <DialogContent>
-              <DialogContentText id="alert-dialog-description">
-                It looks like you've been inactive for a while. Would you like to continue?
-              </DialogContentText>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleContinue}>Continue</Button>
-              <Button onClick={() => appSignOut()}>Logout</Button>
-            </DialogActions>
-          </Dialog>
-          {appState === "active" ? (
-            <AuthContext.Provider value={authContext}>
-              <SecureApp>{props.children}</SecureApp>
-            </AuthContext.Provider>
-          ) : (
-            <StatusWithAction action={() => appSignIn()} />
-          )}
-        </>
-      )}
+      <Dialog
+        open={idlePromptOpen}
+        onClose={handleContinue}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{"Are you still there?"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            It looks like you've been inactive for a while. Would you like to continue?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleContinue}>Continue</Button>
+          <Button onClick={() => appSignOut()}>Logout</Button>
+        </DialogActions>
+      </Dialog>
+
+      <AuthContext.Provider value={{ appSignIn, appSignOut }}>
+        <SecureApp>{children}</SecureApp>
+      </AuthContext.Provider>
     </>
   );
 };

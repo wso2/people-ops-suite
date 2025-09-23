@@ -51,7 +51,7 @@ const ErrorHandler = (props: ErrorHandlerProps) => {
               message={
                 props.message || "Something went wrong! Please try again later."
               }
-              imageUrl={require("@assets/images/not-found.svg").default}
+              imageUrl={require("@assets/images/error.svg").default}
             />
           </Grid>
         </Grid>

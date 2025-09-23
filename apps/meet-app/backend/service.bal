@@ -305,6 +305,11 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+        string originalTitle = createCalendarEventRequest.title;
+        string[] titleParts = re`-`.split(createCalendarEventRequest.title);
+        if titleParts.length() == 3 {
+            createCalendarEventRequest.title = string `${titleParts[0]} - ${titleParts[2]}`;
+        }
         // Attempt to create the meeting.
         calendar:CreateCalendarEventResponse|error calendarCreateEventResponse = calendar:createCalendarEvent(
                 createCalendarEventRequest, userInfo.email);
@@ -320,7 +325,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         // Prepare the meeting details to insert into the database.
         database:AddMeetingPayload addMeetingPayload = {
-            title: createCalendarEventRequest.title,
+            title: originalTitle,
             googleEventId: calendarCreateEventResponse.id,
             host: userInfo.email,
             internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
