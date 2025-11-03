@@ -52,6 +52,15 @@ public type CreateCalendarEventRequest record {|
     string[] internalParticipants;
     # External participants
     string[] externalParticipants;
+    # Whether this is recurring
+    boolean? isRecurring?;
+    # Full RRULE string
+    string? recurrenceRule?;
+    # Structured recurrence fallback if RRULE is not sent
+    record {|
+        string frequency;
+        int count;
+    |}? recurrence?;
 |};
 
 # Event create payload record.
@@ -76,6 +85,8 @@ public type CreateCalendarEventPayload record {|
     |}[] attendees;
     # Event guests can modify
     boolean guestsCanModify;
+    # Recurrence rules
+    string[]? recurrence?;
     # Event conference data
     record {|
         record {|

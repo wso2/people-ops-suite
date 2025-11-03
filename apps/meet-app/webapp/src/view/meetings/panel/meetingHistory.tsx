@@ -35,7 +35,7 @@ import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import ErrorHandler from "@component/common/ErrorHandler";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { useConfirmationModalContext } from "@context/DialogContext";
-import { Delete, Visibility, CheckCircle, DeleteForever, Search } from "@mui/icons-material";
+import { Loop, RemoveCircleOutline, Delete, Visibility, CheckCircle, DeleteForever, Search } from "@mui/icons-material";
 import { fetchMeetings, deleteMeeting, fetchAttachments } from "@slices/meetingSlice/meeting";
 
 interface Attachment {
@@ -148,6 +148,36 @@ function MeetingHistory() {
               }}
             >
               {status === "ACTIVE" ? <CheckCircle color="success" /> : <Delete color="disabled" />}
+            </Box>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      field: "isRecurring",
+      headerName: "Recurring",
+      minWidth: 100,
+      flex: 1,
+      headerAlign: "center",
+      align: "center",
+      disableColumnMenu: true,
+      renderCell: (params) => {
+        const recurring = Boolean(params.value);
+        return (
+          <Tooltip title={recurring ? "Recurring series" : "One-off meeting"} arrow>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+              }}
+            >
+              {recurring ? (
+                <Loop color="info" />
+              ) : (
+                <RemoveCircleOutline color="disabled" />
+              )}
             </Box>
           </Tooltip>
         );

@@ -36,6 +36,7 @@ export interface Meeting {
   endTime: string;
   internalParticipants: string;
   meetingStatus: string;
+  isRecurring: boolean; 
 }
 
 interface MeetingState {
@@ -57,6 +58,9 @@ interface AddMeetingPayload {
   timeZone: string;
   internalParticipants: string[];
   externalParticipants: string[];
+  recurrence?: { frequency: "DAILY" | "WEEKLY" | "MONTHLY"; count: number };
+  recurrenceRule?: string | null;
+  isRecurring?: boolean;
 }
 
 interface DeleteMeeting {

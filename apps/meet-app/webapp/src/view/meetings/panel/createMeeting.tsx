@@ -18,8 +18,11 @@ import {
   Box,
   Chip,
   Stack,
+  Switch,
   Avatar,
   Button,
+  Collapse,
+  MenuItem,
   TextField,
   Typography,
   Autocomplete,
@@ -61,6 +64,9 @@ interface MeetingRequest {
   timeZone: string;
   internalParticipants: string;
   externalParticipants: string;
+  isRecurring: boolean;
+  recurrenceFrequency: "DAILY" | "WEEKLY" | "MONTHLY" | "";
+  recurrenceCount: number | "";
 }
 
 function formatDateTime(date: Dayjs | null, time: Dayjs | null, timeZone: string): string | null {
@@ -149,6 +155,28 @@ const validationSchema = yup.object({
       "External participants cannot have @wso2.com emails",
       (value) => !value || !value.split(",").some((email) => email.trim().endsWith("@wso2.com"))
     ),
+  isRecurring: yup.boolean().default(false),
+  recurrenceFrequency: yup
+    .mixed<"DAILY" | "WEEKLY" | "MONTHLY" | "">()
+    .oneOf(["", "DAILY", "WEEKLY", "MONTHLY"])
+    .when("isRecurring", {
+      is: true,
+      then: (schema) => schema.required("Choose frequency"),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+  recurrenceCount: yup
+    .mixed<number | "">()
+    .when("isRecurring", {
+      is: true,
+      then: yup
+        .number()
+        .typeError("Enter occurrences")
+        .integer("Must be a whole number")
+        .min(2, "At least 2 occurrences")
+        .max(365, "Too many occurrences")
+        .required("Enter occurrences"),
+      otherwise: yup.mixed().notRequired(),
+    }),
 });
 
 function MeetingForm() {
@@ -210,6 +238,9 @@ function MeetingForm() {
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       internalParticipants: "",
       externalParticipants: "",
+      isRecurring: false,
+      recurrenceFrequency: "",
+      recurrenceCount: "",
     },
     validationSchema,
     validateOnChange: true,
@@ -217,6 +248,7 @@ function MeetingForm() {
       setLoading(true);
       try {
         if (!formik.isValid) return;
+        const isRecurring = Boolean(values.isRecurring);
         const formattedData = {
           title: `WSO2: ${[values.customerName, values.meetingType, values.customTitle?.trim()]
             .filter(Boolean)
@@ -235,6 +267,13 @@ function MeetingForm() {
             .split(",")
             .map((email) => email.trim())
             .filter(Boolean),
+          isRecurring,
+          recurrence: isRecurring
+            ? {
+              frequency: values.recurrenceFrequency as "DAILY" | "WEEKLY" | "MONTHLY",
+              count: Number(values.recurrenceCount),
+            }
+            : undefined
         };
         await dispatch(addMeetings(formattedData)).unwrap();
         resetForm();
@@ -418,6 +457,75 @@ function MeetingForm() {
           multiline
           rows={2}
         />
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            width: "100%",
+            py: 0.5,
+            flexWrap: "nowrap",
+            paddingLeft: 0
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ opacity: 0.85, whiteSpace: "nowrap" }}>
+            Recurring
+          </Typography>
+          <Switch
+            size="small"
+            checked={formik.values.isRecurring}
+            onChange={(_, checked) => {
+              formik.setFieldValue("isRecurring", checked);
+              if (!checked) {
+                formik.setFieldValue("recurrenceFrequency", "");
+                formik.setFieldValue("recurrenceCount", "");
+              }
+            }}
+            inputProps={{ "aria-label": "Recurring meeting" }}
+          />
+          <Collapse in={formik.values.isRecurring} orientation="horizontal" timeout={200} unmountOnExit>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <TextField
+                select
+                label="Repeat"
+                name="recurrenceFrequency"
+                value={formik.values.recurrenceFrequency}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                error={
+                  formik.touched.recurrenceFrequency &&
+                  Boolean(formik.errors.recurrenceFrequency)
+                }
+                helperText={
+                  formik.touched.recurrenceFrequency && formik.errors.recurrenceFrequency
+                }
+                sx={{ width: 167 }}
+                InputProps={{ sx: { height: 50 } }}
+              >
+                <MenuItem value="">Select</MenuItem>
+                <MenuItem value="DAILY">Daily</MenuItem>
+                <MenuItem value="WEEKLY">Weekly</MenuItem>
+                <MenuItem value="MONTHLY">Monthly</MenuItem>
+              </TextField>
+              <TextField
+                type="number"
+                label="Occurrences"
+                name="recurrenceCount"
+                value={formik.values.recurrenceCount}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  formik.setFieldValue("recurrenceCount", v === "" ? "" : Number(v));
+                }}
+                onBlur={formik.handleBlur}
+                inputProps={{ min: 2, step: 1 }}
+                error={formik.touched.recurrenceCount && Boolean(formik.errors.recurrenceCount)}
+                helperText={formik.touched.recurrenceCount && (formik.errors.recurrenceCount as string)}
+                sx={{ width: 166 }}
+                InputProps={{ sx: { height: 50 } }}
+              />
+            </Box>
+          </Collapse>
+        </Box>
         <Box sx={{ display: "flex", gap: 2, pb: 0.5 }}>
           <Autocomplete
             fullWidth

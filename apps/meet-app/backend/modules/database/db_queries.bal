@@ -45,6 +45,7 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         start_time, 
         end_time, 
         wso2_participants,
+        is_recurring,
         meeting_status,
         created_by, 
         updated_by
@@ -57,6 +58,7 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         ${meeting.startTime}, 
         ${meeting.endTime}, 
         ${meeting.internalParticipants},
+        ${meeting.isRecurring},
         ${ACTIVE},
         ${createdBy}, 
         ${createdBy}
@@ -87,6 +89,7 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
                 DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS 'startTime',
                 DATE_FORMAT(end_time, '%Y-%m-%d %H:%i:%s') AS 'endTime',
                 wso2_participants as internalParticipants, 
+                is_recurring AS 'isRecurring',
                 meeting_status as meetingStatus,
                 created_on AS 'createdOn',
                 created_by AS 'createdBy',
@@ -176,6 +179,7 @@ isolated function getMeetingQuery(int meetingId) returns sql:ParameterizedQuery 
         DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS 'startTime',
         DATE_FORMAT(end_time, '%Y-%m-%d %H:%i:%s') AS 'endTime',
         wso2_participants as internalParticipants, 
+        is_recurring AS 'isRecurring', 
         meeting_status as meetingStatus,
         created_on AS 'createdOn',
         created_by AS 'createdBy',

@@ -37,6 +37,8 @@ public type Meeting record {|
     database:MeetingStatus meetingStatus;
     # Time Status (e.g., 'PAST', 'UPCOMING')
     database:TimeStatus timeStatus;
+    # Whether the meeting is recurring
+    boolean isRecurring;  
 |};
 
 # Represents the response structure for retrieving user information.
