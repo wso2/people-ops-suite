@@ -382,7 +382,8 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
                 time:Utc utcStart = utcStartRes;
                 string utcStartStr = time:utcToString(utcStart);
-                string startTimeDb = utcStartStr.includes(".") ? utcStartStr.substring(0, utcStartStr.length() - 4) : utcStartStr.substring(0, utcStartStr.length() - 1);
+                string startTimeDb = utcStartStr.includes(".") ? utcStartStr.substring(0, 
+                    utcStartStr.length() - 4) : utcStartStr.substring(0, utcStartStr.length() - 1);
 
                 gcalendar:Time? endTime = instance.'end;
                 string? dateTimeEnd = endTime?.dateTime;
@@ -407,7 +408,8 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
                 time:Utc utcEnd = utcEndRes;
                 string utcEndStr = time:utcToString(utcEnd);
-                string endTimeDb = utcEndStr.includes(".") ? utcEndStr.substring(0, utcEndStr.length() - 4) : utcEndStr.substring(0, utcEndStr.length() - 1);
+                string endTimeDb = utcEndStr.includes(".") ? utcEndStr.substring(0, 
+                    utcEndStr.length() - 4) : utcEndStr.substring(0, utcEndStr.length() - 1);
 
                 database:AddMeetingPayload addMeetingPayload = {
                     title: originalTitle,
@@ -420,13 +422,17 @@ service http:InterceptableService / on new http:Listener(9090) {
                     isRecurring: true,
                     recurrence_rule: rule
                 };
-
                 int|error meetingId = database:addMeeting(addMeetingPayload, userInfo.email);
-                if meetingId is int {
-                    meetingIds.push(meetingId);
-                } else {
-                    log:printError(string `Error occurred while adding instance to database: ${instance.id}!`, meetingId);
+                if meetingId is error {
+                    string customError = string `Error occurred while adding instance to database: ${instance.id}!`;
+                    log:printError(customError, meetingId);
+                    return <http:InternalServerError>{
+                        body: {
+                            message: customError
+                        }
+                    };
                 }
+                meetingIds.push(meetingId);
             }
             if meetingIds.length() == 0 {
                 return <http:InternalServerError>{
