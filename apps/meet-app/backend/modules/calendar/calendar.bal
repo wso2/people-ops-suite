@@ -52,8 +52,8 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
     string[] recurrenceArray = [];
     boolean isRecurring = (createCalendarEventRequest?.isRecurring ?: false);
     if isRecurring {
-        record {| string frequency; int count; |}? recurrenceSpec = createCalendarEventRequest?.recurrence;
-        if recurrenceSpec is record {| string frequency; int count; |} {
+        RecurrenceConfig? recurrenceSpec = createCalendarEventRequest?.recurrence;
+        if recurrenceSpec is RecurrenceConfig {
             string rule = string `RRULE:FREQ=${recurrenceSpec.frequency.toUpperAscii()};COUNT=${recurrenceSpec.count}`;
             recurrenceArray = [rule];
         }

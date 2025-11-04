@@ -36,6 +36,14 @@ public type CalendarRetryConfig record {|
     decimal maxWaitInterval = RETRY_MAX_INTERVAL;
 |};
 
+# Recurrence config for calendar events.
+public type RecurrenceConfig record {|
+    # Recurrence frequency
+    string frequency;
+    # Number of occurrences
+    int count;
+|};
+
 # Event create request record.
 public type CreateCalendarEventRequest record {|
     # Event title
@@ -57,10 +65,7 @@ public type CreateCalendarEventRequest record {|
     # Full RRULE string
     string? recurrenceRule?;
     # Structured recurrence fallback if RRULE is not sent
-    record {|
-        string frequency;
-        int count;
-    |}? recurrence?;
+    RecurrenceConfig? recurrence?;
 |};
 
 # Event create payload record.
