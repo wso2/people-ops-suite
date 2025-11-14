@@ -20,10 +20,10 @@ import meet_app.drive;
 import meet_app.people;
 import meet_app.sales;
 
-import ballerina/time;
 import ballerina/cache;
 import ballerina/http;
 import ballerina/log;
+import ballerina/time;
 import ballerinax/googleapis.calendar as gcalendar;
 
 public configurable AppConfig appConfig = ?;
@@ -58,7 +58,7 @@ service class ErrorInterceptor {
     }
 }
 
-service http:InterceptableService / on new http:Listener(9090) {
+service http:InterceptableService / on new http:Listener(9091) {
 
     # Request interceptor.
     #
@@ -307,7 +307,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         string originalTitle = createCalendarEventRequest.title;
-        string[] titleParts = re`-`.split(createCalendarEventRequest.title);
+        string[] titleParts = re `-`.split(createCalendarEventRequest.title);
         if titleParts.length() == 3 {
             createCalendarEventRequest.title = string `${titleParts[0]} - ${titleParts[2]}`;
         }
@@ -327,6 +327,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         // Prepare the meeting details to insert into the database.
         boolean isRecurring = (createCalendarEventRequest?.isRecurring ?: false);
         string rule = "";
+        int[] meetingIds = [];
         if isRecurring {
             gcalendar:Event|error masterEventResp = calendar:getCalendarEvent(calendarCreateEventResponse.id);
             if masterEventResp is error {
@@ -343,10 +344,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             if recurrence is string[] && recurrence.length() > 0 {
                 rule = recurrence[0];
             }
-        }
 
-        int[] meetingIds = [];
-        if isRecurring {
             gcalendar:Event[]|error instances = calendar:getEventInstances(calendarCreateEventResponse.id);
             if instances is error {
                 string customError = string `Error occurred while fetching recurring instances!`;
@@ -382,7 +380,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
                 time:Utc utcStart = utcStartRes;
                 string utcStartStr = time:utcToString(utcStart);
-                string startTimeDb = utcStartStr.includes(".") ? utcStartStr.substring(0, 
+                string startTimeDb = utcStartStr.includes(".") ? utcStartStr.substring(0,
                     utcStartStr.length() - 4) : utcStartStr.substring(0, utcStartStr.length() - 1);
 
                 gcalendar:Time? endTime = instance.'end;
@@ -408,7 +406,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
                 time:Utc utcEnd = utcEndRes;
                 string utcEndStr = time:utcToString(utcEnd);
-                string endTimeDb = utcEndStr.includes(".") ? utcEndStr.substring(0, 
+                string endTimeDb = utcEndStr.includes(".") ? utcEndStr.substring(0,
                     utcEndStr.length() - 4) : utcEndStr.substring(0, utcEndStr.length() - 1);
 
                 database:AddMeetingPayload addMeetingPayload = {
@@ -456,7 +454,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 recurrence_rule: null
             };
 
-        // Insert the meeting details into the database.
+            // Insert the meeting details into the database.
             int|error meetingId = database:addMeeting(addMeetingPayload, userInfo.email);
             if meetingId is error {
                 string customError = string `Error occurred while adding meeting to database!`;

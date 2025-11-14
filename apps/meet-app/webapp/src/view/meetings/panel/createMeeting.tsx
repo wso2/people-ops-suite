@@ -53,6 +53,11 @@ import ErrorHandler from "@root/src/component/common/ErrorHandler";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(isSameOrAfter);
+
+const RECURRENCE_FREQUENCIES = ["DAILY", "WEEKLY", "MONTHLY"] as const;
+type RecurrenceFrequencyCore = (typeof RECURRENCE_FREQUENCIES)[number];
+type RecurrenceFrequency = RecurrenceFrequencyCore | "";
+
 interface MeetingRequest {
   meetingType: string;
   customerName: string;
@@ -65,7 +70,7 @@ interface MeetingRequest {
   internalParticipants: string;
   externalParticipants: string;
   isRecurring: boolean;
-  recurrenceFrequency: "DAILY" | "WEEKLY" | "MONTHLY" | "";
+  recurrenceFrequency: RecurrenceFrequency;
   recurrenceCount: number | "";
 }
 
@@ -157,8 +162,8 @@ const validationSchema = yup.object({
     ),
   isRecurring: yup.boolean().default(false),
   recurrenceFrequency: yup
-    .mixed<"DAILY" | "WEEKLY" | "MONTHLY" | "">()
-    .oneOf(["", "DAILY", "WEEKLY", "MONTHLY"])
+    .mixed<RecurrenceFrequency>()
+    .oneOf(["", ...RECURRENCE_FREQUENCIES])
     .when("isRecurring", {
       is: true,
       then: (schema) => schema.required("Choose frequency"),
@@ -248,7 +253,7 @@ function MeetingForm() {
       setLoading(true);
       try {
         if (!formik.isValid) return;
-        const isRecurring = Boolean(values.isRecurring);
+        const isRecurring = values.isRecurring;
         const formattedData = {
           title: `WSO2: ${[values.customerName, values.meetingType, values.customTitle?.trim()]
             .filter(Boolean)
@@ -270,8 +275,8 @@ function MeetingForm() {
           isRecurring,
           recurrence: isRecurring
             ? {
-              frequency: values.recurrenceFrequency as "DAILY" | "WEEKLY" | "MONTHLY",
-              count: Number(values.recurrenceCount),
+              frequency: values.recurrenceFrequency as RecurrenceFrequencyCore,
+              count: +values.recurrenceCount,
             }
             : undefined
         };
