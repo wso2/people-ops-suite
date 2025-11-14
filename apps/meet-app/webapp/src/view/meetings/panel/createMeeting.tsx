@@ -479,12 +479,13 @@ function MeetingForm() {
           <Switch
             size="small"
             checked={formik.values.isRecurring}
-            onChange={(_, checked) => {
-              formik.setFieldValue("isRecurring", checked);
+            onChange={async (_, checked) => {
+              await formik.setFieldValue("isRecurring", checked);
               if (!checked) {
-                formik.setFieldValue("recurrenceFrequency", "");
-                formik.setFieldValue("recurrenceCount", "");
+                await formik.setFieldValue("recurrenceFrequency", "");
+                await formik.setFieldValue("recurrenceCount", "");
               }
+              await formik.validateForm();
             }}
             inputProps={{ "aria-label": "Recurring meeting" }}
           />

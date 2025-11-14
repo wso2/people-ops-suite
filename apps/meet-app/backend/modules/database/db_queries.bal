@@ -150,7 +150,7 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
 
     // Sorting the result by created_on.
-    mainQuery = sql:queryConcat(mainQuery, ` ORDER BY created_on DESC`);
+    mainQuery = sql:queryConcat(mainQuery, ` ORDER BY start_time DESC`);
 
     // Setting the limit and offset.
     if 'limit is int {
