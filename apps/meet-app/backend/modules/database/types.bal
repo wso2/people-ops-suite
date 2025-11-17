@@ -48,6 +48,10 @@ public type AddMeetingPayload record {|
     string startTime;
     # Meeting end time in ISO format
     string endTime;
+    # Whether the meeting is recurring
+    boolean isRecurring;
+    # Recurrence rule of the meeting
+    string? recurrence_rule;
 |};
 
 # [Database]Meeting type.
@@ -80,6 +84,10 @@ public type Meeting record {|
     int totalCount;
     # Time Status (e.g., 'PAST', 'UPCOMING')
     TimeStatus timeStatus;
+    # Whether the meeting is recurring
+    boolean isRecurring;
+    # Recurrence rule of the meeting
+    string? recurrence_rule;
 |};
 
 # [Database]RawMeetingTypes type.

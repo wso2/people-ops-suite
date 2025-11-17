@@ -48,6 +48,16 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
         .replace(disclaimerMessage, string `<a href="mailto:${creatorEmail}">${creatorEmail}</a>`);
     string separator = string `<hr style="border: none; border-top: 2px solid #ccc; margin: 15px 0;"><br>`;
     string updatedDescription = updatedDisclaimer + separator + createCalendarEventRequest.description;
+    // Build recurrence rule array for Google Calendar.
+    string[] recurrenceArray = [];
+    boolean isRecurring = (createCalendarEventRequest?.isRecurring ?: false);
+    if isRecurring {
+        RecurrenceConfig? recurrenceSpec = createCalendarEventRequest?.recurrence;
+        if recurrenceSpec is RecurrenceConfig {
+            string rule = string `RRULE:FREQ=${recurrenceSpec.frequency.toUpperAscii()};COUNT=${recurrenceSpec.count}`;
+            recurrenceArray = [rule];
+        }
+    }
 
     // Format the event payload as required by the Google Calendar API.
     CreateCalendarEventPayload calendarEventPayload = {
@@ -67,6 +77,7 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
             ...createCalendarEventRequest.externalParticipants.map((email) => ({email: email.trim()}))
         ],
         guestsCanModify: true,
+        recurrence: recurrenceArray,
         conferenceData: {
             createRequest: {
                 requestId: uuid:createType4AsString(),
@@ -131,4 +142,60 @@ public isolated function getCalendarEventAttachments(string eventId) returns gca
 
     json? errorResponseBody = check response.getJsonPayload();
     return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+}
+
+# Get a calendar event.
+#
+# + eventId - Event Id
+# + return - The event if successful, else an error
+public isolated function getCalendarEvent(string eventId) returns gcalendar:Event|error {
+
+    http:Response response = check calendarClient->get(string `/calendars/${calendarId}/events/${eventId}`);
+
+    if response.statusCode == 200 {
+        json responseJson = check response.getJsonPayload();
+        gcalendar:Event calendarEvent = check responseJson.cloneWithType(gcalendar:Event);
+        return calendarEvent;
+    }
+
+    json? errorResponseBody = check response.getJsonPayload();
+    return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+}
+
+# Get all instances of a recurring event.
+#
+# + eventId - The master event Id
+# + return - Array of event instances if successful, else an error
+public isolated function getEventInstances(string eventId) returns gcalendar:Event[]|error {
+
+    http:Response response = check calendarClient->get(
+        string `/calendars/${calendarId}/events/${eventId}/instances`
+    );
+
+    if response.statusCode == 200 {
+        json body = check response.getJsonPayload();
+        if body is json[] {
+            gcalendar:Event[] out = [];
+            foreach json j in body {
+                out.push(check j.cloneWithType(gcalendar:Event));
+            }
+            return out;
+        }
+
+        if body is map<json> {
+            gcalendar:Event[] out = [];
+            json? items = body["items"];
+            if items is json[] {
+                foreach json j in items {
+                    out.push(check j.cloneWithType(gcalendar:Event));
+                }
+            }
+            return out;
+        }
+
+        return error("Unexpected instances payload shape");
+    }
+
+    json? err = check response.getJsonPayload();
+    return error(string `Status: ${response.statusCode}, Response: ${err.toJsonString()}`);
 }

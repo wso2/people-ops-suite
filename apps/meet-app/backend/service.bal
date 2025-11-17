@@ -23,6 +23,7 @@ import meet_app.sales;
 import ballerina/cache;
 import ballerina/http;
 import ballerina/log;
+import ballerina/time;
 import ballerinax/googleapis.calendar as gcalendar;
 
 public configurable AppConfig appConfig = ?;
@@ -306,7 +307,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         string originalTitle = createCalendarEventRequest.title;
-        string[] titleParts = re`-`.split(createCalendarEventRequest.title);
+        string[] titleParts = re `-`.split(createCalendarEventRequest.title);
         if titleParts.length() == 3 {
             createCalendarEventRequest.title = string `${titleParts[0]} - ${titleParts[2]}`;
         }
@@ -324,31 +325,150 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         // Prepare the meeting details to insert into the database.
-        database:AddMeetingPayload addMeetingPayload = {
-            title: originalTitle,
-            googleEventId: calendarCreateEventResponse.id,
-            host: userInfo.email,
-            internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
-            .map(internalParticipant => internalParticipant.trim())),
-            startTime: createCalendarEventRequest.startTime
-            .substring(0, createCalendarEventRequest.startTime.length() - 5),
-            endTime: createCalendarEventRequest.endTime
-            .substring(0, createCalendarEventRequest.endTime.length() - 5)
-        };
+        boolean isRecurring = (createCalendarEventRequest?.isRecurring ?: false);
+        string rule = "";
+        int[] meetingIds = [];
+        if isRecurring {
+            gcalendar:Event|error masterEventResp = calendar:getCalendarEvent(calendarCreateEventResponse.id);
+            if masterEventResp is error {
+                string customError = string `Error occurred while getting master event!`;
+                log:printError(customError, masterEventResp);
+                return <http:InternalServerError>{
+                    body: {
+                        message: customError
+                    }
+                };
+            }
+            gcalendar:Event masterEvent = masterEventResp;
+            string[]? recurrence = masterEvent.recurrence;
+            if recurrence is string[] && recurrence.length() > 0 {
+                rule = recurrence[0];
+            }
 
-        // Insert the meeting details into the database.
-        int|error meetingId = database:addMeeting(addMeetingPayload, userInfo.email);
-        if meetingId is error {
-            string customError = string `Error occurred while adding meeting to database!`;
-            log:printError(customError, meetingId);
-            return <http:InternalServerError>{
-                body: {
-                    message: customError
+            gcalendar:Event[]|error instances = calendar:getEventInstances(calendarCreateEventResponse.id);
+            if instances is error {
+                string customError = string `Error occurred while fetching recurring instances!`;
+                log:printError(customError, instances);
+                return <http:InternalServerError>{
+                    body: {
+                        message: customError
+                    }
+                };
+            }
+
+            foreach gcalendar:Event instance in instances {
+                gcalendar:Time? startTime = instance.'start;
+                string? dateTimeStart = startTime?.dateTime;
+                if dateTimeStart is () {
+                    string customError = "No start dateTime";
+                    log:printError(customError);
+                    return <http:InternalServerError>{
+                        body: {
+                            message: customError
+                        }
+                    };
                 }
+                time:Utc|time:Error utcStartRes = time:utcFromString(dateTimeStart);
+                if utcStartRes is time:Error {
+                    string customError = "Invalid start time format";
+                    log:printError(customError, utcStartRes);
+                    return <http:InternalServerError>{
+                        body: {
+                            message: customError
+                        }
+                    };
+                }
+                time:Utc utcStart = utcStartRes;
+                string utcStartStr = time:utcToString(utcStart);
+                string startTimeDb = utcStartStr.includes(".") ? utcStartStr.substring(0,
+                    utcStartStr.length() - 4) : utcStartStr.substring(0, utcStartStr.length() - 1);
+
+                gcalendar:Time? endTime = instance.'end;
+                string? dateTimeEnd = endTime?.dateTime;
+                if dateTimeEnd is () {
+                    string customError = "No end dateTime";
+                    log:printError(customError);
+                    return <http:InternalServerError>{
+                        body: {
+                            message: customError
+                        }
+                    };
+                }
+                time:Utc|time:Error utcEndRes = time:utcFromString(dateTimeEnd);
+                if utcEndRes is time:Error {
+                    string customError = "Invalid end time format";
+                    log:printError(customError, utcEndRes);
+                    return <http:InternalServerError>{
+                        body: {
+                            message: customError
+                        }
+                    };
+                }
+                time:Utc utcEnd = utcEndRes;
+                string utcEndStr = time:utcToString(utcEnd);
+                string endTimeDb = utcEndStr.includes(".") ? utcEndStr.substring(0,
+                    utcEndStr.length() - 4) : utcEndStr.substring(0, utcEndStr.length() - 1);
+
+                database:AddMeetingPayload addMeetingPayload = {
+                    title: originalTitle,
+                    googleEventId: instance.id,
+                    host: userInfo.email,
+                    internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
+                    .map(internalParticipant => internalParticipant.trim())),
+                    startTime: startTimeDb,
+                    endTime: endTimeDb,
+                    isRecurring: true,
+                    recurrence_rule: rule
+                };
+                int|error meetingId = database:addMeeting(addMeetingPayload, userInfo.email);
+                if meetingId is error {
+                    string customError = string `Error occurred while adding instance to database: ${instance.id}!`;
+                    log:printError(customError, meetingId);
+                    return <http:InternalServerError>{
+                        body: {
+                            message: customError
+                        }
+                    };
+                }
+                meetingIds.push(meetingId);
+            }
+            if meetingIds.length() == 0 {
+                return <http:InternalServerError>{
+                    body: {
+                        message: "No instances added to database!"
+                    }
+                };
+            }
+        } else {
+            database:AddMeetingPayload addMeetingPayload = {
+                title: originalTitle,
+                googleEventId: calendarCreateEventResponse.id,
+                host: userInfo.email,
+                internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
+                .map(internalParticipant => internalParticipant.trim())),
+                startTime: createCalendarEventRequest.startTime
+                .substring(0, createCalendarEventRequest.startTime.length() - 6),
+                endTime: createCalendarEventRequest.endTime
+                .substring(0, createCalendarEventRequest.endTime.length() - 6),
+                isRecurring: false,
+                recurrence_rule: null
             };
+
+            // Insert the meeting details into the database.
+            int|error meetingId = database:addMeeting(addMeetingPayload, userInfo.email);
+            if meetingId is error {
+                string customError = string `Error occurred while adding meeting to database!`;
+                log:printError(customError, meetingId);
+                return <http:InternalServerError>{
+                    body: {
+                        message: customError
+                    }
+                };
+            }
+            meetingIds.push(meetingId);
         }
 
-        return {message: "Meeting created successfully.", meetingId};
+        return {message: "Meeting created successfully.", meetingId: meetingIds[0]};
     }
 
     # Fetch meetings from the database.
@@ -410,7 +530,8 @@ service http:InterceptableService / on new http:Listener(9090) {
                     endTime: meeting.endTime,
                     internalParticipants: meeting.internalParticipants,
                     meetingStatus: meeting.meetingStatus,
-                    timeStatus: meeting.timeStatus
+                    timeStatus: meeting.timeStatus,
+                    isRecurring: meeting.isRecurring
                 }
         };
     }
