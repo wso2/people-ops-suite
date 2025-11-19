@@ -40,8 +40,8 @@ public type CalendarRetryConfig record {|
 public type RecurrenceConfig record {|
     # Recurrence frequency
     string frequency;
-    # Number of occurrences
-    int count;
+    # End of the recurrence series in UTC
+    string untilUtc;
 |};
 
 # Event create request record.

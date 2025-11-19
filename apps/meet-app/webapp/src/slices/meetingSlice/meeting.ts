@@ -58,7 +58,7 @@ interface AddMeetingPayload {
   timeZone: string;
   internalParticipants: string[];
   externalParticipants: string[];
-  recurrence?: { frequency: "DAILY" | "WEEKLY" | "MONTHLY"; count: number };
+  recurrence?: { frequency: "DAILY" | "WEEKLY" | "MONTHLY"; untilUtc: string };
   recurrenceRule?: string | null;
   isRecurring?: boolean;
 }

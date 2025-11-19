@@ -54,7 +54,7 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
     if isRecurring {
         RecurrenceConfig? recurrenceSpec = createCalendarEventRequest?.recurrence;
         if recurrenceSpec is RecurrenceConfig {
-            string rule = string `RRULE:FREQ=${recurrenceSpec.frequency.toUpperAscii()};COUNT=${recurrenceSpec.count}`;
+            string rule = string `RRULE:FREQ=${recurrenceSpec.frequency.toUpperAscii()};UNTIL=${recurrenceSpec.untilUtc}`;
             recurrenceArray = [rule];
         }
     }

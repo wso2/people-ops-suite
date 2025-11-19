@@ -71,7 +71,7 @@ interface MeetingRequest {
   externalParticipants: string;
   isRecurring: boolean;
   recurrenceFrequency: RecurrenceFrequency;
-  recurrenceCount: number | "";
+  recurrenceEndDate: Dayjs | null;
 }
 
 function formatDateTime(date: Dayjs | null, time: Dayjs | null, timeZone: string): string | null {
@@ -169,18 +169,22 @@ const validationSchema = yup.object({
       then: (schema) => schema.required("Choose frequency"),
       otherwise: (schema) => schema.notRequired(),
     }),
-  recurrenceCount: yup
-    .mixed<number | "">()
+  recurrenceEndDate: yup
+    .mixed<Dayjs | null>()
     .when("isRecurring", {
       is: true,
       then: yup
-        .number()
-        .typeError("Enter occurrences")
-        .integer("Must be a whole number")
-        .min(2, "At least 2 occurrences")
-        .max(365, "Too many occurrences")
-        .required("Enter occurrences"),
-      otherwise: yup.mixed().notRequired(),
+        .mixed<Dayjs>()
+        .required("End date is required")
+        .test("is-valid-date", "Invalid end date", (value) => !!value && dayjs(value).isValid())
+        .test("on-or-after-meeting-date", "End date must be on or after meeting date", function (value) {
+          const { date, timeZone } = this.parent as { date: Dayjs | null; timeZone: string };
+          if (!date || !value) return false;
+          const startDay = dayjs.tz(date.format("YYYY-MM-DD"), timeZone).startOf("day");
+          const endDay = dayjs.tz(value.format("YYYY-MM-DD"), timeZone).startOf("day");
+          return endDay.isSameOrAfter(startDay, "day");
+        }),
+      otherwise: yup.mixed<Dayjs | null>().nullable().notRequired(),
     }),
 });
 
@@ -245,7 +249,7 @@ function MeetingForm() {
       externalParticipants: "",
       isRecurring: false,
       recurrenceFrequency: "",
-      recurrenceCount: "",
+      recurrenceEndDate: null,
     },
     validationSchema,
     validateOnChange: true,
@@ -254,6 +258,13 @@ function MeetingForm() {
       try {
         if (!formik.isValid) return;
         const isRecurring = values.isRecurring;
+        const untilUtc = isRecurring
+          ? (() => {
+            const iso = formatDateTime(values.recurrenceEndDate, values.startTime, values.timeZone);
+            if (!iso) return null;
+            return dayjs(iso).utc().format("YYYYMMDD[T]HHmmss[Z]");
+          })()
+          : null;
         const formattedData = {
           title: `WSO2: ${[values.customerName, values.meetingType, values.customTitle?.trim()]
             .filter(Boolean)
@@ -273,12 +284,12 @@ function MeetingForm() {
             .map((email) => email.trim())
             .filter(Boolean),
           isRecurring,
-          recurrence: isRecurring
+          recurrence: isRecurring && untilUtc
             ? {
               frequency: values.recurrenceFrequency as RecurrenceFrequencyCore,
-              count: +values.recurrenceCount,
+              untilUtc,
             }
-            : undefined
+            : undefined,
         };
         await dispatch(addMeetings(formattedData)).unwrap();
         resetForm();
@@ -462,76 +473,6 @@ function MeetingForm() {
           multiline
           rows={2}
         />
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            width: "100%",
-            py: 0.5,
-            flexWrap: "nowrap",
-            paddingLeft: 0
-          }}
-        >
-          <Typography variant="subtitle1" sx={{ opacity: 0.85, whiteSpace: "nowrap" }}>
-            Recurring
-          </Typography>
-          <Switch
-            size="small"
-            checked={formik.values.isRecurring}
-            onChange={async (_, checked) => {
-              await formik.setFieldValue("isRecurring", checked);
-              if (!checked) {
-                await formik.setFieldValue("recurrenceFrequency", "");
-                await formik.setFieldValue("recurrenceCount", "");
-              }
-              await formik.validateForm();
-            }}
-            inputProps={{ "aria-label": "Recurring meeting" }}
-          />
-          <Collapse in={formik.values.isRecurring} orientation="horizontal" timeout={200} unmountOnExit>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <TextField
-                select
-                label="Repeat"
-                name="recurrenceFrequency"
-                value={formik.values.recurrenceFrequency}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                error={
-                  formik.touched.recurrenceFrequency &&
-                  Boolean(formik.errors.recurrenceFrequency)
-                }
-                helperText={
-                  formik.touched.recurrenceFrequency && formik.errors.recurrenceFrequency
-                }
-                sx={{ width: 167 }}
-                InputProps={{ sx: { height: 50 } }}
-              >
-                <MenuItem value="">Select</MenuItem>
-                <MenuItem value="DAILY">Daily</MenuItem>
-                <MenuItem value="WEEKLY">Weekly</MenuItem>
-                <MenuItem value="MONTHLY">Monthly</MenuItem>
-              </TextField>
-              <TextField
-                type="number"
-                label="Occurrences"
-                name="recurrenceCount"
-                value={formik.values.recurrenceCount}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  formik.setFieldValue("recurrenceCount", v === "" ? "" : Number(v));
-                }}
-                onBlur={formik.handleBlur}
-                inputProps={{ min: 2, step: 1 }}
-                error={formik.touched.recurrenceCount && Boolean(formik.errors.recurrenceCount)}
-                helperText={formik.touched.recurrenceCount && (formik.errors.recurrenceCount as string)}
-                sx={{ width: 166 }}
-                InputProps={{ sx: { height: 50 } }}
-              />
-            </Box>
-          </Collapse>
-        </Box>
         <Box sx={{ display: "flex", gap: 2, pb: 0.5 }}>
           <Autocomplete
             fullWidth
@@ -654,7 +595,97 @@ function MeetingForm() {
             (formik.touched.startTime && formik.errors.startTime) ||
             (formik.touched.endTime && formik.errors.endTime)}
         </FormHelperText>
-
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            width: "100%",
+            py: 0.5,
+            flexWrap: "nowrap",
+            paddingLeft: 0
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ opacity: 0.85, whiteSpace: "nowrap" }}>
+            Recurring
+          </Typography>
+          <Switch
+            size="small"
+            checked={formik.values.isRecurring}
+            onChange={async (_, checked) => {
+              await formik.setFieldValue("isRecurring", checked);
+              if (!checked) {
+                await formik.setFieldValue("recurrenceFrequency", "");
+                await formik.setFieldValue("recurrenceEndDate", null);
+              }
+              await formik.validateForm();
+            }}
+            inputProps={{ "aria-label": "Recurring meeting" }}
+          />
+          <Collapse in={formik.values.isRecurring} orientation="horizontal" timeout={200} unmountOnExit>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <TextField
+                select
+                label="Repeat"
+                name="recurrenceFrequency"
+                value={formik.values.recurrenceFrequency}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                error={
+                  formik.touched.recurrenceFrequency &&
+                  Boolean(formik.errors.recurrenceFrequency)
+                }
+                sx={{ width: 167 }}
+                InputProps={{ sx: { height: 50 } }}
+              >
+                <MenuItem value="">Select</MenuItem>
+                <MenuItem value="DAILY">Daily</MenuItem>
+                <MenuItem value="WEEKLY">Weekly</MenuItem>
+                <MenuItem value="MONTHLY">Monthly</MenuItem>
+              </TextField>
+              <DatePicker
+                label="End Date *"
+                format="DD/MM/YYYY"
+                value={formik.values.recurrenceEndDate}
+                disabled={!formik.values.date || Boolean(formik.errors.date)}
+                minDate={formik.values.date || dayjs().tz(formik.values.timeZone).startOf("day")}
+                onChange={async (value) => {
+                  await formik.setFieldValue("recurrenceEndDate", value);
+                  formik.setFieldTouched("recurrenceEndDate", true);
+                }}
+                onAccept={async (value) => {
+                  await formik.setFieldValue("recurrenceEndDate", value);
+                  formik.setFieldTouched("recurrenceEndDate", true);
+                }}
+                slotProps={{
+                  textField: {
+                    onBlur: () => formik.setFieldTouched("recurrenceEndDate", true),
+                    error: formik.touched.recurrenceEndDate && Boolean(formik.errors.recurrenceEndDate),
+                  },
+                }}
+                sx={{ width: 166 }}
+              />
+            </Box>
+            <FormHelperText
+              error={
+                (formik.touched.recurrenceFrequency &&
+                  Boolean(formik.errors.recurrenceFrequency)) ||
+                (formik.touched.recurrenceEndDate &&
+                  Boolean(formik.errors.recurrenceEndDate))
+              }
+              sx={{
+                marginX: "14px !important",
+                marginBottom: "2px !important",
+                marginTop: "2px !important",
+              }}
+            >
+              {(formik.touched.recurrenceFrequency &&
+                formik.errors.recurrenceFrequency) ||
+                (formik.touched.recurrenceEndDate &&
+                  (formik.errors.recurrenceEndDate as string))}
+            </FormHelperText>
+          </Collapse>
+        </Box>
         <Autocomplete
           multiple
           limitTags={1}
