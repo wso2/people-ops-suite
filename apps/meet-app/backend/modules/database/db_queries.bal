@@ -47,6 +47,7 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         wso2_participants,
         is_recurring,
         meeting_status,
+        meeting_type,
         created_by, 
         updated_by
     )
@@ -60,6 +61,7 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         ${meeting.internalParticipants},
         ${meeting.isRecurring},
         ${ACTIVE},
+        ${meeting.meetingType},
         ${createdBy}, 
         ${createdBy}
     )
@@ -207,4 +209,40 @@ isolated function cancelMeetingStatusQuery(int meetingId) returns sql:Parameteri
         meeting_status = ${CANCELLED}
     WHERE 
         meeting_id = ${meetingId};
+`;
+
+# Build query to count active meetings in a date range.
+#
+# + startTime - Start of the range
+# + endTime - End of the range
+# + return - sql:ParameterizedQuery
+isolated function countActiveMeetingsQuery(string startTime, string endTime) returns sql:ParameterizedQuery =>
+`
+    SELECT COUNT(*) as count
+    FROM meeting
+    WHERE 
+        meeting_status = ${ACTIVE} AND
+        start_time >= ${startTime} AND
+        start_time < ${endTime}
+`;
+
+# Build query to count meetings grouped by their extracted type from the title.
+# Logic: Parses "Prefix - Type - Suffix" to get "Type".
+#
+# + startTime - Start of the range
+# + endTime - End of the range
+# + return - sql:ParameterizedQuery
+isolated function countMeetingTypesQuery(string startTime, string endTime) returns sql:ParameterizedQuery =>
+`
+    SELECT 
+        TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(title, ' - ', 2), ' - ', -1)) AS meeting_type,
+        COUNT(*) as count
+    FROM meeting
+    WHERE 
+        meeting_status = ${ACTIVE} AND
+        start_time >= ${startTime} AND
+        start_time < ${endTime} AND
+        title LIKE '% - % - %'  -- Ensures title has valid format to avoid errors
+    GROUP BY 
+        meeting_type
 `;

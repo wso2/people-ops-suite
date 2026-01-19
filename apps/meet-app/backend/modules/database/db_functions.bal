@@ -104,3 +104,31 @@ public isolated function cancelMeeting(int meetingId) returns int|error {
     }
     return meetingId;
 }
+
+# Counts active meetings within a date range.
+#
+# + startTime - Start ISO string
+# + endTime - End ISO string
+# + return - Count of meetings or Error
+public isolated function countActiveMeetings(string startTime, string endTime) returns int|error {
+    int|sql:Error count = databaseClient->queryRow(countActiveMeetingsQuery(startTime, endTime));
+    
+    if count is sql:Error {
+        return count;
+    }
+    return count;
+}
+
+# Fetches meeting counts grouped by type within a date range.
+#
+# + startTime - Start ISO string
+# + endTime - End ISO string
+# + return - List of stats or Error
+public isolated function getMeetingTypeStats(string startTime, string endTime) returns MeetingTypeStat[]|error {
+    stream<MeetingTypeStat, sql:Error?> resultStream = databaseClient->query(
+        countMeetingTypesQuery(startTime, endTime)
+    );
+
+    return from MeetingTypeStat stat in resultStream
+        select stat;
+}
