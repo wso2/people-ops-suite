@@ -14,6 +14,8 @@
 // specific language governing permissions and limitations
 // under the License. 
 import ballerina/http;
+import ballerina/url;
+import ballerina/log;
 
 # Sets file permission for a user on Google Drive.
 #
@@ -44,4 +46,36 @@ public isolated function setFilePermission(string fileId, DrivePermissionRole ro
 
     json? errorResponseBody = check response.getJsonPayload();
     return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+}
+
+# Counts WSO2 recordings within a specific date range.
+#
+# + startTime - ISO string for start of period
+# + endTime - ISO string for end of period
+# + return - Count of files or error
+public isolated function countWso2RecordingsInDateRange(string startTime, string endTime) returns int|error {
+    
+    string query = string `name contains 'WSO2' and 'me' in owners and mimeType = 'video/mp4' and trashed = false and createdTime >= '${startTime}' and createdTime < '${endTime}'`;
+    string encodedQuery = check url:encode(query, "UTF-8");
+    string path = string `?q=${encodedQuery}&fields=files(id,name)&pageSize=1000`;
+    
+    http:Response response = check driveClient->get(path);
+
+    if response.statusCode == 200 {
+        json payload = check response.getJsonPayload();
+        DriveSearchResponse searchResponse = check payload.cloneWithType(DriveSearchResponse);
+        
+        if searchResponse.files.length() > 0 {
+            foreach var file in searchResponse.files {
+                log:printInfo(string ` - Found File: ${file.name} (ID: ${file.id})`);
+            }
+        } else {
+             log:printInfo(string `[Stats] No files found for range ${startTime} to ${endTime}`);
+        }
+
+        return searchResponse.files.length();
+    }
+
+    json errorBody = check response.getJsonPayload();
+    return error(string `Drive API Error: ${response.statusCode}`, body = errorBody);
 }

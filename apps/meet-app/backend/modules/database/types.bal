@@ -52,6 +52,8 @@ public type AddMeetingPayload record {|
     boolean isRecurring;
     # Recurrence rule of the meeting
     string? recurrence_rule;
+    # The extracted meeting type
+    string meetingType;
 |};
 
 # [Database]Meeting type.
@@ -117,3 +119,12 @@ public enum TimeStatus {
     PAST = "PAST",
     UPCOMING = "UPCOMING"
 };
+
+# [Database] To store meeting type counts.
+#
+# + meeting_type - field description  
+# + count - field description
+public type MeetingTypeStat record {|
+    string meeting_type;
+    int count;
+|};
