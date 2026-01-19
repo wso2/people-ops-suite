@@ -75,3 +75,12 @@ public enum DrivePermissionType {
     DOMAIN = "domain",
     ANYONE = "anyone"
 }
+
+# Drive search response.
+type DriveSearchResponse record {|
+    record {| 
+        string id; 
+        string name; 
+    |}[] files;
+    string nextPageToken?;
+|};
