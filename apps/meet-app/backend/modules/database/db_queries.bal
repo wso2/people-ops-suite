@@ -211,23 +211,26 @@ isolated function cancelMeetingStatusQuery(int meetingId) returns sql:Parameteri
         meeting_id = ${meetingId};
 `;
 
-# Build query to count active meetings in a date range.
+# Build query to count meetings grouped by Month.
 #
 # + startTime - Start of the range
 # + endTime - End of the range
 # + return - sql:ParameterizedQuery
-isolated function countActiveMeetingsQuery(string startTime, string endTime) returns sql:ParameterizedQuery =>
+isolated function getMonthlyScheduledCountsQuery(string startTime, string endTime) returns sql:ParameterizedQuery =>
 `
-    SELECT COUNT(*) as count
+    SELECT 
+        DATE_FORMAT(start_time, '%Y-%m') as month_key,
+        COUNT(*) as count
     FROM meeting
     WHERE 
         meeting_status = ${ACTIVE} AND
         start_time >= ${startTime} AND
         start_time < ${endTime}
+    GROUP BY 
+        DATE_FORMAT(start_time, '%Y-%m')
 `;
 
-# Build query to count meetings grouped by their extracted type from the title.
-# Logic: Parses "Prefix - Type - Suffix" to get "Type".
+# Build query to count meetings grouped by the meeting_type column.
 #
 # + startTime - Start of the range
 # + endTime - End of the range
@@ -235,14 +238,35 @@ isolated function countActiveMeetingsQuery(string startTime, string endTime) ret
 isolated function countMeetingTypesQuery(string startTime, string endTime) returns sql:ParameterizedQuery =>
 `
     SELECT 
-        TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(title, ' - ', 2), ' - ', -1)) AS meeting_type,
+        meeting_type,
         COUNT(*) as count
     FROM meeting
     WHERE 
         meeting_status = ${ACTIVE} AND
         start_time >= ${startTime} AND
         start_time < ${endTime} AND
-        title LIKE '% - % - %'  -- Ensures title has valid format to avoid errors
+        meeting_type IS NOT NULL  -- Exclude rows where type might be missing
     GROUP BY 
         meeting_type
+    ORDER BY 
+        count DESC
+`;
+
+# Build query to count meetings grouped by Host.
+#
+# + startTime - Start of the range
+# + endTime - End of the range
+# + return - sql:ParameterizedQuery
+isolated function countMeetingsByHostQuery(string startTime, string endTime) returns sql:ParameterizedQuery =>
+`
+    SELECT 
+        host,
+        COUNT(*) as count
+    FROM meeting
+    WHERE 
+        meeting_status = ${ACTIVE} AND
+        start_time >= ${startTime} AND
+        start_time < ${endTime}
+    GROUP BY 
+        host
 `;

@@ -105,18 +105,18 @@ public isolated function cancelMeeting(int meetingId) returns int|error {
     return meetingId;
 }
 
-# Counts active meetings within a date range.
+# Fetches scheduled counts grouped by month for a date range.
 #
 # + startTime - Start ISO string
 # + endTime - End ISO string
-# + return - Count of meetings or Error
-public isolated function countActiveMeetings(string startTime, string endTime) returns int|error {
-    int|sql:Error count = databaseClient->queryRow(countActiveMeetingsQuery(startTime, endTime));
+# + return - Monthly counts or Error
+public isolated function getMonthlyScheduledCounts(string startTime, string endTime) returns map<int>|error {
+    stream<ScheduledMeetingStat, sql:Error?> resultStream = databaseClient->query(
+        getMonthlyScheduledCountsQuery(startTime, endTime)
+    );
     
-    if count is sql:Error {
-        return count;
-    }
-    return count;
+    return map from ScheduledMeetingStat stat in resultStream
+        select [stat.month_key, stat.count];
 }
 
 # Fetches meeting counts grouped by type within a date range.
@@ -128,7 +128,21 @@ public isolated function getMeetingTypeStats(string startTime, string endTime) r
     stream<MeetingTypeStat, sql:Error?> resultStream = databaseClient->query(
         countMeetingTypesQuery(startTime, endTime)
     );
-
+    
     return from MeetingTypeStat stat in resultStream
+        select stat;
+}
+
+# Fetches meeting counts grouped by Host.
+#
+# + startTime - Start ISO string
+# + endTime - End ISO string
+# + return - List of stats or Error
+public isolated function getMeetingCountsByHost(string startTime, string endTime) returns MeetingHostStat[]|error {
+    stream<MeetingHostStat, sql:Error?> resultStream = databaseClient->query(
+        countMeetingsByHostQuery(startTime, endTime)
+    );
+
+    return from MeetingHostStat stat in resultStream
         select stat;
 }
