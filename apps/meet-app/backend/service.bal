@@ -22,10 +22,10 @@ import meet_app.sales;
 
 import ballerina/cache;
 import ballerina/http;
+import ballerina/lang.array;
 import ballerina/log;
 import ballerina/time;
 import ballerinax/googleapis.calendar as gcalendar;
-import ballerina/lang.array;
 
 public configurable AppConfig appConfig = ?;
 
@@ -704,12 +704,13 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         return {message: deleteCalendarEventResponse.message};
     }
+
     # Get analytics for a specific date range.
     #
-    # + startDate - Mandatory Start date in ISO format
-    # + endDate - Mandatory End date in ISO format
-    # + return - Statistics JSON or Error
-    resource function get stats(http:RequestContext ctx, string startDate, string endDate) 
+    # + startDate - Start date in ISO format
+    # + endDate - End date in ISO format
+    # + return - Statistics or Error
+    resource function get stats(http:RequestContext ctx, string startDate, string endDate)
         returns json|http:InternalServerError|http:BadRequest|error {
 
         // Validate Dates
@@ -717,107 +718,107 @@ service http:InterceptableService / on new http:Listener(9090) {
         time:Utc|error endRes = time:utcFromString(endDate);
 
         if startRes is error || endRes is error {
-            return <http:BadRequest>{body: {message: "Invalid Date Format. Use ISO (e.g., 2025-01-01T00:00:00Z)"}};
+            return <http:BadRequest>{body: {message: "Invalid Date Format"}};
         }
         time:Utc startUtc = startRes;
         time:Utc endUtc = endRes;
 
-        // Ensure Start is before End
         if startUtc[0] > endUtc[0] {
-             return <http:BadRequest>{body: {message: "Start Date must be before End Date"}};
+            return <http:BadRequest>{body: {message: "Start Date must be before End Date"}};
         }
 
-        // This calculates the bar chart data for the entire selected period
-        future<database:MeetingTypeStat[]|error> fTypeStats = start database:getMeetingTypeStats(startDate, endDate);
+        future<map<int>|error> scheduledCounts = start database:getMonthlyScheduledCounts(startDate, endDate);
+        future<database:MeetingTypeStat[]|error> meetingTypes = start database:getMeetingTypeStats(startDate, endDate);
+        future<json|error> PeopleStats = start getPeopleAnalytics(startDate, endDate);
 
         time:Civil startCivil = time:utcToCivil(startUtc);
         time:Civil endCivil = time:utcToCivil(endUtc);
-
         map<future<int|error>> driveFutureMap = {};
-        map<future<int|error>> dbFutureMap = {};
         map<json> metaDataMap = {};
-        
+
         int cursorYear = startCivil.year;
         int cursorMonth = startCivil.month;
 
-        // Loop Month by Month
         while (true) {
-            // Stop loop if we pass the end date
             if (cursorYear > endCivil.year) || (cursorYear == endCivil.year && cursorMonth > endCivil.month) {
                 break;
             }
-
-            // Define strict boundaries for this month bucket
             string monthStr = cursorMonth < 10 ? string `0${cursorMonth}` : cursorMonth.toString();
-            
-            // Default Start: 1st of the month
+            string monthKey = string `${cursorYear}-${monthStr}`;
             string queryStartTime = string `${cursorYear}-${monthStr}-01T00:00:00Z`;
-
-            // Calculate Next Month for the End Boundary
             int nextMonthVal = cursorMonth + 1;
             int nextYearVal = cursorYear;
-            if (nextMonthVal > 12) { nextMonthVal = 1; nextYearVal = nextYearVal + 1; }
+
+            if (nextMonthVal > 12) {
+                nextMonthVal = 1;
+                nextYearVal = nextYearVal + 1;
+            }
             string nextMonthStr = nextMonthVal < 10 ? string `0${nextMonthVal}` : nextMonthVal.toString();
             string queryEndTime = string `${nextYearVal}-${nextMonthStr}-01T00:00:00Z`;
 
-            // If this is the FIRST month, use the User's Start Date (if it's later than the 1st)
             if (cursorYear == startCivil.year && cursorMonth == startCivil.month) {
-                 queryStartTime = startDate; 
+                queryStartTime = startDate;
             }
-            // If this is the LAST month, cap it at the User's End Date
             if (cursorYear == endCivil.year && cursorMonth == endCivil.month) {
-                 queryEndTime = endDate;
+                queryEndTime = endDate;
             }
 
-            string sortableKey = string `${cursorYear}-${monthStr}`;
-
+            // Drive API
             future<int|error> fDrive = start drive:countWso2RecordingsInDateRange(queryStartTime, queryEndTime);
-            driveFutureMap[sortableKey] = fDrive;
+            driveFutureMap[monthKey] = fDrive;
+            metaDataMap[monthKey] = {
+                "year": cursorYear,
+                "month": cursorMonth,
+                "key": monthKey
+            };
 
-            future<int|error> fDb = start database:countActiveMeetings(queryStartTime, queryEndTime);
-            dbFutureMap[sortableKey] = fDb;
-
-            metaDataMap[sortableKey] = {"year": cursorYear, "month": cursorMonth};
-
-            // Increment Loop
             cursorMonth = cursorMonth + 1;
-            if cursorMonth > 12 { cursorMonth = 1; cursorYear = cursorYear + 1; }
+            if cursorMonth > 12 {
+                cursorMonth = 1;
+                cursorYear = cursorYear + 1;
+            }
         }
 
-        // Collect Results
-        
+        map<int> dbCounts = check wait scheduledCounts;
         map<int|error> driveResults = {};
-        foreach string key in driveFutureMap.keys() { driveResults[key] = wait driveFutureMap.get(key); }
 
-        map<int|error> dbResults = {};
-        foreach string key in dbFutureMap.keys() { dbResults[key] = wait dbFutureMap.get(key); }
-
-        database:MeetingTypeStat[]|error typeResults = wait fTypeStats;
-
-        // Build Final JSON
+        foreach string key in driveFutureMap.keys() {
+            driveResults[key] = wait driveFutureMap.get(key);
+        }
         json[] monthlyStats = [];
         string[] sortedKeys = driveFutureMap.keys().sort(array:DESCENDING);
 
         foreach string key in sortedKeys {
             json meta = metaDataMap.get(key);
+            // Drive Count
             int|error? driveCount = driveResults[key];
-            int|error? dbCount = dbResults[key];
-            
+            // DB Count
+            int scheduledCount = dbCounts.hasKey(key) ? dbCounts.get(key) : 0;
+
             _ = check meta.mergeJson({
                 "recordingCount": (driveCount is int) ? driveCount : 0,
-                "scheduledCount": (dbCount is int) ? dbCount : 0
+                "scheduledCount": scheduledCount
             });
             monthlyStats.push(meta);
         }
-
+        database:MeetingTypeStat[]|error typeResults = wait meetingTypes;
         json[] typeStatsJson = [];
         if typeResults is database:MeetingTypeStat[] {
-             typeStatsJson = <json[]> typeResults.toJson();
+            typeStatsJson = <json[]>typeResults.toJson();
+        }
+        json|error peopleRes = wait PeopleStats;
+        json[] regionalStats = [];
+        json[] amStats = [];
+        if peopleRes is json {
+            regionalStats = <json[]>(check peopleRes.regionalStats);
+            amStats = <json[]>(check peopleRes.amStats);
         }
 
         return {
             "monthlyStats": monthlyStats,
-            "typeStats": typeStatsJson
+            "typeStats": typeStatsJson,
+            "regionalStats": regionalStats,
+            "amStats": amStats
         };
     }
 }
