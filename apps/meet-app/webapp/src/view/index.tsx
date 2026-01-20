@@ -18,8 +18,10 @@ import { lazy } from "react";
 
 const meetings = lazy(() => import("@view/meetings/meetings"));
 const help = lazy(() => import("@view/help/help"));
+const dashboard = lazy(() => import("@view/dashboard/dashboard"))
 
 export const View = {
   meetings,
   help,
+  dashboard,
 };
