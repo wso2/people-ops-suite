@@ -31,7 +31,6 @@ public isolated function fetchEmployeesBasicInfo(string workEmail) returns Emplo
             }
         }
     `;
-
     EmployeeResponse|error response = hrClient->execute(document, {workEmail});
     if response is error {
         return response;
@@ -41,8 +40,9 @@ public isolated function fetchEmployeesBasicInfo(string workEmail) returns Emplo
 
 # Retrieves all active or marked-leaver employees with specific employment types.
 #
+#  + emails - Optional list of emails to filter by
 # + return - Employee Info Array
-public isolated function getEmployees() returns EmployeeBasic[]|error {
+public isolated function getEmployees(string[]? emails = ()) returns EmployeeBasic[]|error {
 
     EmployeeFilter filter = {
         employeeStatus: [Active, Marked\ leaver],
@@ -55,6 +55,7 @@ public isolated function getEmployees() returns EmployeeBasic[]|error {
             firstName
             lastName
             employeeThumbnail
+            team 
         }
     }`;
 

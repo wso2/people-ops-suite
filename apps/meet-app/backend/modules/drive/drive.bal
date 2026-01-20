@@ -15,7 +15,6 @@
 // under the License. 
 import ballerina/http;
 import ballerina/url;
-import ballerina/log;
 
 # Sets file permission for a user on Google Drive.
 #
@@ -64,15 +63,6 @@ public isolated function countWso2RecordingsInDateRange(string startTime, string
     if response.statusCode == 200 {
         json payload = check response.getJsonPayload();
         DriveSearchResponse searchResponse = check payload.cloneWithType(DriveSearchResponse);
-        
-        if searchResponse.files.length() > 0 {
-            foreach var file in searchResponse.files {
-                log:printInfo(string ` - Found File: ${file.name} (ID: ${file.id})`);
-            }
-        } else {
-             log:printInfo(string `[Stats] No files found for range ${startTime} to ${endTime}`);
-        }
-
         return searchResponse.files.length();
     }
 
