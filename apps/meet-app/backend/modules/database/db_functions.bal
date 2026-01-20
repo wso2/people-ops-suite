@@ -114,7 +114,7 @@ public isolated function getMonthlyScheduledCounts(string startTime, string endT
     stream<ScheduledMeetingStat, sql:Error?> resultStream = databaseClient->query(
         getMonthlyScheduledCountsQuery(startTime, endTime)
     );
-    
+
     return map from ScheduledMeetingStat stat in resultStream
         select [stat.month_key, stat.count];
 }
