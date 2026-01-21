@@ -136,8 +136,13 @@ function Analytics() {
 
         <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
           <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Date Range</InputLabel>
-            <Select value={dateRangeOption} label="Date Range" onChange={handleRangeChange}>
+            <InputLabel sx={{fontWeight: 'bold', color: 'text.primary'}}>Date Range</InputLabel>
+            <Select 
+              value={dateRangeOption} 
+              label="Date Range" 
+              onChange={handleRangeChange}
+              sx={{ fontWeight: 'bold', color: 'text.primary' }}
+            >
               <MenuItem value="1M">Last Month</MenuItem>
               <MenuItem value="3M">Last 3 Months</MenuItem>
               <MenuItem value="6M">Last 6 Months</MenuItem>
@@ -145,8 +150,16 @@ function Analytics() {
               <MenuItem value="custom">Custom</MenuItem>
             </Select>
           </FormControl>
-          <TextField label="Start Date" type="date" size="small" value={startDate} onChange={(e) => handleManualDateChange('start', e.target.value)} InputLabelProps={{ shrink: true }} />
-          <TextField label="End Date" type="date" size="small" value={endDate} onChange={(e) => handleManualDateChange('end', e.target.value)} InputLabelProps={{ shrink: true }} />
+          <TextField label="Start Date" type="date" size="small" value={startDate} 
+            onChange={(e) => handleManualDateChange('start', e.target.value)} 
+            InputLabelProps={{ shrink: true, sx: {fontWeight: 'bold', color: 'text.primary'}}}
+            InputProps={{ sx: { fontWeight: 'bold', color: 'text.primary' } }}
+          />
+          <TextField label="End Date" type="date" size="small" value={endDate} 
+            onChange={(e) => handleManualDateChange('end', e.target.value)} 
+            InputLabelProps={{ shrink: true, sx: {fontWeight: 'bold', color: 'text.primary'}}}
+            InputProps={{ sx: { fontWeight: 'bold', color: 'text.primary' } }}
+          />
         </Box>
       </Box>
 
@@ -190,9 +203,6 @@ function Analytics() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               {dateRangeOption !== "custom" ? `Last ${dateRangeOption}` : "Custom Range"}
             </Typography>
-            <Box sx={{ width: '80%' }}>
-              <LinearProgress variant="determinate" value={70} sx={{ height: 15, borderRadius: 5, backgroundColor: colors.progressBarBg, '& .MuiLinearProgress-bar': { backgroundColor: '#ff7300', borderRadius: 5 } }} />
-            </Box>
           </Paper>
         </Grid>
 

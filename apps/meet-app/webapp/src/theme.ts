@@ -140,7 +140,7 @@ export const themeSettings = (mode: PaletteMode) => {
             chartLine1: '#ff7300',
             chartLine2: '#b0bec5',
             progressBarBg: colors.grey[700],
-            pieColors: ['#ff7300', '#ff9e40', '#90caf9', '#b39ddb', '#a5d6a7']
+            pieColors: ['#ff7300', '#de6300', '#9e4500', '#632800', '#2e0f00']
           }
         }
         : {
