@@ -23,7 +23,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import { useAppDispatch, useAppSelector } from "@root/src/slices/store";
+import { RootState, useAppDispatch, useAppSelector } from "@root/src/slices/store";
 import { getRecordingStats } from "@root/src/slices/analyticsSlice/analytics";
 import { State } from "@root/src/types/types";
 import { useEffect, useMemo, useState } from "react";
@@ -42,13 +42,13 @@ function Analytics() {
   const theme = useTheme();
   const colors = theme.palette.analytics;
   const dispatch = useAppDispatch();
-  const { recordingStats, typeStats, regionalStats, amStats, state } = useAppSelector((state) => state.analytics);
+  const { recordingStats, typeStats, regionalStats, amStats, state } = useAppSelector((state: RootState) => state.analytics);
   const [dateRangeOption, setDateRangeOption] = useState<string>("6M");
   const [endDate, setEndDate] = useState<string>(() => formatDateForInput(new Date()));
   const [startDate, setStartDate] = useState<string>(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 6);
-    return formatDateForInput(d);
+    const date = new Date();
+    date.setMonth(date.getMonth() - 6);
+    return formatDateForInput(date);
   });
   const [meetingTypePage, setMeetingTypePage] = useState(0);
   const [amPage, setAmPage] = useState(0);
