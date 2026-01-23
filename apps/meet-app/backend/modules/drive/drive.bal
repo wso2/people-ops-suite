@@ -54,18 +54,39 @@ public isolated function setFilePermission(string fileId, DrivePermissionRole ro
 # + return - Count of files or error
 public isolated function countWso2RecordingsInDateRange(string startTime, string endTime) returns int|error {
     
-    string query = string `name contains 'WSO2' and 'me' in owners and mimeType = 'video/mp4' and trashed = false and createdTime >= '${startTime}' and createdTime < '${endTime}'`;
+    string query = string `name contains 'WSO2' and 'me' in owners and mimeType = 'video/mp4' and trashed = false and createdTime >= '${
+                   startTime}' and createdTime < '${endTime}'`;
     string encodedQuery = check url:encode(query, "UTF-8");
-    string path = string `?q=${encodedQuery}&fields=files(id,name)&pageSize=1000`;
+    string basePath = string `?q=${encodedQuery}&fields=files(id,name),nextPageToken&pageSize=1000`;
     
-    http:Response response = check driveClient->get(path);
+    int totalCount = 0;
+    string? pageToken = ();
+    boolean hasMorePages = true;
 
-    if response.statusCode == 200 {
-        json payload = check response.getJsonPayload();
-        DriveSearchResponse searchResponse = check payload.cloneWithType(DriveSearchResponse);
-        return searchResponse.files.length();
+    while (hasMorePages) {
+        string path = basePath;
+        if pageToken is string {
+            path = path + "&pageToken=" + pageToken;
+        }
+
+        http:Response response = check driveClient->get(path);
+
+        if response.statusCode == 200 {
+            json payload = check response.getJsonPayload();
+            DriveSearchResponse searchResponse = check payload.cloneWithType(DriveSearchResponse);
+            
+            totalCount += searchResponse.files.length();
+
+            if searchResponse.nextPageToken is string {
+                pageToken = searchResponse.nextPageToken;
+            } else {
+                hasMorePages = false;
+            }
+        } else {
+            json errorBody = check response.getJsonPayload();
+            return error(string `Drive API Error: ${response.statusCode}`, body = errorBody);
+        }
     }
 
-    json errorBody = check response.getJsonPayload();
-    return error(string `Drive API Error: ${response.statusCode}`, body = errorBody);
+    return totalCount;
 }
