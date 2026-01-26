@@ -29,11 +29,13 @@ import { State } from "@root/src/types/types";
 import { useEffect, useMemo, useState } from "react";
 
 const formatDateForInput = (date: Date) => {
-  return date.toISOString().split('T')[0];
+  const tzOffsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - tzOffsetMs).toISOString().split('T')[0];
 };
 
 const formatForAPI = (dateStr: string) => {
-  return new Date(dateStr).toISOString();
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day).toISOString();
 };
 
 const ITEMS_PER_PAGE = 5;
