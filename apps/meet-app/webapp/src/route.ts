@@ -45,17 +45,17 @@ interface RouteDetail {
 
 export const routes: RouteObjectWithRole[] = [
   {
-    path: "/dashboard",
-    text: "Dashboard",
-    icon: React.createElement(Dashboard),
-    element: React.createElement(View.dashboard),
-    allowRoles: [Role.ADMIN, Role.TEAM],
-  },
-  {
     path: "/",
     text: "Meetings",
     icon: React.createElement(DuoIcon),
     element: React.createElement(View.meetings),
+    allowRoles: [Role.ADMIN, Role.TEAM],
+  },
+  {
+    path: "/dashboard",
+    text: "Dashboard",
+    icon: React.createElement(Dashboard),
+    element: React.createElement(View.dashboard),
     allowRoles: [Role.ADMIN, Role.TEAM],
   },
   {
