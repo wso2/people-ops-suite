@@ -22,6 +22,6 @@ const dashboard = lazy(() => import("@view/dashboard/dashboard"))
 
 export const View = {
   meetings,
-  help,
   dashboard,
+  help,
 };
