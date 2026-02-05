@@ -1,0 +1,31 @@
+[sample_app.authorization.authorizedRoles]
+employeeRole = 
+headPeopleOperationsRole =
+
+[sample_app.appConfig]
+sampleAppConfig = 
+
+[sample_app.database]
+connectTimeout = 
+[sample_app.database.databaseConfig]
+database = 
+host = 
+password = 
+port = 
+user = 
+[sample_app.database.databaseConfig.connectionPool]
+maxConnectionLifeTime = 
+maxOpenConnections = 
+minIdleConnections = 
+
+[sample_app.entity] 
+hrEntityBaseUrl = 
+[sample_app.entity.oauthConfig]
+clientId = 
+clientSecret = 
+tokenUrl = 
+[sample_app.entity.retryConfig]
+backOffFactor = 
+count = 
+interval = 
+maxWaitInterval = 
