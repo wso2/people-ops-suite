@@ -1,0 +1,12 @@
+# dependencies and builds
+node_modules
+dist
+build
+coverage
+.next
+out
+
+# misc
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
