@@ -52,5 +52,6 @@ export const AppConfig = {
     employees: ServiceBaseUrl + "/employees",
     appConfig: ServiceBaseUrl + "/app-config",
     meetingTypes: ServiceBaseUrl + "/meetings/types?domain=" + APP_DOMAIN,
+    analyticsRecordings: ServiceBaseUrl + "/stats",
   },
 };

@@ -24,6 +24,7 @@ import appConfigReducer from "@slices/configSlice/config";
 import contactReducer from "@slices/contactSlice/contact";
 import customerReducer from "@slices/customerSlice/customer";
 import employeeReducer from "@slices/employeeSlice/employee";
+import analyticsReducer from "@slices/analyticsSlice/analytics";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 
 enableMapSet();
@@ -38,6 +39,7 @@ export const store = configureStore({
     employee: employeeReducer,
     customer: customerReducer,
     appConfig: appConfigReducer,
+    analytics: analyticsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

@@ -52,6 +52,8 @@ public type AddMeetingPayload record {|
     boolean isRecurring;
     # Recurrence rule of the meeting
     string? recurrence_rule;
+    # Meeting type
+    string meetingType;
 |};
 
 # [Database]Meeting type.
@@ -117,3 +119,30 @@ public enum TimeStatus {
     PAST = "PAST",
     UPCOMING = "UPCOMING"
 };
+
+# [Database]Meeting type counts.
+#
+# + meeting_type - Type of the meeting
+# + count - Number of active meetings
+public type MeetingTypeStat record {|
+    string meeting_type;
+    int count;
+|};
+
+# [Database]Meeting counts per host.
+#
+# + host - Email address of host 
+# + count - Total number of active meetings
+public type MeetingHostStat record {|
+    string host;
+    int count;
+|};
+
+# [Database]Scheduled meeting count for a month.
+#
+# + month_key - The month 
+# + count - Number of meetings scheduled
+public type ScheduledMeetingStat record {|
+    string month_key;
+    int count;
+|};

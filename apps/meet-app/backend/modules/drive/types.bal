@@ -75,3 +75,19 @@ public enum DrivePermissionType {
     DOMAIN = "domain",
     ANYONE = "anyone"
 }
+
+# Represents a single file object from Drive.
+public type DriveFile record {|
+    # Unique ID of the file
+    string id;
+    # Name of the file
+    string name;
+|};
+
+# Drive search response.
+public type DriveSearchResponse record {|
+    # List of files found
+    DriveFile[] files;
+    # Token for the next page of results (if any)
+    string nextPageToken?;
+|};

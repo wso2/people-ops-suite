@@ -71,6 +71,8 @@ public type EmployeeFilter record {|
     string[]? employeeStatus?;
     # The employment types
     string[]? employmentType?;
+    # The employee email
+    string[]? email?;
 |};
 
 # Basic employee information.
@@ -83,6 +85,8 @@ public type EmployeeBasic record {|
     string workEmail;
     # Thumbnail of the employee
     string? employeeThumbnail = ();
+    # Team of the employee
+    string? team = ();
 |};
 
 # Employees data.

@@ -22,6 +22,7 @@ import meet_app.sales;
 
 import ballerina/cache;
 import ballerina/http;
+import ballerina/lang.array;
 import ballerina/log;
 import ballerina/time;
 import ballerinax/googleapis.calendar as gcalendar;
@@ -307,8 +308,10 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         string originalTitle = createCalendarEventRequest.title;
+        string meetingType = "General";
         string[] titleParts = re `-`.split(createCalendarEventRequest.title);
         if titleParts.length() == 3 {
+            meetingType = titleParts[1].trim();
             createCalendarEventRequest.title = string `${titleParts[0]} - ${titleParts[2]}`;
         }
         // Attempt to create the meeting.
@@ -418,7 +421,8 @@ service http:InterceptableService / on new http:Listener(9090) {
                     startTime: startTimeDb,
                     endTime: endTimeDb,
                     isRecurring: true,
-                    recurrence_rule: rule
+                    recurrence_rule: rule,
+                    meetingType: meetingType
                 };
                 int|error meetingId = database:addMeeting(addMeetingPayload, userInfo.email);
                 if meetingId is error {
@@ -451,7 +455,8 @@ service http:InterceptableService / on new http:Listener(9090) {
                 endTime: createCalendarEventRequest.endTime
                 .substring(0, createCalendarEventRequest.endTime.length() - 6),
                 isRecurring: false,
-                recurrence_rule: null
+                recurrence_rule: null,
+                meetingType: meetingType
             };
 
             // Insert the meeting details into the database.
@@ -698,5 +703,122 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         return {message: deleteCalendarEventResponse.message};
+    }
+
+    # Get analytics for a specific date range.
+    #
+    # + startDate - Start date in ISO format
+    # + endDate - End date in ISO format
+    # + return - Statistics or Error
+    resource function get stats(http:RequestContext ctx, string startDate, string endDate)
+        returns json|http:InternalServerError|http:BadRequest|error {
+
+        // Validate Dates
+        time:Utc|error startRes = time:utcFromString(startDate);
+        time:Utc|error endRes = time:utcFromString(endDate);
+
+        if startRes is error || endRes is error {
+            return <http:BadRequest>{body: {message: "Invalid Date Format"}};
+        }
+        time:Utc startUtc = startRes;
+        time:Utc endUtc = endRes;
+
+        if startUtc[0] > endUtc[0] {
+            return <http:BadRequest>{body: {message: "Start Date must be before End Date"}};
+        }
+
+        future<map<int>|error> scheduledCounts = start database:getMonthlyScheduledCounts(startDate, endDate);
+        future<database:MeetingTypeStat[]|error> meetingTypes = start database:getMeetingTypeStats(startDate, endDate);
+        future<json|error> PeopleStats = start getPeopleAnalytics(startDate, endDate);
+
+        time:Civil startCivil = time:utcToCivil(startUtc);
+        time:Civil endCivil = time:utcToCivil(endUtc);
+        map<future<int|error>> driveFutureMap = {};
+        map<json> metaDataMap = {};
+
+        int cursorYear = startCivil.year;
+        int cursorMonth = startCivil.month;
+
+        while (true) {
+            if (cursorYear > endCivil.year) || (cursorYear == endCivil.year && cursorMonth > endCivil.month) {
+                break;
+            }
+            string monthStr = cursorMonth < 10 ? string `0${cursorMonth}` : cursorMonth.toString();
+            string monthKey = string `${cursorYear}-${monthStr}`;
+            string queryStartTime = string `${cursorYear}-${monthStr}-01T00:00:00Z`;
+            int nextMonthVal = cursorMonth + 1;
+            int nextYearVal = cursorYear;
+
+            if (nextMonthVal > 12) {
+                nextMonthVal = 1;
+                nextYearVal = nextYearVal + 1;
+            }
+            string nextMonthStr = nextMonthVal < 10 ? string `0${nextMonthVal}` : nextMonthVal.toString();
+            string queryEndTime = string `${nextYearVal}-${nextMonthStr}-01T00:00:00Z`;
+
+            if (cursorYear == startCivil.year && cursorMonth == startCivil.month) {
+                queryStartTime = startDate;
+            }
+            if (cursorYear == endCivil.year && cursorMonth == endCivil.month) {
+                queryEndTime = endDate;
+            }
+
+            // Drive API
+            future<int|error> fDrive = start drive:countWso2RecordingsInDateRange(queryStartTime, queryEndTime);
+            driveFutureMap[monthKey] = fDrive;
+            metaDataMap[monthKey] = {
+                "year": cursorYear,
+                "month": cursorMonth,
+                "key": monthKey
+            };
+
+            cursorMonth = cursorMonth + 1;
+            if cursorMonth > 12 {
+                cursorMonth = 1;
+                cursorYear = cursorYear + 1;
+            }
+        }
+
+        map<int> dbCounts = check wait scheduledCounts;
+        map<int|error> driveResults = {};
+
+        foreach string key in driveFutureMap.keys() {
+            driveResults[key] = wait driveFutureMap.get(key);
+        }
+        json[] monthlyStats = [];
+        string[] sortedKeys = driveFutureMap.keys().sort(array:DESCENDING);
+
+        foreach string key in sortedKeys {
+            json meta = metaDataMap.get(key);
+            // Drive Count
+            int|error? driveCount = driveResults[key];
+            // DB Count
+            int scheduledCount = dbCounts.hasKey(key) ? dbCounts.get(key) : 0;
+
+            _ = check meta.mergeJson({
+                "recordingCount": (driveCount is int) ? driveCount : 0,
+                "scheduledCount": scheduledCount
+            });
+            monthlyStats.push(meta);
+        }
+        database:MeetingTypeStat[]|error typeResults = wait meetingTypes;
+        json[] typeStatsJson = [];
+        if typeResults is database:MeetingTypeStat[] {
+            typeStatsJson = <json[]>typeResults.toJson();
+        }
+        json|error peopleRes = wait PeopleStats;
+        json[] regionalStats = [];
+        json[] amStats = [];
+        if peopleRes is json {
+            regionalStats = <json[]>(check peopleRes.regionalStats);
+            amStats = <json[]>(check peopleRes.amStats);
+        }
+
+        return {
+            "monthlyStats": monthlyStats,
+            "typeStats": typeStatsJson,
+            "regionalStats": regionalStats,
+            "amStats": amStats
+        };
     }
 }

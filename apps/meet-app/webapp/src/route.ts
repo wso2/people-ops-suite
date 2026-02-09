@@ -21,6 +21,7 @@ import DuoIcon from '@mui/icons-material/Duo';
 import { isIncludedRole } from "@utils/utils";
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { RouteObject, NonIndexRouteObject } from "react-router-dom";
+import { Dashboard } from "@mui/icons-material";
 
 export interface RouteObjectWithRole extends NonIndexRouteObject {
   allowRoles: string[];
@@ -48,6 +49,13 @@ export const routes: RouteObjectWithRole[] = [
     text: "Meetings",
     icon: React.createElement(DuoIcon),
     element: React.createElement(View.meetings),
+    allowRoles: [Role.ADMIN, Role.TEAM],
+  },
+  {
+    path: "/dashboard",
+    text: "Dashboard",
+    icon: React.createElement(Dashboard),
+    element: React.createElement(View.dashboard),
     allowRoles: [Role.ADMIN, Role.TEAM],
   },
   {
