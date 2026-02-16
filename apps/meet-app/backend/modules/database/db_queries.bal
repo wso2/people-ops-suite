@@ -42,6 +42,10 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         title, 
         google_event_id, 
         host, 
+        host_unit,
+        host_team,
+        host_sub_team,
+        host_bu,
         start_time, 
         end_time, 
         wso2_participants,
@@ -56,6 +60,10 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         ${meeting.title}, 
         ${meeting.googleEventId}, 
         ${meeting.host}, 
+        ${meeting.unit},
+        ${meeting.team},
+        ${meeting.subTeam},
+        ${meeting.businessUnit},
         ${meeting.startTime}, 
         ${meeting.endTime}, 
         ${meeting.internalParticipants},
@@ -114,7 +122,7 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
     }
     if hostOrInternalParticipant is string {
         filters.push(sql:queryConcat(
-            `(host = ${hostOrInternalParticipant} OR wso2_participants LIKE ${"%" + hostOrInternalParticipant + "%"})`
+                `(host = ${hostOrInternalParticipant} OR wso2_participants LIKE ${"%" + hostOrInternalParticipant + "%"})`
         ));
     }
     if title is string {
@@ -126,16 +134,16 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
         foreach string participant in internalParticipants {
             if first {
                 internalParticipantsFilter = sql:queryConcat(
-                    internalParticipantsFilter,
-                    `wso2_participants LIKE ${"%" + participant + "%"}`
+                        internalParticipantsFilter,
+                        `wso2_participants LIKE ${"%" + participant + "%"}`
                 );
                 first = false;
                 continue;
             }
             // If the first participant is already added, add OR for the rest of the participants.
             internalParticipantsFilter = sql:queryConcat(
-                internalParticipantsFilter,
-                ` OR wso2_participants LIKE ${"%" + participant + "%"}`
+                    internalParticipantsFilter,
+                    ` OR wso2_participants LIKE ${"%" + participant + "%"}`
             );
         }
         internalParticipantsFilter = sql:queryConcat(internalParticipantsFilter, `)`);

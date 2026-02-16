@@ -28,6 +28,10 @@ public isolated function fetchEmployeesBasicInfo(string workEmail) returns Emplo
                 lastName,
                 jobRole,
                 employeeThumbnail,
+                team: department,
+                subTeam: team,
+                businessUnit: subTeam,
+                unit: businessUnit
             }
         }
     `;
@@ -40,7 +44,7 @@ public isolated function fetchEmployeesBasicInfo(string workEmail) returns Emplo
 
 # Retrieves all active or marked-leaver employees with specific employment types.
 #
-#  + emails - Optional list of emails to filter by
+# + emails - Optional list of emails to filter by
 # + return - Employee Info Array
 public isolated function getEmployees(string[]? emails = ()) returns EmployeeBasic[]|error {
 

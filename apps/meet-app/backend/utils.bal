@@ -16,6 +16,8 @@
 import meet_app.database;
 import meet_app.people;
 
+import ballerina/cache;
+
 # Aggregates meeting statistics by Account Manager and their respective Regional Teams.
 #
 # + startDate - The start of the analysis range
@@ -30,7 +32,8 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
     }
 
     // Fetch Employee Details
-    string[] emails = from var stat in hostStats select stat.host;
+    string[] emails = from var stat in hostStats
+        select stat.host;
     people:EmployeeBasic[] employees = check people:getEmployees(emails);
     map<people:EmployeeBasic> empMap = {};
     foreach var emp in employees {
@@ -76,4 +79,21 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
         "regionalStats": sortedRegional,
         "amStats": sortedAm
     };
+}
+
+# Retrieve the user employee data 
+#
+# + email - User email
+# + cache - Cached array
+# + return - UserInfoResponse | Employee | error
+isolated function getUserInfo(string email, cache:Cache cache) returns UserInfoResponse|people:Employee|error {
+    // Check if the employees are already cached.
+    if cache.hasKey(email) {
+        UserInfoResponse|error cachedUserInfo = cache.get(email).ensureType();
+        if cachedUserInfo is UserInfoResponse {
+            return cachedUserInfo;
+        }
+    }
+    // Fetch the user information from the people service.
+    return people:fetchEmployeesBasicInfo(email);
 }

@@ -38,7 +38,7 @@ public type Meeting record {|
     # Time Status (e.g., 'PAST', 'UPCOMING')
     database:TimeStatus timeStatus;
     # Whether the meeting is recurring
-    boolean isRecurring;  
+    boolean isRecurring;
 |};
 
 # Represents the response structure for retrieving user information.
@@ -57,6 +57,14 @@ public type UserInfoResponse record {|
     string? employeeThumbnail;
     # User Privileges
     int[] privileges;
+    # Department of the host
+    string? team;
+    # Team of the host 
+    string? subTeam;
+    # Sub team  of the host
+    string? businessUnit;
+    # Business unit  of the host
+    string? unit;
 |};
 
 # Represents the response after successfully creating a meeting.

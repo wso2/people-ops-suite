@@ -53,12 +53,12 @@ public isolated function setFilePermission(string fileId, DrivePermissionRole ro
 # + endTime - ISO string for end of period
 # + return - Count of files or error
 public isolated function countWso2RecordingsInDateRange(string startTime, string endTime) returns int|error {
-    
+
     string query = string `name contains 'WSO2' and 'me' in owners and mimeType = 'video/mp4' and trashed = false and createdTime >= '${
-                   startTime}' and createdTime < '${endTime}'`;
+                    startTime}' and createdTime < '${endTime}'`;
     string encodedQuery = check url:encode(query, "UTF-8");
     string basePath = string `?q=${encodedQuery}&fields=files(id,name),nextPageToken&pageSize=1000`;
-    
+
     int totalCount = 0;
     string? pageToken = ();
     boolean hasMorePages = true;
@@ -74,7 +74,7 @@ public isolated function countWso2RecordingsInDateRange(string startTime, string
         if response.statusCode == 200 {
             json payload = check response.getJsonPayload();
             DriveSearchResponse searchResponse = check payload.cloneWithType(DriveSearchResponse);
-            
+
             totalCount += searchResponse.files.length();
 
             if searchResponse.nextPageToken is string {

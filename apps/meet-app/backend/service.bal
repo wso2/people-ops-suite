@@ -61,6 +61,12 @@ service class ErrorInterceptor {
 
 service http:InterceptableService / on new http:Listener(9090) {
 
+    # Initialize the service.
+    #
+    function init() {
+        log:printInfo("Successfully started the meet app...");
+    }
+
     # Request interceptor.
     #
     # + return - authorization:JwtInterceptor, ErrorInterceptor
@@ -88,24 +94,19 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // Check if the employees are already cached.
-        if cache.hasKey(userInfo.email) {
-            UserInfoResponse|error cachedUserInfo = cache.get(userInfo.email).ensureType();
-            if cachedUserInfo is UserInfoResponse {
-                return cachedUserInfo;
-            }
-        }
-
-        // Fetch the user information from the people service.
-        people:Employee|error loggedInUser = people:fetchEmployeesBasicInfo(userInfo.email);
-        if loggedInUser is error {
+        people:Employee|UserInfoResponse|error employee = getUserInfo(userInfo.email, cache);
+        if employee is error {
             string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
-            log:printError(customError, loggedInUser);
+            log:printError(customError, employee);
             return <http:InternalServerError>{
                 body: {
                     message: customError
                 }
             };
+        }
+
+        if employee is UserInfoResponse {
+            return employee;
         }
 
         // Fetch the user's privileges based on the roles.
@@ -117,7 +118,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             privileges.push(authorization:SALES_ADMIN_PRIVILEGE);
         }
 
-        UserInfoResponse userInfoResponse = {...loggedInUser, privileges};
+        UserInfoResponse userInfoResponse = {...employee, privileges};
 
         error? cacheError = cache.put(userInfo.email, userInfoResponse);
         if cacheError is error {
@@ -307,6 +308,23 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+        people:Employee|UserInfoResponse|error employee = getUserInfo(userInfo.email, cache);
+        if employee is error {
+            string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
+            log:printError(customError, employee);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        string? unit = employee.unit;
+        string? team = employee.team;
+        string? subTeam = employee.subTeam;
+        string? businessUnit = employee.businessUnit;
+        
+
         string originalTitle = createCalendarEventRequest.title;
         string meetingType = "General";
         string[] titleParts = re `-`.split(createCalendarEventRequest.title);
@@ -417,12 +435,16 @@ service http:InterceptableService / on new http:Listener(9090) {
                     googleEventId: instance.id,
                     host: userInfo.email,
                     internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
-                    .map(internalParticipant => internalParticipant.trim())),
+                            .map(internalParticipant => internalParticipant.trim())),
                     startTime: startTimeDb,
                     endTime: endTimeDb,
                     isRecurring: true,
                     recurrence_rule: rule,
-                    meetingType: meetingType
+                    meetingType: meetingType,
+                    unit:unit,
+                    team: team,
+                    subTeam: subTeam,
+                    businessUnit: businessUnit
                 };
                 int|error meetingId = database:addMeeting(addMeetingPayload, userInfo.email);
                 if meetingId is error {
@@ -449,14 +471,18 @@ service http:InterceptableService / on new http:Listener(9090) {
                 googleEventId: calendarCreateEventResponse.id,
                 host: userInfo.email,
                 internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
-                .map(internalParticipant => internalParticipant.trim())),
+                        .map(internalParticipant => internalParticipant.trim())),
                 startTime: createCalendarEventRequest.startTime
                 .substring(0, createCalendarEventRequest.startTime.length() - 6),
                 endTime: createCalendarEventRequest.endTime
                 .substring(0, createCalendarEventRequest.endTime.length() - 6),
                 isRecurring: false,
                 recurrence_rule: null,
-                meetingType: meetingType
+                meetingType: meetingType,
+                unit:unit,
+                team: team,
+                subTeam: subTeam,
+                businessUnit: businessUnit
             };
 
             // Insert the meeting details into the database.
@@ -512,7 +538,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         // Fetch the meetings from the database.
         string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
         database:Meeting[]|error meetings = database:fetchMeetings(hostOrInternalParticipant, title, host,
-            startTime, endTime, internalParticipants, 'limit, offset);
+                startTime, endTime, internalParticipants, 'limit, offset);
         if meetings is error {
             string customError = string `Error occurred while retrieving the meetings!`;
             log:printError(customError, meetings);
@@ -607,7 +633,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         foreach gcalendar:Attachment attachment in calendarEventAttachments ?: [] {
             if attachment.mimeType == "video/mp4" {
                 drive:DrivePermissionResponse|error permissionResult = drive:setFilePermission(
-                    <string>attachment.fileId, drive:EDITOR, drive:USER, meeting.host
+                        <string>attachment.fileId, drive:EDITOR, drive:USER, meeting.host
                 );
 
                 if permissionResult is error {

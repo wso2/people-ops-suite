@@ -54,6 +54,14 @@ public type AddMeetingPayload record {|
     string? recurrence_rule;
     # Meeting type
     string meetingType;
+    # Department of the host
+    string? team;
+    # Team of the host 
+    string? subTeam;
+    # Sub team  of the host
+    string? businessUnit;
+    # Business unit  of the host
+    string? unit;
 |};
 
 # [Database]Meeting type.

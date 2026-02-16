@@ -128,7 +128,7 @@ public isolated function getMeetingTypeStats(string startTime, string endTime) r
     stream<MeetingTypeStat, sql:Error?> resultStream = databaseClient->query(
         countMeetingTypesQuery(startTime, endTime)
     );
-    
+
     return from MeetingTypeStat stat in resultStream
         select stat;
 }
