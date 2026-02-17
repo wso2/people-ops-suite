@@ -13,7 +13,6 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License. 
-
 # Retrieves basic employee details by work email.
 #
 # + workEmail - WSO2 email address
@@ -30,8 +29,8 @@ public isolated function fetchEmployeesBasicInfo(string workEmail) returns Emplo
                 employeeThumbnail,
                 team: department,
                 subTeam: team,
-                businessUnit: subTeam,
-                unit: businessUnit
+                unit: subTeam,
+                businessUnit: businessUnit
             }
         }
     `;
@@ -50,7 +49,8 @@ public isolated function getEmployees(string[]? emails = ()) returns EmployeeBas
 
     EmployeeFilter filter = {
         employeeStatus: [Active, Marked\ leaver],
-        employmentType: [PERMANENT, CONSULTANCY, PART\ TIME\ CONSULTANCY]
+        employmentType: [PERMANENT, CONSULTANCY, PART\ TIME\ CONSULTANCY],
+        emails: emails
     };
 
     string document = string `query getAllEmployees($filter: EmployeeFilter!, $limit: Int, $offset: Int) {
@@ -59,7 +59,8 @@ public isolated function getEmployees(string[]? emails = ()) returns EmployeeBas
             firstName
             lastName
             employeeThumbnail
-            team 
+            team: department
+            subTeam:team 
         }
     }`;
 
