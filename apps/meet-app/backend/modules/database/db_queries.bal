@@ -86,7 +86,7 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 # + 'limit - Limit of the data  
 # + offset - offset of the query
 # + return - sql:ParameterizedQuery - Select query for the meeting table
-isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? title, string? host,
+isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? title, string? host,string? searchString,
         string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
     returns sql:ParameterizedQuery {
 
@@ -154,6 +154,9 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
     }
     if endTime is string {
         filters.push(sql:queryConcat(`end_time <= ${endTime}`));
+    }
+    if searchString is string{
+        filters.push(sql:queryConcat(`(host like ${"%" + searchString + "%"} OR title LIKE ${"%" + searchString + "%"} )`));
     }
 
     // Building the WHERE clause.
@@ -269,6 +272,8 @@ isolated function countMeetingsByHostQuery(string startTime, string endTime) ret
 `
     SELECT 
         host,
+        host_team,
+        host_sub_team,
         COUNT(*) as count
     FROM meeting
     WHERE 
@@ -276,5 +281,7 @@ isolated function countMeetingsByHostQuery(string startTime, string endTime) ret
         start_time >= ${startTime} AND
         start_time < ${endTime}
     GROUP BY 
-        host
+        host,
+        host_team,
+        host_sub_team
 `;

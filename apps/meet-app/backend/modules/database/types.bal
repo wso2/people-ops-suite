@@ -129,21 +129,39 @@ public enum TimeStatus {
 };
 
 # [Database]Meeting type counts.
-#
-# + meeting_type - Type of the meeting
-# + count - Number of active meetings
 public type MeetingTypeStat record {|
+    # Type of the meeting
     string meeting_type;
+    #Number of active meetings
     int count;
 |};
 
 # [Database]Meeting counts per host.
-#
-# + host - Email address of host 
-# + count - Total number of active meetings
 public type MeetingHostStat record {|
+    # Email address of host 
     string host;
+    # Total number of active meetings
     int count;
+    # Department of the host
+    @sql:Column {
+        name: "host_team"
+    }
+    string? team = ();
+    # Team of the host
+    @sql:Column {
+        name: "host_sub_team"
+    }
+    string? subTeam ;
+    # Business unit of the host
+    @sql:Column {
+        name: "host_bu"
+    }
+    string? businessUnit;
+    # Sub team of the host
+    @sql:Column {
+        name: "host_unit"
+    }
+    string? unit;
 |};
 
 # [Database]Scheduled meeting count for a month.

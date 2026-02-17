@@ -15,7 +15,6 @@
 // under the License.
 import meet_app.database;
 import meet_app.people;
-
 import ballerina/cache;
 
 # Aggregates meeting statistics by Account Manager and their respective Regional Teams.
@@ -41,6 +40,7 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
     }
     map<int> teamCounts = {};
     json[] amStatsList = [];
+    json[] toStatsList = [];
 
     foreach var stat in hostStats {
         people:EmployeeBasic? emp = empMap[stat.host];
@@ -55,13 +55,21 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
         // Aggregate Team Counts
         int currentTeamCount = teamCounts.hasKey(teamName) ? teamCounts.get(teamName) : 0;
         teamCounts[teamName] = currentTeamCount + stat.count;
-        amStatsList.push({
+        if stat.team == "SALES"{
+            amStatsList.push({
             "name": amName,
             "value": stat.count,
             "email": stat.host
         });
+        }
+        if stat.team == "SALES ENGINEERING" {
+            toStatsList.push({
+                "name":amName,
+                "value":stat.count,
+                "email":stat.host
+            });
+        }
     }
-
     json[] regionalStatsList = [];
     foreach var [team, count] in teamCounts.entries() {
         regionalStatsList.push({"name": team, "value": count});
@@ -75,9 +83,14 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
         order by <int>check item.value descending
         select item;
 
+    json[] sortedTo = from var item in toStatsList
+        order by <int>check item.value descending
+        select item;
+
     return {
         "regionalStats": sortedRegional,
-        "amStats": sortedAm
+        "amStats": sortedAm,
+        "toStats": sortedTo
     };
 }
 

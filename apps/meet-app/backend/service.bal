@@ -319,11 +319,10 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        string? unit = employee.unit;
-        string? team = employee.team;
-        string? subTeam = employee.subTeam;
-        string? businessUnit = employee.businessUnit;
-        
+        string unit = employee.unit ?: "N/A";
+        string team = employee.team ?: "N/A";
+        string subTeam = employee.subTeam ?: "N/A";
+        string businessUnit = employee.businessUnit ?: "N/A";
 
         string originalTitle = createCalendarEventRequest.title;
         string meetingType = "General";
@@ -441,7 +440,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     isRecurring: true,
                     recurrence_rule: rule,
                     meetingType: meetingType,
-                    unit:unit,
+                    unit: unit,
                     team: team,
                     subTeam: subTeam,
                     businessUnit: businessUnit
@@ -479,7 +478,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 isRecurring: false,
                 recurrence_rule: null,
                 meetingType: meetingType,
-                unit:unit,
+                unit: unit,
                 team: team,
                 subTeam: subTeam,
                 businessUnit: businessUnit
@@ -512,9 +511,9 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + 'limit - Limit of the data  
     # + offset - Offset of the data
     # + return - Meetings | Error
-    resource function get meetings(http:RequestContext ctx, string? title, string? host,
+    resource function get meetings(http:RequestContext ctx, string? title, string? host, string? searchString,
             string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
-        returns MeetingListResponse|http:Forbidden|http:InternalServerError {
+        returns MeetingListResponse|http:Forbidden|http:InternalServerError|http:BadRequest {
 
         // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -534,10 +533,17 @@ service http:InterceptableService / on new http:Listener(9090) {
                 body: {message: "Insufficient privileges to filter by host!"}
             };
         }
+        if (searchString is string && host is string ) || (searchString is string && title is string){
+            return  <http:BadRequest>{
+                body:  {
+                    message : "Search string cannot be presented when host or title are presented."
+                }
+            };
+        }
 
         // Fetch the meetings from the database.
         string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
-        database:Meeting[]|error meetings = database:fetchMeetings(hostOrInternalParticipant, title, host,
+        database:Meeting[]|error meetings = database:fetchMeetings(hostOrInternalParticipant, title, host,searchString,
                 startTime, endTime, internalParticipants, 'limit, offset);
         if meetings is error {
             string customError = string `Error occurred while retrieving the meetings!`;
@@ -835,16 +841,19 @@ service http:InterceptableService / on new http:Listener(9090) {
         json|error peopleRes = wait PeopleStats;
         json[] regionalStats = [];
         json[] amStats = [];
+        json[] toStats = [];
         if peopleRes is json {
             regionalStats = <json[]>(check peopleRes.regionalStats);
             amStats = <json[]>(check peopleRes.amStats);
+            toStats = <json[]>(check peopleRes.toStats);
         }
 
         return {
             "monthlyStats": monthlyStats,
             "typeStats": typeStatsJson,
             "regionalStats": regionalStats,
-            "amStats": amStats
+            "amStats": amStats,
+            "toStats": toStats
         };
     }
 }
