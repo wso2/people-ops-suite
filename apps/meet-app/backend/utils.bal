@@ -55,14 +55,14 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
         // Aggregate Team Counts
         int currentTeamCount = teamCounts.hasKey(teamName) ? teamCounts.get(teamName) : 0;
         teamCounts[teamName] = currentTeamCount + stat.count;
-        if stat.team == "SALES"{
+        if stat.team == SALES_TEAM{
             amStatsList.push({
             "name": amName,
             "value": stat.count,
             "email": stat.host
         });
         }
-        if stat.team == "SALES ENGINEERING" {
+        if stat.team == SALES_ENGINEERING_TEAM {
             toStatsList.push({
                 "name":amName,
                 "value":stat.count,

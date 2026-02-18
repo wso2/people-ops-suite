@@ -19,3 +19,9 @@ const string EMPLOYEES_CACHE_KEY = "employees";
 
 # Cache key of customers.
 const string CUSTOMERS_CACHE_KEY = "customers";
+
+# Team name of sales.
+const string SALES_TEAM = "SALES";
+
+# Team name of sales engineering.
+const string SALES_ENGINEERING_TEAM = "SALES ENGINEERING";
