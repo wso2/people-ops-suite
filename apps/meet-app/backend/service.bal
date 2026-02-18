@@ -505,6 +505,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + title - Name to filter  
     # + host - Host to filter
+    # + searchString - Search String to filter host , title and regional 
     # + startTime - Start time to filter
     # + endTime - End time to filter
     # + internalParticipants - Participants to filter
@@ -513,51 +514,35 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + return - Meetings | Error
     resource function get meetings(http:RequestContext ctx, string? title, string? host, string? searchString,
             string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
-        returns MeetingListResponse|http:Forbidden|http:InternalServerError|http:BadRequest {
+    returns MeetingListResponse|http:Forbidden|http:InternalServerError|http:BadRequest {
 
-        // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            return <http:InternalServerError>{
-                body: {
-                    message: "User information header not found!"
-                }
-            };
+            return <http:InternalServerError>{body: {message: "User information header not found!"}};
         }
-
         boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
-
-        // Return Forbidden if a non-admin user provides a host query parameter.
         if (!isAdmin && (host != ()) && (host != userInfo.email)) {
-            return <http:Forbidden>{
-                body: {message: "Insufficient privileges to filter by host!"}
-            };
+            return <http:Forbidden>{body: {message: "Insufficient privileges to filter by host!"}};
         }
-        if (searchString is string && host is string ) || (searchString is string && title is string){
-            return  <http:BadRequest>{
-                body:  {
-                    message : "Search string cannot be presented when host or title are presented."
-                }
-            };
+        if (searchString is string && (host is string || title is string)) {
+            return <http:BadRequest>{body: {message: "Search string cannot be presented when host or title are presented."}};
         }
-
-        // Fetch the meetings from the database.
         string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
-        database:Meeting[]|error meetings = database:fetchMeetings(hostOrInternalParticipant, title, host,searchString,
+        database:Meeting[]|error meetingsResult = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString,
                 startTime, endTime, internalParticipants, 'limit, offset);
-        if meetings is error {
-            string customError = string `Error occurred while retrieving the meetings!`;
-            log:printError(customError, meetings);
-            return <http:InternalServerError>{
-                body: {
-                    message: customError
-                }
-            };
+        if meetingsResult is error {
+            log:printError("Error occurred while retrieving the meetings!", meetingsResult);
+            return <http:InternalServerError>{body: {message: "Error occurred while retrieving the meetings!"}};
         }
-
+        database:Meeting[] meetingList = meetingsResult;
+        if !isAdmin {
+            meetingList = from var meeting in meetingList
+                where meeting.host == userInfo.email
+                select meeting;
+        }
         return {
-            count: (meetings.length() > 0) ? meetings[0].totalCount : 0,
-            meetings: from var meeting in meetings
+            count: (meetingList.length() > 0) ? meetingList[0].totalCount : 0,
+            meetings: from var meeting in meetingList
                 select {
                     meetingId: meeting.meetingId,
                     title: meeting.title,

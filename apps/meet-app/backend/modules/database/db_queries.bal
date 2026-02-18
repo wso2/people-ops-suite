@@ -79,7 +79,8 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 #
 # + hostOrInternalParticipant - Filter by host or internal participant  
 # + title - Title to filter  
-# + host - Host filter  
+# + host - Host filter
+# + searchString - Search String to filter host , title and regional  
 # + startTime - Start time filter  
 # + endTime - End time filter  
 # + internalParticipants - Participants filter

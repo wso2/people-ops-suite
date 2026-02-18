@@ -35,8 +35,20 @@ import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import ErrorHandler from "@component/common/ErrorHandler";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { useConfirmationModalContext } from "@context/DialogContext";
-import { Loop, RemoveCircleOutline, Delete, Visibility, CheckCircle, DeleteForever, Search } from "@mui/icons-material";
-import { fetchMeetings, deleteMeeting, fetchAttachments } from "@slices/meetingSlice/meeting";
+import {
+  Loop,
+  RemoveCircleOutline,
+  Delete,
+  Visibility,
+  CheckCircle,
+  DeleteForever,
+  Search,
+} from "@mui/icons-material";
+import {
+  fetchMeetings,
+  deleteMeeting,
+  fetchAttachments,
+} from "@slices/meetingSlice/meeting";
 
 interface Attachment {
   title: string;
@@ -68,10 +80,18 @@ function MeetingHistory() {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [openAttachmentDialog, setOpenAttachmentDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [filteredSearchQuery, setFilteredSearchQuery] = useState<string | null>(null);
+  const [filteredSearchQuery, setFilteredSearchQuery] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
-    dispatch(fetchMeetings({ title: filteredSearchQuery, limit: pageSize, offset: page * pageSize }));
+    dispatch(
+      fetchMeetings({
+        searchString: filteredSearchQuery,
+        limit: pageSize,
+        offset: page * pageSize,
+      }),
+    );
   }, [dispatch, filteredSearchQuery, page, pageSize]);
 
   const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
@@ -94,15 +114,15 @@ function MeetingHistory() {
           setLoadingDelete(false);
           dispatch(
             fetchMeetings({
-              title: filteredSearchQuery,
+              searchString: filteredSearchQuery,
               limit: pageSize,
               offset: page * pageSize,
-            })
+            }),
           );
         });
       },
       "Yes",
-      "No"
+      "No",
     );
   };
 
@@ -147,7 +167,11 @@ function MeetingHistory() {
                 height: "100%",
               }}
             >
-              {status === "ACTIVE" ? <CheckCircle color="success" /> : <Delete color="disabled" />}
+              {status === "ACTIVE" ? (
+                <CheckCircle color="success" />
+              ) : (
+                <Delete color="disabled" />
+              )}
             </Box>
           </Tooltip>
         );
@@ -164,7 +188,10 @@ function MeetingHistory() {
       renderCell: (params) => {
         const recurring = Boolean(params.value);
         return (
-          <Tooltip title={recurring ? "Recurring series" : "One-off meeting"} arrow>
+          <Tooltip
+            title={recurring ? "Recurring series" : "One-off meeting"}
+            arrow
+          >
             <Box
               sx={{
                 display: "flex",
@@ -221,8 +248,8 @@ function MeetingHistory() {
         return (
           <>
             <Tooltip title="View Attachments" arrow>
-              <IconButton 
-                color="info" 
+              <IconButton
+                color="info"
                 onClick={() => handleViewAttachments(params.row.meetingId)}
                 sx={{
                   backgroundColor: (theme) => theme.palette.info.main,
@@ -230,21 +257,24 @@ function MeetingHistory() {
                   width: 25,
                   height: 25,
                   border: (theme) => `2px solid ${theme.palette.info.dark}`,
-                  boxShadow: (theme) => `0 2px 4px ${theme.palette.info.dark}30`,
-                  '&:hover': {
+                  boxShadow: (theme) =>
+                    `0 2px 4px ${theme.palette.info.dark}30`,
+                  "&:hover": {
                     backgroundColor: (theme) => theme.palette.info.dark,
-                    transform: 'translateY(-1px)',
-                    boxShadow: (theme) => `0 4px 8px ${theme.palette.info.dark}40`,
+                    transform: "translateY(-1px)",
+                    boxShadow: (theme) =>
+                      `0 4px 8px ${theme.palette.info.dark}40`,
                   },
-                  '&:active': {
-                    transform: 'translateY(0px)',
-                    boxShadow: (theme) => `0 1px 2px ${theme.palette.info.dark}60`,
+                  "&:active": {
+                    transform: "translateY(0px)",
+                    boxShadow: (theme) =>
+                      `0 1px 2px ${theme.palette.info.dark}60`,
                   },
-                  '& .MuiSvgIcon-root': {
+                  "& .MuiSvgIcon-root": {
                     color: (theme) => theme.palette.info.contrastText,
-                    fontSize: '1.1rem',
+                    fontSize: "1.1rem",
                   },
-                  transition: 'all 0.2s ease-in-out',
+                  transition: "all 0.2s ease-in-out",
                 }}
               >
                 <Visibility />
@@ -279,21 +309,24 @@ function MeetingHistory() {
                     width: 25,
                     height: 25,
                     border: (theme) => `2px solid ${theme.palette.error.dark}`,
-                    boxShadow: (theme) => `0 2px 4px ${theme.palette.error.dark}30`,
-                    '&:hover': {
+                    boxShadow: (theme) =>
+                      `0 2px 4px ${theme.palette.error.dark}30`,
+                    "&:hover": {
                       backgroundColor: (theme) => theme.palette.error.dark,
-                      transform: 'translateY(-1px)',
-                      boxShadow: (theme) => `0 4px 8px ${theme.palette.error.dark}40`,
+                      transform: "translateY(-1px)",
+                      boxShadow: (theme) =>
+                        `0 4px 8px ${theme.palette.error.dark}40`,
                     },
-                    '&:active': {
-                      transform: 'translateY(0px)',
-                      boxShadow: (theme) => `0 1px 2px ${theme.palette.error.dark}60`,
+                    "&:active": {
+                      transform: "translateY(0px)",
+                      boxShadow: (theme) =>
+                        `0 1px 2px ${theme.palette.error.dark}60`,
                     },
-                    '& .MuiSvgIcon-root': {
+                    "& .MuiSvgIcon-root": {
                       color: (theme) => theme.palette.error.contrastText,
-                      fontSize: '1.1rem',
+                      fontSize: "1.1rem",
                     },
-                    transition: 'all 0.2s ease-in-out',
+                    transition: "all 0.2s ease-in-out",
                   }}
                 >
                   <DeleteForever />
@@ -428,7 +461,10 @@ function MeetingHistory() {
           ) : (
             <Box>
               {attachments.map((attachment, index) => (
-                <Box key={index} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                <Box
+                  key={index}
+                  sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                >
                   <img
                     src={attachment.iconLink}
                     alt={attachment.title}

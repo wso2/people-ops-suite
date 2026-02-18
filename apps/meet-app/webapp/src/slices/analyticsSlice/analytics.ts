@@ -50,6 +50,7 @@ export interface AnalyticsState {
   typeStats: TypeStat[];
   regionalStats: RegionStat[];
   amStats: AmStat[];
+  toStats: AmStat[];
 }
 
 const initialState: AnalyticsState = {
@@ -60,14 +61,23 @@ const initialState: AnalyticsState = {
   typeStats: [],
   regionalStats: [],
   amStats: [],
+  toStats: [],
 };
 
 export const getRecordingStats = createAsyncThunk(
   "analytics/getRecordingStats",
   async (params: { startDate: string; endDate: string }) => {
-    return new Promise<{ monthlyStats: MonthlyStat[]; typeStats: TypeStat[]; regionalStats: RegionStat[]; amStats: AmStat[] }>((resolve, reject) => {
+    return new Promise<{
+      monthlyStats: MonthlyStat[];
+      typeStats: TypeStat[];
+      regionalStats: RegionStat[];
+      amStats: AmStat[];
+      toStats: AmStat[];
+    }>((resolve, reject) => {
       APIService.getInstance()
-        .get(`${AppConfig.serviceUrls.analyticsRecordings}?startDate=${params.startDate}&endDate=${params.endDate}`)
+        .get(
+          `${AppConfig.serviceUrls.analyticsRecordings}?startDate=${params.startDate}&endDate=${params.endDate}`,
+        )
         .then((resp) => {
           resolve(resp.data);
         })
@@ -75,7 +85,7 @@ export const getRecordingStats = createAsyncThunk(
           reject(error);
         });
     });
-  }
+  },
 );
 
 export const AnalyticsSlice = createSlice({
@@ -97,6 +107,7 @@ export const AnalyticsSlice = createSlice({
         state.typeStats = action.payload.typeStats;
         state.regionalStats = action.payload.regionalStats;
         state.amStats = action.payload.amStats;
+        state.toStats = action.payload.toStats;
         state.state = State.success;
       })
       .addCase(getRecordingStats.rejected, (state, action) => {
