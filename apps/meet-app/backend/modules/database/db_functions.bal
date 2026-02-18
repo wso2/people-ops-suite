@@ -60,7 +60,7 @@ public isolated function addMeeting(AddMeetingPayload addMeetingPayload, string 
 # + hostOrInternalParticipant - Filter by host or internal participant
 # + title - Name to filter  
 # + host - Host email filter  
-# + searchString - Search String to filter host , title and regional
+# + searchString - Search String to filter host and title
 # + startTime - Start time filter  
 # + endTime - End time filter  
 # + internalParticipants - Internal participants filter

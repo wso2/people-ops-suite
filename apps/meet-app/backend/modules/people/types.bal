@@ -51,13 +51,13 @@ public type Employee record {|
     string jobRole;
     # Thumbnail of the employee
     string? employeeThumbnail;
-    # Department of the host
+    # Team of the host
     string? team;
-    # Team of the host 
+    # Sub team of the host 
     string? subTeam;
-    # Sub team  of the host
-    string? businessUnit;
     # Business unit  of the host
+    string? businessUnit;
+    # Unit  of the host
     string? unit;
 |};
 

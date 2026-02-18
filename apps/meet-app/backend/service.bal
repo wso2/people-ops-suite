@@ -505,7 +505,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + title - Name to filter  
     # + host - Host to filter
-    # + searchString - Search String to filter host , title and regional 
+    # + searchString - Search String to filter host and title
     # + startTime - Start time to filter
     # + endTime - End time to filter
     # + internalParticipants - Participants to filter
@@ -541,7 +541,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 select meeting;
         }
         return {
-            count: (meetingList.length() > 0) ? meetingList[0].totalCount : 0,
+            count: meetingList.length(),
             meetings: from var meeting in meetingList
                 select {
                     meetingId: meeting.meetingId,

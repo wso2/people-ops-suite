@@ -57,13 +57,13 @@ public type UserInfoResponse record {|
     string? employeeThumbnail;
     # User Privileges
     int[] privileges;
-    # Department of the host
+    # Team of the host
     string? team;
-    # Team of the host 
+    # Sub team of the host 
     string? subTeam;
-    # Sub team  of the host
-    string? businessUnit;
     # Business unit  of the host
+    string? businessUnit;
+    # Unit  of the host
     string? unit;
 |};
 
