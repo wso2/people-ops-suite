@@ -33,6 +33,7 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
     // Fetch Employee Details
     string[] emails = from var stat in hostStats
         select stat.host;
+        
     people:EmployeeBasic[] employees = check people:getEmployees(emails);
     map<people:EmployeeBasic> empMap = {};
     foreach var emp in employees {
