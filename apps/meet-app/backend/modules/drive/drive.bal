@@ -56,6 +56,7 @@ public isolated function countWso2RecordingsInDateRange(string startTime, string
 
     string query = string `name contains 'WSO2' and 'me' in owners and mimeType = 'video/mp4' and trashed = false and createdTime >= '${
                     startTime}' and createdTime < '${endTime}'`;
+                    
     string encodedQuery = check url:encode(query, "UTF-8");
     string basePath = string `?q=${encodedQuery}&fields=files(id,name),nextPageToken&pageSize=1000`;
 
