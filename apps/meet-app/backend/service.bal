@@ -624,7 +624,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         foreach gcalendar:Attachment attachment in calendarEventAttachments ?: [] {
             if attachment.mimeType == "video/mp4" {
                 drive:DrivePermissionResponse|error permissionResult = drive:setFilePermission(
-                        <string>attachment.fileId, drive:EDITOR, drive:USER, meeting.host
+                    <string>attachment.fileId, drive:EDITOR, drive:USER, meeting.host
                 );
 
                 if permissionResult is error {
