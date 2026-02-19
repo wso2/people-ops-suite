@@ -55,18 +55,18 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
         // Aggregate Team Counts
         int currentTeamCount = teamCounts.hasKey(teamName) ? teamCounts.get(teamName) : 0;
         teamCounts[teamName] = currentTeamCount + stat.count;
-        if stat.team == SALES_TEAM{
+        if stat.team == SALES_TEAM {
             amStatsList.push({
-            "name": amName,
-            "value": stat.count,
-            "email": stat.host
-        });
+                "name": amName,
+                "value": stat.count,
+                "email": stat.host
+            });
         }
         if stat.team == SALES_ENGINEERING_TEAM {
             toStatsList.push({
-                "name":amName,
-                "value":stat.count,
-                "email":stat.host
+                "name": amName,
+                "value": stat.count,
+                "email": stat.host
             });
         }
     }
@@ -94,12 +94,12 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
     };
 }
 
-# Retrieve the user employee data 
+# Retrieve the employee data 
 #
-# + email - User email
+# + email - Employee email
 # + cache - Cached array
 # + return - UserInfoResponse | Employee | error
-isolated function getUserInfo(string email, cache:Cache cache) returns UserInfoResponse|people:Employee|error {
+isolated function getEmployeeInfo(string email, cache:Cache cache) returns UserInfoResponse|people:Employee|error {
     // Check if the employees are already cached.
     if cache.hasKey(email) {
         UserInfoResponse|error cachedUserInfo = cache.get(email).ensureType();
