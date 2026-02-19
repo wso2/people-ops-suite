@@ -525,7 +525,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             return <http:Forbidden>{body: {message: "Insufficient privileges to filter by host!"}};
         }
         if (searchString is string && (host is string || title is string)) {
-            return <http:BadRequest>{body: {message: "Search string cannot be presented when host or title are presented."}};
+            return <http:BadRequest>{body: {message: "searchString cannot be combined with host or title filters."}};
         }
         string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
         database:Meeting[]|error meetingsResult = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString,
