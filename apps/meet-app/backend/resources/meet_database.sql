@@ -14,7 +14,7 @@ CREATE TABLE meeting (
   `start_time` DATETIME NOT NULL,               -- Start time of the meeting
   `end_time` DATETIME NOT NULL,                 -- End time of the meeting
   `wso2_participants` TEXT NOT NULL,            -- List of participants (comma-separated values)
-  `is_recurring` BOOLEAN NOT NULL DEFAULT 0     -- Meeting is recurring or not 
+  `is_recurring` BOOLEAN NOT NULL DEFAULT 0,    -- Meeting is recurring or not
   `meeting_status` ENUM('ACTIVE', 'CANCELLED') NOT NULL,  -- Status of the meeting
   `created_on` TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),  -- Auto-generated timestamp on creation
   `created_by` VARCHAR(60) NOT NULL,            -- Creator of the meeting record
