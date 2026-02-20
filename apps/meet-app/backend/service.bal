@@ -513,7 +513,9 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            return <http:InternalServerError>{body: {message: "User information header not found!"}};
+            string customError = "User information header not found!";
+            log:printError(customError, userInfo);
+            return <http:InternalServerError>{body: {message: customError}};
         }
         boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
         if (!isAdmin && (host != ()) && (host != userInfo.email)) {
