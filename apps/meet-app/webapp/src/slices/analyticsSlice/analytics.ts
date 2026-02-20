@@ -18,6 +18,9 @@ import { State } from "../../types/types";
 import { AppConfig } from "../../config/config";
 import { APIService } from "../../utils/apiService";
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import axios, { HttpStatusCode } from "axios";
+import { SnackMessage } from "@root/src/config/constant";
+import { enqueueSnackbarMessage } from "../commonSlice/common";
 
 export interface MonthlyStat {
   year: number;
@@ -36,7 +39,7 @@ export interface RegionStat {
   value: number;
 }
 
-export interface AmStat {
+export interface Stat {
   name: string;
   value: number;
   email: string;
@@ -49,7 +52,8 @@ export interface AnalyticsState {
   recordingStats: MonthlyStat[];
   typeStats: TypeStat[];
   regionalStats: RegionStat[];
-  amStats: AmStat[];
+  amStats: Stat[];
+  toStats: Stat[];
 }
 
 const initialState: AnalyticsState = {
@@ -60,22 +64,53 @@ const initialState: AnalyticsState = {
   typeStats: [],
   regionalStats: [],
   amStats: [],
+  toStats: [],
 };
+
+interface Analytics {
+  monthlyStats: MonthlyStat[];
+  typeStats: TypeStat[];
+  regionalStats: RegionStat[];
+  amStats: Stat[];
+  toStats: Stat[];
+}
 
 export const getRecordingStats = createAsyncThunk(
   "analytics/getRecordingStats",
-  async (params: { startDate: string; endDate: string }) => {
-    return new Promise<{ monthlyStats: MonthlyStat[]; typeStats: TypeStat[]; regionalStats: RegionStat[]; amStats: AmStat[] }>((resolve, reject) => {
+  async (
+    { startDate, endDate }: { startDate: string; endDate: string },
+    { dispatch, rejectWithValue },
+  ) => {
+    APIService.getCancelToken().cancel();
+    const newCancelTokenSource = APIService.updateCancelToken();
+    return new Promise<Analytics>((resolve, reject) => {
       APIService.getInstance()
-        .get(`${AppConfig.serviceUrls.analyticsRecordings}?startDate=${params.startDate}&endDate=${params.endDate}`)
+        .get(AppConfig.serviceUrls.analyticsRecordings, {
+          params: { startDate, endDate },
+          cancelToken: newCancelTokenSource.token,
+        })
         .then((resp) => {
           resolve(resp.data);
         })
-        .catch((error: Error) => {
+        .catch((error) => {
+          if (axios.isCancel(error)) {
+            return rejectWithValue("Request canceled");
+          }
+          const errorMessage =
+            error.response?.data?.message ||
+            (error.response?.status === HttpStatusCode.InternalServerError
+              ? SnackMessage.error.fetchRecordingStatsMessage
+              : "An unknown error occurred.");
+          dispatch(
+            enqueueSnackbarMessage({
+              message: errorMessage,
+              type: "error",
+            }),
+          );
           reject(error);
         });
     });
-  }
+  },
 );
 
 export const AnalyticsSlice = createSlice({
@@ -97,6 +132,7 @@ export const AnalyticsSlice = createSlice({
         state.typeStats = action.payload.typeStats;
         state.regionalStats = action.payload.regionalStats;
         state.amStats = action.payload.amStats;
+        state.toStats = action.payload.toStats;
         state.state = State.success;
       })
       .addCase(getRecordingStats.rejected, (state, action) => {

@@ -42,6 +42,10 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         title, 
         google_event_id, 
         host, 
+        host_bu,
+        host_team,
+        host_sub_team,
+        host_unit,
         start_time, 
         end_time, 
         wso2_participants,
@@ -56,6 +60,10 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         ${meeting.title}, 
         ${meeting.googleEventId}, 
         ${meeting.host}, 
+        ${meeting.businessUnit},
+        ${meeting.team},
+        ${meeting.subTeam},
+        ${meeting.unit},
         ${meeting.startTime}, 
         ${meeting.endTime}, 
         ${meeting.internalParticipants},
@@ -71,14 +79,15 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 #
 # + hostOrInternalParticipant - Filter by host or internal participant  
 # + title - Title to filter  
-# + host - Host filter  
+# + host - Host filter
+# + searchString - Search String to filter host and title 
 # + startTime - Start time filter  
 # + endTime - End time filter  
 # + internalParticipants - Participants filter
 # + 'limit - Limit of the data  
 # + offset - offset of the query
 # + return - sql:ParameterizedQuery - Select query for the meeting table
-isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? title, string? host,
+isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? title, string? host, string? searchString,
         string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
     returns sql:ParameterizedQuery {
 
@@ -114,7 +123,7 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
     }
     if hostOrInternalParticipant is string {
         filters.push(sql:queryConcat(
-            `(host = ${hostOrInternalParticipant} OR wso2_participants LIKE ${"%" + hostOrInternalParticipant + "%"})`
+                `(host = ${hostOrInternalParticipant} OR wso2_participants LIKE ${"%" + hostOrInternalParticipant + "%"})`
         ));
     }
     if title is string {
@@ -126,16 +135,16 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
         foreach string participant in internalParticipants {
             if first {
                 internalParticipantsFilter = sql:queryConcat(
-                    internalParticipantsFilter,
-                    `wso2_participants LIKE ${"%" + participant + "%"}`
+                        internalParticipantsFilter,
+                        `wso2_participants LIKE ${"%" + participant + "%"}`
                 );
                 first = false;
                 continue;
             }
             // If the first participant is already added, add OR for the rest of the participants.
             internalParticipantsFilter = sql:queryConcat(
-                internalParticipantsFilter,
-                ` OR wso2_participants LIKE ${"%" + participant + "%"}`
+                    internalParticipantsFilter,
+                    ` OR wso2_participants LIKE ${"%" + participant + "%"}`
             );
         }
         internalParticipantsFilter = sql:queryConcat(internalParticipantsFilter, `)`);
@@ -146,6 +155,9 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
     }
     if endTime is string {
         filters.push(sql:queryConcat(`end_time <= ${endTime}`));
+    }
+    if searchString is string {
+        filters.push(sql:queryConcat(`(host like ${"%" + searchString + "%"} OR title LIKE ${"%" + searchString + "%"} )`));
     }
 
     // Building the WHERE clause.
@@ -261,6 +273,8 @@ isolated function countMeetingsByHostQuery(string startTime, string endTime) ret
 `
     SELECT 
         host,
+        host_team AS team,
+        host_sub_team AS subTeam,
         COUNT(*) as count
     FROM meeting
     WHERE 
@@ -268,5 +282,7 @@ isolated function countMeetingsByHostQuery(string startTime, string endTime) ret
         start_time >= ${startTime} AND
         start_time < ${endTime}
     GROUP BY 
-        host
+        host,
+        host_team,
+        host_sub_team
 `;

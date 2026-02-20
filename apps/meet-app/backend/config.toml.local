@@ -84,3 +84,7 @@
             email = ""
         }
     ]
+
+[meet_app.salesDesignations]
++teamNameOfAccountManager = ""
++teamNameOfTechnicalOfficer = ""

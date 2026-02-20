@@ -28,6 +28,7 @@ import ballerina/time;
 import ballerinax/googleapis.calendar as gcalendar;
 
 public configurable AppConfig appConfig = ?;
+public configurable SalesDesignations salesDesignations = ?;
 
 final cache:Cache cache = new ({
     capacity: 2000,
@@ -88,24 +89,19 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // Check if the employees are already cached.
-        if cache.hasKey(userInfo.email) {
-            UserInfoResponse|error cachedUserInfo = cache.get(userInfo.email).ensureType();
-            if cachedUserInfo is UserInfoResponse {
-                return cachedUserInfo;
-            }
-        }
-
-        // Fetch the user information from the people service.
-        people:Employee|error loggedInUser = people:fetchEmployeesBasicInfo(userInfo.email);
-        if loggedInUser is error {
+        people:Employee|UserInfoResponse|error employee = getEmployeeInfo(userInfo.email, cache);
+        if employee is error {
             string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
-            log:printError(customError, loggedInUser);
+            log:printError(customError, employee);
             return <http:InternalServerError>{
                 body: {
                     message: customError
                 }
             };
+        }
+
+        if employee is UserInfoResponse {
+            return employee;
         }
 
         // Fetch the user's privileges based on the roles.
@@ -117,7 +113,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             privileges.push(authorization:SALES_ADMIN_PRIVILEGE);
         }
 
-        UserInfoResponse userInfoResponse = {...loggedInUser, privileges};
+        UserInfoResponse userInfoResponse = {...employee, privileges};
 
         error? cacheError = cache.put(userInfo.email, userInfoResponse);
         if cacheError is error {
@@ -307,6 +303,22 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+        people:Employee|UserInfoResponse|error employee = getEmployeeInfo(userInfo.email, cache);
+        if employee is error {
+            string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
+            log:printError(customError, employee);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+
+        string unit = employee.unit ?: "N/A";
+        string team = employee.team ?: "N/A";
+        string subTeam = employee.subTeam ?: "N/A";
+        string businessUnit = employee.businessUnit ?: "N/A";
+
         string originalTitle = createCalendarEventRequest.title;
         string meetingType = "General";
         string[] titleParts = re `-`.split(createCalendarEventRequest.title);
@@ -417,12 +429,16 @@ service http:InterceptableService / on new http:Listener(9090) {
                     googleEventId: instance.id,
                     host: userInfo.email,
                     internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
-                    .map(internalParticipant => internalParticipant.trim())),
+                            .map(internalParticipant => internalParticipant.trim())),
                     startTime: startTimeDb,
                     endTime: endTimeDb,
                     isRecurring: true,
                     recurrence_rule: rule,
-                    meetingType: meetingType
+                    meetingType: meetingType,
+                    unit: unit,
+                    team: team,
+                    subTeam: subTeam,
+                    businessUnit: businessUnit
                 };
                 int|error meetingId = database:addMeeting(addMeetingPayload, userInfo.email);
                 if meetingId is error {
@@ -449,14 +465,18 @@ service http:InterceptableService / on new http:Listener(9090) {
                 googleEventId: calendarCreateEventResponse.id,
                 host: userInfo.email,
                 internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
-                .map(internalParticipant => internalParticipant.trim())),
+                        .map(internalParticipant => internalParticipant.trim())),
                 startTime: createCalendarEventRequest.startTime
                 .substring(0, createCalendarEventRequest.startTime.length() - 6),
                 endTime: createCalendarEventRequest.endTime
                 .substring(0, createCalendarEventRequest.endTime.length() - 6),
                 isRecurring: false,
                 recurrence_rule: null,
-                meetingType: meetingType
+                meetingType: meetingType,
+                unit: unit,
+                team: team,
+                subTeam: subTeam,
+                businessUnit: businessUnit
             };
 
             // Insert the meeting details into the database.
@@ -480,52 +500,67 @@ service http:InterceptableService / on new http:Listener(9090) {
     #
     # + title - Name to filter  
     # + host - Host to filter
+    # + searchString - Search String to filter host and title
     # + startTime - Start time to filter
     # + endTime - End time to filter
     # + internalParticipants - Participants to filter
     # + 'limit - Limit of the data  
     # + offset - Offset of the data
     # + return - Meetings | Error
-    resource function get meetings(http:RequestContext ctx, string? title, string? host,
+    resource function get meetings(http:RequestContext ctx, string? title, string? host, string? searchString,
             string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
-        returns MeetingListResponse|http:Forbidden|http:InternalServerError {
+    returns MeetingListResponse|http:Forbidden|http:InternalServerError|http:BadRequest {
 
-        // User information header.
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            return <http:InternalServerError>{
-                body: {
-                    message: "User information header not found!"
-                }
-            };
-        }
-
-        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
-
-        // Return Forbidden if a non-admin user provides a host query parameter.
-        if (!isAdmin && (host != ()) && (host != userInfo.email)) {
-            return <http:Forbidden>{
-                body: {message: "Insufficient privileges to filter by host!"}
-            };
-        }
-
-        // Fetch the meetings from the database.
-        string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
-        database:Meeting[]|error meetings = database:fetchMeetings(hostOrInternalParticipant, title, host,
-            startTime, endTime, internalParticipants, 'limit, offset);
-        if meetings is error {
-            string customError = string `Error occurred while retrieving the meetings!`;
-            log:printError(customError, meetings);
+            string customError = "User information header not found!";
+            log:printError(customError, userInfo);
             return <http:InternalServerError>{
                 body: {
                     message: customError
                 }
             };
         }
-
+        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
+        if (!isAdmin && (host != ()) && (host != userInfo.email)) {
+            string customError = "Insufficient privileges to filter by host!";
+            log:printError(customError);
+            return <http:Forbidden>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        if (searchString is string && (host is string || title is string)) {
+            string customError = "searchString cannot be combined with host or title filters.";
+            log:printError(customError);
+            return <http:BadRequest>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
+        database:Meeting[]|error meetingsResult = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString,
+                startTime, endTime, internalParticipants, 'limit, offset);
+        if meetingsResult is error {
+            string customError = "Error occurred while retrieving the meetings!";
+            log:printError(customError, meetingsResult);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        database:Meeting[] meetingList = meetingsResult;
+        if !isAdmin {
+            meetingList = from var meeting in meetingList
+                where meeting.host == userInfo.email
+                select meeting;
+        }
         return {
-            count: (meetings.length() > 0) ? meetings[0].totalCount : 0,
-            meetings: from var meeting in meetings
+            count: (meetingList.length() > 0) ? meetingList[0].totalCount : 0,
+            meetings: from var meeting in meetingList
                 select {
                     meetingId: meeting.meetingId,
                     title: meeting.title,
@@ -809,16 +844,19 @@ service http:InterceptableService / on new http:Listener(9090) {
         json|error peopleRes = wait PeopleStats;
         json[] regionalStats = [];
         json[] amStats = [];
+        json[] toStats = [];
         if peopleRes is json {
             regionalStats = <json[]>(check peopleRes.regionalStats);
             amStats = <json[]>(check peopleRes.amStats);
+            toStats = <json[]>(check peopleRes.toStats);
         }
 
         return {
             "monthlyStats": monthlyStats,
             "typeStats": typeStatsJson,
             "regionalStats": regionalStats,
-            "amStats": amStats
+            "amStats": amStats,
+            "toStats": toStats
         };
     }
 }

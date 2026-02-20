@@ -60,19 +60,20 @@ public isolated function addMeeting(AddMeetingPayload addMeetingPayload, string 
 # + hostOrInternalParticipant - Filter by host or internal participant
 # + title - Name to filter  
 # + host - Host email filter  
+# + searchString - Search String to filter host and title
 # + startTime - Start time filter  
 # + endTime - End time filter  
 # + internalParticipants - Internal participants filter
 # + 'limit - Limit of the response
 # + offset - Offset of the number of meetings to retrieve  
 # + return - List of meetings | Error
-public isolated function fetchMeetings(string? hostOrInternalParticipant, string? title, string? host,
+public isolated function fetchMeetings(string? hostOrInternalParticipant, string? title, string? host, string? searchString,
         string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
     returns Meeting[]|error {
 
     stream<Meeting, error?> resultStream = databaseClient->query(
         getMeetingsQuery(
-            hostOrInternalParticipant, title, host, startTime, endTime, internalParticipants, 'limit, offset
+            hostOrInternalParticipant, title, host, searchString, startTime, endTime, internalParticipants, 'limit, offset
         )
     );
 
@@ -128,7 +129,7 @@ public isolated function getMeetingTypeStats(string startTime, string endTime) r
     stream<MeetingTypeStat, sql:Error?> resultStream = databaseClient->query(
         countMeetingTypesQuery(startTime, endTime)
     );
-    
+
     return from MeetingTypeStat stat in resultStream
         select stat;
 }

@@ -28,7 +28,7 @@ public function getUserInfoTest() returns error? {
     // Resource get user\-info.
     http:Response errorResponse = check testClient->/user\-info.get();
     test:assertEquals(errorResponse.statusCode, http:STATUS_INTERNAL_SERVER_ERROR,
-        "Assertion Failed! : get user-info HeaderTest");
+            "Assertion Failed! : get user-info HeaderTest");
 
     // Happy path.
     http:Response successResponse = check testClient->/user\-info.get(headers = {"x-jwt-assertion": jwtKey});

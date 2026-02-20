@@ -38,7 +38,7 @@ public type Meeting record {|
     # Time Status (e.g., 'PAST', 'UPCOMING')
     database:TimeStatus timeStatus;
     # Whether the meeting is recurring
-    boolean isRecurring;  
+    boolean isRecurring;
 |};
 
 # Represents the response structure for retrieving user information.
@@ -57,6 +57,14 @@ public type UserInfoResponse record {|
     string? employeeThumbnail;
     # User Privileges
     int[] privileges;
+    # Business unit  of the host
+    string? businessUnit;
+    # Team of the host
+    string? team;
+    # Sub team of the host 
+    string? subTeam;
+    # Unit  of the host
+    string? unit;
 |};
 
 # Represents the response after successfully creating a meeting.
@@ -99,4 +107,12 @@ public type SupportTeamEmail record {|
 public type AppConfig record {|
     # List of support team emails
     SupportTeamEmail[] supportTeamEmails;
+|};
+
+# Represent the designations of a sales team.
+public type SalesDesignations record {|
+    # Team Name Of Account Manager
+    string teamNameOfAccountManager;
+    # Team Name Of Technical Officer
+    string teamNameOfTechnicalOfficer;
 |};

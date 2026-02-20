@@ -51,6 +51,14 @@ public type Employee record {|
     string jobRole;
     # Thumbnail of the employee
     string? employeeThumbnail;
+    # Business unit  of the host
+    string? businessUnit;
+    # Team of the host
+    string? team;
+    # Sub team of the host 
+    string? subTeam;
+    # Unit  of the host
+    string? unit;
 |};
 
 # Employee data.
@@ -72,7 +80,7 @@ public type EmployeeFilter record {|
     # The employment types
     string[]? employmentType?;
     # The employee email
-    string[]? email?;
+    string[]? emails?;
 |};
 
 # Basic employee information.
@@ -85,8 +93,10 @@ public type EmployeeBasic record {|
     string workEmail;
     # Thumbnail of the employee
     string? employeeThumbnail = ();
-    # Team of the employee
+    # Department of the employee
     string? team = ();
+    # Team of the employee
+    string? subTeam = ();
 |};
 
 # Employees data.
