@@ -33,7 +33,7 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
     // Fetch Employee Details
     string[] emails = from var stat in hostStats
         select stat.host;
-        
+
     people:EmployeeBasic[] employees = check people:getEmployees(emails);
     map<people:EmployeeBasic> empMap = {};
     foreach var emp in employees {
@@ -56,14 +56,14 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
         // Aggregate Team Counts
         int currentTeamCount = teamCounts.hasKey(teamName) ? teamCounts.get(teamName) : 0;
         teamCounts[teamName] = currentTeamCount + stat.count;
-        if stat.team == SALES_TEAM {
+        if stat.team == salesDesignations.teamNameOfAccountManager {
             amStatsList.push({
                 "name": amName,
                 "value": stat.count,
                 "email": stat.host
             });
         }
-        if stat.team == SALES_ENGINEERING_TEAM {
+        if stat.team == salesDesignations.teamNameOfTechnicalOfficer {
             toStatsList.push({
                 "name": amName,
                 "value": stat.count,

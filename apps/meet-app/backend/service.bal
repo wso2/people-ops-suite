@@ -28,6 +28,7 @@ import ballerina/time;
 import ballerinax/googleapis.calendar as gcalendar;
 
 public configurable AppConfig appConfig = ?;
+public configurable SalesDesignations salesDesignations = ?;
 
 final cache:Cache cache = new ({
     capacity: 2000,
@@ -61,12 +62,6 @@ service class ErrorInterceptor {
 
 service http:InterceptableService / on new http:Listener(9090) {
 
-    # Initialize the service.
-    #
-    function init() {
-        log:printInfo("Successfully started the meet app...");
-    }
-
     # Request interceptor.
     #
     # + return - authorization:JwtInterceptor, ErrorInterceptor
@@ -94,7 +89,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        people:Employee|UserInfoResponse|error employee = getUserInfo(userInfo.email, cache);
+        people:Employee|UserInfoResponse|error employee = getEmployeeInfo(userInfo.email, cache);
         if employee is error {
             string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
             log:printError(customError, employee);
@@ -308,7 +303,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        people:Employee|UserInfoResponse|error employee = getUserInfo(userInfo.email, cache);
+        people:Employee|UserInfoResponse|error employee = getEmployeeInfo(userInfo.email, cache);
         if employee is error {
             string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
             log:printError(customError, employee);
@@ -531,8 +526,9 @@ service http:InterceptableService / on new http:Listener(9090) {
         database:Meeting[]|error meetingsResult = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString,
                 startTime, endTime, internalParticipants, 'limit, offset);
         if meetingsResult is error {
-            log:printError("Error occurred while retrieving the meetings!", meetingsResult);
-            return <http:InternalServerError>{body: {message: "Error occurred while retrieving the meetings!"}};
+            string customError = "Error occurred while retrieving the meetings!";
+            log:printError(customError, meetingsResult);
+            return <http:InternalServerError>{body: {message: customError}};
         }
         database:Meeting[] meetingList = meetingsResult;
         if !isAdmin {

@@ -27,10 +27,10 @@ public isolated function fetchEmployeesBasicInfo(string workEmail) returns Emplo
                 lastName,
                 jobRole,
                 employeeThumbnail,
+                businessUnit: businessUnit,
                 team: department,
                 subTeam: team,
-                unit: subTeam,
-                businessUnit: businessUnit
+                unit: subTeam
             }
         }
     `;

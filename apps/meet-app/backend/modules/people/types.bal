@@ -51,12 +51,12 @@ public type Employee record {|
     string jobRole;
     # Thumbnail of the employee
     string? employeeThumbnail;
+    # Business unit  of the host
+    string? businessUnit;
     # Team of the host
     string? team;
     # Sub team of the host 
     string? subTeam;
-    # Business unit  of the host
-    string? businessUnit;
     # Unit  of the host
     string? unit;
 |};

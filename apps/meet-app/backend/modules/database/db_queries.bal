@@ -42,10 +42,10 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         title, 
         google_event_id, 
         host, 
-        host_unit,
+        host_bu,
         host_team,
         host_sub_team,
-        host_bu,
+        host_unit,
         start_time, 
         end_time, 
         wso2_participants,
@@ -60,10 +60,10 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         ${meeting.title}, 
         ${meeting.googleEventId}, 
         ${meeting.host}, 
-        ${meeting.unit},
+        ${meeting.businessUnit},
         ${meeting.team},
         ${meeting.subTeam},
-        ${meeting.businessUnit},
+        ${meeting.unit},
         ${meeting.startTime}, 
         ${meeting.endTime}, 
         ${meeting.internalParticipants},
@@ -87,7 +87,7 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 # + 'limit - Limit of the data  
 # + offset - offset of the query
 # + return - sql:ParameterizedQuery - Select query for the meeting table
-isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? title, string? host,string? searchString,
+isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? title, string? host, string? searchString,
         string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
     returns sql:ParameterizedQuery {
 
@@ -156,7 +156,7 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
     if endTime is string {
         filters.push(sql:queryConcat(`end_time <= ${endTime}`));
     }
-    if searchString is string{
+    if searchString is string {
         filters.push(sql:queryConcat(`(host like ${"%" + searchString + "%"} OR title LIKE ${"%" + searchString + "%"} )`));
     }
 
@@ -273,8 +273,8 @@ isolated function countMeetingsByHostQuery(string startTime, string endTime) ret
 `
     SELECT 
         host,
-        host_team,
-        host_sub_team,
+        host_team AS team,
+        host_sub_team AS subTeam,
         COUNT(*) as count
     FROM meeting
     WHERE 

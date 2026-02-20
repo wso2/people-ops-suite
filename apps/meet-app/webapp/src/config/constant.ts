@@ -31,6 +31,7 @@ export const SnackMessage = {
     fetchAttachments: "Unable to retrieve list of Attachments",
     fetchMeetingTypes: "Unable to retrieve list of Meeting Types",
     fetchAppConfigMessage: "Unable to retrieve app configurations",
+    fetchRecordingStatsMessage:"Unable to retrieve Recording Stats",
   },
   warning: {},
 };

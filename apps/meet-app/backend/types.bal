@@ -57,12 +57,12 @@ public type UserInfoResponse record {|
     string? employeeThumbnail;
     # User Privileges
     int[] privileges;
+    # Business unit  of the host
+    string? businessUnit;
     # Team of the host
     string? team;
     # Sub team of the host 
     string? subTeam;
-    # Business unit  of the host
-    string? businessUnit;
     # Unit  of the host
     string? unit;
 |};
@@ -107,4 +107,12 @@ public type SupportTeamEmail record {|
 public type AppConfig record {|
     # List of support team emails
     SupportTeamEmail[] supportTeamEmails;
+|};
+
+# Represent the designations of a sales team.
+public type SalesDesignations record {|
+    # Team Name Of Account Manager
+    string teamNameOfAccountManager;
+    # Team Name Of Technical Officer
+    string teamNameOfTechnicalOfficer;
 |};

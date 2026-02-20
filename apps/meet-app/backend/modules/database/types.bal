@@ -54,12 +54,12 @@ public type AddMeetingPayload record {|
     string? recurrence_rule;
     # Meeting type
     string meetingType;
+    # Business unit  of the host
+    string? businessUnit;
     # Team of the host
     string? team;
     # Sub team of the host 
     string? subTeam;
-    # Business unit  of the host
-    string? businessUnit;
     # Unit  of the host
     string? unit;
 |};
@@ -132,7 +132,7 @@ public enum TimeStatus {
 public type MeetingTypeStat record {|
     # Type of the meeting
     string meeting_type;
-    # Number of active meetings
+    # Number of meetings
     int count;
 |};
 
@@ -142,26 +142,10 @@ public type MeetingHostStat record {|
     string host;
     # Total number of active meetings
     int count;
-    # Department of the host
-    @sql:Column {
-        name: "host_team"
-    }
-    string? team = ();
     # Team of the host
-    @sql:Column {
-        name: "host_sub_team"
-    }
-    string? subTeam ;
-    # Business unit of the host
-    @sql:Column {
-        name: "host_bu"
-    }
-    string? businessUnit;
+    string? team;
     # Sub team of the host
-    @sql:Column {
-        name: "host_unit"
-    }
-    string? unit;
+    string? subTeam;
 |};
 
 # [Database]Scheduled meeting count for a month.
