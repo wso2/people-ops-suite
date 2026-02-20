@@ -517,10 +517,14 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
         if (!isAdmin && (host != ()) && (host != userInfo.email)) {
-            return <http:Forbidden>{body: {message: "Insufficient privileges to filter by host!"}};
+            string customError = "Insufficient privileges to filter by host!";
+            log:printError(customError);
+            return <http:Forbidden>{body: {message: customError}};
         }
         if (searchString is string && (host is string || title is string)) {
-            return <http:BadRequest>{body: {message: "searchString cannot be combined with host or title filters."}};
+            string customError = "searchString cannot be combined with host or title filters.";
+            log:printError(customError);
+            return <http:BadRequest>{body: {message: customError}};
         }
         string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
         database:Meeting[]|error meetingsResult = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString,
