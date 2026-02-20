@@ -60,7 +60,7 @@ public isolated function getEmployees(string[]? emails = ()) returns EmployeeBas
             lastName
             employeeThumbnail
             team: department
-            subTeam:team 
+            subTeam: team 
         }
     }`;
 

@@ -86,5 +86,5 @@
     ]
 
 [meet_app.salesDesignations]
-TeamNameOfAccountManager = ""
-TeamNameOfTechnicalOfficer = ""
++teamNameOfAccountManager = ""
++teamNameOfTechnicalOfficer = ""

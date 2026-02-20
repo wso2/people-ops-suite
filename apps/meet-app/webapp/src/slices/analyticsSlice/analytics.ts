@@ -18,7 +18,7 @@ import { State } from "../../types/types";
 import { AppConfig } from "../../config/config";
 import { APIService } from "../../utils/apiService";
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { HttpStatusCode } from "axios";
+import axios, { HttpStatusCode } from "axios";
 import { SnackMessage } from "@root/src/config/constant";
 import { enqueueSnackbarMessage } from "../commonSlice/common";
 
@@ -79,7 +79,7 @@ export const getRecordingStats = createAsyncThunk(
   "analytics/getRecordingStats",
   async (
     { startDate, endDate }: { startDate: string; endDate: string },
-    { dispatch },
+    { dispatch, rejectWithValue },
   ) => {
     APIService.getCancelToken().cancel();
     const newCancelTokenSource = APIService.updateCancelToken();
@@ -93,6 +93,9 @@ export const getRecordingStats = createAsyncThunk(
           resolve(resp.data);
         })
         .catch((error) => {
+          if (axios.isCancel(error)) {
+            return rejectWithValue("Request canceled");
+          }
           const errorMessage =
             error.response?.data?.message ||
             (error.response?.status === HttpStatusCode.InternalServerError
