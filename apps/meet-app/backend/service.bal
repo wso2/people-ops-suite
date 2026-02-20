@@ -515,18 +515,30 @@ service http:InterceptableService / on new http:Listener(9090) {
         if userInfo is error {
             string customError = "User information header not found!";
             log:printError(customError, userInfo);
-            return <http:InternalServerError>{body: {message: customError}};
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
         }
         boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
         if (!isAdmin && (host != ()) && (host != userInfo.email)) {
             string customError = "Insufficient privileges to filter by host!";
             log:printError(customError);
-            return <http:Forbidden>{body: {message: customError}};
+            return <http:Forbidden>{
+                body: {
+                    message: customError
+                }
+            };
         }
         if (searchString is string && (host is string || title is string)) {
             string customError = "searchString cannot be combined with host or title filters.";
             log:printError(customError);
-            return <http:BadRequest>{body: {message: customError}};
+            return <http:BadRequest>{
+                body: {
+                    message: customError
+                }
+            };
         }
         string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
         database:Meeting[]|error meetingsResult = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString,
@@ -534,7 +546,11 @@ service http:InterceptableService / on new http:Listener(9090) {
         if meetingsResult is error {
             string customError = "Error occurred while retrieving the meetings!";
             log:printError(customError, meetingsResult);
-            return <http:InternalServerError>{body: {message: customError}};
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
         }
         database:Meeting[] meetingList = meetingsResult;
         if !isAdmin {
