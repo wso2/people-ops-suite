@@ -13,6 +13,10 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License. 
+
+# Allowed employment types.
+configurable string[] allowedEmployeeTypes = ?;
+
 # Retrieves basic employee details by work email.
 #
 # + workEmail - WSO2 email address
@@ -49,7 +53,7 @@ public isolated function getEmployees(string[]? emails = ()) returns EmployeeBas
 
     EmployeeFilter filter = {
         employeeStatus: [Active, Marked\ leaver],
-        employmentType: [PERMANENT, CONSULTANCY, PART\ TIME\ CONSULTANCY],
+        employmentType: allowedEmployeeTypes,
         emails: emails
     };
 

@@ -27,7 +27,7 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
     // Get Raw Counts per Host from Database
     database:MeetingHostStat[] hostStats = check database:getMeetingCountsByHost(startDate, endDate);
     if hostStats.length() == 0 {
-        return {"regionalStats": [], "amStats": []};
+        return {"regionalStats": [], "amStats": [], "toStats": []};
     }
 
     // Fetch Employee Details
