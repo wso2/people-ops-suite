@@ -168,13 +168,14 @@ function Analytics() {
   useEffect(() => {
     if (startDate && endDate) {
       if (new Date(startDate) > new Date(endDate)) return;
-      dispatch(
-        getRecordingStats({
-          startDate: formatForAPI(startDate),
-          endDate: formatForAPI(endDate),
-          region: regionOption,
-        }),
-      );
+      const params: any = {
+        startDate: formatForAPI(startDate),
+        endDate: formatForAPI(endDate),
+      };
+      if (regionOption !== "All") {
+        params.region = regionOption;
+      }
+      dispatch(getRecordingStats(params));
       setMeetingTypePage(0);
       setListPage(0);
     }

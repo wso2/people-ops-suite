@@ -90,14 +90,17 @@ function MeetingHistory() {
   const [regionOption, setRegionRangeOption] = useState<string>("All");
 
   useEffect(() => {
-    dispatch(
-      fetchMeetings({
-        searchString: filteredSearchQuery,
-        limit: pageSize,
-        offset: page * pageSize,
-        region: regionOption,
-      }),
-    );
+    const params: any = {
+      searchString: filteredSearchQuery,
+      limit: pageSize,
+      offset: page * pageSize,
+    };
+
+    if (regionOption !== "All") {
+      params.region = regionOption;
+    }
+
+    dispatch(fetchMeetings(params));
   }, [dispatch, filteredSearchQuery, page, pageSize, regionOption]);
 
   useEffect(() => {
