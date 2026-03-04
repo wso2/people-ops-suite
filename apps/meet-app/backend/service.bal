@@ -546,7 +546,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + 'limit - Limit of the data  
     # + offset - Offset of the data
     # + return - Meetings | Error
-    resource function get meetings(http:RequestContext ctx, string? title, string? host, string? searchString,
+    resource function get meetings(http:RequestContext ctx, string? title, string? host, string? searchString, string? region,
             string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
     returns MeetingListResponse|http:Forbidden|http:InternalServerError|http:BadRequest {
 
@@ -580,7 +580,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
         string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
-        database:Meeting[]|error meetingsResult = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString,
+        database:Meeting[]|error meetingsResult = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString, region,
                 startTime, endTime, internalParticipants, 'limit, offset);
         if meetingsResult is error {
             string customError = "Error occurred while retrieving the meetings!";
@@ -784,7 +784,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + startDate - Start date in ISO format
     # + endDate - End date in ISO format
     # + return - Statistics or Error
-    resource function get stats(http:RequestContext ctx, string startDate, string endDate)
+    resource function get stats(http:RequestContext ctx, string startDate, string endDate, string? region)
         returns json|http:InternalServerError|http:BadRequest|error {
 
         // Validate Dates
@@ -801,9 +801,9 @@ service http:InterceptableService / on new http:Listener(9090) {
             return <http:BadRequest>{body: {message: "Start Date must be before End Date"}};
         }
 
-        future<map<int>|error> scheduledCounts = start database:getMonthlyScheduledCounts(startDate, endDate);
-        future<database:MeetingTypeStat[]|error> meetingTypes = start database:getMeetingTypeStats(startDate, endDate);
-        future<json|error> PeopleStats = start getPeopleAnalytics(startDate, endDate);
+        future<map<int>|error> scheduledCounts = start database:getMonthlyScheduledCounts(startDate, endDate, region);
+        future<database:MeetingTypeStat[]|error> meetingTypes = start database:getMeetingTypeStats(startDate, endDate, region);
+        future<json|error> PeopleStats = start getPeopleAnalytics(startDate, endDate, region);
 
         time:Civil startCivil = time:utcToCivil(startUtc);
         time:Civil endCivil = time:utcToCivil(endUtc);
@@ -838,7 +838,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
 
             // Drive API
-            future<int|error> fDrive = start drive:countWso2RecordingsInDateRange(queryStartTime, queryEndTime);
+            future<int|error> fDrive = start drive:countWso2RecordingsInDateRange(queryStartTime, queryEndTime,region);
             driveFutureMap[monthKey] = fDrive;
             metaDataMap[monthKey] = {
                 "year": cursorYear,

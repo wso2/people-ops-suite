@@ -15,17 +15,19 @@
 // under the License.
 import meet_app.database;
 import meet_app.people;
+
 import ballerina/cache;
 
 # Aggregates meeting statistics by Account Manager and their respective Regional Teams.
 #
 # + startDate - The start of the analysis range
 # + endDate - The end of the analysis range
+# + region - Region filter
 # + return - A JSON object containing `regionalStats` and `amStats` arrays, sorted by count or an error.
-isolated function getPeopleAnalytics(string startDate, string endDate) returns json|error {
+isolated function getPeopleAnalytics(string startDate, string endDate , string? region) returns json|error {
 
     // Get Raw Counts per Host from Database
-    database:MeetingHostStat[] hostStats = check database:getMeetingCountsByHost(startDate, endDate);
+    database:MeetingHostStat[] hostStats = check database:getMeetingCountsByHost(startDate, endDate , region );
     if hostStats.length() == 0 {
         return {"regionalStats": [], "amStats": [], "toStats": []};
     }
