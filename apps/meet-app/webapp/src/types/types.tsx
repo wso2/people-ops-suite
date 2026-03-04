@@ -35,3 +35,8 @@ export interface CommonCardProps {
   actions: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
   dataCardIndex: number;
 }
+
+export interface DropdownOption {
+  value: string;
+  label: string;
+}

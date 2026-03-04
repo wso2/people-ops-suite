@@ -27,9 +27,10 @@ import {
   DialogActions,
   DialogContent,
   CircularProgress,
+  SelectChangeEvent,
 } from "@mui/material";
-import { State } from "@/types/types";
-import { useEffect, useState } from "react";
+import { DropdownOption, State } from "@/types/types";
+import { useEffect, useMemo, useState } from "react";
 import { ConfirmationType } from "@/types/types";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import ErrorHandler from "@component/common/ErrorHandler";
@@ -49,6 +50,8 @@ import {
   deleteMeeting,
   fetchAttachments,
 } from "@slices/meetingSlice/meeting";
+import { fetchRegions } from "@root/src/slices/regionsSlice/regions";
+import Dropdown from "@root/src/component/ui/Dropdown";
 
 interface Attachment {
   title: string;
@@ -71,6 +74,7 @@ const formatDateTime = (dateTimeStr: string) => {
 function MeetingHistory() {
   const dispatch = useAppDispatch();
   const meeting = useAppSelector((state) => state.meeting);
+  const regions = useAppSelector((state) => state.region);
   const totalMeetings = meeting.meetings?.count || 0;
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
@@ -83,6 +87,7 @@ function MeetingHistory() {
   const [filteredSearchQuery, setFilteredSearchQuery] = useState<string | null>(
     null,
   );
+  const [regionOption, setRegionRangeOption] = useState<string>("All");
 
   useEffect(() => {
     dispatch(
@@ -90,9 +95,31 @@ function MeetingHistory() {
         searchString: filteredSearchQuery,
         limit: pageSize,
         offset: page * pageSize,
+        region: regionOption,
       }),
     );
-  }, [dispatch, filteredSearchQuery, page, pageSize]);
+  }, [dispatch, filteredSearchQuery, page, pageSize, regionOption]);
+
+  useEffect(() => {
+    if (regions.state !== State.loading && regions.state !== State.success) {
+      dispatch(fetchRegions());
+    }
+  }, [dispatch, regions.state]);
+
+  const regionsOption: DropdownOption[] = useMemo(() => {
+    const fetchedRegions = regions.regions?.regions ?? [];
+
+    const dynamicOptions = fetchedRegions.map((region) => ({
+      value: region,
+      label: region,
+    }));
+
+    return [{ value: "All", label: "All" }, ...dynamicOptions];
+  }, [regions.regions?.regions]);
+
+  const handleRegionChange = (event: SelectChangeEvent) => {
+    setRegionRangeOption(event.target.value);
+  };
 
   const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
     dialogContext.showConfirmation(
@@ -353,6 +380,14 @@ function MeetingHistory() {
           pb: 1,
         }}
       >
+        <Dropdown
+          label="Region"
+          value={regionOption}
+          options={regionsOption}
+          onChange={handleRegionChange}
+          isLoading={regions.state === State.loading}
+          size="small"
+        />
         <TextField
           label="Search by Title"
           size="small"
@@ -369,6 +404,7 @@ function MeetingHistory() {
           spellCheck={false}
           sx={{
             width: 300,
+            ml: 2,
             "& .MuiInputBase-root": {
               paddingRight: 0,
             },

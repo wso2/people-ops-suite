@@ -54,6 +54,9 @@ import {
 import { getRecordingStats } from "@root/src/slices/analyticsSlice/analytics";
 import { State } from "@root/src/types/types";
 import { useEffect, useMemo, useState } from "react";
+import Dropdown from "@src/component/ui/Dropdown";
+import { DropdownOption } from "@root/src/types/types";
+import { fetchRegions } from "@root/src/slices/regionsSlice/regions";
 
 const formatDateForInput = (date: Date) => {
   const tzOffsetMs = date.getTimezoneOffset() * 60000;
@@ -65,6 +68,29 @@ const formatForAPI = (dateStr: string) => {
   return new Date(year, month - 1, day).toISOString();
 };
 
+const DateRange: DropdownOption[] = [
+  {
+    value: "1M",
+    label: "Last Month",
+  },
+  {
+    value: "3M",
+    label: "Last 3 Months",
+  },
+  {
+    value: "6M",
+    label: "Last 6 Months",
+  },
+  {
+    value: "1Y",
+    label: "Last Year",
+  },
+  {
+    value: "Custom",
+    label: "Custom",
+  },
+];
+
 const ITEMS_PER_PAGE = 5;
 
 function Analytics() {
@@ -74,6 +100,7 @@ function Analytics() {
 
   const { recordingStats, typeStats, regionalStats, amStats, toStats, state } =
     useAppSelector((state: RootState) => state.analytics);
+  const regions = useAppSelector((state) => state.region);
 
   const [dateRangeOption, setDateRangeOption] = useState<string>("6M");
   const [endDate, setEndDate] = useState<string>(() =>
@@ -89,6 +116,18 @@ function Analytics() {
   const [listPage, setListPage] = useState(0);
 
   const [groupBy, setGroupBy] = useState<"AM" | "TO">("AM");
+  const [regionOption, setRegionRangeOption] = useState<string>("All");
+  const regionsOption: DropdownOption[] = useMemo(() => {
+    const fetchedRegions = regions.regions?.regions ?? [];
+    const dynamicOptions = fetchedRegions.map((region) => ({
+      value: region,
+      label: region,
+    }));
+    return [{ value: "All", label: "All" }, ...dynamicOptions];
+  }, [regions.regions?.regions]);
+  const handleRegionChange = (event: SelectChangeEvent) => {
+    setRegionRangeOption(event.target.value);
+  };
 
   const handleRangeChange = (event: SelectChangeEvent) => {
     const option = event.target.value;
@@ -133,12 +172,18 @@ function Analytics() {
         getRecordingStats({
           startDate: formatForAPI(startDate),
           endDate: formatForAPI(endDate),
+          region: regionOption,
         }),
       );
       setMeetingTypePage(0);
       setListPage(0);
     }
-  }, [dispatch, startDate, endDate]);
+  }, [dispatch, startDate, endDate, regionOption]);
+  useEffect(() => {
+    if (regions.state !== State.loading && regions.state !== State.success) {
+      dispatch(fetchRegions());
+    }
+  }, [dispatch, regions.state]);
 
   useEffect(() => {
     setListPage(0);
@@ -206,23 +251,22 @@ function Analytics() {
         </Typography>
 
         <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel sx={{ fontWeight: "bold", color: "text.primary" }}>
-              Date Range
-            </InputLabel>
-            <Select
-              value={dateRangeOption}
-              label="Date Range"
-              onChange={handleRangeChange}
-              sx={{ fontWeight: "bold", color: "text.primary" }}
-            >
-              <MenuItem value="1M">Last Month</MenuItem>
-              <MenuItem value="3M">Last 3 Months</MenuItem>
-              <MenuItem value="6M">Last 6 Months</MenuItem>
-              <MenuItem value="1Y">Last Year</MenuItem>
-              <MenuItem value="custom">Custom</MenuItem>
-            </Select>
-          </FormControl>
+          <Dropdown
+            label="Region"
+            value={regionOption}
+            options={regionsOption}
+            onChange={handleRegionChange}
+            isLoading={regions.state === State.loading}
+            size="small"
+          />
+          <Dropdown
+            label="Date Range"
+            value={dateRangeOption}
+            options={DateRange}
+            onChange={handleRangeChange}
+            size="small"
+          />
+
           <TextField
             label="Start Date"
             type="date"

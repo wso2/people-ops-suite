@@ -78,7 +78,11 @@ interface Analytics {
 export const getRecordingStats = createAsyncThunk(
   "analytics/getRecordingStats",
   async (
-    { startDate, endDate }: { startDate: string; endDate: string },
+    {
+      startDate,
+      endDate,
+      region,
+    }: { startDate: string; endDate: string; region?: string },
     { dispatch, rejectWithValue },
   ) => {
     APIService.getCancelToken().cancel();
@@ -86,7 +90,7 @@ export const getRecordingStats = createAsyncThunk(
     return new Promise<Analytics>((resolve, reject) => {
       APIService.getInstance()
         .get(AppConfig.serviceUrls.analyticsRecordings, {
-          params: { startDate, endDate },
+          params: { startDate, endDate, region },
           cancelToken: newCancelTokenSource.token,
         })
         .then((resp) => {
