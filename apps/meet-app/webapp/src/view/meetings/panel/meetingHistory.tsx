@@ -108,9 +108,7 @@ function MeetingHistory() {
     if (selectedValue === "past") {
       setEndDate(formatDateForInput(new Date()));
     }
-    console.log("Filter changed to:", selectedValue);
   };
-
   useEffect(() => {
     const params: any = {
       searchString: filteredSearchQuery,
@@ -123,7 +121,6 @@ function MeetingHistory() {
     }
     if (meetingType === "Past") {
       params.endTime = formatForAPI(endDate);
-      console.log("api end", params.endTime);
     }
 
     dispatch(fetchMeetings(params));

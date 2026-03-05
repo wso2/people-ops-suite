@@ -83,10 +83,6 @@ const DateRange: DropdownOption[] = [
     value: "1Y",
     label: "Last Year",
   },
-  {
-    value: "Custom",
-    label: "Custom",
-  },
 ];
 
 const ITEMS_PER_PAGE = 5;
@@ -179,7 +175,7 @@ function Analytics() {
     }
   }, [dispatch, startDate, endDate, regionOption]);
   useEffect(() => {
-    if (regions.state !== State.loading && regions.state !== State.success) {
+    if (regions.state === State.idle) {
       dispatch(fetchRegions());
     }
   }, [dispatch, regions.state]);

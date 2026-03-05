@@ -28,7 +28,7 @@ interface DropdownProps {
   options: DropdownOption[];
   onChange: (event: SelectChangeEvent) => void;
   isLoading?: boolean;
-  size:"small"|"medium";
+  size: "small" | "medium";
 }
 
 const Dropdown = ({
@@ -37,14 +37,18 @@ const Dropdown = ({
   options,
   onChange,
   isLoading,
-  size
+  size,
 }: DropdownProps) => {
   return (
     <FormControl size={size} sx={{ minWidth: 150 }}>
-      <InputLabel sx={{ fontWeight: "bold", color: "text.primary" }}>
+      <InputLabel
+        id={`${label}-label`}
+        sx={{ fontWeight: "bold", color: "text.primary" }}
+      >
         {isLoading ? "Loading..." : label}
       </InputLabel>
       <Select
+        labelId={`${label}-label`}
         value={isLoading ? "" : value}
         label={label}
         onChange={onChange}
@@ -52,7 +56,7 @@ const Dropdown = ({
       >
         {isLoading ? (
           <MenuItem disabled value="">
-            <em>Loading regions...</em>
+            <em>Loading ...</em>
           </MenuItem>
         ) : (
           options.map((opt) => (

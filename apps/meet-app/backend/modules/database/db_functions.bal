@@ -151,11 +151,16 @@ public isolated function getMeetingCountsByHost(string startTime, string endTime
     return from MeetingHostStat stat in resultStream
         select stat;
 }
-
+# Fetches meeting titles by region within a date range.
+#
+# + startTime - Start ISO string
+# + endTime - End ISO string
+# + region - Region filter
+# + return - List of meeting titles or Error
 public isolated function getMeetingIdsByRegions(string startTime, string endTime, string region) returns string[]|error {
-    stream<record {string title;}, sql:Error?> idStream =
+    stream<record {string title;}, sql:Error?> titleStream =
     databaseClient->query(meetingTitlesByRegionsQuery(startTime, endTime, region));
 
-    return from var event_id in idStream
-        select event_id.title;
+    return from var row in titleStream
+        select row.title;
 }

@@ -309,7 +309,7 @@ isolated function countMeetingsByHostQuery(string startTime, string endTime , st
         start_time < ${endTime}
     `;
     if region is string {
-        query = sql:queryConcat(query,`AND host_sub_team = ${region}`);
+        query = sql:queryConcat(query, ` AND host_sub_team = ${region}`);
     }
     query = sql:queryConcat(query,`
         GROUP BY 
@@ -320,7 +320,7 @@ isolated function countMeetingsByHostQuery(string startTime, string endTime , st
     return  query;
 }
 
-# Build query to retrieve the meetings title by regions and given time.
+# Build query to retrieve the meeting titles by region within a date range.
 # 
 # + startTime - Start of the range
 # + endTime - End of the range
