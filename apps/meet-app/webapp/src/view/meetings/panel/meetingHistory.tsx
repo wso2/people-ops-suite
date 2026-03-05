@@ -30,7 +30,7 @@ import {
   SelectChangeEvent,
 } from "@mui/material";
 import { DropdownOption, State } from "@/types/types";
-import { useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { ConfirmationType } from "@/types/types";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import ErrorHandler from "@component/common/ErrorHandler";
@@ -52,6 +52,8 @@ import {
 } from "@slices/meetingSlice/meeting";
 import { fetchRegions } from "@root/src/slices/regionsSlice/regions";
 import Dropdown from "@root/src/component/ui/Dropdown";
+import RadioGroup from "@mui/material/RadioGroup";
+import StyledRadio from "@root/src/component/ui/StyledRadio";
 
 interface Attachment {
   title: string;
@@ -71,6 +73,14 @@ const formatDateTime = (dateTimeStr: string) => {
   return `${day}/${month}/${year}, ${hours}:${minutes}`;
 };
 
+const formatDateForInput = (date: Date) => {
+  return date.toLocaleDateString("en-CA");
+};
+
+const formatForAPI = (dateStr: string) => {
+  return new Date(dateStr).toISOString();
+};
+
 function MeetingHistory() {
   const dispatch = useAppDispatch();
   const meeting = useAppSelector((state) => state.meeting);
@@ -88,6 +98,16 @@ function MeetingHistory() {
     null,
   );
   const [regionOption, setRegionRangeOption] = useState<string>("All");
+  const [meetingType, setMeetingType] = useState("Past");
+  const [endDate, setEndDate] = useState(() => formatDateForInput(new Date()));
+  const handleRadioButtonChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedValue = event.target.value;
+    setMeetingType(selectedValue);
+    if (selectedValue === "past") {
+      setEndDate(formatDateForInput(new Date()));
+    }
+    console.log("Filter changed to:", selectedValue);
+  };
 
   useEffect(() => {
     const params: any = {
@@ -99,9 +119,21 @@ function MeetingHistory() {
     if (regionOption !== "All") {
       params.region = regionOption;
     }
+    if (meetingType === "Past") {
+      params.endTime = formatForAPI(endDate);
+      console.log("api end", params.endTime);
+    }
 
     dispatch(fetchMeetings(params));
-  }, [dispatch, filteredSearchQuery, page, pageSize, regionOption]);
+  }, [
+    dispatch,
+    filteredSearchQuery,
+    page,
+    pageSize,
+    regionOption,
+    meetingType,
+    endDate,
+  ]);
 
   useEffect(() => {
     if (regions.state !== State.loading && regions.state !== State.success) {
@@ -383,6 +415,15 @@ function MeetingHistory() {
           pb: 1,
         }}
       >
+        <RadioGroup
+          row
+          name="use-radio-group"
+          defaultValue="Past"
+          onChange={handleRadioButtonChange}
+        >
+          <StyledRadio value="Past" label="Past Meetings" />
+          <StyledRadio value="All" label="All Meetings" />
+        </RadioGroup>
         <Dropdown
           label="Region"
           value={regionOption}
