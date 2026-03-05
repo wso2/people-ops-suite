@@ -54,6 +54,8 @@ import { fetchRegions } from "@root/src/slices/regionsSlice/regions";
 import Dropdown from "@root/src/component/ui/Dropdown";
 import RadioGroup from "@mui/material/RadioGroup";
 import StyledRadio from "@root/src/component/ui/StyledRadio";
+import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
 
 interface Attachment {
   title: string;
@@ -208,6 +210,30 @@ function MeetingHistory() {
       headerName: "Title",
       minWidth: 300,
       flex: 5,
+      renderCell: (params) => {
+        const title = params.value;
+        const isUpcoming = params.row.timeStatus === "UPCOMING";
+        return (
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ height: "100%" }}
+          >
+            <Typography variant="body2" noWrap>
+              {title}
+            </Typography>
+            {isUpcoming && (
+              <Chip
+                label="Upcoming"
+                size="small"
+                color="primary"
+                sx={{ height: 20, fontSize: "0.65rem" }}
+              />
+            )}
+          </Stack>
+        );
+      },
     },
     {
       field: "meetingStatus",
