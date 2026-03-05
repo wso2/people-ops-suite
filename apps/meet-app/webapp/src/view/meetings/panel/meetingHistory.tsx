@@ -105,7 +105,7 @@ function MeetingHistory() {
   const handleRadioButtonChange = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedValue = event.target.value;
     setMeetingType(selectedValue);
-    if (selectedValue === "past") {
+    if (selectedValue === "Past") {
       setEndDate(formatDateForInput(new Date()));
     }
   };
@@ -135,7 +135,7 @@ function MeetingHistory() {
   ]);
 
   useEffect(() => {
-    if (regions.state !== State.loading && regions.state !== State.success) {
+    if (regions.state === State.idle) {
       dispatch(fetchRegions());
     }
   }, [dispatch, regions.state]);

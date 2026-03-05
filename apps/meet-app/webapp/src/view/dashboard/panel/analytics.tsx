@@ -175,7 +175,7 @@ function Analytics() {
     }
   }, [dispatch, startDate, endDate, regionOption]);
   useEffect(() => {
-    if (regions.state === State.idle || regions.state === State.failed) {
+    if (regions.state === State.idle) {
       dispatch(fetchRegions());
     }
   }, [dispatch, regions.state]);

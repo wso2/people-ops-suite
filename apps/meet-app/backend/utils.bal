@@ -41,23 +41,23 @@ isolated function getPeopleAnalytics(string startDate, string endDate , string? 
     foreach var emp in employees {
         empMap[emp.workEmail] = emp;
     }
-    map<int> teamCounts = {};
+    map<int> subTeamCounts = {};
     json[] amStatsList = [];
     json[] toStatsList = [];
 
     foreach var stat in hostStats {
         people:EmployeeBasic? emp = empMap[stat.host];
-        string teamName = "Unknown";
+        string subTeamName = "Unknown";
         string amName = stat.host;
 
         if emp is people:EmployeeBasic {
-            teamName = emp.team ?: "Unknown";
+            subTeamName = emp.subTeam ?: "Unknown";
             amName = string `${emp.firstName} ${emp.lastName}`;
         }
 
         // Aggregate Team Counts
-        int currentTeamCount = teamCounts.hasKey(teamName) ? teamCounts.get(teamName) : 0;
-        teamCounts[teamName] = currentTeamCount + stat.count;
+        int currentTeamCount = subTeamCounts.hasKey(subTeamName) ? subTeamCounts.get(subTeamName) : 0;
+        subTeamCounts[subTeamName] = currentTeamCount + stat.count;
         if stat.team == salesDesignations.teamNameOfAccountManager {
             amStatsList.push({
                 "name": amName,
@@ -74,7 +74,7 @@ isolated function getPeopleAnalytics(string startDate, string endDate , string? 
         }
     }
     json[] regionalStatsList = [];
-    foreach var [team, count] in teamCounts.entries() {
+    foreach var [team, count] in subTeamCounts.entries() {
         regionalStatsList.push({"name": team, "value": count});
     }
 
