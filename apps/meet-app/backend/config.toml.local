@@ -18,7 +18,7 @@
 
 [meet_app.people]
     hrEntityBaseUrl = ""
-    allowedEmployeeTypes = []
+    allowedEmploymentTypes = []
     [meet_app.people.oauthConfig]
         tokenUrl = ""
         clientId = ""

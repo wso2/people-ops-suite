@@ -15,7 +15,7 @@
 // under the License. 
 
 # Allowed employment types.
-configurable string[] allowedEmployeeTypes = ?;
+configurable string[] allowedEmploymentTypes = ?;
 
 # Retrieves basic employee details by work email.
 #
@@ -53,7 +53,7 @@ public isolated function getEmployees(string[]? emails = ()) returns EmployeeBas
 
     EmployeeFilter filter = {
         employeeStatus: [Active, Marked\ leaver],
-        employmentType: allowedEmployeeTypes,
+        employmentType: allowedEmploymentTypes,
         emails: emails
     };
 
