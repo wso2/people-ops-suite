@@ -12,7 +12,7 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License. 
+// under the License.
 
 import { BaseURLAuthClientConfig } from "@asgardeo/auth-react";
 
@@ -50,6 +50,7 @@ export const AppConfig = {
     userInfo: ServiceBaseUrl + "/user-info",
     customers: ServiceBaseUrl + "/customers",
     employees: ServiceBaseUrl + "/employees",
+    regions: ServiceBaseUrl + "/regions",
     appConfig: ServiceBaseUrl + "/app-config",
     meetingTypes: ServiceBaseUrl + "/meetings/types?domain=" + APP_DOMAIN,
     analyticsRecordings: ServiceBaseUrl + "/stats",

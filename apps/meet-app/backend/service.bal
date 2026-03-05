@@ -263,6 +263,45 @@ service http:InterceptableService / on new http:Listener(9090) {
         return contacts;
     }
 
+    # Fetch regions from the HR Entity.
+    #
+    # + return - Regions | Error
+    resource function get regions(http:RequestContext ctx) returns http:InternalServerError|Regions {
+        if cache.hasKey(REGIONS_CACHE_KEY) {
+            string[]|error cachedRegions = cache.get(REGIONS_CACHE_KEY).ensureType();
+            if cachedRegions is string[] {
+                return {regions: cachedRegions};
+            }
+        }
+        people:BusinessUnit[]|error orgDetails = people:getOrgDetails();
+        if orgDetails is error {
+            string customError = string `Error occurred while retrieving regions!`;
+            log:printError(customError, orgDetails);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        map<()> regions = {};
+        foreach people:BusinessUnit bu in orgDetails {
+            foreach people:Department department in bu?.departments ?: [] {
+                string name = department.department;
+                if name.endsWith(salesDesignations.teamNameOfAccountManager) ||
+                    name.startsWith(salesDesignations.teamNameOfAccountManager) {
+                    foreach people:Team team in department?.teams ?: [] {
+                        regions[team.team] = ();
+                    }
+                }
+            }
+        }
+        error? cacheError = cache.put(REGIONS_CACHE_KEY, regions.keys());
+        if cacheError is error {
+            log:printError("An error occurred while writing regions to the cache", cacheError);
+        }
+        return {regions: regions.keys()};
+    }
+
     # Fetch meeting types from the database.
     #
     # + domain - Domain to filter 
@@ -507,7 +546,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + 'limit - Limit of the data  
     # + offset - Offset of the data
     # + return - Meetings | Error
-    resource function get meetings(http:RequestContext ctx, string? title, string? host, string? searchString,
+    resource function get meetings(http:RequestContext ctx, string? title, string? host, string? searchString, string? region,
             string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
     returns MeetingListResponse|http:Forbidden|http:InternalServerError|http:BadRequest {
 
@@ -541,7 +580,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
         string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
-        database:Meeting[]|error meetingsResult = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString,
+        database:Meeting[]|error meetingsResult = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString, region,
                 startTime, endTime, internalParticipants, 'limit, offset);
         if meetingsResult is error {
             string customError = "Error occurred while retrieving the meetings!";
@@ -642,7 +681,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         foreach gcalendar:Attachment attachment in calendarEventAttachments ?: [] {
             if attachment.mimeType == "video/mp4" {
                 drive:DrivePermissionResponse|error permissionResult = drive:setFilePermission(
-                    <string>attachment.fileId, drive:EDITOR, drive:USER, meeting.host
+                        <string>attachment.fileId, drive:EDITOR, drive:USER, meeting.host
                 );
 
                 if permissionResult is error {
@@ -745,7 +784,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + startDate - Start date in ISO format
     # + endDate - End date in ISO format
     # + return - Statistics or Error
-    resource function get stats(http:RequestContext ctx, string startDate, string endDate)
+    resource function get stats(http:RequestContext ctx, string startDate, string endDate, string? region)
         returns json|http:InternalServerError|http:BadRequest|error {
 
         // Validate Dates
@@ -762,9 +801,9 @@ service http:InterceptableService / on new http:Listener(9090) {
             return <http:BadRequest>{body: {message: "Start Date must be before End Date"}};
         }
 
-        future<map<int>|error> scheduledCounts = start database:getMonthlyScheduledCounts(startDate, endDate);
-        future<database:MeetingTypeStat[]|error> meetingTypes = start database:getMeetingTypeStats(startDate, endDate);
-        future<json|error> PeopleStats = start getPeopleAnalytics(startDate, endDate);
+        future<map<int>|error> scheduledCounts = start database:getMonthlyScheduledCounts(startDate, endDate, region);
+        future<database:MeetingTypeStat[]|error> meetingTypes = start database:getMeetingTypeStats(startDate, endDate, region);
+        future<json|error> PeopleStats = start getPeopleAnalytics(startDate, endDate, region);
 
         time:Civil startCivil = time:utcToCivil(startUtc);
         time:Civil endCivil = time:utcToCivil(endUtc);
@@ -799,7 +838,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
 
             // Drive API
-            future<int|error> fDrive = start drive:countWso2RecordingsInDateRange(queryStartTime, queryEndTime);
+            future<int|error> fDrive = start drive:countWso2RecordingsInDateRange(queryStartTime, queryEndTime,region);
             driveFutureMap[monthKey] = fDrive;
             metaDataMap[monthKey] = {
                 "year": cursorYear,
