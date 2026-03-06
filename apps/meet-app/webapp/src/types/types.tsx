@@ -43,3 +43,7 @@ export interface Attachment {
   iconLink: string;
   mimeType: string;
 }
+export interface DropdownOption {
+  value: string;
+  label: string;
+}

@@ -36,6 +36,7 @@ export interface Meeting {
   endTime: string;
   internalParticipants: string;
   meetingStatus: string;
+  timeStatus?: string;
   isRecurring: boolean;
 }
 
@@ -62,6 +63,7 @@ interface AddMeetingPayload {
   externalParticipants: string[];
   recurrence?: { frequency: "DAILY" | "WEEKLY" | "MONTHLY"; untilUtc: string };
   recurrenceRule?: string | null;
+  timeStatus?: string | null;
   isRecurring?: boolean;
 }
 
@@ -125,7 +127,7 @@ export const fetchMeetingTypes = createAsyncThunk(
               type: "error",
             }),
           );
-          reject(error.response.data.message);
+          reject(error);
         });
     });
   },
@@ -171,15 +173,27 @@ export const addMeetings = createAsyncThunk(
 export const fetchMeetings = createAsyncThunk(
   "meeting/fetchMeetings",
   async (
-    { searchString, limit, offset }: { searchString: string | null; limit: number; offset: number },
-    { dispatch }
+    {
+      searchString,
+      limit,
+      offset,
+      region,
+      endTime,
+    }: {
+      searchString: string | null;
+      limit: number;
+      offset: number;
+      region?: string;
+      endTime?: string;
+    },
+    { dispatch },
   ) => {
     APIService.getCancelToken().cancel();
     const newCancelTokenSource = APIService.updateCancelToken();
     return new Promise<Meetings>((resolve, reject) => {
       APIService.getInstance()
         .get(AppConfig.serviceUrls.meetings, {
-          params: { searchString, limit, offset },
+          params: { searchString, limit, offset, region, endTime },
           cancelToken: newCancelTokenSource.token,
         })
         .then((response) => {

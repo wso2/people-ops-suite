@@ -110,3 +110,61 @@ type EmployeesResponse record {
     # Employees data
     EmployeesData data;
 };
+
+# Org details response.
+type OrgDetailsResponse record {
+    # Org details data
+    BusinessUnits data;
+};
+
+# Business Units.
+type BusinessUnits record {
+    # Business unit
+    BusinessUnit[] orgDetails;
+};
+
+# Business Unit.
+public type BusinessUnit record {
+    # Id of the business unit
+    int id;
+    # Title of the business unit
+    string businessUnit;
+    # List of departments
+    Department[]? departments;
+};
+
+# Department.
+public type Department record {
+    # Id of the department
+    int id;
+    # Title of the department
+    string department;
+    # List of teams
+    Team[]? teams;
+};
+
+# Team.
+public type Team record {
+    # Id of the team
+    int id;
+    # Title of the team
+    string team;
+    # List of sub teams
+    SubTeam[]? subTeams;
+};
+
+# Sub Team.
+public type SubTeam record {
+    # Id of the sub team
+    int id;
+    # Title of the sub team
+    string subTeam;
+};
+
+# Organization data filters.
+public type OrgDetailsFilter record {|
+    # Id of the business unit
+    int[]? businessUnitIds = ();
+    # Name of the business unit
+    string[]? businessUnits = ();
+|};

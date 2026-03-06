@@ -61,19 +61,20 @@ public isolated function addMeeting(AddMeetingPayload addMeetingPayload, string 
 # + title - Name to filter  
 # + host - Host email filter  
 # + searchString - Search String to filter host and title
+# + region - Region filter
 # + startTime - Start time filter  
 # + endTime - End time filter  
 # + internalParticipants - Internal participants filter
 # + 'limit - Limit of the response
 # + offset - Offset of the number of meetings to retrieve  
 # + return - List of meetings | Error
-public isolated function fetchMeetings(string? hostOrInternalParticipant, string? title, string? host, string? searchString,
+public isolated function fetchMeetings(string? hostOrInternalParticipant, string? title, string? host, string? searchString, string? region,
         string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
     returns Meeting[]|error {
 
     stream<Meeting, error?> resultStream = databaseClient->query(
         getMeetingsQuery(
-            hostOrInternalParticipant, title, host, searchString, startTime, endTime, internalParticipants, 'limit, offset
+            hostOrInternalParticipant, title, host, searchString, region, startTime, endTime, internalParticipants, 'limit, offset
         )
     );
 
@@ -121,10 +122,11 @@ public isolated function fetchMeetingsSummary() returns MeetingSummary[]|error {
 #
 # + startTime - Start ISO string
 # + endTime - End ISO string
+# + region - Region filter
 # + return - Monthly counts or Error
-public isolated function getMonthlyScheduledCounts(string startTime, string endTime) returns map<int>|error {
+public isolated function getMonthlyScheduledCounts(string startTime, string endTime, string? region) returns map<int>|error {
     stream<ScheduledMeetingStat, sql:Error?> resultStream = databaseClient->query(
-        getMonthlyScheduledCountsQuery(startTime, endTime)
+        getMonthlyScheduledCountsQuery(startTime, endTime, region)
     );
 
     return map from ScheduledMeetingStat stat in resultStream
@@ -135,10 +137,11 @@ public isolated function getMonthlyScheduledCounts(string startTime, string endT
 #
 # + startTime - Start ISO string
 # + endTime - End ISO string
+# + region - Region filter
 # + return - List of stats or Error
-public isolated function getMeetingTypeStats(string startTime, string endTime) returns MeetingTypeStat[]|error {
+public isolated function getMeetingTypeStats(string startTime, string endTime, string? region) returns MeetingTypeStat[]|error {
     stream<MeetingTypeStat, sql:Error?> resultStream = databaseClient->query(
-        countMeetingTypesQuery(startTime, endTime)
+        countMeetingTypesQuery(startTime, endTime, region)
     );
 
     return from MeetingTypeStat stat in resultStream
@@ -149,12 +152,26 @@ public isolated function getMeetingTypeStats(string startTime, string endTime) r
 #
 # + startTime - Start ISO string
 # + endTime - End ISO string
+# + region - Region filter
 # + return - List of stats or Error
-public isolated function getMeetingCountsByHost(string startTime, string endTime) returns MeetingHostStat[]|error {
+public isolated function getMeetingCountsByHost(string startTime, string endTime, string? region) returns MeetingHostStat[]|error {
     stream<MeetingHostStat, sql:Error?> resultStream = databaseClient->query(
-        countMeetingsByHostQuery(startTime, endTime)
+        countMeetingsByHostQuery(startTime, endTime, region)
     );
 
     return from MeetingHostStat stat in resultStream
         select stat;
+}
+# Fetches meeting titles by region within a date range.
+#
+# + startTime - Start ISO string
+# + endTime - End ISO string
+# + region - Region filter
+# + return - List of meeting titles or Error
+public isolated function getMeetingIdsByRegions(string startTime, string endTime, string region) returns string[]|error {
+    stream<record {string title;}, sql:Error?> titleStream =
+    databaseClient->query(meetingTitlesByRegionsQuery(startTime, endTime, region));
+
+    return from var row in titleStream
+        select row.title;
 }

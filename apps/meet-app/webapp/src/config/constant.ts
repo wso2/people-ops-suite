@@ -30,6 +30,7 @@ export const SnackMessage = {
     fetchCustomers: "Unable to retrieve list of Customers",
     fetchCustomersMeetingsSummary:
       "Unable to retrieve customers meetings summary",
+    fetchRegions: "Unable to retrieve list of Regions",
     fetchAttachments: "Unable to retrieve list of Attachments",
     fetchMeetingTypes: "Unable to retrieve list of Meeting Types",
     fetchAppConfigMessage: "Unable to retrieve app configurations",

@@ -122,3 +122,9 @@ public type SalesDesignations record {|
     # Team Name Of Technical Officer
     string teamNameOfTechnicalOfficer;
 |};
+
+# Represent the regions.
+public type Regions record {|
+    # List of Regions
+    string[] regions;
+|};

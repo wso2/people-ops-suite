@@ -81,13 +81,14 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 # + title - Title to filter  
 # + host - Host filter
 # + searchString - Search String to filter host and title 
+# + region - Region filter
 # + startTime - Start time filter  
 # + endTime - End time filter  
 # + internalParticipants - Participants filter
 # + 'limit - Limit of the data  
 # + offset - offset of the query
 # + return - sql:ParameterizedQuery - Select query for the meeting table
-isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? title, string? host, string? searchString,
+isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? title, string? host, string? searchString, string? region,
         string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
     returns sql:ParameterizedQuery {
 
@@ -120,6 +121,9 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
 
     if host is string {
         filters.push(sql:queryConcat(`host = `, `${host}`));
+    }
+    if region is string {
+        filters.push(sql:queryConcat(`host_sub_team = `, `${region}`));
     }
     if hostOrInternalParticipant is string {
         filters.push(sql:queryConcat(
@@ -241,50 +245,72 @@ isolated function getMeetingsSummaryQuery() returns sql:ParameterizedQuery =>
 #
 # + startTime - Start of the range
 # + endTime - End of the range
+# + region - Region filter
 # + return - sql:ParameterizedQuery
-isolated function getMonthlyScheduledCountsQuery(string startTime, string endTime) returns sql:ParameterizedQuery =>
-`
-    SELECT 
-        DATE_FORMAT(start_time, '%Y-%m') as month_key,
-        COUNT(*) as count
-    FROM meeting
-    WHERE 
-        meeting_status = ${ACTIVE} AND
-        start_time >= ${startTime} AND
-        start_time < ${endTime}
-    GROUP BY 
-        DATE_FORMAT(start_time, '%Y-%m')
-`;
+isolated function getMonthlyScheduledCountsQuery(string startTime, string endTime, string? region)
+    returns sql:ParameterizedQuery {
+    sql:ParameterizedQuery query = `
+        SELECT 
+            DATE_FORMAT(start_time, '%Y-%m') as month_key,
+            COUNT(*) as count
+        FROM meeting
+        WHERE 
+            meeting_status = ${ACTIVE} AND
+            start_time >= ${startTime} AND
+            start_time < ${endTime}
+    `;
+
+    if region is string {
+        query = sql:queryConcat(query, ` AND host_sub_team = ${region}`);
+    }
+    query = sql:queryConcat(query, ` 
+        GROUP BY 
+            DATE_FORMAT(start_time, '%Y-%m')
+    `);
+
+    return query;
+}
 
 # Build query to count meetings grouped by the meeting_type column.
 #
 # + startTime - Start of the range
 # + endTime - End of the range
+# + region - Region filter
 # + return - sql:ParameterizedQuery
-isolated function countMeetingTypesQuery(string startTime, string endTime) returns sql:ParameterizedQuery =>
-`
-    SELECT 
-        meeting_type,
-        COUNT(*) as count
-    FROM meeting
-    WHERE 
-        meeting_status = ${ACTIVE} AND
-        start_time >= ${startTime} AND
-        start_time < ${endTime} AND
-        meeting_type IS NOT NULL  -- Exclude rows where type might be missing
-    GROUP BY 
-        meeting_type
-    ORDER BY 
-        count DESC
-`;
+isolated function countMeetingTypesQuery(string startTime, string endTime, string? region) 
+    returns sql:ParameterizedQuery {
+    sql:ParameterizedQuery query = `
+        SELECT 
+            meeting_type,
+            COUNT(*) as count
+        FROM meeting
+        WHERE 
+            meeting_status = ${ACTIVE} AND
+            start_time >= ${startTime} AND
+            start_time < ${endTime} AND
+            meeting_type IS NOT NULL
+    `;
+    if region is string {
+        query = sql:queryConcat(query, ` AND host_sub_team = ${region}`);
+    }
+    query = sql:queryConcat(query, ` 
+        GROUP BY 
+            meeting_type
+        ORDER BY 
+            count DESC
+    `);
+
+    return query;
+}
 
 # Build query to count meetings grouped by Host.
 #
 # + startTime - Start of the range
 # + endTime - End of the range
+# + region - Region filter
 # + return - sql:ParameterizedQuery
-isolated function countMeetingsByHostQuery(string startTime, string endTime) returns sql:ParameterizedQuery =>
-`
+isolated function countMeetingsByHostQuery(string startTime, string endTime , string? region) returns sql:ParameterizedQuery {
+    sql:ParameterizedQuery query = `
     SELECT 
         host,
         host_team AS team,
@@ -295,8 +321,35 @@ isolated function countMeetingsByHostQuery(string startTime, string endTime) ret
         meeting_status = ${ACTIVE} AND
         start_time >= ${startTime} AND
         start_time < ${endTime}
-    GROUP BY 
+    `;
+    if region is string {
+        query = sql:queryConcat(query, ` AND host_sub_team = ${region}`);
+    }
+    query = sql:queryConcat(query,`
+        GROUP BY 
         host,
         host_team,
         host_sub_team
+    `);
+    return  query;
+}
+
+# Build query to retrieve the meeting titles by region within a date range.
+# 
+# + startTime - Start of the range
+# + endTime - End of the range
+# + region - Region filter
+# + return - sql:ParameterizedQuery
+isolated function meetingTitlesByRegionsQuery(string startTime, string endTime, string region) 
+    returns sql:ParameterizedQuery => 
+`
+    SELECT 
+        title
+    FROM 
+        meeting
+    WHERE 
+        host_sub_team = ${region} AND
+        start_time >= ${startTime} AND
+        start_time < ${endTime} AND
+        meeting_status = ${ACTIVE}
 `;

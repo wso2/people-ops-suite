@@ -26,10 +26,11 @@ import {
   ListItem,
   Paper,
   InputAdornment,
+    SelectChangeEvent,
 } from "@mui/material";
-import { State } from "@/types/types";
 import useDebounce from "@utils/useDebounce";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { DropdownOption, State } from "@/types/types";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmationType } from "@/types/types";
 import ErrorHandler from "@component/common/ErrorHandler";
 import { useAppDispatch, useAppSelector } from "@slices/store";
@@ -54,6 +55,13 @@ import CustomerCard from "@component/ui/CustomerCard";
 import { useNavigate } from "react-router-dom";
 import { Attachment } from "../../../types/types";
 import { MeetingsAccordion } from "../../../component/ui/MeetingsAccordion";
+import { fetchRegions } from "@root/src/slices/regionsSlice/regions";
+import Dropdown from "@root/src/component/ui/Dropdown";
+import RadioGroup from "@mui/material/RadioGroup";
+import StyledRadio from "@root/src/component/ui/StyledRadio";
+import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
+
 
 const formatDateTime = (dateTimeStr: string) => {
   const utcDate = new Date(dateTimeStr + " UTC");
@@ -64,6 +72,14 @@ const formatDateTime = (dateTimeStr: string) => {
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+const formatDateForInput = (date: Date) => {
+  return date.toLocaleDateString("en-CA");
+};
+
+const formatForAPI = (dateStr: string) => {
+  return new Date(dateStr).toISOString();
 };
 
 function MeetingHistory() {
@@ -86,6 +102,8 @@ function MeetingHistory() {
   const customers = useAppSelector((state) => state.customer.customers) || [];
   const customersState = useAppSelector((state) => state.customer.state);
 
+  const regions = useAppSelector((state) => state.region);
+  const totalMeetings = meeting.meetings?.count || 0;
   const [page, setPage] = useState(0);
   const pageSize = 10;
   const observerTarget = useRef(null);
@@ -191,7 +209,64 @@ function MeetingHistory() {
         endTime: twoDaysLater.toISOString(),
         limit: 10,
       }),
-    );
+    );}
+  const [filteredSearchQuery, setFilteredSearchQuery] = useState<string | null>(
+    null,
+  );
+  const [regionOption, setRegionRangeOption] = useState<string>("All");
+  const [meetingType, setMeetingType] = useState("Past");
+  const [endDate, setEndDate] = useState(() => formatDateForInput(new Date()));
+  const handleRadioButtonChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedValue = event.target.value;
+    setMeetingType(selectedValue);
+    if (selectedValue === "Past") {
+      setEndDate(formatDateForInput(new Date()));
+    }
+  };
+  useEffect(() => {
+    const params: any = {
+      searchString: filteredSearchQuery,
+      limit: pageSize,
+      offset: page * pageSize,
+    };
+
+    if (regionOption !== "All") {
+      params.region = regionOption;
+    }
+    if (meetingType === "Past") {
+      params.endTime = formatForAPI(endDate);
+    }
+
+    dispatch(fetchMeetings(params));
+  }, [
+    dispatch,
+    filteredSearchQuery,
+    page,
+    pageSize,
+    regionOption,
+    meetingType,
+    endDate,
+  ]);
+
+  useEffect(() => {
+    if (regions.state === State.idle) {
+      dispatch(fetchRegions());
+    }
+  }, [dispatch, regions.state]);
+
+  const regionsOption: DropdownOption[] = useMemo(() => {
+    const fetchedRegions = regions.regions?.regions ?? [];
+
+    const dynamicOptions = fetchedRegions.map((region) => ({
+      value: region,
+      label: region,
+    }));
+
+    return [{ value: "All", label: "All" }, ...dynamicOptions];
+  }, [regions.regions?.regions]);
+
+  const handleRegionChange = (event: SelectChangeEvent) => {
+    setRegionRangeOption(event.target.value);
   };
 
   const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {

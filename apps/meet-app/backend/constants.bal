@@ -19,3 +19,6 @@ const string EMPLOYEES_CACHE_KEY = "employees";
 
 # Cache key of customers.
 const string CUSTOMERS_CACHE_KEY = "customers";
+
+# Cache key of regions.
+const string REGIONS_CACHE_KEY = "regions";

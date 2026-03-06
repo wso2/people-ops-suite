@@ -19,10 +19,3 @@ public enum EmployeeStatus {
     Active,
     Marked\ leaver
 };
-
-# Employment types.
-public enum EmploymentType {
-    PERMANENT,
-    CONSULTANCY,
-    PART\ TIME\ CONSULTANCY
-};

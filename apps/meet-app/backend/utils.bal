@@ -15,19 +15,21 @@
 // under the License.
 import meet_app.database;
 import meet_app.people;
+
 import ballerina/cache;
 
 # Aggregates meeting statistics by Account Manager and their respective Regional Teams.
 #
 # + startDate - The start of the analysis range
 # + endDate - The end of the analysis range
+# + region - Region filter
 # + return - A JSON object containing `regionalStats` and `amStats` arrays, sorted by count or an error.
-isolated function getPeopleAnalytics(string startDate, string endDate) returns json|error {
+isolated function getPeopleAnalytics(string startDate, string endDate , string? region) returns json|error {
 
     // Get Raw Counts per Host from Database
-    database:MeetingHostStat[] hostStats = check database:getMeetingCountsByHost(startDate, endDate);
+    database:MeetingHostStat[] hostStats = check database:getMeetingCountsByHost(startDate, endDate , region );
     if hostStats.length() == 0 {
-        return {"regionalStats": [], "amStats": []};
+        return {"regionalStats": [], "amStats": [], "toStats": []};
     }
 
     // Fetch Employee Details
@@ -39,23 +41,23 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
     foreach var emp in employees {
         empMap[emp.workEmail] = emp;
     }
-    map<int> teamCounts = {};
+    map<int> subTeamCounts = {};
     json[] amStatsList = [];
     json[] toStatsList = [];
 
     foreach var stat in hostStats {
         people:EmployeeBasic? emp = empMap[stat.host];
-        string teamName = "Unknown";
+        string subTeamName = "Unknown";
         string amName = stat.host;
 
         if emp is people:EmployeeBasic {
-            teamName = emp.team ?: "Unknown";
+            subTeamName = emp.subTeam ?: "Unknown";
             amName = string `${emp.firstName} ${emp.lastName}`;
         }
 
         // Aggregate Team Counts
-        int currentTeamCount = teamCounts.hasKey(teamName) ? teamCounts.get(teamName) : 0;
-        teamCounts[teamName] = currentTeamCount + stat.count;
+        int currentTeamCount = subTeamCounts.hasKey(subTeamName) ? subTeamCounts.get(subTeamName) : 0;
+        subTeamCounts[subTeamName] = currentTeamCount + stat.count;
         if stat.team == salesDesignations.teamNameOfAccountManager {
             amStatsList.push({
                 "name": amName,
@@ -72,7 +74,7 @@ isolated function getPeopleAnalytics(string startDate, string endDate) returns j
         }
     }
     json[] regionalStatsList = [];
-    foreach var [team, count] in teamCounts.entries() {
+    foreach var [team, count] in subTeamCounts.entries() {
         regionalStatsList.push({"name": team, "value": count});
     }
 
