@@ -26,7 +26,7 @@ import {
   ListItem,
   Paper,
   InputAdornment,
-    SelectChangeEvent,
+  SelectChangeEvent,
 } from "@mui/material";
 import useDebounce from "@utils/useDebounce";
 import { DropdownOption, State } from "@/types/types";
@@ -61,7 +61,6 @@ import RadioGroup from "@mui/material/RadioGroup";
 import StyledRadio from "@root/src/component/ui/StyledRadio";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
-
 
 const formatDateTime = (dateTimeStr: string) => {
   const utcDate = new Date(dateTimeStr + " UTC");
@@ -103,14 +102,12 @@ function MeetingHistory() {
   const customersState = useAppSelector((state) => state.customer.state);
 
   const regions = useAppSelector((state) => state.region);
-  const totalMeetings = meeting.meetings?.count || 0;
   const [page, setPage] = useState(0);
   const pageSize = 10;
   const observerTarget = useRef(null);
   const dialogContext = useConfirmationModalContext();
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [hasFetchedUpcoming, setHasFetchedUpcoming] = useState(false);
   const [view, setView] = useState("list");
   const debouncedSearchTerm = useDebounce(searchQuery, 500);
   const [attachmentMap, setAttachmentMap] = useState<
@@ -120,41 +117,53 @@ function MeetingHistory() {
     Record<number, boolean>
   >({});
 
+  const [regionOption, setRegionRangeOption] = useState<string>("All");
+  const [meetingType, setMeetingType] = useState("Past");
+  const [endDate, setEndDate] = useState(() => formatDateForInput(new Date()));
+  const [isInitialLoadDone, setIsInitialLoadDone] = useState(false);
+
   useEffect(() => {
-    setPage(0);
-    const mainFetchPromise = dispatch(
-      fetchMeetings({
-        searchString: debouncedSearchTerm,
-        limit: pageSize,
-        offset: 0,
-      }),
-    );
-    mainFetchPromise.unwrap().then(() => {
-      if (!hasFetchedUpcoming && upcomingMeetingsLoading != State.success) {
-        setHasFetchedUpcoming(true);
+    console.log(debouncedSearchTerm);
+    const params: any = {
+      searchString: debouncedSearchTerm,
+      limit: pageSize,
+      offset: page * pageSize,
+    };
+
+    if (regionOption !== "All") {
+      params.region = regionOption;
+    }
+
+    if (meetingType === "Past") {
+      params.endTime = formatForAPI(endDate);
+    }
+
+    const promise = dispatch(fetchMeetings(params));
+
+    promise.unwrap().then(() => {
+      if (!isInitialLoadDone && upcomingMeetingsLoading === State.idle) {
         refreshUpcomingMeetings();
+        setIsInitialLoadDone(true);
       }
     });
+
     return () => {
-      mainFetchPromise.abort();
+      promise.abort();
     };
-  }, [dispatch, debouncedSearchTerm]);
+  }, [
+    dispatch,
+    debouncedSearchTerm,
+    page,
+    pageSize,
+    regionOption,
+    meetingType,
+    endDate,
+  ]);
 
   useEffect(() => {
     dispatch(fetchCustomersMeetingsSummary());
   }, [dispatch, debouncedSearchTerm]);
 
-  useEffect(() => {
-    if (page > 0) {
-      dispatch(
-        fetchMeetings({
-          searchString: debouncedSearchTerm,
-          limit: pageSize,
-          offset: page * pageSize,
-        }),
-      );
-    }
-  }, [page, dispatch]);
   useEffect(() => {
     if (
       !customers.length &&
@@ -209,13 +218,9 @@ function MeetingHistory() {
         endTime: twoDaysLater.toISOString(),
         limit: 10,
       }),
-    );}
-  const [filteredSearchQuery, setFilteredSearchQuery] = useState<string | null>(
-    null,
-  );
-  const [regionOption, setRegionRangeOption] = useState<string>("All");
-  const [meetingType, setMeetingType] = useState("Past");
-  const [endDate, setEndDate] = useState(() => formatDateForInput(new Date()));
+    );
+  };
+
   const handleRadioButtonChange = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedValue = event.target.value;
     setMeetingType(selectedValue);
@@ -223,30 +228,6 @@ function MeetingHistory() {
       setEndDate(formatDateForInput(new Date()));
     }
   };
-  useEffect(() => {
-    const params: any = {
-      searchString: filteredSearchQuery,
-      limit: pageSize,
-      offset: page * pageSize,
-    };
-
-    if (regionOption !== "All") {
-      params.region = regionOption;
-    }
-    if (meetingType === "Past") {
-      params.endTime = formatForAPI(endDate);
-    }
-
-    dispatch(fetchMeetings(params));
-  }, [
-    dispatch,
-    filteredSearchQuery,
-    page,
-    pageSize,
-    regionOption,
-    meetingType,
-    endDate,
-  ]);
 
   useEffect(() => {
     if (regions.state === State.idle) {
@@ -474,6 +455,7 @@ function MeetingHistory() {
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {meetingList.map((row) => (
                     <MeetingsAccordion
+                      key={row.meetingId} // Add a unique key here
                       formatDateTime={formatDateTime}
                       meeting={row}
                       handleAccordionChange={handleAccordionChange}
