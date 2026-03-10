@@ -56,6 +56,7 @@ import RadioGroup from "@mui/material/RadioGroup";
 import StyledRadio from "@root/src/component/ui/StyledRadio";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
+import { Role } from "@root/src/slices/authSlice/auth";
 
 interface Attachment {
   title: string;
@@ -87,6 +88,7 @@ function MeetingHistory() {
   const dispatch = useAppDispatch();
   const meeting = useAppSelector((state) => state.meeting);
   const regions = useAppSelector((state) => state.region);
+  const privileges = useAppSelector((state) => state.auth);
   const totalMeetings = meeting.meetings?.count || 0;
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
@@ -102,6 +104,7 @@ function MeetingHistory() {
   const [regionOption, setRegionRangeOption] = useState<string>("All");
   const [meetingType, setMeetingType] = useState("Past");
   const [endDate, setEndDate] = useState(() => formatDateForInput(new Date()));
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const handleRadioButtonChange = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedValue = event.target.value;
     setMeetingType(selectedValue);
@@ -133,6 +136,12 @@ function MeetingHistory() {
     meetingType,
     endDate,
   ]);
+
+  useEffect(() => {
+    if (privileges.status === State.success) {
+      setIsAdmin(privileges.roles.includes(Role.ADMIN));
+    }
+  }, []);
 
   useEffect(() => {
     if (regions.state === State.idle) {
@@ -201,228 +210,238 @@ function MeetingHistory() {
     setAttachments([]);
   };
 
-  const columns: GridColDef[] = [
-    {
-      field: "title",
-      headerName: "Title",
-      minWidth: 300,
-      flex: 5,
-      renderCell: (params) => {
-        const title = params.value;
-        const isUpcoming = params.row.timeStatus === "UPCOMING";
-        return (
-          <Stack
-            direction="row"
-            spacing={1}
-            alignItems="center"
-            sx={{ height: "100%" }}
-          >
-            <Typography variant="body2" noWrap>
-              {title}
-            </Typography>
-            {isUpcoming && (
-              <Chip
-                label="Upcoming"
-                size="small"
-                color="primary"
-                sx={{ height: 20, fontSize: "0.65rem" }}
-              />
-            )}
-          </Stack>
-        );
-      },
-    },
-    {
-      field: "meetingStatus",
-      headerName: "Status",
-      minWidth: 100,
-      flex: 1,
-      headerAlign: "center",
-      align: "center",
-      disableColumnMenu: true,
-      renderCell: (params) => {
-        const status = params.value;
-        return (
-          <Tooltip title={status === "ACTIVE" ? "Active" : "Cancelled"} arrow>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-              }}
+  const columns: GridColDef[] = useMemo(() => {
+    const baseColumns: GridColDef[] = [
+      {
+        field: "title",
+        headerName: "Title",
+        minWidth: 300,
+        flex: 5,
+        renderCell: (params) => {
+          const title = params.value;
+          const isUpcoming = params.row.timeStatus === "UPCOMING";
+          return (
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              sx={{ height: "100%" }}
             >
-              {status === "ACTIVE" ? (
-                <CheckCircle color="success" />
-              ) : (
-                <Delete color="disabled" />
+              <Typography variant="body2" noWrap>
+                {title}
+              </Typography>
+              {isUpcoming && (
+                <Chip
+                  label="Upcoming"
+                  size="small"
+                  color="primary"
+                  sx={{ height: 20, fontSize: "0.65rem" }}
+                />
               )}
-            </Box>
-          </Tooltip>
-        );
+            </Stack>
+          );
+        },
       },
-    },
-    {
-      field: "isRecurring",
-      headerName: "Recurring",
-      minWidth: 100,
-      flex: 1,
-      headerAlign: "center",
-      align: "center",
-      disableColumnMenu: true,
-      renderCell: (params) => {
-        const recurring = Boolean(params.value);
-        return (
-          <Tooltip
-            title={recurring ? "Recurring series" : "One-off meeting"}
-            arrow
-          >
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-              }}
-            >
-              {recurring ? (
-                <Loop color="info" />
-              ) : (
-                <RemoveCircleOutline color="disabled" />
-              )}
-            </Box>
-          </Tooltip>
-        );
-      },
-    },
-    {
-      field: "host",
-      headerName: "Host",
-      minWidth: 120,
-      flex: 2,
-    },
-    {
-      field: "internalParticipants",
-      headerName: "WSO2 Participants",
-      minWidth: 200,
-      flex: 4,
-    },
-    {
-      field: "startTime",
-      headerName: "Start Time",
-      minWidth: 120,
-      flex: 1,
-      renderCell: (params) => formatDateTime(params.value),
-    },
-    {
-      field: "endTime",
-      headerName: "End Time",
-      minWidth: 120,
-      flex: 1,
-      renderCell: (params) => formatDateTime(params.value),
-    },
-    {
-      field: "attachments",
-      headerName: "Attachments",
-      minWidth: 100,
-      flex: 1,
-      headerAlign: "center",
-      align: "center",
-      disableColumnMenu: true,
-      renderCell: (params) => {
-        return (
-          <>
-            <Tooltip title="View Attachments" arrow>
-              <IconButton
-                color="info"
-                onClick={() => handleViewAttachments(params.row.meetingId)}
+      {
+        field: "meetingStatus",
+        headerName: "Status",
+        minWidth: 100,
+        flex: 1,
+        headerAlign: "center",
+        align: "center",
+        disableColumnMenu: true,
+        renderCell: (params) => {
+          const status = params.value;
+          return (
+            <Tooltip title={status === "ACTIVE" ? "Active" : "Cancelled"} arrow>
+              <Box
                 sx={{
-                  backgroundColor: (theme) => theme.palette.info.main,
-                  borderRadius: 2,
-                  width: 25,
-                  height: 25,
-                  border: (theme) => `2px solid ${theme.palette.info.dark}`,
-                  boxShadow: (theme) =>
-                    `0 2px 4px ${theme.palette.info.dark}30`,
-                  "&:hover": {
-                    backgroundColor: (theme) => theme.palette.info.dark,
-                    transform: "translateY(-1px)",
-                    boxShadow: (theme) =>
-                      `0 4px 8px ${theme.palette.info.dark}40`,
-                  },
-                  "&:active": {
-                    transform: "translateY(0px)",
-                    boxShadow: (theme) =>
-                      `0 1px 2px ${theme.palette.info.dark}60`,
-                  },
-                  "& .MuiSvgIcon-root": {
-                    color: (theme) => theme.palette.info.contrastText,
-                    fontSize: "1.1rem",
-                  },
-                  transition: "all 0.2s ease-in-out",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
                 }}
               >
-                <Visibility />
-              </IconButton>
+                {status === "ACTIVE" ? (
+                  <CheckCircle color="success" />
+                ) : (
+                  <Delete color="disabled" />
+                )}
+              </Box>
             </Tooltip>
-          </>
-        );
+          );
+        },
       },
-    },
-    {
-      field: "delete",
-      headerName: "Delete",
-      minWidth: 90,
-      flex: 1,
-      headerAlign: "center",
-      align: "center",
-      disableColumnMenu: true,
-      renderCell: (params) => {
-        const isCancelled = params.row.meetingStatus === "CANCELLED";
-        return (
-          <>
-            {!isCancelled && (
-              <Tooltip title="Delete Meeting" arrow>
+      {
+        field: "isRecurring",
+        headerName: "Recurring",
+        minWidth: 100,
+        flex: 1,
+        headerAlign: "center",
+        align: "center",
+        disableColumnMenu: true,
+        renderCell: (params) => {
+          const recurring = Boolean(params.value);
+          return (
+            <Tooltip
+              title={recurring ? "Recurring series" : "One-off meeting"}
+              arrow
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                }}
+              >
+                {recurring ? (
+                  <Loop color="info" />
+                ) : (
+                  <RemoveCircleOutline color="disabled" />
+                )}
+              </Box>
+            </Tooltip>
+          );
+        },
+      },
+      {
+        field: "host",
+        headerName: "Host",
+        minWidth: 120,
+        flex: 2,
+      },
+      {
+        field: "internalParticipants",
+        headerName: "WSO2 Participants",
+        minWidth: 200,
+        flex: 4,
+      },
+      {
+        field: "startTime",
+        headerName: "Start Time",
+        minWidth: 120,
+        flex: 1,
+        renderCell: (params) => formatDateTime(params.value),
+      },
+      {
+        field: "endTime",
+        headerName: "End Time",
+        minWidth: 120,
+        flex: 1,
+        renderCell: (params) => formatDateTime(params.value),
+      },
+      {
+        field: "attachments",
+        headerName: "Attachments",
+        minWidth: 100,
+        flex: 1,
+        headerAlign: "center",
+        align: "center",
+        disableColumnMenu: true,
+        renderCell: (params) => {
+          return (
+            <>
+              <Tooltip title="View Attachments" arrow>
                 <IconButton
-                  color="error"
-                  onClick={() => {
-                    handleDeleteMeeting(params.row.meetingId, params.row.title);
-                  }}
+                  color="info"
+                  onClick={() => handleViewAttachments(params.row.meetingId)}
                   sx={{
-                    backgroundColor: (theme) => theme.palette.error.main,
+                    backgroundColor: (theme) => theme.palette.info.main,
                     borderRadius: 2,
                     width: 25,
                     height: 25,
-                    border: (theme) => `2px solid ${theme.palette.error.dark}`,
+                    border: (theme) => `2px solid ${theme.palette.info.dark}`,
                     boxShadow: (theme) =>
-                      `0 2px 4px ${theme.palette.error.dark}30`,
+                      `0 2px 4px ${theme.palette.info.dark}30`,
                     "&:hover": {
-                      backgroundColor: (theme) => theme.palette.error.dark,
+                      backgroundColor: (theme) => theme.palette.info.dark,
                       transform: "translateY(-1px)",
                       boxShadow: (theme) =>
-                        `0 4px 8px ${theme.palette.error.dark}40`,
+                        `0 4px 8px ${theme.palette.info.dark}40`,
                     },
                     "&:active": {
                       transform: "translateY(0px)",
                       boxShadow: (theme) =>
-                        `0 1px 2px ${theme.palette.error.dark}60`,
+                        `0 1px 2px ${theme.palette.info.dark}60`,
                     },
                     "& .MuiSvgIcon-root": {
-                      color: (theme) => theme.palette.error.contrastText,
+                      color: (theme) => theme.palette.info.contrastText,
                       fontSize: "1.1rem",
                     },
                     transition: "all 0.2s ease-in-out",
                   }}
                 >
-                  <DeleteForever />
+                  <Visibility />
                 </IconButton>
               </Tooltip>
-            )}
-          </>
-        );
+            </>
+          );
+        },
       },
-    },
-  ];
+    ];
+    if (meetingType === "All") {
+      baseColumns.push({
+        field: "delete",
+        headerName: "Delete",
+        minWidth: 90,
+        flex: 1,
+        headerAlign: "center",
+        align: "center",
+        disableColumnMenu: true,
+        renderCell: (params) => {
+          const isCancelled = params.row.meetingStatus === "CANCELLED";
+          const isPast = params.row.timeStatus === "PAST";
+          return (
+            <>
+              {!isCancelled && !isPast && isAdmin && (
+                <Tooltip title="Delete Meeting" arrow>
+                  <IconButton
+                    color="error"
+                    onClick={() => {
+                      handleDeleteMeeting(
+                        params.row.meetingId,
+                        params.row.title,
+                      );
+                    }}
+                    sx={{
+                      backgroundColor: (theme) => theme.palette.error.main,
+                      borderRadius: 2,
+                      width: 25,
+                      height: 25,
+                      border: (theme) =>
+                        `2px solid ${theme.palette.error.dark}`,
+                      boxShadow: (theme) =>
+                        `0 2px 4px ${theme.palette.error.dark}30`,
+                      "&:hover": {
+                        backgroundColor: (theme) => theme.palette.error.dark,
+                        transform: "translateY(-1px)",
+                        boxShadow: (theme) =>
+                          `0 4px 8px ${theme.palette.error.dark}40`,
+                      },
+                      "&:active": {
+                        transform: "translateY(0px)",
+                        boxShadow: (theme) =>
+                          `0 1px 2px ${theme.palette.error.dark}60`,
+                      },
+                      "& .MuiSvgIcon-root": {
+                        color: (theme) => theme.palette.error.contrastText,
+                        fontSize: "1.1rem",
+                      },
+                      transition: "all 0.2s ease-in-out",
+                    }}
+                  >
+                    <DeleteForever />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </>
+          );
+        },
+      });
+    }
+    return baseColumns;
+  }, [meetingType]);
 
   const meetingList = meeting.meetings?.meetings ?? [];
 

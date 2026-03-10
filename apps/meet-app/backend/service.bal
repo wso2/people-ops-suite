@@ -580,26 +580,21 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
         string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
-        database:Meeting[]|error meetingsResult = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString, region,
+        database:Meeting[]|error meetings = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString, region,
                 startTime, endTime, internalParticipants, 'limit, offset);
-        if meetingsResult is error {
+        if meetings is error {
             string customError = "Error occurred while retrieving the meetings!";
-            log:printError(customError, meetingsResult);
+            log:printError(customError, meetings);
             return <http:InternalServerError>{
                 body: {
                     message: customError
                 }
             };
         }
-        database:Meeting[] meetingList = meetingsResult;
-        if !isAdmin {
-            meetingList = from var meeting in meetingList
-                where meeting.host == userInfo.email
-                select meeting;
-        }
+
         return {
-            count: (meetingList.length() > 0) ? meetingList[0].totalCount : 0,
-            meetings: from var meeting in meetingList
+            count: (meetings.length() > 0) ? meetings[0].totalCount : 0,
+            meetings: from var meeting in meetings
                 select {
                     meetingId: meeting.meetingId,
                     title: meeting.title,
@@ -838,7 +833,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
 
             // Drive API
-            future<int|error> fDrive = start drive:countWso2RecordingsInDateRange(queryStartTime, queryEndTime,region);
+            future<int|error> fDrive = start drive:countWso2RecordingsInDateRange(queryStartTime, queryEndTime, region);
             driveFutureMap[monthKey] = fDrive;
             metaDataMap[monthKey] = {
                 "year": cursorYear,
