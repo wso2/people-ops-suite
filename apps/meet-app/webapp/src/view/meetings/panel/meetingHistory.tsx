@@ -384,6 +384,23 @@ function MeetingHistory() {
           </Box>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <RadioGroup
+            row
+            name="use-radio-group"
+            defaultValue="Past"
+            onChange={handleRadioButtonChange}
+          >
+            <StyledRadio value="Past" label="Past Meetings" />
+            <StyledRadio value="All" label="All Meetings" />
+          </RadioGroup>
+          <Dropdown
+            label="Region"
+            value={regionOption}
+            options={regionsOption}
+            onChange={handleRegionChange}
+            isLoading={regions.state === State.loading}
+            size="small"
+          />
           <TextField
             placeholder="Search meetings..."
             size="small"
