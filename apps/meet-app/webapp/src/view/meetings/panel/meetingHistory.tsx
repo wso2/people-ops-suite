@@ -104,7 +104,6 @@ function MeetingHistory() {
   const [regionOption, setRegionRangeOption] = useState<string>("All");
   const [meetingType, setMeetingType] = useState("Past");
   const [endDate, setEndDate] = useState(() => formatDateForInput(new Date()));
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const handleRadioButtonChange = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedValue = event.target.value;
     setMeetingType(selectedValue);
@@ -136,12 +135,6 @@ function MeetingHistory() {
     meetingType,
     endDate,
   ]);
-
-  useEffect(() => {
-    if (privileges.status === State.success) {
-      setIsAdmin(privileges.roles.includes(Role.ADMIN));
-    }
-  }, []);
 
   useEffect(() => {
     if (regions.state === State.idle) {
@@ -390,11 +383,12 @@ function MeetingHistory() {
         align: "center",
         disableColumnMenu: true,
         renderCell: (params) => {
-          const isCancelled = params.row.meetingStatus === "CANCELLED";
-          const isPast = params.row.timeStatus === "PAST";
+          const isCancelled:boolean = params.row.meetingStatus === "CANCELLED";
+          const isPast:boolean = params.row.timeStatus === "PAST";
+          const host:string = params.row.host;
           return (
             <>
-              {!isCancelled && !isPast && isAdmin && (
+              {(!isCancelled && !isPast && (privileges.roles.includes(Role.ADMIN) || privileges.userInfo?.email === host)) && (
                 <Tooltip title="Delete Meeting" arrow>
                   <IconButton
                     color="error"
@@ -441,7 +435,7 @@ function MeetingHistory() {
       });
     }
     return baseColumns;
-  }, [meetingType]);
+  }, [meetingType,privileges,handleDeleteMeeting]);
 
   const meetingList = meeting.meetings?.meetings ?? [];
 
