@@ -30,7 +30,7 @@ import {
   SelectChangeEvent,
 } from "@mui/material";
 import { DropdownOption, State } from "@/types/types";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState, useCallback } from "react";
 import { ConfirmationType } from "@/types/types";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import ErrorHandler from "@component/common/ErrorHandler";
@@ -157,46 +157,52 @@ function MeetingHistory() {
     setRegionRangeOption(event.target.value);
   };
 
-  const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
-    dialogContext.showConfirmation(
-      "Confirm Deletion",
-      <Box>
-        <>
-          <Typography variant="body1">
-            <strong>
-              Are you sure you want to delete the meeting <br />
-            </strong>{" "}
-            {`${meetingTitle} ?`}
-          </Typography>
-        </>
-      </Box>,
-      ConfirmationType.accept,
-      async () => {
-        setLoadingDelete(true);
-        await dispatch(deleteMeeting(meetingId)).then(() => {
-          setLoadingDelete(false);
-          dispatch(
-            fetchMeetings({
-              searchString: filteredSearchQuery,
-              limit: pageSize,
-              offset: page * pageSize,
-            }),
-          );
-        });
-      },
-      "Yes",
-      "No",
-    );
-  };
+  const handleDeleteMeeting = useCallback(
+    (meetingId: number, meetingTitle: string) => {
+      dialogContext.showConfirmation(
+        "Confirm Deletion",
+        <Box>
+          <>
+            <Typography variant="body1">
+              <strong>
+                Are you sure you want to delete the meeting <br />
+              </strong>{" "}
+              {`${meetingTitle} ?`}
+            </Typography>
+          </>
+        </Box>,
+        ConfirmationType.accept,
+        async () => {
+          setLoadingDelete(true);
+          await dispatch(deleteMeeting(meetingId)).then(() => {
+            setLoadingDelete(false);
+            dispatch(
+              fetchMeetings({
+                searchString: filteredSearchQuery,
+                limit: pageSize,
+                offset: page * pageSize,
+              }),
+            );
+          });
+        },
+        "Yes",
+        "No",
+      );
+    },
+    [dispatch, dialogContext, filteredSearchQuery, pageSize, page],
+  );
 
-  const handleViewAttachments = (meetingId: number) => {
-    setLoadingAttachments(true);
-    dispatch(fetchAttachments(meetingId)).then((data: any) => {
-      setAttachments(data.payload.attachments);
-      setOpenAttachmentDialog(true);
-      setLoadingAttachments(false);
-    });
-  };
+  const handleViewAttachments = useCallback(
+    (meetingId: number) => {
+      setLoadingAttachments(true);
+      dispatch(fetchAttachments(meetingId)).then((data: any) => {
+        setAttachments(data.payload.attachments);
+        setOpenAttachmentDialog(true);
+        setLoadingAttachments(false);
+      });
+    },
+    [dispatch],
+  );
 
   const handleCloseAttachmentDialog = () => {
     setOpenAttachmentDialog(false);
@@ -383,59 +389,62 @@ function MeetingHistory() {
         align: "center",
         disableColumnMenu: true,
         renderCell: (params) => {
-          const isCancelled:boolean = params.row.meetingStatus === "CANCELLED";
-          const isPast:boolean = params.row.timeStatus === "PAST";
-          const host:string = params.row.host;
+          const isCancelled: boolean = params.row.meetingStatus === "CANCELLED";
+          const isPast: boolean = params.row.timeStatus === "PAST";
+          const host: string = params.row.host;
           return (
             <>
-              {(!isCancelled && !isPast && (privileges.roles.includes(Role.ADMIN) || privileges.userInfo?.email === host)) && (
-                <Tooltip title="Delete Meeting" arrow>
-                  <IconButton
-                    color="error"
-                    onClick={() => {
-                      handleDeleteMeeting(
-                        params.row.meetingId,
-                        params.row.title,
-                      );
-                    }}
-                    sx={{
-                      backgroundColor: (theme) => theme.palette.error.main,
-                      borderRadius: 2,
-                      width: 25,
-                      height: 25,
-                      border: (theme) =>
-                        `2px solid ${theme.palette.error.dark}`,
-                      boxShadow: (theme) =>
-                        `0 2px 4px ${theme.palette.error.dark}30`,
-                      "&:hover": {
-                        backgroundColor: (theme) => theme.palette.error.dark,
-                        transform: "translateY(-1px)",
+              {!isCancelled &&
+                !isPast &&
+                (privileges.roles.includes(Role.ADMIN) ||
+                  privileges.userInfo?.email === host) && (
+                  <Tooltip title="Delete Meeting" arrow>
+                    <IconButton
+                      color="error"
+                      onClick={() => {
+                        handleDeleteMeeting(
+                          params.row.meetingId,
+                          params.row.title,
+                        );
+                      }}
+                      sx={{
+                        backgroundColor: (theme) => theme.palette.error.main,
+                        borderRadius: 2,
+                        width: 25,
+                        height: 25,
+                        border: (theme) =>
+                          `2px solid ${theme.palette.error.dark}`,
                         boxShadow: (theme) =>
-                          `0 4px 8px ${theme.palette.error.dark}40`,
-                      },
-                      "&:active": {
-                        transform: "translateY(0px)",
-                        boxShadow: (theme) =>
-                          `0 1px 2px ${theme.palette.error.dark}60`,
-                      },
-                      "& .MuiSvgIcon-root": {
-                        color: (theme) => theme.palette.error.contrastText,
-                        fontSize: "1.1rem",
-                      },
-                      transition: "all 0.2s ease-in-out",
-                    }}
-                  >
-                    <DeleteForever />
-                  </IconButton>
-                </Tooltip>
-              )}
+                          `0 2px 4px ${theme.palette.error.dark}30`,
+                        "&:hover": {
+                          backgroundColor: (theme) => theme.palette.error.dark,
+                          transform: "translateY(-1px)",
+                          boxShadow: (theme) =>
+                            `0 4px 8px ${theme.palette.error.dark}40`,
+                        },
+                        "&:active": {
+                          transform: "translateY(0px)",
+                          boxShadow: (theme) =>
+                            `0 1px 2px ${theme.palette.error.dark}60`,
+                        },
+                        "& .MuiSvgIcon-root": {
+                          color: (theme) => theme.palette.error.contrastText,
+                          fontSize: "1.1rem",
+                        },
+                        transition: "all 0.2s ease-in-out",
+                      }}
+                    >
+                      <DeleteForever />
+                    </IconButton>
+                  </Tooltip>
+                )}
             </>
           );
         },
       });
     }
     return baseColumns;
-  }, [meetingType,privileges,handleDeleteMeeting]);
+  }, [meetingType, privileges, handleDeleteMeeting, handleViewAttachments]);
 
   const meetingList = meeting.meetings?.meetings ?? [];
 
