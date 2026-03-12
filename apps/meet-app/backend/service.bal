@@ -540,6 +540,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + title - Name to filter  
     # + host - Host to filter
     # + searchString - Search String to filter host and title
+    # + customerName - Customer name to filter
     # + startTime - Start time to filter
     # + endTime - End time to filter
     # + internalParticipants - Participants to filter
@@ -547,7 +548,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + offset - Offset of the data
     # + return - Meetings | Error
     resource function get meetings(http:RequestContext ctx, string? title, string? host, string? searchString, string? region,
-            string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
+            string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset , string? customerName)
     returns MeetingListResponse|http:Forbidden|http:InternalServerError|http:BadRequest {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -579,8 +580,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-        string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
-        database:Meeting[]|error meetingsResult = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString, region,
+        database:Meeting[]|error meetingsResult = database:fetchMeetings(null,customerName, title, host, searchString, region,
                 startTime, endTime, internalParticipants, 'limit, offset);
         if meetingsResult is error {
             string customError = "Error occurred while retrieving the meetings!";
@@ -591,15 +591,9 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-        database:Meeting[] meetingList = meetingsResult;
-        if !isAdmin {
-            meetingList = from var meeting in meetingList
-                where meeting.host == userInfo.email
-                select meeting;
-        }
         return {
-            count: (meetingList.length() > 0) ? meetingList[0].totalCount : 0,
-            meetings: from var meeting in meetingList
+            count: (meetingsResult.length() > 0) ? meetingsResult[0].totalCount : 0,
+            meetings: from var meeting in meetingsResult
                 select {
                     meetingId: meeting.meetingId,
                     title: meeting.title,

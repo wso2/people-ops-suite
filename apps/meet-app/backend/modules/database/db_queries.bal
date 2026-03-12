@@ -77,7 +77,8 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 
 # Build query to retrieve meetings.
 #
-# + hostOrInternalParticipant - Filter by host or internal participant  
+# + hostOrInternalParticipant - Filter by host or internal participant
+# + customerName - Customer name to filter
 # + title - Title to filter  
 # + host - Host filter
 # + searchString - Search String to filter host and title 
@@ -88,9 +89,10 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 # + 'limit - Limit of the data  
 # + offset - offset of the query
 # + return - sql:ParameterizedQuery - Select query for the meeting table
-isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? title, string? host, string? searchString, string? region,
-        string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
-    returns sql:ParameterizedQuery {
+isolated function getMeetingsQuery(
+        string? hostOrInternalParticipant, string? customerName, string? title, string? host, string? searchString, string? region,
+        string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset
+) returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery mainQuery = `
             SELECT 
@@ -115,10 +117,14 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
             FROM 
                 meeting
     `;
-
     // Setting the filters based on the meeting object.
     sql:ParameterizedQuery[] filters = [];
 
+    if customerName is string {
+        filters.push(sql:queryConcat(
+                `customer_name = `, `${customerName}`
+        ));
+    }
     if host is string {
         filters.push(sql:queryConcat(`host = `, `${host}`));
     }
@@ -145,7 +151,6 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
                 first = false;
                 continue;
             }
-            // If the first participant is already added, add OR for the rest of the participants.
             internalParticipantsFilter = sql:queryConcat(
                     internalParticipantsFilter,
                     ` OR wso2_participants LIKE ${"%" + participant + "%"}`
@@ -167,7 +172,6 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
     // Building the WHERE clause.
     mainQuery = buildSqlSelectQuery(mainQuery, filters);
 
-    // Sorting the result by created_on.
     mainQuery = sql:queryConcat(mainQuery, ` ORDER BY start_time DESC`);
 
     // Setting the limit and offset.
@@ -277,7 +281,7 @@ isolated function getMonthlyScheduledCountsQuery(string startTime, string endTim
 # + endTime - End of the range
 # + region - Region filter
 # + return - sql:ParameterizedQuery
-isolated function countMeetingTypesQuery(string startTime, string endTime, string? region) 
+isolated function countMeetingTypesQuery(string startTime, string endTime, string? region)
     returns sql:ParameterizedQuery {
     sql:ParameterizedQuery query = `
         SELECT 
@@ -309,7 +313,7 @@ isolated function countMeetingTypesQuery(string startTime, string endTime, strin
 # + endTime - End of the range
 # + region - Region filter
 # + return - sql:ParameterizedQuery
-isolated function countMeetingsByHostQuery(string startTime, string endTime , string? region) returns sql:ParameterizedQuery {
+isolated function countMeetingsByHostQuery(string startTime, string endTime, string? region) returns sql:ParameterizedQuery {
     sql:ParameterizedQuery query = `
     SELECT 
         host,
@@ -325,23 +329,23 @@ isolated function countMeetingsByHostQuery(string startTime, string endTime , st
     if region is string {
         query = sql:queryConcat(query, ` AND host_sub_team = ${region}`);
     }
-    query = sql:queryConcat(query,`
+    query = sql:queryConcat(query, `
         GROUP BY 
         host,
         host_team,
         host_sub_team
     `);
-    return  query;
+    return query;
 }
 
 # Build query to retrieve the meeting titles by region within a date range.
-# 
+#
 # + startTime - Start of the range
 # + endTime - End of the range
 # + region - Region filter
 # + return - sql:ParameterizedQuery
-isolated function meetingTitlesByRegionsQuery(string startTime, string endTime, string region) 
-    returns sql:ParameterizedQuery => 
+isolated function meetingTitlesByRegionsQuery(string startTime, string endTime, string region)
+    returns sql:ParameterizedQuery =>
 `
     SELECT 
         title

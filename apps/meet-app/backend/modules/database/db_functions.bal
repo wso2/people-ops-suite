@@ -58,6 +58,7 @@ public isolated function addMeeting(AddMeetingPayload addMeetingPayload, string 
 # Fetch meetings.
 #
 # + hostOrInternalParticipant - Filter by host or internal participant
+# + customerName - Customer name to filter
 # + title - Name to filter  
 # + host - Host email filter  
 # + searchString - Search String to filter host and title
@@ -68,13 +69,13 @@ public isolated function addMeeting(AddMeetingPayload addMeetingPayload, string 
 # + 'limit - Limit of the response
 # + offset - Offset of the number of meetings to retrieve  
 # + return - List of meetings | Error
-public isolated function fetchMeetings(string? hostOrInternalParticipant, string? title, string? host, string? searchString, string? region,
+public isolated function fetchMeetings(string? hostOrInternalParticipant,string? customerName, string? title, string? host, string? searchString, string? region,
         string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
     returns Meeting[]|error {
 
     stream<Meeting, error?> resultStream = databaseClient->query(
         getMeetingsQuery(
-            hostOrInternalParticipant, title, host, searchString, region, startTime, endTime, internalParticipants, 'limit, offset
+            hostOrInternalParticipant,customerName, title, host, searchString, region, startTime, endTime, internalParticipants, 'limit, offset
         )
     );
 
