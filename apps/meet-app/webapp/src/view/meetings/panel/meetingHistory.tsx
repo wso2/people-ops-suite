@@ -59,8 +59,6 @@ import { fetchRegions } from "@root/src/slices/regionsSlice/regions";
 import Dropdown from "@root/src/component/ui/Dropdown";
 import RadioGroup from "@mui/material/RadioGroup";
 import StyledRadio from "@root/src/component/ui/StyledRadio";
-import Chip from "@mui/material/Chip";
-import Stack from "@mui/material/Stack";
 
 const formatDateTime = (dateTimeStr: string) => {
   const utcDate = new Date(dateTimeStr + " UTC");
@@ -123,7 +121,6 @@ function MeetingHistory() {
   const [isInitialLoadDone, setIsInitialLoadDone] = useState(false);
 
   useEffect(() => {
-    console.log(debouncedSearchTerm);
     const params: any = {
       searchString: debouncedSearchTerm,
       limit: pageSize,
@@ -340,8 +337,9 @@ function MeetingHistory() {
     }
   };
 
-  const handlePress = (id: number) => {
-    navigate(`/meetings/${id}`);
+  const handlePress = (customerName: string) => {
+
+    navigate(`/meetings/${customerName}`);
   };
   const meetingList = meeting.meetings?.meetings ?? [];
 
@@ -515,7 +513,7 @@ function MeetingHistory() {
                         id={index}
                         customerName={summary.customerName}
                         meetingCount={summary.meetingCount}
-                        onCardClick={handlePress}
+                        onCardClick={()=>handlePress(summary.customerName)}
                       />
                     </Grid>
                   ))

@@ -21,6 +21,7 @@ import {
   CardContent,
   Chip,
   CardActionArea,
+  alpha,
 } from "@mui/material";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 interface CustomerCardProps {
@@ -97,11 +98,16 @@ const CustomerCard = ({
             display="flex"
             alignItems="center"
             justifyContent="space-between"
-            bgcolor="grey.50"
-            p={2}
-            borderRadius={2}
-            border="1px solid"
-            borderColor="divider"
+            sx={{
+              bgcolor: (theme) =>
+                theme.palette.mode === "dark"
+                  ? alpha(theme.palette.common.white, 0.05)
+                  : theme.palette.grey[50], 
+              p: 2,
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+            }}
           >
             <Box
               display="flex"

@@ -119,6 +119,14 @@ export const MeetingsAccordion = ({
             >
               {meeting.title}
             </Typography>
+            {(meeting.timeStatus === "UPCOMING") == true && (
+              <Chip
+                label="Upcoming"
+                size="small"
+                color="primary"
+                sx={{ height: 20, fontSize: "0.65rem" }}
+              />
+            )}
           </Box>
           <Box
             sx={{

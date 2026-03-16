@@ -48,6 +48,8 @@ interface MeetingState {
   meetings: Meetings | null;
   meetingTypes: string[] | null;
   dateRangeMeetings: Meeting[] | null;
+  customerMeetings: Meetings | null;
+  customerMeetingsState: State;
   dateRangeState: State;
   backgroundProcess: boolean;
   backgroundProcessMessage: string | null;
@@ -96,6 +98,8 @@ const initialState: MeetingState = {
   meetings: null,
   meetingTypes: null,
   dateRangeMeetings: null,
+  customerMeetings: null,
+  customerMeetingsState: State.idle,
   dateRangeState: State.idle,
   backgroundProcess: false,
   backgroundProcessMessage: null,
@@ -194,6 +198,62 @@ export const fetchMeetings = createAsyncThunk(
       APIService.getInstance()
         .get(AppConfig.serviceUrls.meetings, {
           params: { searchString, limit, offset, region, endTime },
+          cancelToken: newCancelTokenSource.token,
+        })
+        .then((response) => {
+          resolve(response.data);
+        })
+        .catch((error) => {
+          const errorMessage =
+            error.response?.data?.message ||
+            (error.response?.status === HttpStatusCode.InternalServerError
+              ? SnackMessage.error.fetchMeetings
+              : "An unknown error occurred.");
+          dispatch(
+            enqueueSnackbarMessage({
+              message: errorMessage,
+              type: "error",
+            }),
+          );
+          reject(error);
+        });
+    });
+  },
+);
+
+export const fetchMeetingsByCustomer = createAsyncThunk(
+  "meeting/fetchMeetingByCustomer",
+  async (
+    {
+      searchString,
+      limit,
+      offset,
+      region,
+      endTime,
+      customerName,
+    }: {
+      searchString: string | null;
+      limit: number;
+      offset?: number;
+      region?: string;
+      endTime?: string;
+      customerName: string;
+    },
+    { dispatch },
+  ) => {
+    APIService.getCancelToken().cancel();
+    const newCancelTokenSource = APIService.updateCancelToken();
+    return new Promise<Meetings>((resolve, reject) => {
+      APIService.getInstance()
+        .get(AppConfig.serviceUrls.meetings, {
+          params: {
+            searchString,
+            limit,
+            offset,
+            region,
+            endTime,
+            customerName,
+          },
           cancelToken: newCancelTokenSource.token,
         })
         .then((response) => {
@@ -402,6 +462,17 @@ const MeetingSlice = createSlice({
       })
       .addCase(fetchMeetingsByDates.rejected, (state) => {
         state.dateRangeState = State.failed;
+      })
+      .addCase(fetchMeetingsByCustomer.pending, (state) => {
+        state.customerMeetingsState = State.loading;
+        state.stateMessage = "Fetching meetings by dates...";
+      })
+      .addCase(fetchMeetingsByCustomer.fulfilled, (state, action) => {
+        state.customerMeetingsState = State.success;
+        state.customerMeetings = action.payload;
+      })
+      .addCase(fetchMeetingsByCustomer.rejected, (state) => {
+        state.customerMeetingsState = State.failed;
       })
       .addCase(deleteMeeting.pending, (state) => {
         state.submitState = State.loading;

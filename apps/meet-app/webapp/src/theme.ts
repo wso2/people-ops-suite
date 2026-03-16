@@ -169,11 +169,11 @@ export const themeSettings = (mode: PaletteMode) => {
               gradient: colors.gradient,
             },
             analytics: {
-              cardBg: "#f5f5f5",
-              gridLines: "#eee",
+              cardBg: colors.grey[600], 
+              gridLines: "rgba(255, 255, 255, 0.1)",
               chartLine1: "#ff7300",
-              chartLine2: "#473f38",
-              progressBarBg: "#bec0c2",
+              chartLine2: colors.grey[200], 
+              progressBarBg: colors.grey[400],
               pieColors: [
                 "#ff7300",
                 "#de6300",

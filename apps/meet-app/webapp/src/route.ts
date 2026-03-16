@@ -69,7 +69,7 @@ export const routes: RouteObjectWithRole[] = [
     bottomNav: true,
   },
   {
-    path:"/meetings/:customerId",
+    path:"/meetings/:customerName",
     text:"Customer Meetings",
     icon:React.createElement(DuoIcon),
     element:React.createElement(View.customerMeetings),

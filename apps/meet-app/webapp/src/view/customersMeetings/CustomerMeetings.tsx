@@ -1,4 +1,20 @@
-import React from 'react';
+// Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+import React, { useEffect } from "react";
 import {
   Box,
   Container,
@@ -14,337 +30,435 @@ import {
   ListItemText,
   Accordion,
   AccordionSummary,
+  CircularProgress,
   AccordionDetails,
   IconButton,
   Card,
   CardContent,
   Stack,
   Link,
-} from '@mui/material';
+  useTheme,
+} from "@mui/material";
 
 // Icons
-import EditIcon from '@mui/icons-material/Edit';
-import AddIcon from '@mui/icons-material/Add';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import HistoryIcon from '@mui/icons-material/History';
-import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import DescriptionIcon from '@mui/icons-material/Description';
-import SlideshowIcon from '@mui/icons-material/Slideshow'; // For PPT
-import DownloadIcon from '@mui/icons-material/Download';
-import VideoCameraBackIcon from '@mui/icons-material/VideoCameraBack';
-import LockIcon from '@mui/icons-material/Lock';
-import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import { useAppDispatch, useAppSelector } from '@root/src/slices/store';
-
-// --- Custom Components & Styles ---
-
-// 1. The Date Box (e.g., JAN 23)
-const DateBox = ({ month , day }:{month:string, day:string}) => (
-  <Box
-    sx={{
-      border: '1px solid #e0e0e0',
-      borderRadius: 2,
-      padding: '8px 12px',
-      textAlign: 'center',
-      minWidth: '60px',
-      mr: 2,
-      backgroundColor: '#fff',
-    }}
-  >
-    <Typography variant="caption" display="block" sx={{ fontWeight: 'bold', color: '#757575', textTransform: 'uppercase' }}>
-      {month}
-    </Typography>
-    <Typography variant="h6" sx={{ lineHeight: 1, fontWeight: 'bold', color: '#333' }}>
-      {day}
-    </Typography>
-  </Box>
-);
-
-// 2. Video Thumbnail Placeholder
-const VideoThumbnail = ({ duration, label }:{duration :string , label:string}) => (
-  <Box sx={{ position: 'relative', width: '100%', borderRadius: 2, overflow: 'hidden', bgcolor: '#0a0f1c', aspectRatio: '16/9' }}>
-    <Box
-      sx={{
-        position: 'absolute',
-        top: 0, left: 0, width: '100%', height: '100%',
-        display: 'flex', alignItems: 'center', justifyContent: 'center'
-      }}
-    >
-      <PlayCircleOutlineIcon sx={{ fontSize: 64, color: 'rgba(255,255,255,0.7)' }} />
-    </Box>
-    {/* Label (Part 1/2) */}
-    <Box sx={{ position: 'absolute', top: 12, left: 12 }}>
-      <Chip label={label} size="small" color="primary" sx={{ height: 20, fontSize: '0.7rem' }} />
-    </Box>
-    {/* Duration */}
-    <Box sx={{ position: 'absolute', bottom: 12, right: 12, bgcolor: 'rgba(0,0,0,0.7)', px: 1, borderRadius: 1 }}>
-      <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600 }}>{duration}</Typography>
-    </Box>
-  </Box>
-);
-
-// 3. File Attachment Card (Mini)
-const FileChip = ({ icon, name, size }:{icon:React.ReactElement,name:string,size:string}) => (
-  <Paper variant="outlined" sx={{ p: 1.5, display: 'flex', alignItems: 'center', minWidth: 200, borderRadius: 2 }}>
-    <Box sx={{ mr: 1.5 }}>{icon}</Box>
-    <Box>
-      <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{name}</Typography>
-      <Typography variant="caption" color="text.secondary">{size}</Typography>
-    </Box>
-  </Paper>
-);
-
-// --- Main Dashboard Component ---
+import AddIcon from "@mui/icons-material/Add";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import HistoryIcon from "@mui/icons-material/History";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import DescriptionIcon from "@mui/icons-material/Description";
+import SlideshowIcon from "@mui/icons-material/Slideshow";
+import DownloadIcon from "@mui/icons-material/Download";
+import VideoCameraBackIcon from "@mui/icons-material/VideoCameraBack";
+import LockIcon from "@mui/icons-material/Lock";
+import { useAppDispatch, useAppSelector } from "@root/src/slices/store";
+import { useParams } from "react-router-dom";
+import { fetchMeetingsByCustomer } from "@root/src/slices/meetingSlice/meeting";
+import { State } from "@root/src/types/types";
+import ErrorHandler from "@component/common/ErrorHandler";
+import MeetingsAccordion from "@root/src/component/ui/MeetingsAccordion";
+import { useState } from "react";
+import {
+  fetchMeetings,
+  deleteMeeting,
+  fetchAttachments,
+  fetchMeetingsByDates,
+} from "@slices/meetingSlice/meeting";
+import { Attachment } from "../../types/types";
 
 export default function CustomerMeetings() {
+  const formatDateTime = (dateTimeStr: string) => {
+    const utcDate = new Date(dateTimeStr + " UTC");
+    return utcDate.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+  const theme = useTheme();
+  const [attachmentMap, setAttachmentMap] = useState<
+    Record<number, Attachment[]>
+  >({});
+  const [loadingAttachments, setLoadingAttachments] = useState<
+    Record<number, boolean>
+  >({});
+  const { customerName } = useParams();
+  console.log(customerName);
   const dispatch = useAppDispatch();
   const meeting = useAppSelector((state) => state.meeting);
-  return (
-    <Box sx={{ bgcolor: '#f9fafb', minHeight: '100vh', py: 4 }}>
-      <Container maxWidth="xl">
+  useEffect(() => {
+    const params: any = {
+      customerName: customerName,
+      limit: 10,
+    };
+    dispatch(fetchMeetingsByCustomer(params));
+  }, [customerName]);
+  const meetingList = meeting?.customerMeetings?.meetings ?? [];
+  console.log(meetingList);
 
-        
-        {/* === HEADER SECTION === */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+  const handleAccordionChange = (meetingId: number, isExpanded: boolean) => {
+    if (isExpanded && !attachmentMap[meetingId]) {
+      setLoadingAttachments((prev) => ({ ...prev, [meetingId]: true }));
+      dispatch(fetchAttachments(meetingId)).then((data: any) => {
+        if (data.payload && data.payload.attachments) {
+          setAttachmentMap((prev) => ({
+            ...prev,
+            [meetingId]: data.payload.attachments,
+          }));
+        }
+        setLoadingAttachments((prev) => ({ ...prev, [meetingId]: false }));
+      });
+    }
+  };
+  const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
+    console.log(meetingId, meetingTitle);
+  };
+  return (
+    <Box
+      sx={{
+        bgcolor: "background.default",
+        minHeight: "100vh",
+        py: 4,
+        color: "text.primary",
+      }}
+    >
+      <Container maxWidth="xl">
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            mb: 4,
+            flexWrap: "wrap",
+            gap: 2,
+          }}
+        >
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, mb: 1, color: '#1a1a1a' }}>
-              customer name
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: 800, mb: 1, color: "text.primary" }}
+            >
+              Customer : {customerName}
             </Typography>
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <Avatar sx={{ width: 24, height: 24, fontSize: 12, bgcolor: '#bdbdbd' }}>TW</Avatar>
-              <Typography variant="body2" color="text.secondary">
-                Hosted by <strong>name</strong>
-              </Typography>
-              <Chip label="Active" size="small" sx={{ bgcolor: '#e6f4ea', color: '#1e8e3e', fontWeight: 600, height: 24 }} />
-            </Stack>
           </Box>
           <Stack direction="row" spacing={2}>
-            <Button variant="outlined" startIcon={<EditIcon />} sx={{ textTransform: 'none', borderColor: '#e0e0e0', color: '#333' }}>
-              Edit Series
-            </Button>
-            <Button variant="contained" startIcon={<AddIcon />} sx={{ textTransform: 'none', bgcolor: '#1976d2' }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              sx={{ textTransform: "none" }}
+            >
               Schedule New
             </Button>
           </Stack>
         </Box>
 
         <Grid container spacing={3}>
-          
-          {/* === LEFT COLUMN: SESSIONS === */}
           <Grid item xs={12} lg={8}>
-            
-            {/* List Header */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                mb: 2,
+              }}
+            >
               <Stack direction="row" spacing={1} alignItems="center">
                 <HistoryIcon color="action" />
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>Past Sessions & Recordings</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Past Sessions & Recordings
+                </Typography>
               </Stack>
-              <Chip label="Total: 12 Sessions" size="small" sx={{ bgcolor: '#eee' }} />
+              <Chip
+                label={`total sessions ${meeting.customerMeetings?.count}`}
+                size="small"
+                sx={{ bgcolor: "action.hover" }}
+              />
             </Box>
-
-            {/* Accordion 1 (Expanded) */}
-            <Accordion defaultExpanded sx={{ mb: 2, borderRadius: '8px !important', boxShadow: '0 1px 3px rgba(0,0,0,0.12)', '&:before': { display: 'none' } }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                  <DateBox month="JAN" day="23" />
-                  <Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Routine Catchup - Sprint Review</Typography>
-                    <Typography variant="caption" color="text.secondary">09:00 AM - 10:00 AM • 1 hr 2 mins</Typography>
-                  </Box>
+            {meeting.customerMeetingsState == State.loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                <CircularProgress sx={{ color: theme.palette.brand.main }} />
+              </Box>
+            ) : meeting.customerMeetingsState === State.failed ? (
+              <ErrorHandler message="Failed to fetch meetings." />
+            ) : meetingList.length === 0 ? (
+              <Paper
+                sx={{
+                  p: 6,
+                  textAlign: "center",
+                  borderRadius: 3,
+                  boxShadow: (theme) => theme.customShadows.modern,
+                  bgcolor: "background.paper",
+                }}
+              >
+                <Typography variant="h6" color="text.secondary">
+                  No meetings found.
+                </Typography>
+              </Paper>
+            ) : (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+             { meetingList.map((row) => (
+      
+               
+                  <MeetingsAccordion
+                    meeting={row}
+                    handleAccordionChange={handleAccordionChange}
+                    formatDateTime={formatDateTime}
+                    key={row.meetingId}
+                    handleDeleteMeeting={handleDeleteMeeting}
+                    loadingAttachments={loadingAttachments}
+                    attachmentMap={attachmentMap}
+                  />
+              ))}
                 </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 1.5, letterSpacing: 1 }}>SESSION RECORDINGS</Typography>
-                <Grid container spacing={2} sx={{ mb: 3 }}>
-                  <Grid item xs={12} md={6}>
-                    <VideoThumbnail label="Part 1" duration="34:12" />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <VideoThumbnail label="Part 2" duration="28:05" />
-                  </Grid>
-                </Grid>
+            )}
 
-                <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 1.5, letterSpacing: 1 }}>SESSION FILES</Typography>
-                <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 2 }}>
-                   {/* Fix spacing override for stack + wrap */}
-                   <Box sx={{marginTop: '0 !important', marginLeft: '0 !important'}}> 
-                      <FileChip 
-                        icon={<PictureAsPdfIcon sx={{ color: '#d32f2f', fontSize: 30 }} />} 
-                        name="Minutes - Jan 23.pdf" 
-                        size="2.4 MB" 
-                      />
-                   </Box>
-                   <Box>
-                      <FileChip 
-                        icon={<DescriptionIcon sx={{ color: '#1976d2', fontSize: 30 }} />} 
-                        name="Chat_Log.txt" 
-                        size="14 KB" 
-                      />
-                   </Box>
-                </Stack>
-              </AccordionDetails>
-            </Accordion>
-
-            {/* Accordion 2 (Collapsed) */}
-            <Accordion sx={{ mb: 2, borderRadius: '8px !important', boxShadow: '0 1px 3px rgba(0,0,0,0.12)', '&:before': { display: 'none' } }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                  <DateBox month="JAN" day="16" />
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Requirement Gathering</Typography>
-                    <Typography variant="caption" color="text.secondary">02:00 PM - 03:30 PM • 1 hr 30 mins</Typography>
-                  </Box>
-                  <Chip label="1 Recording" size="small" sx={{ mr: 2, bgcolor: '#f5f5f5' }} />
-                </Box>
-              </AccordionSummary>
-            </Accordion>
-
-            {/* Accordion 3 (Collapsed) */}
-            <Accordion sx={{ mb: 2, borderRadius: '8px !important', boxShadow: '0 1px 3px rgba(0,0,0,0.12)', '&:before': { display: 'none' } }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                  <DateBox month="JAN" day="09" />
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Kickoff Meeting</Typography>
-                    <Typography variant="caption" color="text.secondary">10:00 AM - 11:00 AM • 58 mins</Typography>
-                  </Box>
-                  <Chip label="No Recording" size="small" sx={{ mr: 2, bgcolor: '#f5f5f5' }} />
-                </Box>
-              </AccordionSummary>
-            </Accordion>
-
-            {/* Pagination Mock */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 2, color: 'text.secondary', fontSize: '0.875rem' }}>
-                Rows per page: 10 <ExpandMoreIcon fontSize="small" /> &nbsp; 1-3 of 12 &nbsp; &lt; &nbsp; &gt;
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                mt: 2,
+                color: "text.secondary",
+                fontSize: "0.875rem",
+              }}
+            >
+              Rows per page: 10 <ExpandMoreIcon fontSize="small" /> &nbsp; 1-3
+              of 12 &nbsp; &lt; &nbsp; &gt;
             </Box>
-
           </Grid>
 
-          {/* === RIGHT COLUMN: SIDEBAR === */}
           <Grid item xs={12} lg={4}>
-            
-            {/* Card 1: Upcoming Schedule */}
-            <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>
+            <Card sx={{ mb: 3, borderRadius: 2, bgcolor: "background.paper" }}>
               <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>Upcoming Schedule</Typography>
-                  <Link href="#" underline="hover" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>View All</Link>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 2,
+                  }}
+                >
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Upcoming Schedule
+                  </Typography>
+                  <Link
+                    href="#"
+                    underline="hover"
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      color: "primary.main",
+                    }}
+                  >
+                    View All
+                  </Link>
                 </Box>
 
                 <List disablePadding>
-                  {/* Item 1 */}
-                  <ListItem disableGutters alignItems="flex-start" sx={{ mb: 2 }}>
-                    <Box sx={{ minWidth: 40, mr: 2, textAlign: 'center' }}>
-                      <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1976d2' }}>JAN</Typography>
-                      <Typography variant="h6" sx={{ lineHeight: 1, fontWeight: 'bold' }}>30</Typography>
+                  <ListItem
+                    disableGutters
+                    alignItems="flex-start"
+                    sx={{ mb: 2 }}
+                  >
+                    <Box sx={{ minWidth: 40, mr: 2, textAlign: "center" }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ fontWeight: "bold", color: "primary.main" }}
+                      >
+                        JAN
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        sx={{ lineHeight: 1, fontWeight: "bold" }}
+                      >
+                        30
+                      </Typography>
                     </Box>
-                    <ListItemText 
-                      primary={<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Architecture Review</Typography>}
+                    <ListItemText
+                      primary={
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 700 }}
+                        >
+                          Architecture Review
+                        </Typography>
+                      }
                       secondary={
                         <Box component="span">
-                           <Typography variant="caption" display="block" color="text.secondary">10:00 AM - 12:00 PM</Typography>
-                           <Box component="span" sx={{ display: 'flex', alignItems: 'center', mt: 0.5, color: '#1976d2', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer' }}>
-                              <VideoCameraBackIcon sx={{ fontSize: 14, mr: 0.5 }} /> Join Meeting
-                           </Box>
+                          <Typography
+                            variant="caption"
+                            display="block"
+                            color="text.secondary"
+                          >
+                            10:00 AM - 12:00 PM
+                          </Typography>
+                          <Box
+                            component="span"
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              mt: 0.5,
+                              color: "primary.main",
+                              fontWeight: 600,
+                              fontSize: "0.75rem",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <VideoCameraBackIcon
+                              sx={{ fontSize: 14, mr: 0.5 }}
+                            />{" "}
+                            Join Meeting
+                          </Box>
                         </Box>
                       }
                     />
                   </ListItem>
-                  <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
-                  
-                  {/* Item 2 */}
-                  <ListItem disableGutters alignItems="flex-start" sx={{ mb: 2, mt: 1 }}>
-                    <Box sx={{ minWidth: 40, mr: 2, textAlign: 'center' }}>
-                      <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1976d2' }}>FEB</Typography>
-                      <Typography variant="h6" sx={{ lineHeight: 1, fontWeight: 'bold' }}>06</Typography>
-                    </Box>
-                    <ListItemText 
-                      primary={<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Weekly Sync</Typography>}
-                      secondary={
-                        <Box component="span">
-                           <Typography variant="caption" display="block" color="text.secondary">09:00 AM - 10:00 AM</Typography>
-                           <Box component="span" sx={{ display: 'flex', alignItems: 'center', mt: 0.5, color: '#757575', fontSize: '0.75rem' }}>
-                              <LockIcon sx={{ fontSize: 14, mr: 0.5 }} /> Not Started
-                           </Box>
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                  <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
+                  <Divider
+                    sx={{
+                      my: 1,
+                      borderStyle: "dashed",
+                      borderColor: "divider",
+                    }}
+                  />
 
-                   {/* Item 3 */}
-                   <ListItem disableGutters alignItems="flex-start" sx={{ mt: 1 }}>
-                    <Box sx={{ minWidth: 40, mr: 2, textAlign: 'center' }}>
-                      <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#1976d2' }}>FEB</Typography>
-                      <Typography variant="h6" sx={{ lineHeight: 1, fontWeight: 'bold' }}>13</Typography>
+                  <ListItem
+                    disableGutters
+                    alignItems="flex-start"
+                    sx={{ mb: 2, mt: 1 }}
+                  >
+                    <Box sx={{ minWidth: 40, mr: 2, textAlign: "center" }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ fontWeight: "bold", color: "primary.main" }}
+                      >
+                        FEB
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        sx={{ lineHeight: 1, fontWeight: "bold" }}
+                      >
+                        06
+                      </Typography>
                     </Box>
-                    <ListItemText 
-                      primary={<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Weekly Sync</Typography>}
-                      secondary={<Typography variant="caption" display="block" color="text.secondary">09:00 AM - 10:00 AM</Typography>}
+                    <ListItemText
+                      primary={
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 700 }}
+                        >
+                          Weekly Sync
+                        </Typography>
+                      }
+                      secondary={
+                        <Box component="span">
+                          <Typography
+                            variant="caption"
+                            display="block"
+                            color="text.secondary"
+                          >
+                            09:00 AM - 10:00 AM
+                          </Typography>
+                          <Box
+                            component="span"
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              mt: 0.5,
+                              color: "text.disabled",
+                              fontSize: "0.75rem",
+                            }}
+                          >
+                            <LockIcon sx={{ fontSize: 14, mr: 0.5 }} /> Not
+                            Started
+                          </Box>
+                        </Box>
+                      }
                     />
                   </ListItem>
                 </List>
               </CardContent>
             </Card>
 
-            {/* Card 2: All Attachments */}
-            <Card sx={{ borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>
+            <Card sx={{ borderRadius: 2, bgcolor: "background.paper" }}>
               <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>All Attachments</Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 2,
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    All Attachments
+                  </Typography>
                   <Chip label="5 Files" size="small" />
                 </Box>
 
                 <List>
-                  <ListItem 
-                    disableGutters 
-                    secondaryAction={<IconButton edge="end"><DownloadIcon color="action" /></IconButton>}
+                  <ListItem
+                    disableGutters
+                    secondaryAction={
+                      <IconButton edge="end">
+                        <DownloadIcon color="action" />
+                      </IconButton>
+                    }
                   >
-                    <PictureAsPdfIcon sx={{ color: '#d32f2f', mr: 2, fontSize: 32 }} />
-                    <ListItemText 
-                      primary="WSO2_Architecture_v2.pdf" 
-                      primaryTypographyProps={{ variant: 'subtitle2', fontWeight: 600 }}
-                      secondary="Added Jan 23 • 4.2 MB" 
-                      secondaryTypographyProps={{ variant: 'caption' }}
+                    <PictureAsPdfIcon
+                      sx={{ color: "#f44336", mr: 2, fontSize: 32 }}
                     />
-                  </ListItem>
-                  <Divider />
-                  
-                  <ListItem 
-                    disableGutters 
-                    secondaryAction={<IconButton edge="end"><DownloadIcon color="action" /></IconButton>}
-                  >
-                    <SlideshowIcon sx={{ color: '#f57c00', mr: 2, fontSize: 32 }} />
-                    <ListItemText 
-                      primary="Kickoff_Deck.pptx" 
-                      primaryTypographyProps={{ variant: 'subtitle2', fontWeight: 600 }}
-                      secondary="Added Jan 09 • 12.5 MB" 
-                      secondaryTypographyProps={{ variant: 'caption' }}
+                    <ListItemText
+                      primary="WSO2_Architecture_v2.pdf"
+                      primaryTypographyProps={{
+                        variant: "subtitle2",
+                        fontWeight: 600,
+                        color: "text.primary",
+                      }}
+                      secondary="Added Jan 23 • 4.2 MB"
+                      secondaryTypographyProps={{ variant: "caption" }}
                     />
                   </ListItem>
                   <Divider />
 
-                  <ListItem 
-                    disableGutters 
-                    secondaryAction={<IconButton edge="end"><DownloadIcon color="action" /></IconButton>}
+                  <ListItem
+                    disableGutters
+                    secondaryAction={
+                      <IconButton edge="end">
+                        <DownloadIcon color="action" />
+                      </IconButton>
+                    }
                   >
-                    <InsertDriveFileIcon sx={{ color: '#1976d2', mr: 2, fontSize: 32 }} />
-                    <ListItemText 
-                      primary="Meeting_Notes_Jan16.docx" 
-                      primaryTypographyProps={{ variant: 'subtitle2', fontWeight: 600 }}
-                      secondary="Added Jan 16 • 156 KB" 
-                      secondaryTypographyProps={{ variant: 'caption' }}
+                    <SlideshowIcon
+                      sx={{ color: "#ff9800", mr: 2, fontSize: 32 }}
+                    />
+                    <ListItemText
+                      primary="Kickoff_Deck.pptx"
+                      primaryTypographyProps={{
+                        variant: "subtitle2",
+                        fontWeight: 600,
+                        color: "text.primary",
+                      }}
+                      secondary="Added Jan 09 • 12.5 MB"
+                      secondaryTypographyProps={{ variant: "caption" }}
                     />
                   </ListItem>
                 </List>
-                
-                <Button variant="outlined" fullWidth sx={{ mt: 1, textTransform: 'none', color: '#555', borderColor: '#e0e0e0' }}>
+
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  sx={{
+                    mt: 1,
+                    textTransform: "none",
+                    color: "text.secondary",
+                    borderColor: "divider",
+                  }}
+                >
                   Show All Files
                 </Button>
               </CardContent>
             </Card>
-
           </Grid>
         </Grid>
       </Container>
