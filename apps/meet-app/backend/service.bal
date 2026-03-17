@@ -61,7 +61,6 @@ service class ErrorInterceptor {
 }
 
 service http:InterceptableService / on new http:Listener(9090) {
-
     # Request interceptor.
     #
     # + return - authorization:JwtInterceptor, ErrorInterceptor
@@ -472,6 +471,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     startTime: startTimeDb,
                     endTime: endTimeDb,
                     isRecurring: true,
+                    customer_name: createCalendarEventRequest.customerName,
                     recurrence_rule: rule,
                     meetingType: meetingType,
                     businessUnit: businessUnit,
@@ -510,6 +510,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 endTime: createCalendarEventRequest.endTime
                 .substring(0, createCalendarEventRequest.endTime.length() - 6),
                 isRecurring: false,
+                customer_name: createCalendarEventRequest.customerName,
                 recurrence_rule: null,
                 meetingType: meetingType,
                 businessUnit: businessUnit,

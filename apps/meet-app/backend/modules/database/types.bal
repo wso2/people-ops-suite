@@ -52,6 +52,8 @@ public type AddMeetingPayload record {|
     boolean isRecurring;
     # Recurrence rule of the meeting
     string? recurrence_rule;
+    # Customer Name of the meeting
+    string customer_name;
     # Meeting type
     string meetingType;
     # Business unit  of the host
