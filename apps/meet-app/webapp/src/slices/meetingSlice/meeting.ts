@@ -64,6 +64,7 @@ interface AddMeetingPayload {
   internalParticipants: string[];
   externalParticipants: string[];
   recurrence?: { frequency: "DAILY" | "WEEKLY" | "MONTHLY"; untilUtc: string };
+  customerName:string;
   recurrenceRule?: string | null;
   timeStatus?: string | null;
   isRecurring?: boolean;

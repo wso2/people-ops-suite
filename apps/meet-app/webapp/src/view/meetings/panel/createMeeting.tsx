@@ -270,6 +270,7 @@ function MeetingForm() {
             .filter(Boolean)
             .join(" - ")}`,
           description: values.description,
+          customerName:values.customerName,
           startTime:
             values.date && values.startTime ? formatDateTime(values.date, values.startTime, values.timeZone) ?? "" : "",
           endTime:
