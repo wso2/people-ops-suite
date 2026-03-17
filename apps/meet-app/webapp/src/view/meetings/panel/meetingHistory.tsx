@@ -59,25 +59,8 @@ import { fetchRegions } from "@root/src/slices/regionsSlice/regions";
 import Dropdown from "@root/src/component/ui/Dropdown";
 import RadioGroup from "@mui/material/RadioGroup";
 import StyledRadio from "@root/src/component/ui/StyledRadio";
+import {formatDateTime,formatDateForInput,formatForAPI} from "@root/src/utils/useFormatDate"
 
-const formatDateTime = (dateTimeStr: string) => {
-  const utcDate = new Date(dateTimeStr + " UTC");
-  return utcDate.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const formatDateForInput = (date: Date) => {
-  return date.toLocaleDateString("en-CA");
-};
-
-const formatForAPI = (dateStr: string) => {
-  return new Date(dateStr).toISOString();
-};
 
 function MeetingHistory() {
   const theme = useTheme();

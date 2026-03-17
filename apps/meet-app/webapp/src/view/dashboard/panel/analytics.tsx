@@ -55,16 +55,7 @@ import { useEffect, useMemo, useState } from "react";
 import Dropdown from "@src/component/ui/Dropdown";
 import { DropdownOption } from "@root/src/types/types";
 import { fetchRegions } from "@root/src/slices/regionsSlice/regions";
-
-const formatDateForInput = (date: Date) => {
-  const tzOffsetMs = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - tzOffsetMs).toISOString().split("T")[0];
-};
-
-const formatForAPI = (dateStr: string) => {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  return new Date(year, month - 1, day).toISOString();
-};
+import {formatDateForInput,formatForAPI} from "@root/src/utils/useFormatDate"
 
 const DateRange: DropdownOption[] = [
   {
