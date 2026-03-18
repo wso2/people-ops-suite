@@ -46,6 +46,7 @@ import {
   fetchAttachments,
   fetchMeetingsByDates,
 } from "@slices/meetingSlice/meeting";
+import {setMeetingView} from "@slices/viewSlice/view"
 import { useTheme } from "@mui/material/styles";
 import {
   fetchCustomers,
@@ -59,7 +60,11 @@ import { fetchRegions } from "@root/src/slices/regionsSlice/regions";
 import Dropdown from "@root/src/component/ui/Dropdown";
 import RadioGroup from "@mui/material/RadioGroup";
 import StyledRadio from "@root/src/component/ui/StyledRadio";
-import {formatDateTime,formatDateForInput,formatForAPI} from "@root/src/utils/useFormatDate"
+import {
+  formatDateTime,
+  formatDateForInput,
+  formatForAPI,
+} from "@root/src/utils/useFormatDate";
 
 
 function MeetingHistory() {
@@ -67,6 +72,7 @@ function MeetingHistory() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const meeting = useAppSelector((state) => state.meeting);
+  const view = useAppSelector((state)=>state.view);
   const upcomingMeetings = useAppSelector(
     (state) => state.meeting.dateRangeMeetings,
   );
@@ -89,7 +95,6 @@ function MeetingHistory() {
   const dialogContext = useConfirmationModalContext();
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [view, setView] = useState("list");
   const debouncedSearchTerm = useDebounce(searchQuery, 500);
   const [attachmentMap, setAttachmentMap] = useState<
     Record<number, Attachment[]>
@@ -316,12 +321,11 @@ function MeetingHistory() {
     nextView: string | null,
   ) => {
     if (nextView != null) {
-      setView(nextView);
+      dispatch(setMeetingView(nextView))
     }
   };
 
   const handlePress = (customerName: string) => {
-
     navigate(`/meetings/${customerName}`);
   };
   const meetingList = meeting.meetings?.meetings ?? [];
@@ -411,7 +415,7 @@ function MeetingHistory() {
             }}
           />
           <ToggleButtonGroup
-            value={view}
+            value={view.view}
             exclusive
             onChange={handleToggleButtonChange}
           >
@@ -426,9 +430,9 @@ function MeetingHistory() {
       </Box>
 
       <Grid container spacing={4}>
-        <Grid item xs={12} md={view === "list" ? 8 : 12}>
+        <Grid item xs={12} md={view.view === "list" ? 8 : 12}>
           <Box sx={{ minHeight: 500 }}>
-            {view === "list" ? (
+            {view.view === "list" ? (
               meeting.state === State.loading && page === 0 ? (
                 <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
                   <CircularProgress sx={{ color: theme.palette.brand.main }} />
@@ -453,7 +457,7 @@ function MeetingHistory() {
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {meetingList.map((row) => (
                     <MeetingsAccordion
-                      key={row.meetingId} // Add a unique key here
+                      key={row.meetingId}
                       formatDateTime={formatDateTime}
                       meeting={row}
                       handleAccordionChange={handleAccordionChange}
@@ -496,7 +500,7 @@ function MeetingHistory() {
                         id={index}
                         customerName={summary.customerName}
                         meetingCount={summary.meetingCount}
-                        onCardClick={()=>handlePress(summary.customerName)}
+                        onCardClick={() => handlePress(summary.customerName)}
                       />
                     </Grid>
                   ))
@@ -517,7 +521,7 @@ function MeetingHistory() {
           </Box>
         </Grid>
 
-        {view === "list" && (
+        {view.view === "list" && (
           <Grid item xs={12} md={4}>
             <Card
               sx={{
