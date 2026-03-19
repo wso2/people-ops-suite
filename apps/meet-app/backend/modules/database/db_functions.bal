@@ -110,10 +110,13 @@ public isolated function cancelMeeting(int meetingId) returns int|error {
 
 # Fetch meetings per customer as meetings summary.
 #
+# + customerName - Customer name to filter
+# + 'limit - Limit of the data  
+# + offset - Offset of the data
 # + return - MeetingSummary[] | error
-public isolated function fetchMeetingsSummary() returns MeetingSummary[]|error {
+public isolated function fetchMeetingsSummary(string? customerName , int 'limit , int offset) returns MeetingSummary[]|error {
     stream<MeetingSummary, error?> resultStream = databaseClient->query(
-        getMeetingsSummaryQuery()
+        getMeetingsSummaryQuery(customerName,'limit,offset)
     );
     return from MeetingSummary meetingSummary in resultStream
         select meetingSummary;

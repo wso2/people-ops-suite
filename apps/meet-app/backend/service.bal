@@ -549,7 +549,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + offset - Offset of the data
     # + return - Meetings | Error
     resource function get meetings(http:RequestContext ctx, string? title, string? host, string? searchString, string? region,
-            string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset , string? customerName)
+            string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset, string? customerName)
     returns MeetingListResponse|http:Forbidden|http:InternalServerError|http:BadRequest {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -581,7 +581,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-        database:Meeting[]|error meetingsResult = database:fetchMeetings(null,customerName, title, host, searchString, region,
+        database:Meeting[]|error meetingsResult = database:fetchMeetings(null, customerName, title, host, searchString, region,
                 startTime, endTime, internalParticipants, 'limit, offset);
         if meetingsResult is error {
             string customError = "Error occurred while retrieving the meetings!";
@@ -612,8 +612,12 @@ service http:InterceptableService / on new http:Listener(9090) {
 
     # Get customers meetings summary
     #
+    # + customerName - Customer name to filter
+    # + 'limit - Limit of the data  
+    # + offset - Offset of the data
     # + return - MeetingsSummaryResponse | Error
-    resource function get customers/meetings/summary(http:RequestContext ctx) returns MeetingsSummaryResponse|http:Forbidden|http:InternalServerError {
+    resource function get customers/meetings/summary(http:RequestContext ctx, string? customerName, int 'limit, int offset) 
+    returns MeetingsSummaryResponse|http:Forbidden|http:InternalServerError {
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
             return <http:InternalServerError>{
@@ -622,14 +626,8 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-        // Return Forbidden if a non-admin user provides a host query parameter.
-        if (authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups)) {
-            return <http:Forbidden>{
-                body: {message: "Insufficient privileges to filter by host!"}
-            };
-        }
         // Fetch the meetings summary from the database.
-        database:MeetingSummary[]|error meetingsSummary = database:fetchMeetingsSummary();
+        database:MeetingSummary[]|error meetingsSummary = database:fetchMeetingsSummary(customerName, 'limit, offset);
         if meetingsSummary is error {
             string customError = string `Error occurred while retrieving the meetings summary`;
             log:printError(customError, meetingsSummary);
@@ -867,7 +865,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
 
             // Drive API
-            future<int|error> fDrive = start drive:countWso2RecordingsInDateRange(queryStartTime, queryEndTime,region);
+            future<int|error> fDrive = start drive:countWso2RecordingsInDateRange(queryStartTime, queryEndTime, region);
             driveFutureMap[monthKey] = fDrive;
             metaDataMap[monthKey] = {
                 "year": cursorYear,

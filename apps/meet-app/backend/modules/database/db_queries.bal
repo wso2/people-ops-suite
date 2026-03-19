@@ -235,17 +235,32 @@ isolated function cancelMeetingStatusQuery(int meetingId) returns sql:Parameteri
 
 # Build query to retrieve the meetings per customer as meeting summary.
 #
+# + customerName - Optional customer name to filter
+# + 'limit - Limit of the data  
+# + offset - Offset of the data
 # + return - sql:ParameterizedQuery - Select query for the meeting table
-isolated function getMeetingsSummaryQuery() returns sql:ParameterizedQuery =>
-`
-    SELECT 
-        customer_name AS customerName,    
-        COUNT(meeting_id) AS meetingCount   
-    FROM meeting
-    WHERE customer_name IS NOT NULL
-    GROUP BY customer_name
-    ORDER BY customer_name ASC;
-`;
+isolated function getMeetingsSummaryQuery(string? customerName, int 'limit, int offset)
+returns sql:ParameterizedQuery {
+    sql:ParameterizedQuery query = `
+        SELECT 
+            customer_name AS customerName,    
+            COUNT(meeting_id) AS meetingCount   
+        FROM meeting
+        WHERE customer_name IS NOT NULL
+    `;
+    if customerName is string && customerName.trim().length() > 0 {
+        string searchPattern = string `%${customerName}%`;
+        query = sql:queryConcat(query, ` AND customer_name LIKE ${searchPattern}`);
+    }
+
+    query = sql:queryConcat(query, ` 
+        GROUP BY customer_name
+        ORDER BY customer_name ASC
+        LIMIT ${'limit} OFFSET ${offset}
+    `);
+
+    return query;
+}
 
 # Build query to count meetings grouped by Month.
 #
