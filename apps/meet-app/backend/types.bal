@@ -112,7 +112,9 @@ public type AppConfig record {|
 # Represents the response when retrieving customers meetings summary.
 public type MeetingsSummaryResponse record {|
     # list of meetings summary
-    database:MeetingSummary[] meetingsSummary;
+    MeetingSummary[] meetingsSummary;
+    # Total count of unique customers
+    int count;
 |};
 
 # Represent the designations of a sales team.
@@ -127,4 +129,12 @@ public type SalesDesignations record {|
 public type Regions record {|
     # List of Regions
     string[] regions;
+|};
+
+# Represent the customer meeting summary.
+public type MeetingSummary record {|
+    # Customer name
+    string customerName;
+    # Meeting count
+    int meetingCount;
 |};

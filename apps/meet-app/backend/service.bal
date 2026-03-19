@@ -616,7 +616,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + 'limit - Limit of the data  
     # + offset - Offset of the data
     # + return - MeetingsSummaryResponse | Error
-    resource function get customers/meetings/summary(http:RequestContext ctx, string? customerName, int 'limit, int offset) 
+    resource function get customers/meetings/summary(http:RequestContext ctx, string? customerName, int 'limit, int offset)
     returns MeetingsSummaryResponse|http:Forbidden|http:InternalServerError {
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
@@ -627,18 +627,25 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
         // Fetch the meetings summary from the database.
-        database:MeetingSummary[]|error meetingsSummary = database:fetchMeetingsSummary(customerName, 'limit, offset);
-        if meetingsSummary is error {
+        database:MeetingSummary[]|error meetingsSummaries = database:fetchMeetingsSummary(customerName, 'limit, offset);
+        if meetingsSummaries is error {
             string customError = string `Error occurred while retrieving the meetings summary`;
-            log:printError(customError, meetingsSummary);
+            log:printError(customError, meetingsSummaries);
             return <http:InternalServerError>{
                 body: {
                     message: customError
                 }
             };
         }
+        int totalCount = (meetingsSummaries.length() > 0) ? meetingsSummaries[0].totalCount : 0;
         return {
-            meetingsSummary: meetingsSummary
+            count: totalCount,
+            meetingsSummary: from database:MeetingSummary meetingSummary in meetingsSummaries
+                select {
+                    customerName: meetingSummary.customerName,
+                    meetingCount: meetingSummary.meetingCount
+                }
+
         };
     }
 

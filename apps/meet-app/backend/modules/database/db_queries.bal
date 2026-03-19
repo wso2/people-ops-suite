@@ -244,7 +244,8 @@ returns sql:ParameterizedQuery {
     sql:ParameterizedQuery query = `
         SELECT 
             customer_name AS customerName,    
-            COUNT(meeting_id) AS meetingCount   
+            COUNT(meeting_id) AS meetingCount,
+            COUNT(*) OVER() AS totalCount   
         FROM meeting
         WHERE customer_name IS NOT NULL
     `;

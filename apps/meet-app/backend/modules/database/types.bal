@@ -116,6 +116,8 @@ public type MeetingSummary record {|
     string customerName;
     # Meeting count
     int meetingCount;
+    # Total unique customers matching the filter 
+    int totalCount;
 |};
 
 # [Database]MeetingTypes type.
