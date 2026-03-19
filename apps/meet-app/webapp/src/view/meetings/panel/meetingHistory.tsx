@@ -20,10 +20,6 @@ import {
   Typography,
   TextField,
   CircularProgress,
-  Card,
-  CardContent,
-  List,
-  ListItem,
   Paper,
   InputAdornment,
   SelectChangeEvent,
@@ -95,7 +91,9 @@ function MeetingHistory() {
   const dialogContext = useConfirmationModalContext();
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [customerSearch, setCustomerSearch] = useState<string>("");
   const debouncedSearchTerm = useDebounce(searchQuery, 500);
+  const debouncedCustomerSearchTerm = useDebounce(customerSearch, 500);
   const [attachmentMap, setAttachmentMap] = useState<
     Record<number, Attachment[]>
   >({});
@@ -146,8 +144,17 @@ function MeetingHistory() {
   ]);
 
   useEffect(() => {
-    dispatch(fetchCustomersMeetingsSummary());
-  }, [dispatch, debouncedSearchTerm]);
+    const params:any ={
+      limit:16,
+      offset:0
+    }
+    if (debouncedCustomerSearchTerm.trim()) {
+      params.customerName = debouncedCustomerSearchTerm;
+    }
+    dispatch(
+      fetchCustomersMeetingsSummary(params),
+    );
+  }, [dispatch, debouncedCustomerSearchTerm]);
 
   useEffect(() => {
     if (
@@ -369,28 +376,41 @@ function MeetingHistory() {
           </Box>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <RadioGroup
-            row
-            name="use-radio-group"
-            defaultValue="Past"
-            onChange={handleRadioButtonChange}
-          >
-            <StyledRadio value="Past" label="Past Meetings" />
-            <StyledRadio value="All" label="All Meetings" />
-          </RadioGroup>
-          <Dropdown
-            label="Region"
-            value={regionOption}
-            options={regionsOption}
-            onChange={handleRegionChange}
-            isLoading={regions.state === State.loading}
-            size="small"
-          />
+          {view.view === "list" && (
+            <>
+              <RadioGroup
+                row
+                name="use-radio-group"
+                defaultValue="Past"
+                onChange={handleRadioButtonChange}
+              >
+                <StyledRadio value="Past" label="Past Meetings" />
+                <StyledRadio value="All" label="All Meetings" />
+              </RadioGroup>
+              <Dropdown
+                label="Region"
+                value={regionOption}
+                options={regionsOption}
+                onChange={handleRegionChange}
+                isLoading={regions.state === State.loading}
+                size="small"
+              />
+            </>
+          )}
+
           <TextField
-            placeholder="Search meetings..."
+            placeholder={
+              view.view === "list"
+                ? "Search meetings..."
+                : "Search customers..."
+            }
             size="small"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={view.view === "list" ? searchQuery : customerSearch}
+            onChange={(e) =>
+              view.view === "list"
+                ? setSearchQuery(e.target.value)
+                : setCustomerSearch(e.target.value)
+            }
             sx={{
               width: 350,
               bgcolor: "background.paper",

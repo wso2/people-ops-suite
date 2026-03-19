@@ -90,12 +90,24 @@ export const fetchCustomers = createAsyncThunk(
 
 export const fetchCustomersMeetingsSummary = createAsyncThunk(
   "customers/fetchMeetingsSummary",
-  async (_, { dispatch, rejectWithValue }) => {
+  async (
+    {
+      customerName,
+      limit,
+      offset,
+    }: {
+      customerName: string | null;
+      limit: number;
+      offset: number;
+    },
+    { dispatch, rejectWithValue },
+  ) => {
     APIService.getCancelToken().cancel();
     const newCancelTokenSource = APIService.updateCancelToken();
     return new Promise<MeetingsSummary>((resolve, reject) => {
       APIService.getInstance()
         .get(AppConfig.serviceUrls.customersMeetingsSummary, {
+          params: { customerName, limit, offset },
           cancelToken: newCancelTokenSource.token,
         })
         .then((response) => {
