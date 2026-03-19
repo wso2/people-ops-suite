@@ -46,7 +46,7 @@ import {
   fetchAttachments,
   fetchMeetingsByDates,
 } from "@slices/meetingSlice/meeting";
-import {setMeetingView} from "@slices/viewSlice/view"
+import { setMeetingView } from "@slices/viewSlice/view";
 import { useTheme } from "@mui/material/styles";
 import {
   fetchCustomers,
@@ -65,14 +65,14 @@ import {
   formatDateForInput,
   formatForAPI,
 } from "@root/src/utils/useFormatDate";
-
+import UpcomingMeetingCard from "@root/src/component/ui/UpcomingMeetingCard";
 
 function MeetingHistory() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const meeting = useAppSelector((state) => state.meeting);
-  const view = useAppSelector((state)=>state.view);
+  const view = useAppSelector((state) => state.view);
   const upcomingMeetings = useAppSelector(
     (state) => state.meeting.dateRangeMeetings,
   );
@@ -321,7 +321,7 @@ function MeetingHistory() {
     nextView: string | null,
   ) => {
     if (nextView != null) {
-      dispatch(setMeetingView(nextView))
+      dispatch(setMeetingView(nextView));
     }
   };
 
@@ -523,90 +523,11 @@ function MeetingHistory() {
 
         {view.view === "list" && (
           <Grid item xs={12} md={4}>
-            <Card
-              sx={{
-                boxShadow: (theme) => theme.customShadows.modern,
-                borderRadius: 3,
-                position: "sticky",
-                top: 24,
-                p: 2,
-                bgcolor: "background.paper",
-                border: "1.5px solid #d1d3d4",
-                transition: "border-color 0.3s ease-in-out",
-                "&:hover": {
-                  borderColor: theme.palette.brand.main,
-                },
-              }}
-            >
-              <CardContent sx={{ "&:last-child": { pb: 0 } }}>
-                <Typography
-                  variant="h6"
-                  fontWeight="700"
-                  color="text.primary"
-                  sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
-                >
-                  <Schedule sx={{ color: theme.palette.brand.main }} /> Upcoming
-                  Meetings
-                </Typography>
-                <List disablePadding>
-                  {upcomingMeetingsLoading === State.loading ? (
-                    <ListItem disableGutters>
-                      <CircularProgress size={20} />
-                    </ListItem>
-                  ) : sortedUpcomingMeetings.length > 0 ? (
-                    sortedUpcomingMeetings.map((item, index) => (
-                      <ListItem
-                        key={index}
-                        disableGutters
-                        sx={{
-                          borderBottom:
-                            index < sortedUpcomingMeetings.length - 1
-                              ? `1px solid ${theme.palette.divider}`
-                              : "none",
-                          py: 2,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 2,
-                        }}
-                      >
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{
-                            minWidth: 90,
-                            textAlign: "left",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            mr: 2,
-                          }}
-                        >
-                          {createDateTime(new Date(item.startTime))}
-                        </Typography>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography
-                            variant="subtitle2"
-                            fontWeight="700"
-                            color="text.primary"
-                            component="span"
-                          >
-                            {item.title}
-                          </Typography>
-                        </Box>
-                      </ListItem>
-                    ))
-                  ) : (
-                    <ListItem disableGutters>
-                      <Typography variant="body2" color="text.secondary">
-                        No upcoming meetings.
-                      </Typography>
-                    </ListItem>
-                  )}
-                </List>
-                {/* <Button fullWidth variant="contained" disableElevation>
-                  View more upcoming meetings
-                </Button> */}
-              </CardContent>
-            </Card>
+            <UpcomingMeetingCard
+              upcomingMeetings={sortedUpcomingMeetings}
+              loadingMeetings={upcomingMeetingsLoading === State.loading}
+              formatDateTime={createDateTime}
+            />
           </Grid>
         )}
       </Grid>

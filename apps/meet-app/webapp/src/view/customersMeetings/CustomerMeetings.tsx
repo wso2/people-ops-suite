@@ -21,17 +21,13 @@ import {
   Grid,
   Typography,
   Button,
-  Avatar,
   Chip,
   Paper,
   Divider,
   List,
   ListItem,
   ListItemText,
-  Accordion,
-  AccordionSummary,
   CircularProgress,
-  AccordionDetails,
   IconButton,
   Card,
   CardContent,
@@ -40,44 +36,33 @@ import {
   useTheme,
 } from "@mui/material";
 
-// Icons
 import AddIcon from "@mui/icons-material/Add";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import HistoryIcon from "@mui/icons-material/History";
-import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import DescriptionIcon from "@mui/icons-material/Description";
 import SlideshowIcon from "@mui/icons-material/Slideshow";
 import DownloadIcon from "@mui/icons-material/Download";
 import VideoCameraBackIcon from "@mui/icons-material/VideoCameraBack";
-import LockIcon from "@mui/icons-material/Lock";
 import { useAppDispatch, useAppSelector } from "@root/src/slices/store";
-import { useParams } from "react-router-dom";
-import { fetchMeetingsByCustomer } from "@root/src/slices/meetingSlice/meeting";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  fetchMeetingsByCustomer,
+  fetchAttachments,
+  fetchMeetingsByDatesForCustomer,
+} from "@root/src/slices/meetingSlice/meeting";
 import { State } from "@root/src/types/types";
 import ErrorHandler from "@component/common/ErrorHandler";
 import MeetingsAccordion from "@root/src/component/ui/MeetingsAccordion";
 import { useState } from "react";
-import {
-  fetchMeetings,
-  deleteMeeting,
-  fetchAttachments,
-  fetchMeetingsByDates,
-} from "@slices/meetingSlice/meeting";
 import { Attachment } from "../../types/types";
+import { formatDateTime } from "@root/src/utils/useFormatDate";
+import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import UpcomingMeetingCard from "@root/src/component/ui/UpcomingMeetingCard";
 
 export default function CustomerMeetings() {
-  const formatDateTime = (dateTimeStr: string) => {
-    const utcDate = new Date(dateTimeStr + " UTC");
-    return utcDate.toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
   const theme = useTheme();
+  const navigate = useNavigate();
+
   const [attachmentMap, setAttachmentMap] = useState<
     Record<number, Attachment[]>
   >({});
@@ -88,16 +73,37 @@ export default function CustomerMeetings() {
   console.log(customerName);
   const dispatch = useAppDispatch();
   const meeting = useAppSelector((state) => state.meeting);
+  const upComingMeetings = useAppSelector(
+    (state) => state.meeting.customerDateRangeMeetings,
+  );
+  const upComingMeetingsState = useAppSelector(
+    (state) => state.meeting.customerDateRangeMeetingsState,
+  );
   useEffect(() => {
+    const today = new Date();
     const params: any = {
       customerName: customerName,
       limit: 10,
+      endTime: today.toISOString(),
     };
-    dispatch(fetchMeetingsByCustomer(params));
+    const promise = dispatch(fetchMeetingsByCustomer(params));
+    promise.unwrap().then(() => {
+      fetchUpcomingMeetings();
+    });
   }, [customerName]);
   const meetingList = meeting?.customerMeetings?.meetings ?? [];
-  console.log(meetingList);
+  const upComingMeetingsList = upComingMeetings?.meetings ?? [];
+  console.log(upComingMeetingsList);
 
+  const fetchUpcomingMeetings = () => {
+    const today = new Date();
+    const params: any = {
+      startTime: today.toISOString(),
+      limit: 10,
+      customerName: customerName,
+    };
+    dispatch(fetchMeetingsByDatesForCustomer(params));
+  };
   const handleAccordionChange = (meetingId: number, isExpanded: boolean) => {
     if (isExpanded && !attachmentMap[meetingId]) {
       setLoadingAttachments((prev) => ({ ...prev, [meetingId]: true }));
@@ -129,20 +135,46 @@ export default function CustomerMeetings() {
           sx={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "flex-start",
+            alignItems: "center",
             mb: 4,
             flexWrap: "wrap",
             gap: 2,
           }}
         >
-          <Box>
-            <Typography
-              variant="h5"
-              sx={{ fontWeight: 800, mb: 1, color: "text.primary" }}
+          {/* Grouping Back button and Title so they stay on the left together */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <IconButton
+              onClick={() => navigate(-1)} // Added routing action
+              sx={{ bgcolor: "action.hover" }}
+              aria-label="go back"
             >
-              Customer : {customerName}
-            </Typography>
+              <ArrowBackIcon />
+            </IconButton>
+
+            {/* Title Box with Icon */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Box
+                sx={{
+                  bgcolor: theme.palette.brand.main,
+                  borderRadius: 1.5,
+                  p: 1,
+                  display: "flex",
+                  color: "white",
+                }}
+              >
+                <PersonRoundedIcon />
+              </Box>
+              <Box>
+                <Typography variant="h5" fontWeight="700" color="text.primary">
+                  Customer: {customerName}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Review past sessions and upcoming schedules for this customer.
+                </Typography>
+              </Box>
+            </Box>
           </Box>
+
           <Stack direction="row" spacing={2}>
             <Button
               variant="contained"
@@ -171,8 +203,8 @@ export default function CustomerMeetings() {
                 </Typography>
               </Stack>
               <Chip
-                label={`total sessions ${meeting.customerMeetings?.count}`}
-                size="small"
+                label={`Total Sessions ${meeting.customerMeetings?.count || 0}`}
+                size="medium"
                 sx={{ bgcolor: "action.hover" }}
               />
             </Box>
@@ -188,7 +220,7 @@ export default function CustomerMeetings() {
                   p: 6,
                   textAlign: "center",
                   borderRadius: 3,
-                  boxShadow: (theme) => theme.customShadows.modern,
+                  boxShadow: (theme: any) => theme.customShadows.modern,
                   bgcolor: "background.paper",
                 }}
               >
@@ -198,9 +230,7 @@ export default function CustomerMeetings() {
               </Paper>
             ) : (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-             { meetingList.map((row) => (
-      
-               
+                {meetingList.map((row) => (
                   <MeetingsAccordion
                     meeting={row}
                     handleAccordionChange={handleAccordionChange}
@@ -210,177 +240,19 @@ export default function CustomerMeetings() {
                     loadingAttachments={loadingAttachments}
                     attachmentMap={attachmentMap}
                   />
-              ))}
-                </Box>
+                ))}
+              </Box>
             )}
-
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "flex-end",
-                alignItems: "center",
-                mt: 2,
-                color: "text.secondary",
-                fontSize: "0.875rem",
-              }}
-            >
-              Rows per page: 10 <ExpandMoreIcon fontSize="small" /> &nbsp; 1-3
-              of 12 &nbsp; &lt; &nbsp; &gt;
-            </Box>
           </Grid>
 
           <Grid item xs={12} lg={4}>
-            <Card sx={{ mb: 3, borderRadius: 2, bgcolor: "background.paper" }}>
-              <CardContent>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    mb: 2,
-                  }}
-                >
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    Upcoming Schedule
-                  </Typography>
-                  <Link
-                    href="#"
-                    underline="hover"
-                    sx={{
-                      fontWeight: 600,
-                      fontSize: "0.875rem",
-                      color: "primary.main",
-                    }}
-                  >
-                    View All
-                  </Link>
-                </Box>
-
-                <List disablePadding>
-                  <ListItem
-                    disableGutters
-                    alignItems="flex-start"
-                    sx={{ mb: 2 }}
-                  >
-                    <Box sx={{ minWidth: 40, mr: 2, textAlign: "center" }}>
-                      <Typography
-                        variant="caption"
-                        sx={{ fontWeight: "bold", color: "primary.main" }}
-                      >
-                        JAN
-                      </Typography>
-                      <Typography
-                        variant="h6"
-                        sx={{ lineHeight: 1, fontWeight: "bold" }}
-                      >
-                        30
-                      </Typography>
-                    </Box>
-                    <ListItemText
-                      primary={
-                        <Typography
-                          variant="subtitle2"
-                          sx={{ fontWeight: 700 }}
-                        >
-                          Architecture Review
-                        </Typography>
-                      }
-                      secondary={
-                        <Box component="span">
-                          <Typography
-                            variant="caption"
-                            display="block"
-                            color="text.secondary"
-                          >
-                            10:00 AM - 12:00 PM
-                          </Typography>
-                          <Box
-                            component="span"
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              mt: 0.5,
-                              color: "primary.main",
-                              fontWeight: 600,
-                              fontSize: "0.75rem",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <VideoCameraBackIcon
-                              sx={{ fontSize: 14, mr: 0.5 }}
-                            />{" "}
-                            Join Meeting
-                          </Box>
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                  <Divider
-                    sx={{
-                      my: 1,
-                      borderStyle: "dashed",
-                      borderColor: "divider",
-                    }}
-                  />
-
-                  <ListItem
-                    disableGutters
-                    alignItems="flex-start"
-                    sx={{ mb: 2, mt: 1 }}
-                  >
-                    <Box sx={{ minWidth: 40, mr: 2, textAlign: "center" }}>
-                      <Typography
-                        variant="caption"
-                        sx={{ fontWeight: "bold", color: "primary.main" }}
-                      >
-                        FEB
-                      </Typography>
-                      <Typography
-                        variant="h6"
-                        sx={{ lineHeight: 1, fontWeight: "bold" }}
-                      >
-                        06
-                      </Typography>
-                    </Box>
-                    <ListItemText
-                      primary={
-                        <Typography
-                          variant="subtitle2"
-                          sx={{ fontWeight: 700 }}
-                        >
-                          Weekly Sync
-                        </Typography>
-                      }
-                      secondary={
-                        <Box component="span">
-                          <Typography
-                            variant="caption"
-                            display="block"
-                            color="text.secondary"
-                          >
-                            09:00 AM - 10:00 AM
-                          </Typography>
-                          <Box
-                            component="span"
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              mt: 0.5,
-                              color: "text.disabled",
-                              fontSize: "0.75rem",
-                            }}
-                          >
-                            <LockIcon sx={{ fontSize: 14, mr: 0.5 }} /> Not
-                            Started
-                          </Box>
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                </List>
-              </CardContent>
-            </Card>
-
-            <Card sx={{ borderRadius: 2, bgcolor: "background.paper" }}>
+            <UpcomingMeetingCard
+              variant="customer"
+              upcomingMeetings={upComingMeetingsList}
+              loadingMeetings={upComingMeetingsState === State.loading}
+              onViewAllClick={() => console.log("Navigate to all meetings")}
+            />
+            <Card sx={{ borderRadius: 2, bgcolor: "background.paper" , marginTop:3 }}>
               <CardContent>
                 <Box
                   sx={{

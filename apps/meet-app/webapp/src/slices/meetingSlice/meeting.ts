@@ -292,7 +292,7 @@ export const fetchMeetingsByDatesForCustomer = createAsyncThunk(
       customerName,
     }: {
       startTime: string;
-      endTime: string;
+      endTime?: string;
       limit: number;
       customerName: string;
     },
