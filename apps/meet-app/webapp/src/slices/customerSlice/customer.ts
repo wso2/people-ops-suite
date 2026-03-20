@@ -21,6 +21,7 @@ import { APIService } from "@utils/apiService";
 import { SnackMessage } from "@config/constant";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
+import MeetingHistory from "@root/src/view/meetings/panel/meetingHistory";
 
 interface Customer {
   id: string;
@@ -32,6 +33,7 @@ interface customerMeetingsSummary {
 }
 interface MeetingsSummary {
   meetingsSummary: customerMeetingsSummary[];
+  count: number;
 }
 interface CustomerState {
   state: State;
@@ -132,6 +134,20 @@ export const fetchCustomersMeetingsSummary = createAsyncThunk(
   },
 );
 
+function mergeCustomerSummary(
+  current: MeetingsSummary | null,
+  newData: MeetingsSummary,
+  offset: number,
+): MeetingsSummary {
+  if (offset === 0 || !current) {
+    return newData;
+  }
+  return {
+    count: newData.count,
+    meetingsSummary: [...current.meetingsSummary, ...newData.meetingsSummary],
+  };
+}
+
 const CustomerSlice = createSlice({
   name: "customer",
   initialState,
@@ -162,7 +178,12 @@ const CustomerSlice = createSlice({
       .addCase(fetchCustomersMeetingsSummary.fulfilled, (state, action) => {
         state.meetingsSummaryState = State.success;
         state.stateMessage = "Successfully fetched!";
-        state.meetingsSummary = action.payload;
+        const offset = action.meta.arg.offset;
+        state.meetingsSummary = mergeCustomerSummary(
+          state.meetingsSummary,
+          action.payload,
+          offset,
+        );
       })
       .addCase(fetchCustomersMeetingsSummary.rejected, (state) => {
         state.meetingsSummaryState = State.failed;

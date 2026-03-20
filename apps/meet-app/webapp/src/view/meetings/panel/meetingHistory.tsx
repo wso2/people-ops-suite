@@ -28,7 +28,6 @@ import useDebounce from "@utils/useDebounce";
 import { DropdownOption, State } from "@/types/types";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmationType } from "@/types/types";
-import ErrorHandler from "@component/common/ErrorHandler";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { useConfirmationModalContext } from "@context/DialogContext";
 import ViewListIcon from "@mui/icons-material/ViewList";
@@ -67,7 +66,8 @@ function MeetingHistory() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const meeting = useAppSelector((state) => state.meeting);
+  const meeting = useAppSelector((state) => state.meeting.meetings);
+  const meetingState = useAppSelector((state) => state.meeting.state);
   const view = useAppSelector((state) => state.view);
   const upcomingMeetings = useAppSelector(
     (state) => state.meeting.dateRangeMeetings,
@@ -85,9 +85,13 @@ function MeetingHistory() {
   const customersState = useAppSelector((state) => state.customer.state);
 
   const regions = useAppSelector((state) => state.region);
-  const [page, setPage] = useState(0);
+  const [meetingPage, setMeetingPage] = useState(0);
+  const [customerPage, setCustomerPage] = useState(0);
   const pageSize = 10;
-  const observerTarget = useRef(null);
+  const customerPageSize = 10;
+  const meetingObserverTarget = useRef(null);
+  const customerObserverTarget = useRef(null);
+  const meetingScrollData = useRef({ state: meetingState, data: meeting });
   const dialogContext = useConfirmationModalContext();
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -110,7 +114,7 @@ function MeetingHistory() {
     const params: any = {
       searchString: debouncedSearchTerm,
       limit: pageSize,
-      offset: page * pageSize,
+      offset: meetingPage * pageSize,
     };
 
     if (regionOption !== "All") {
@@ -136,7 +140,7 @@ function MeetingHistory() {
   }, [
     dispatch,
     debouncedSearchTerm,
-    page,
+    meetingPage,
     pageSize,
     regionOption,
     meetingType,
@@ -144,17 +148,22 @@ function MeetingHistory() {
   ]);
 
   useEffect(() => {
-    const params:any ={
-      limit:16,
-      offset:0
-    }
+    const params: any = {
+      limit: customerPageSize,
+      offset: customerPage * customerPageSize,
+    };
     if (debouncedCustomerSearchTerm.trim()) {
       params.customerName = debouncedCustomerSearchTerm;
     }
-    dispatch(
-      fetchCustomersMeetingsSummary(params),
-    );
-  }, [dispatch, debouncedCustomerSearchTerm]);
+    dispatch(fetchCustomersMeetingsSummary(params));
+  }, [dispatch, debouncedCustomerSearchTerm, customerPage]);
+
+  useEffect(() => {
+    setMeetingPage(0);
+  }, [debouncedSearchTerm, regionOption, meetingType, endDate]);
+  useEffect(() => {
+    setCustomerPage(0);
+  }, [debouncedCustomerSearchTerm]);
 
   useEffect(() => {
     if (
@@ -164,26 +173,53 @@ function MeetingHistory() {
       dispatch(fetchCustomers());
     }
   }, [dispatch, customers.length]);
-
+  useEffect(() => {
+    meetingScrollData.current = { state: meetingState, data: meeting };
+  }, [meetingState, meeting]);
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && meeting.state !== State.loading) {
-          const currentCount = meeting.meetings?.meetings?.length || 0;
-          const totalCount = meeting.meetings?.count || 0;
+        const { state, data } = meetingScrollData.current;
+        if (entries[0].isIntersecting && meetingState !== State.loading) {
+          const currentCount = data?.meetings?.length || 0;
+          const totalCount = data?.count || 0;
           if (currentCount < totalCount) {
-            setPage((prev) => prev + 1);
+            setMeetingPage((prev) => prev + 1);
           }
         }
       },
       { threshold: 1.0 },
     );
 
-    if (observerTarget.current) observer.observe(observerTarget.current);
+    if (meetingObserverTarget.current)
+      observer.observe(meetingObserverTarget.current);
     return () => {
-      if (observerTarget.current) observer.unobserve(observerTarget.current);
+      if (meetingObserverTarget.current)
+        observer.unobserve(meetingObserverTarget.current);
     };
-  }, [meeting.state, meeting.meetings]);
+  }, [meetingState, meeting]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          meetingsSummaryState !== State.loading
+        ) {
+          const currentCount = meetingsSummary?.meetingsSummary?.length || 0;
+          const totalCount = meetingsSummary?.count || 0;
+          if (currentCount < totalCount) {
+            setCustomerPage((prev) => prev + 1);
+          }
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    if (customerObserverTarget.current)
+      observer.observe(customerObserverTarget.current);
+    return () => observer.disconnect();
+  }, [meetingsSummaryState, meetingsSummary, view.view]);
 
   const handleAccordionChange = (meetingId: number, isExpanded: boolean) => {
     if (isExpanded && !attachmentMap[meetingId]) {
@@ -253,7 +289,7 @@ function MeetingHistory() {
         setLoadingDelete(true);
         await dispatch(deleteMeeting(meetingId))
           .then(() => {
-            setPage(0);
+            setMeetingPage(0);
             dispatch(
               fetchMeetings({
                 searchString: debouncedSearchTerm,
@@ -335,7 +371,7 @@ function MeetingHistory() {
   const handlePress = (customerName: string) => {
     navigate(`/meetings/${customerName}`);
   };
-  const meetingList = meeting.meetings?.meetings ?? [];
+  const meetingList = meeting?.meetings ?? [];
 
   return (
     <Box
@@ -453,45 +489,100 @@ function MeetingHistory() {
         <Grid item xs={12} md={view.view === "list" ? 8 : 12}>
           <Box sx={{ minHeight: 500 }}>
             {view.view === "list" ? (
-              meeting.state === State.loading && page === 0 ? (
-                <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-                  <CircularProgress sx={{ color: theme.palette.brand.main }} />
-                </Box>
-              ) : meeting.state === State.failed ? (
-                <ErrorHandler message="Failed to fetch meetings." />
-              ) : meetingList.length === 0 ? (
-                <Paper
-                  sx={{
-                    p: 6,
-                    textAlign: "center",
-                    borderRadius: 3,
-                    boxShadow: (theme) => theme.customShadows.modern,
-                    bgcolor: "background.paper",
-                  }}
-                >
-                  <Typography variant="h6" color="text.secondary">
-                    No meetings found.
-                  </Typography>
-                </Paper>
-              ) : (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  {meetingList.map((row) => (
-                    <MeetingsAccordion
-                      key={row.meetingId}
-                      formatDateTime={formatDateTime}
-                      meeting={row}
-                      handleAccordionChange={handleAccordionChange}
-                      handleDeleteMeeting={handleDeleteMeeting}
-                      loadingAttachments={loadingAttachments}
-                      attachmentMap={attachmentMap}
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {meetingState === State.loading && meetingPage === 0 ? (
+                  <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                    <CircularProgress
+                      sx={{ color: theme.palette.brand.main }}
                     />
-                  ))}
+                  </Box>
+                ) : meetingList.length === 0 ? (
+                  <Paper sx={{ p: 6, textAlign: "center", borderRadius: 3 }}>
+                    <Typography variant="h6" color="text.secondary">
+                      No meetings found.
+                    </Typography>
+                  </Paper>
+                ) : (
+                  <>
+                    {meetingList.map((row) => (
+                      <MeetingsAccordion
+                        key={row.meetingId}
+                        formatDateTime={formatDateTime}
+                        meeting={row}
+                        handleAccordionChange={handleAccordionChange}
+                        handleDeleteMeeting={handleDeleteMeeting}
+                        loadingAttachments={loadingAttachments}
+                        attachmentMap={attachmentMap}
+                      />
+                    ))}
+                    <div
+                      ref={meetingObserverTarget}
+                      style={{ height: "20px", marginTop: "10px" }}
+                    >
+                      {meetingState === State.loading && meetingPage > 0 && (
+                        <Box sx={{ display: "flex", justifyContent: "center" }}>
+                          <CircularProgress
+                            size={24}
+                            sx={{ color: theme.palette.brand.main }}
+                          />
+                        </Box>
+                      )}
+                    </div>
+                  </>
+                )}
+              </Box>
+            ) : (
+              <Box>
+                <Grid container spacing={3}>
+                  {meetingsSummaryState === State.loading &&
+                  customerPage === 0 ? (
+                    <Grid
+                      item
+                      xs={12}
+                      sx={{ display: "flex", justifyContent: "center", p: 4 }}
+                    >
+                      <CircularProgress />
+                    </Grid>
+                  ) : meetingsSummary?.meetingsSummary &&
+                    meetingsSummary.meetingsSummary.length > 0 ? (
+                    meetingsSummary.meetingsSummary.map((summary, index) => (
+                      <Grid
+                        item
+                        xs={12}
+                        sm={6}
+                        md={4}
+                        lg={3}
+                        key={`${summary.customerName}-${index}`}
+                      >
+                        <CustomerCard
+                          id={index}
+                          customerName={summary.customerName}
+                          meetingCount={summary.meetingCount}
+                          onCardClick={() => handlePress(summary.customerName)}
+                        />
+                      </Grid>
+                    ))
+                  ) : (
+                    <Grid item xs={12}>
+                      <Typography
+                        variant="body1"
+                        color="text.secondary"
+                        align="center"
+                        sx={{ mt: 4 }}
+                      >
+                        No customer summaries available.
+                      </Typography>
+                    </Grid>
+                  )}
+                </Grid>
 
-                  <div
-                    ref={observerTarget}
-                    style={{ height: "20px", marginTop: "10px" }}
-                  >
-                    {meeting.state === State.loading && page > 0 && (
+                {/* Target goes AFTER the Grid container, exactly once */}
+                <div
+                  ref={customerObserverTarget}
+                  style={{ height: "40px", marginTop: "20px" }}
+                >
+                  {meetingsSummaryState === State.loading &&
+                    customerPage > 0 && (
                       <Box sx={{ display: "flex", justifyContent: "center" }}>
                         <CircularProgress
                           size={24}
@@ -499,44 +590,8 @@ function MeetingHistory() {
                         />
                       </Box>
                     )}
-                  </div>
-                </Box>
-              )
-            ) : (
-              <Grid container spacing={3}>
-                {meetingsSummaryState === State.loading ? (
-                  <Grid
-                    item
-                    xs={12}
-                    sx={{ display: "flex", justifyContent: "center", p: 4 }}
-                  >
-                    <CircularProgress />
-                  </Grid>
-                ) : meetingsSummary?.meetingsSummary &&
-                  meetingsSummary.meetingsSummary.length > 0 ? (
-                  meetingsSummary.meetingsSummary.map((summary, index) => (
-                    <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
-                      <CustomerCard
-                        id={index}
-                        customerName={summary.customerName}
-                        meetingCount={summary.meetingCount}
-                        onCardClick={() => handlePress(summary.customerName)}
-                      />
-                    </Grid>
-                  ))
-                ) : (
-                  <Grid item xs={12}>
-                    <Typography
-                      variant="body1"
-                      color="text.secondary"
-                      align="center"
-                      sx={{ mt: 4 }}
-                    >
-                      No customer summaries available.
-                    </Typography>
-                  </Grid>
-                )}
-              </Grid>
+                </div>
+              </Box>
             )}
           </Box>
         </Grid>

@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import React, { useEffect } from "react";
+import  { useEffect } from "react";
 import {
   Box,
   Container,
@@ -23,25 +23,14 @@ import {
   Button,
   Chip,
   Paper,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
   CircularProgress,
   IconButton,
-  Card,
-  CardContent,
   Stack,
-  Link,
   useTheme,
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
 import HistoryIcon from "@mui/icons-material/History";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import SlideshowIcon from "@mui/icons-material/Slideshow";
-import DownloadIcon from "@mui/icons-material/Download";
-import VideoCameraBackIcon from "@mui/icons-material/VideoCameraBack";
 import { useAppDispatch, useAppSelector } from "@root/src/slices/store";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -252,85 +241,6 @@ export default function CustomerMeetings() {
               loadingMeetings={upComingMeetingsState === State.loading}
               onViewAllClick={() => console.log("Navigate to all meetings")}
             />
-            <Card sx={{ borderRadius: 2, bgcolor: "background.paper" , marginTop:3 }}>
-              <CardContent>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    mb: 2,
-                    alignItems: "center",
-                  }}
-                >
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    All Attachments
-                  </Typography>
-                  <Chip label="5 Files" size="small" />
-                </Box>
-
-                <List>
-                  <ListItem
-                    disableGutters
-                    secondaryAction={
-                      <IconButton edge="end">
-                        <DownloadIcon color="action" />
-                      </IconButton>
-                    }
-                  >
-                    <PictureAsPdfIcon
-                      sx={{ color: "#f44336", mr: 2, fontSize: 32 }}
-                    />
-                    <ListItemText
-                      primary="WSO2_Architecture_v2.pdf"
-                      primaryTypographyProps={{
-                        variant: "subtitle2",
-                        fontWeight: 600,
-                        color: "text.primary",
-                      }}
-                      secondary="Added Jan 23 • 4.2 MB"
-                      secondaryTypographyProps={{ variant: "caption" }}
-                    />
-                  </ListItem>
-                  <Divider />
-
-                  <ListItem
-                    disableGutters
-                    secondaryAction={
-                      <IconButton edge="end">
-                        <DownloadIcon color="action" />
-                      </IconButton>
-                    }
-                  >
-                    <SlideshowIcon
-                      sx={{ color: "#ff9800", mr: 2, fontSize: 32 }}
-                    />
-                    <ListItemText
-                      primary="Kickoff_Deck.pptx"
-                      primaryTypographyProps={{
-                        variant: "subtitle2",
-                        fontWeight: 600,
-                        color: "text.primary",
-                      }}
-                      secondary="Added Jan 09 • 12.5 MB"
-                      secondaryTypographyProps={{ variant: "caption" }}
-                    />
-                  </ListItem>
-                </List>
-
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  sx={{
-                    mt: 1,
-                    textTransform: "none",
-                    color: "text.secondary",
-                    borderColor: "divider",
-                  }}
-                >
-                  Show All Files
-                </Button>
-              </CardContent>
-            </Card>
           </Grid>
         </Grid>
       </Container>
