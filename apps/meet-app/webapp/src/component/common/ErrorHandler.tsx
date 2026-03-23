@@ -17,12 +17,18 @@
 import Grid from "@mui/material/Grid";
 import { Container, Box } from "@mui/material";
 import StateWithImage from "@component/ui/StateWithImage";
+import { useTheme } from "@mui/material/styles";
 
 interface ErrorHandlerProps {
   message: string | null;
 }
 
 const ErrorHandler = (props: ErrorHandlerProps) => {
+  const theme = useTheme();
+  const logoSrc =
+    theme.palette.mode === "light"
+      ? require("@assets/images/wso2-logo_black.svg").default
+      : require("@assets/images/wso2-logo_white.svg").default;
   return (
     <Box
       sx={{
@@ -39,12 +45,7 @@ const ErrorHandler = (props: ErrorHandlerProps) => {
           gap={2}
         >
           <Grid item xs={12}>
-            <img
-              alt="logo"
-              width="150"
-              height="auto"
-              src={require("@assets/images/wso2-logo_black.svg").default}
-            />
+            <img alt="logo" width="150" height="auto" src={logoSrc} />
           </Grid>
           <Grid item xs={12}>
             <StateWithImage
