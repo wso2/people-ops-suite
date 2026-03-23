@@ -26,7 +26,14 @@ import {
 } from "@mui/material";
 import useDebounce from "@utils/useDebounce";
 import { DropdownOption, State } from "@/types/types";
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { ConfirmationType } from "@/types/types";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { useConfirmationModalContext } from "@context/DialogContext";
@@ -89,9 +96,11 @@ function MeetingHistory() {
   const [customerPage, setCustomerPage] = useState(0);
   const pageSize = 10;
   const customerPageSize = 10;
-  const meetingObserverTarget = useRef(null);
-  const customerObserverTarget = useRef(null);
   const meetingScrollData = useRef({ state: meetingState, data: meeting });
+  const customerScrollData = useRef({
+    state: meetingsSummaryState,
+    data: meetingsSummary,
+  });
   const dialogContext = useConfirmationModalContext();
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -161,6 +170,7 @@ function MeetingHistory() {
   useEffect(() => {
     setMeetingPage(0);
   }, [debouncedSearchTerm, regionOption, meetingType, endDate]);
+
   useEffect(() => {
     setCustomerPage(0);
   }, [debouncedCustomerSearchTerm]);
@@ -177,37 +187,49 @@ function MeetingHistory() {
     meetingScrollData.current = { state: meetingState, data: meeting };
   }, [meetingState, meeting]);
   useEffect(() => {
-    const observer = new IntersectionObserver(
+    customerScrollData.current = {
+      state: meetingsSummaryState,
+      data: meetingsSummary,
+    };
+  }, [meetingsSummaryState, meetingsSummary]);
+
+  const observer = useRef<IntersectionObserver | null>(null);
+  const meetingObserverTarget = useCallback((node: HTMLDivElement | null) => {
+    if (observer.current) observer.current.disconnect();
+    if (!node) return;
+    observer.current = new IntersectionObserver(
       (entries) => {
-        const { state, data } = meetingScrollData.current;
-        if (entries[0].isIntersecting && meetingState !== State.loading) {
+        if (entries[0].isIntersecting) {
+          const { state, data } = meetingScrollData.current;
+          if (state === State.loading) return;
+
           const currentCount = data?.meetings?.length || 0;
           const totalCount = data?.count || 0;
+
           if (currentCount < totalCount) {
             setMeetingPage((prev) => prev + 1);
           }
         }
       },
-      { threshold: 1.0 },
+      { threshold: 0.1 },
     );
 
-    if (meetingObserverTarget.current)
-      observer.observe(meetingObserverTarget.current);
-    return () => {
-      if (meetingObserverTarget.current)
-        observer.unobserve(meetingObserverTarget.current);
-    };
-  }, [meetingState, meeting]);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
+    observer.current.observe(node);
+  }, []);
+  const customerObserver = useRef<IntersectionObserver | null>(null);
+  const customerObserverTarget = useCallback((node: HTMLDivElement | null) => {
+    if (customerObserver.current) customerObserver.current.disconnect();
+    if (!node) return;
+    customerObserver.current = new IntersectionObserver(
       (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          meetingsSummaryState !== State.loading
-        ) {
-          const currentCount = meetingsSummary?.meetingsSummary?.length || 0;
-          const totalCount = meetingsSummary?.count || 0;
+        if (entries[0].isIntersecting) {
+          const { state, data } = customerScrollData.current;
+
+          if (state === State.loading) return;
+
+          const currentCount = data?.meetingsSummary?.length || 0;
+          const totalCount = data?.count || 0;
+
           if (currentCount < totalCount) {
             setCustomerPage((prev) => prev + 1);
           }
@@ -215,11 +237,8 @@ function MeetingHistory() {
       },
       { threshold: 0.1 },
     );
-
-    if (customerObserverTarget.current)
-      observer.observe(customerObserverTarget.current);
-    return () => observer.disconnect();
-  }, [meetingsSummaryState, meetingsSummary, view.view]);
+    customerObserver.current.observe(node);
+  }, []);
 
   const handleAccordionChange = (meetingId: number, isExpanded: boolean) => {
     if (isExpanded && !attachmentMap[meetingId]) {
@@ -315,7 +334,6 @@ function MeetingHistory() {
     );
   };
 
-  // Section related to upcoming sidebar
   const sortedUpcomingMeetings = useMemo(() => {
     if (!upcomingMeetings) return [];
     return upcomingMeetings
@@ -371,6 +389,7 @@ function MeetingHistory() {
   const handlePress = (customerName: string) => {
     navigate(`/meetings/${customerName}`);
   };
+
   const meetingList = meeting?.meetings ?? [];
 
   return (
@@ -517,15 +536,20 @@ function MeetingHistory() {
                     ))}
                     <div
                       ref={meetingObserverTarget}
-                      style={{ height: "20px", marginTop: "10px" }}
+                      style={{
+                        minHeight: "50px",
+                        marginTop: "10px",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        overflowAnchor: "none",
+                      }}
                     >
                       {meetingState === State.loading && meetingPage > 0 && (
-                        <Box sx={{ display: "flex", justifyContent: "center" }}>
-                          <CircularProgress
-                            size={24}
-                            sx={{ color: theme.palette.brand.main }}
-                          />
-                        </Box>
+                        <CircularProgress
+                          size={24}
+                          sx={{ color: theme.palette.brand.main }}
+                        />
                       )}
                     </div>
                   </>
@@ -575,20 +599,23 @@ function MeetingHistory() {
                     </Grid>
                   )}
                 </Grid>
-
-                {/* Target goes AFTER the Grid container, exactly once */}
                 <div
                   ref={customerObserverTarget}
-                  style={{ height: "40px", marginTop: "20px" }}
+                  style={{
+                    minHeight: "50px",
+                    marginTop: "20px",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    overflowAnchor: "none",
+                  }}
                 >
                   {meetingsSummaryState === State.loading &&
                     customerPage > 0 && (
-                      <Box sx={{ display: "flex", justifyContent: "center" }}>
-                        <CircularProgress
-                          size={24}
-                          sx={{ color: theme.palette.brand.main }}
-                        />
-                      </Box>
+                      <CircularProgress
+                        size={24}
+                        sx={{ color: theme.palette.brand.main }}
+                      />
                     )}
                 </div>
               </Box>
