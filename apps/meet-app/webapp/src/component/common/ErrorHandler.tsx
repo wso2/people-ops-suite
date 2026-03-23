@@ -43,7 +43,7 @@ const ErrorHandler = (props: ErrorHandlerProps) => {
               alt="logo"
               width="150"
               height="auto"
-              src={require("@assets/images/wso2-logo.svg").default}
+              src={require("@assets/images/wso2-logo_black.svg").default}
             />
           </Grid>
           <Grid item xs={12}>
