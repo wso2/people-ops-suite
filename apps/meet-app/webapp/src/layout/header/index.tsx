@@ -21,8 +21,10 @@ import Typography from "@mui/material/Typography";
 import { useAppAuthContext } from "@context/AuthContext";
 import { RootState, useAppSelector } from "@slices/store";
 import { AppBar, Avatar, Box, Menu, MenuItem, Stack, Tooltip } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 const Header = () => {
+  const theme = useTheme();
   const authContext = useAppAuthContext();
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
   const user = useAppSelector((state: RootState) => state.user);
@@ -34,6 +36,10 @@ const Header = () => {
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
   };
+
+  const logoSrc = theme.palette.mode === "light" 
+    ? require("@assets/images/wso2-logo_black.svg").default 
+    : require("@assets/images/wso2-logo_white.svg").default;
 
   return (
     <AppBar
@@ -63,7 +69,7 @@ const Header = () => {
             maxWidth: "100px",
           }}
           onClick={() => (window.location.href = "/")}
-          src={require("@assets/images/wso2-logo.svg").default}
+          src = {logoSrc}
         ></img>
         <Typography
           variant="h5"

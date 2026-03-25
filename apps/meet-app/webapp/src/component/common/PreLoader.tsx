@@ -80,7 +80,7 @@ const PreLoader = (props: PreLoaderProps) => {
         <Grid container direction="column" justifyContent="center" alignItems="center" gap={2}>
           <Grid item xs={12}>
             {!props.hideLogo && (
-              <img alt="logo" width="150" height="auto" src={require("@assets/images/wso2-logo.svg").default} />
+              <img alt="logo" width="150" height="auto" src={require("@assets/images/wso2-logo_black.svg").default} />
             )}
           </Grid>
           <Grid item xs={12}>
