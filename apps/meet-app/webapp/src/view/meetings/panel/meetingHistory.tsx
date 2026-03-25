@@ -176,30 +176,47 @@ function MeetingHistory() {
           setLoadingDelete(true);
           await dispatch(deleteMeeting(meetingId)).then(() => {
             setLoadingDelete(false);
-            dispatch(
-              fetchMeetings({
-                searchString: filteredSearchQuery,
-                limit: pageSize,
-                offset: page * pageSize,
-              }),
-            );
+            const params: any = {
+              searchString: filteredSearchQuery,
+              limit: pageSize,
+              offset: page * pageSize,
+            };
+
+            if (regionOption !== "All") {
+              params.region = regionOption;
+            }
+            if (meetingType === "Past") {
+              params.endTime = formatForAPI(endDate);
+            }
+            dispatch(fetchMeetings(params));
           });
         },
         "Yes",
         "No",
       );
     },
-    [dispatch, dialogContext, filteredSearchQuery, pageSize, page],
+    [
+      dispatch,
+      dialogContext,
+      filteredSearchQuery,
+      pageSize,
+      page,
+      regionOption,
+      meetingType,
+      endDate,
+    ],
   );
 
   const handleViewAttachments = useCallback(
-    (meetingId: number) => {
+    async (meetingId: number) => {
       setLoadingAttachments(true);
-      dispatch(fetchAttachments(meetingId)).then((data: any) => {
-        setAttachments(data.payload.attachments);
+      try {
+        const data = await dispatch(fetchAttachments(meetingId)).unwrap();
+        setAttachments(data.attachments ?? []);
         setOpenAttachmentDialog(true);
+      } finally {
         setLoadingAttachments(false);
-      });
+      }
     },
     [dispatch],
   );
