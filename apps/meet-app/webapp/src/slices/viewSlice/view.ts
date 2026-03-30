@@ -14,14 +14,16 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { createSlice, } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface View {
   view: "list" | "module";
+  customerName: string | null;
 }
 
 const initialState: View = {
   view: "list",
+  customerName: null,
 };
 
 const ViewSlice = createSlice({
@@ -31,8 +33,15 @@ const ViewSlice = createSlice({
     setMeetingView(state, action) {
       state.view = action.payload;
     },
+    setCustomerName(state, action: PayloadAction<string>) {
+      state.customerName = action.payload;
+    },
+    clearCustomerName(state) {
+      state.customerName = "";
+    },
   },
 });
 
-export const { setMeetingView } = ViewSlice.actions;
+export const { setMeetingView, setCustomerName, clearCustomerName } =
+  ViewSlice.actions;
 export default ViewSlice.reducer;

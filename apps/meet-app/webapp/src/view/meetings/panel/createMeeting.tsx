@@ -48,6 +48,7 @@ import { addMeetings, fetchMeetingTypes } from "@slices/meetingSlice/meeting";
 import { DatePicker, TimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { useAppAuthContext } from "@root/src/context/AuthContext";
 import ErrorHandler from "@root/src/component/common/ErrorHandler";
+import { clearCustomerName } from "@root/src/slices/viewSlice/view";
 
 // Extend dayjs with timezone and UTC functionality
 dayjs.extend(utc);
@@ -197,6 +198,7 @@ function MeetingForm() {
   const [customerId, setCustomerId] = useState<string | null>(null);
   const contactsState = useAppSelector((state) => state.contact.state);
   const employeeState = useAppSelector((state) => state.employee.state);
+  const view = useAppSelector((state)=> state.view);
   const contacts = useAppSelector((state) => state.contact.contacts) || [];
   const employees = useAppSelector((state) => state.employee.employees) || [];
   const customers = useAppSelector((state) => state.customer.customers) || [];
@@ -235,10 +237,19 @@ function MeetingForm() {
     }
   }, [dispatch, customerId]);
 
+  useEffect(()=>{
+    if(view.customerName){
+      setCustomerInputValue(view.customerName)
+      dispatch(clearCustomerName())
+    }
+    const found = customers.find(c => c.name === view.customerName);
+    if (found) setCustomerId(found.id)
+  },[])
+
   const formik = useFormik<MeetingRequest>({
     initialValues: {
       meetingType: "",
-      customerName: "",
+      customerName: view.customerName|| "",
       customTitle: "",
       description: "",
       date: null,

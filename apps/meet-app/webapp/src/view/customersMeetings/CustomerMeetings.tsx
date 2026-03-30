@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import  { useEffect } from "react";
+import { useEffect } from "react";
 import {
   Box,
   Container,
@@ -47,6 +47,7 @@ import { formatDateTime } from "@root/src/utils/useFormatDate";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import UpcomingMeetingCard from "@root/src/component/ui/UpcomingMeetingCard";
+import { setCustomerName } from "@root/src/slices/viewSlice/view";
 
 export default function CustomerMeetings() {
   const theme = useTheme();
@@ -59,7 +60,6 @@ export default function CustomerMeetings() {
     Record<number, boolean>
   >({});
   const { customerName } = useParams();
-  console.log(customerName);
   const dispatch = useAppDispatch();
   const meeting = useAppSelector((state) => state.meeting);
   const upComingMeetings = useAppSelector(
@@ -68,7 +68,9 @@ export default function CustomerMeetings() {
   const upComingMeetingsState = useAppSelector(
     (state) => state.meeting.customerDateRangeMeetingsState,
   );
+  const view = useAppSelector((state) => state.view);
   useEffect(() => {
+    if(!customerName) return;
     const today = new Date();
     const params: any = {
       customerName: customerName,
@@ -79,11 +81,9 @@ export default function CustomerMeetings() {
     promise.unwrap().then(() => {
       fetchUpcomingMeetings();
     });
-  }, [customerName]);
+  }, [customerName,dispatch]);
   const meetingList = meeting?.customerMeetings?.meetings ?? [];
   const upComingMeetingsList = upComingMeetings?.meetings ?? [];
-  console.log(upComingMeetingsList);
-
   const fetchUpcomingMeetings = () => {
     const today = new Date();
     const params: any = {
@@ -109,6 +109,10 @@ export default function CustomerMeetings() {
   };
   const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
     console.log(meetingId, meetingTitle);
+  };
+  const handleNewSchedule = () => {
+    navigate('/?tab=create-meeting')
+    dispatch(setCustomerName(customerName??""));
   };
   return (
     <Box
@@ -169,6 +173,7 @@ export default function CustomerMeetings() {
               variant="contained"
               startIcon={<AddIcon />}
               sx={{ textTransform: "none" }}
+              onClick={handleNewSchedule}
             >
               Schedule New
             </Button>
