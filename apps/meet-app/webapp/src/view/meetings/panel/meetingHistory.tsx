@@ -161,25 +161,27 @@ function MeetingHistory() {
     (meetingId: number, meetingTitle: string) => {
       dialogContext.showConfirmation(
         "Confirm Deletion",
-        <Box>
-          <>
-            <Typography variant="body1">
-              <strong>
-                Are you sure you want to delete the meeting <br />
-              </strong>{" "}
-              {`${meetingTitle} ?`}
-            </Typography>
-          </>
-        </Box>,
+        <Typography variant="body1" component="span">
+          <strong>
+            Are you sure you want to delete the meeting <br />
+          </strong>{" "}
+          {`${meetingTitle} ?`}
+        </Typography>,
         ConfirmationType.accept,
         async () => {
           setLoadingDelete(true);
           await dispatch(deleteMeeting(meetingId)).then(() => {
             setLoadingDelete(false);
+            const currentItemsCount = meeting.meetings?.meetings?.length ?? 0;
+            const isLastItemOnPage = currentItemsCount === 1 && page > 0;
+            const newPage = isLastItemOnPage ? page - 1 : page;
+            if (isLastItemOnPage) {
+              setPage(newPage);
+            }
             const params: any = {
               searchString: filteredSearchQuery,
               limit: pageSize,
-              offset: page * pageSize,
+              offset: newPage * pageSize,
             };
 
             if (regionOption !== "All") {
@@ -204,6 +206,7 @@ function MeetingHistory() {
       regionOption,
       meetingType,
       endDate,
+      meeting.meetings?.meetings?.length,
     ],
   );
 
@@ -409,53 +412,82 @@ function MeetingHistory() {
           const isCancelled: boolean = params.row.meetingStatus === "CANCELLED";
           const isPast: boolean = params.row.timeStatus === "PAST";
           const host: string = params.row.host;
+          const canDelete =
+            !isCancelled &&
+            !isPast &&
+            (privileges.roles.includes(Role.ADMIN) ||
+              privileges.userInfo?.email === host);
           return (
-            <>
-              {!isCancelled &&
-                !isPast &&
-                (privileges.roles.includes(Role.ADMIN) ||
-                  privileges.userInfo?.email === host) && (
-                  <Tooltip title="Delete Meeting" arrow>
-                    <IconButton
-                      color="error"
-                      onClick={() => {
-                        handleDeleteMeeting(
-                          params.row.meetingId,
-                          params.row.title,
-                        );
-                      }}
-                      sx={{
-                        backgroundColor: (theme) => theme.palette.error.main,
-                        borderRadius: 2,
-                        width: 25,
-                        height: 25,
-                        border: (theme) =>
-                          `2px solid ${theme.palette.error.dark}`,
-                        boxShadow: (theme) =>
-                          `0 2px 4px ${theme.palette.error.dark}30`,
-                        "&:hover": {
-                          backgroundColor: (theme) => theme.palette.error.dark,
-                          transform: "translateY(-1px)",
-                          boxShadow: (theme) =>
-                            `0 4px 8px ${theme.palette.error.dark}40`,
-                        },
-                        "&:active": {
-                          transform: "translateY(0px)",
-                          boxShadow: (theme) =>
-                            `0 1px 2px ${theme.palette.error.dark}60`,
-                        },
-                        "& .MuiSvgIcon-root": {
-                          color: (theme) => theme.palette.error.contrastText,
-                          fontSize: "1.1rem",
-                        },
-                        transition: "all 0.2s ease-in-out",
-                      }}
-                    >
-                      <DeleteForever />
-                    </IconButton>
-                  </Tooltip>
-                )}
-            </>
+            <Tooltip
+              title={
+                canDelete
+                  ? "Delete Meeting"
+                  : "You do not have permission to delete this meeting"
+              }
+              arrow
+            >
+              <span>
+                <IconButton
+                  color="error"
+                  disabled={!canDelete}
+                  onClick={() => {
+                    if (canDelete) {
+                      handleDeleteMeeting(
+                        params.row.meetingId,
+                        params.row.title,
+                      );
+                    }
+                  }}
+                  sx={{
+                    backgroundColor: (theme) =>
+                      canDelete
+                        ? theme.palette.error.main
+                        : theme.palette.action.disabledBackground,
+                    borderRadius: 2,
+                    width: 25,
+                    height: 25,
+                    border: (theme) =>
+                      `2px solid ${
+                        canDelete
+                          ? theme.palette.error.dark
+                          : theme.palette.action.disabled
+                      }`,
+                    boxShadow: (theme) =>
+                      canDelete
+                        ? `0 2px 4px ${theme.palette.error.dark}30`
+                        : "none",
+                    "&:hover": {
+                      backgroundColor: (theme) =>
+                        canDelete
+                          ? theme.palette.error.dark
+                          : theme.palette.action.disabledBackground,
+                      transform: canDelete ? "translateY(-1px)" : "none",
+                      boxShadow: (theme) =>
+                        canDelete
+                          ? `0 4px 8px ${theme.palette.error.dark}40`
+                          : "none",
+                    },
+                    "&:active": {
+                      transform: "translateY(0px)",
+                      boxShadow: (theme) =>
+                        canDelete
+                          ? `0 1px 2px ${theme.palette.error.dark}60`
+                          : "none",
+                    },
+                    "& .MuiSvgIcon-root": {
+                      color: (theme) =>
+                        canDelete
+                          ? theme.palette.error.contrastText
+                          : theme.palette.action.disabled,
+                      fontSize: "1.1rem",
+                    },
+                    transition: "all 0.2s ease-in-out",
+                  }}
+                >
+                  <DeleteForever />
+                </IconButton>
+              </span>
+            </Tooltip>
           );
         },
       });
@@ -543,7 +575,7 @@ function MeetingHistory() {
           }}
         >
           <CircularProgress />
-          <Typography mt={2} color="textSecondary">
+          <Typography mt={2} color="textSecondary" component="div">
             Loading meetings, please wait...
           </Typography>
         </Box>
@@ -599,7 +631,7 @@ function MeetingHistory() {
         <DialogTitle>Attachments</DialogTitle>
         <DialogContent>
           {attachments.length === 0 ? (
-            <Typography>No attachments found.</Typography>
+            <Typography component="div">No attachments found.</Typography>
           ) : (
             <Box>
               {attachments.map((attachment, index) => (
