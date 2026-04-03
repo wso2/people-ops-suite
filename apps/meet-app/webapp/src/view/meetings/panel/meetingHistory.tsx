@@ -156,28 +156,33 @@ function MeetingHistory() {
   const handleRegionChange = (event: SelectChangeEvent) => {
     setRegionRangeOption(event.target.value);
   };
-
   const handleDeleteMeeting = useCallback(
     (meetingId: number, meetingTitle: string) => {
       dialogContext.showConfirmation(
         "Confirm Deletion",
-        <Typography variant="body1" component="span">
-          <strong>
-            Are you sure you want to delete the meeting <br />
-          </strong>{" "}
-          {`${meetingTitle} ?`}
-        </Typography>,
+        <Box>
+          <>
+            <Typography variant="body1">
+              <strong>
+                Are you sure you want to delete the meeting <br />
+              </strong>{" "}
+              {`${meetingTitle} ?`}
+            </Typography>
+          </>
+        </Box>,
         ConfirmationType.accept,
         async () => {
           setLoadingDelete(true);
-          await dispatch(deleteMeeting(meetingId)).then(() => {
-            setLoadingDelete(false);
+          try {
+            await dispatch(deleteMeeting(meetingId)).unwrap();
             const currentItemsCount = meeting.meetings?.meetings?.length ?? 0;
             const isLastItemOnPage = currentItemsCount === 1 && page > 0;
             const newPage = isLastItemOnPage ? page - 1 : page;
+
             if (isLastItemOnPage) {
               setPage(newPage);
             }
+
             const params: any = {
               searchString: filteredSearchQuery,
               limit: pageSize,
@@ -191,7 +196,9 @@ function MeetingHistory() {
               params.endTime = formatForAPI(endDate);
             }
             dispatch(fetchMeetings(params));
-          });
+          } finally {
+            setLoadingDelete(false);
+          }
         },
         "Yes",
         "No",
