@@ -58,6 +58,7 @@ service class ErrorInterceptor {
         }
         return err;
     }
+    
 }
 
 service http:InterceptableService / on new http:Listener(9090) {
@@ -573,9 +574,9 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         database:Meeting[]|error meetingsResult = database:fetchMeetings(null, customerName, title, host, searchString, region,
                 startTime, endTime, internalParticipants, 'limit, offset);
-        if meetings is error {
+        if meetingsResult is error {
             string customError = "Error occurred while retrieving the meetings!";
-            log:printError(customError, meetings);
+            log:printError(customError, meetingsResult);
             return <http:InternalServerError>{
                 body: {
                     message: customError
