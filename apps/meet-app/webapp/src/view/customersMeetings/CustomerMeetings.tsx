@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { useEffect } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   Box,
   Container,
@@ -37,11 +37,11 @@ import {
   fetchMeetingsByCustomer,
   fetchAttachments,
   fetchMeetingsByDatesForCustomer,
+  resetCustomerMeetings,
 } from "@root/src/slices/meetingSlice/meeting";
 import { State } from "@root/src/types/types";
 import ErrorHandler from "@component/common/ErrorHandler";
 import MeetingsAccordion from "@root/src/component/ui/MeetingsAccordion";
-import { useState } from "react";
 import { Attachment } from "../../types/types";
 import { formatDateTime } from "@root/src/utils/useFormatDate";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
@@ -52,6 +52,22 @@ import { setCustomerName } from "@root/src/slices/viewSlice/view";
 export default function CustomerMeetings() {
   const theme = useTheme();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { customerName } = useParams();
+  const [page, setPage] = useState(0);
+  const pageSize = 10;
+  const customerMeetings = useAppSelector(
+    (state) => state.meeting.customerMeetings,
+  );
+  const customerMeetingsState = useAppSelector(
+    (state) => state.meeting.customerMeetingsState,
+  );
+  const upComingMeetings = useAppSelector(
+    (state) => state.meeting.customerDateRangeMeetings,
+  );
+  const upComingMeetingsState = useAppSelector(
+    (state) => state.meeting.customerDateRangeMeetingsState,
+  );
 
   const [attachmentMap, setAttachmentMap] = useState<
     Record<number, Attachment[]>
@@ -59,40 +75,82 @@ export default function CustomerMeetings() {
   const [loadingAttachments, setLoadingAttachments] = useState<
     Record<number, boolean>
   >({});
-  const { customerName } = useParams();
-  const dispatch = useAppDispatch();
-  const meeting = useAppSelector((state) => state.meeting);
-  const upComingMeetings = useAppSelector(
-    (state) => state.meeting.customerDateRangeMeetings,
-  );
-  const upComingMeetingsState = useAppSelector(
-    (state) => state.meeting.customerDateRangeMeetingsState,
-  );
-  const view = useAppSelector((state) => state.view);
+
+  const scrollData = useRef({
+    state: customerMeetingsState,
+    data: customerMeetings,
+  });
   useEffect(() => {
-    if(!customerName) return;
-    const today = new Date();
-    const params: any = {
-      customerName: customerName,
-      limit: 10,
-      endTime: today.toISOString(),
+    scrollData.current = {
+      state: customerMeetingsState,
+      data: customerMeetings,
     };
-    const promise = dispatch(fetchMeetingsByCustomer(params));
-    promise.unwrap().then(() => {
-      fetchUpcomingMeetings();
-    });
-  }, [customerName,dispatch]);
-  const meetingList = meeting?.customerMeetings?.meetings ?? [];
-  const upComingMeetingsList = upComingMeetings?.meetings ?? [];
-  const fetchUpcomingMeetings = () => {
-    const today = new Date();
-    const params: any = {
-      startTime: today.toISOString(),
-      limit: 10,
-      customerName: customerName,
+  }, [customerMeetingsState, customerMeetings]);
+
+  const observer = useRef<IntersectionObserver | null>(null);
+  const observerTarget = useCallback((node: HTMLDivElement | null) => {
+    if (observer.current) observer.current.disconnect();
+    if (!node) return;
+
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          const { state, data } = scrollData.current;
+          if (state === State.loading) return;
+
+          const currentCount = data?.meetings?.length || 0;
+          const totalCount = data?.count || 0;
+
+          if (currentCount < totalCount) {
+            setPage((prev) => prev + 1);
+          }
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.current.observe(node);
+  }, []);
+
+  useEffect(() => {
+    if (!customerName) return;
+
+    const loadDataSequentially = async () => {
+      try {
+        const today = new Date();
+        const historyParams = {
+          customerName: customerName,
+          limit: pageSize,
+          offset: page * pageSize,
+          endTime: today.toISOString(),
+          searchString: null,
+        };
+        await dispatch(fetchMeetingsByCustomer(historyParams)).unwrap();
+
+        if (page === 0) {
+          dispatch(
+            fetchMeetingsByDatesForCustomer({
+              startTime: today.toISOString(),
+              limit: 10,
+              customerName: customerName,
+            }),
+          );
+        }
+      } catch (error) {
+        console.error("Sequence interrupted or failed:", error);
+      }
     };
-    dispatch(fetchMeetingsByDatesForCustomer(params));
-  };
+
+    loadDataSequentially();
+  }, [customerName, page, dispatch]);
+
+  useEffect(() => {
+    if (customerName) {
+      dispatch(resetCustomerMeetings());
+      setPage(0);
+    }
+  }, [customerName, dispatch]);
+
   const handleAccordionChange = (meetingId: number, isExpanded: boolean) => {
     if (isExpanded && !attachmentMap[meetingId]) {
       setLoadingAttachments((prev) => ({ ...prev, [meetingId]: true }));
@@ -107,13 +165,15 @@ export default function CustomerMeetings() {
       });
     }
   };
-  const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
-    console.log(meetingId, meetingTitle);
-  };
+
   const handleNewSchedule = () => {
-    navigate('/?tab=create-meeting')
-    dispatch(setCustomerName(customerName??""));
+    navigate("/?tab=create-meeting");
+    dispatch(setCustomerName(customerName ?? ""));
   };
+
+  const meetingList = customerMeetings?.meetings ?? [];
+  const upComingMeetingsList = upComingMeetings?.meetings ?? [];
+
   return (
     <Box
       sx={{
@@ -134,17 +194,13 @@ export default function CustomerMeetings() {
             gap: 2,
           }}
         >
-          {/* Grouping Back button and Title so they stay on the left together */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <IconButton
-              onClick={() => navigate(-1)} // Added routing action
+              onClick={() => navigate(-1)}
               sx={{ bgcolor: "action.hover" }}
-              aria-label="go back"
             >
               <ArrowBackIcon />
             </IconButton>
-
-            {/* Title Box with Icon */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
               <Box
                 sx={{
@@ -158,26 +214,23 @@ export default function CustomerMeetings() {
                 <PersonRoundedIcon />
               </Box>
               <Box>
-                <Typography variant="h5" fontWeight="700" color="text.primary">
+                <Typography variant="h5" fontWeight="700">
                   Customer: {customerName}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Review past sessions and upcoming schedules for this customer.
+                  Review past sessions and upcoming schedules.
                 </Typography>
               </Box>
             </Box>
           </Box>
-
-          <Stack direction="row" spacing={2}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              sx={{ textTransform: "none" }}
-              onClick={handleNewSchedule}
-            >
-              Schedule New
-            </Button>
-          </Stack>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            sx={{ textTransform: "none" }}
+            onClick={handleNewSchedule}
+          >
+            Schedule New
+          </Button>
         </Box>
 
         <Grid container spacing={3}>
@@ -193,20 +246,21 @@ export default function CustomerMeetings() {
               <Stack direction="row" spacing={1} alignItems="center">
                 <HistoryIcon color="action" />
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Past Sessions & Recordings
+                  Past Sessions
                 </Typography>
               </Stack>
               <Chip
-                label={`Total Sessions ${meeting.customerMeetings?.count || 0}`}
-                size="medium"
+                label={`Total Sessions ${customerMeetings?.count || 0}`}
                 sx={{ bgcolor: "action.hover" }}
               />
             </Box>
-            {meeting.customerMeetingsState == State.loading ? (
+
+            {/* List Content */}
+            {customerMeetingsState === State.loading && page === 0 ? (
               <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
                 <CircularProgress sx={{ color: theme.palette.brand.main }} />
               </Box>
-            ) : meeting.customerMeetingsState === State.failed ? (
+            ) : customerMeetingsState === State.failed ? (
               <ErrorHandler message="Failed to fetch meetings." />
             ) : meetingList.length === 0 ? (
               <Paper
@@ -214,7 +268,6 @@ export default function CustomerMeetings() {
                   p: 6,
                   textAlign: "center",
                   borderRadius: 3,
-                  boxShadow: (theme: any) => theme.customShadows.modern,
                   bgcolor: "background.paper",
                 }}
               >
@@ -226,15 +279,32 @@ export default function CustomerMeetings() {
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {meetingList.map((row) => (
                   <MeetingsAccordion
+                    key={row.meetingId}
                     meeting={row}
                     handleAccordionChange={handleAccordionChange}
                     formatDateTime={formatDateTime}
-                    key={row.meetingId}
-                    handleDeleteMeeting={handleDeleteMeeting}
+                    handleDeleteMeeting={() => {}} 
                     loadingAttachments={loadingAttachments}
                     attachmentMap={attachmentMap}
                   />
                 ))}
+
+                <div
+                  ref={observerTarget}
+                  style={{
+                    minHeight: "50px",
+                    display: "flex",
+                    justifyContent: "center",
+                    padding: 2,
+                  }}
+                >
+                  {customerMeetingsState === State.loading && page > 0 && (
+                    <CircularProgress
+                      size={24}
+                      sx={{ color: theme.palette.brand.main }}
+                    />
+                  )}
+                </div>
               </Box>
             )}
           </Grid>
@@ -244,7 +314,6 @@ export default function CustomerMeetings() {
               variant="customer"
               upcomingMeetings={upComingMeetingsList}
               loadingMeetings={upComingMeetingsState === State.loading}
-              onViewAllClick={() => console.log("Navigate to all meetings")}
             />
           </Grid>
         </Grid>

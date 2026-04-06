@@ -239,7 +239,7 @@ export const fetchMeetingsByCustomer = createAsyncThunk(
     }: {
       searchString: string | null;
       limit: number;
-      offset?: number;
+      offset: number;
       region?: string;
       endTime?: string;
       customerName: string;
@@ -460,6 +460,10 @@ const MeetingSlice = createSlice({
     resetSubmitState(state) {
       state.submitState = State.idle;
     },
+    resetCustomerMeetings(state) {
+      state.customerMeetings = null;
+      state.customerMeetingsState = State.idle;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -519,7 +523,12 @@ const MeetingSlice = createSlice({
       })
       .addCase(fetchMeetingsByCustomer.fulfilled, (state, action) => {
         state.customerMeetingsState = State.success;
-        state.customerMeetings = action.payload;
+        const offset = action.meta.arg.offset;
+        state.customerMeetings = mergeMeetings(
+          state.customerMeetings,
+          action.payload,
+          offset,
+        );
       })
       .addCase(fetchMeetingsByCustomer.rejected, (state) => {
         state.customerMeetingsState = State.failed;
@@ -562,5 +571,5 @@ const MeetingSlice = createSlice({
   },
 });
 
-export const { resetSubmitState } = MeetingSlice.actions;
+export const { resetSubmitState , resetCustomerMeetings } = MeetingSlice.actions;
 export default MeetingSlice.reducer;
