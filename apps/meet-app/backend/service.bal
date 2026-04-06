@@ -562,16 +562,6 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
-        if (!isAdmin && (host != ()) && (host != userInfo.email)) {
-            string customError = "Insufficient privileges to filter by host!";
-            log:printError(customError);
-            return <http:Forbidden>{
-                body: {
-                    message: customError
-                }
-            };
-        }
         if (searchString is string && (host is string || title is string)) {
             string customError = "searchString cannot be combined with host or title filters.";
             log:printError(customError);
@@ -583,9 +573,9 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
         database:Meeting[]|error meetingsResult = database:fetchMeetings(null, customerName, title, host, searchString, region,
                 startTime, endTime, internalParticipants, 'limit, offset);
-        if meetingsResult is error {
+        if meetings is error {
             string customError = "Error occurred while retrieving the meetings!";
-            log:printError(customError, meetingsResult);
+            log:printError(customError, meetings);
             return <http:InternalServerError>{
                 body: {
                     message: customError
