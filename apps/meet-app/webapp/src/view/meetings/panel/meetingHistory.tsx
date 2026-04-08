@@ -68,6 +68,7 @@ import {
   formatForAPI,
 } from "@root/src/utils/useFormatDate";
 import UpcomingMeetingCard from "@root/src/component/ui/UpcomingMeetingCard";
+import { Role } from "@root/src/slices/authSlice/auth";
 
 function MeetingHistory() {
   const theme = useTheme();
@@ -75,6 +76,7 @@ function MeetingHistory() {
   const navigate = useNavigate();
   const meeting = useAppSelector((state) => state.meeting.meetings);
   const meetingState = useAppSelector((state) => state.meeting.state);
+  const privileges = useAppSelector((state) => state.auth);
   const view = useAppSelector((state) => state.view);
   const upcomingMeetings = useAppSelector(
     (state) => state.meeting.dateRangeMeetings,
@@ -532,6 +534,8 @@ function MeetingHistory() {
                         handleDeleteMeeting={handleDeleteMeeting}
                         loadingAttachments={loadingAttachments}
                         attachmentMap={attachmentMap}
+                        isAdmin={privileges.roles.includes(Role.ADMIN)}
+                        userEmail={privileges.userInfo?.email}
                       />
                     ))}
                     <div

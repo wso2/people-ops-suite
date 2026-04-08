@@ -50,6 +50,8 @@ interface MeetingsAccordionProps {
   loadingAttachments: Record<number, boolean>;
   attachmentMap: Record<number, Attachment[]>;
   handleDeleteMeeting: (id: number, title: string) => void;
+  isAdmin?: boolean;
+  userEmail?: string;
 }
 
 export const MeetingsAccordion = ({
@@ -59,6 +61,8 @@ export const MeetingsAccordion = ({
   handleDeleteMeeting,
   loadingAttachments,
   attachmentMap,
+  isAdmin,
+  userEmail,
 }: MeetingsAccordionProps) => {
   const theme = useTheme();
   return (
@@ -321,7 +325,12 @@ export const MeetingsAccordion = ({
             <Button
               color="error"
               startIcon={<DeleteForever />}
-              disabled={meeting.meetingStatus === "CANCELLED"}
+              disabled={
+                meeting.meetingStatus === "CANCELLED" ||
+                meeting.timeStatus === "PAST" ||
+                !isAdmin ||
+                userEmail === meeting.host
+              }
               onClick={() =>
                 handleDeleteMeeting(meeting.meetingId, meeting.title)
               }
