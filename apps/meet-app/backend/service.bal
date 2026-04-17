@@ -365,9 +365,19 @@ service http:InterceptableService / on new http:Listener(9090) {
             meetingType = titleParts[1].trim();
             createCalendarEventRequest.title = string `${titleParts[0]} - ${titleParts[2]}`;
         }
+        string|error meetResponse = calendar:createMeet();
+        if meetResponse is error {
+            string customError = string `Error occurred while creating the meet!`;
+            log:printError(customError, meetResponse);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            }; 
+        }
         // Attempt to create the meeting.
         calendar:CreateCalendarEventResponse|error calendarCreateEventResponse = calendar:createCalendarEvent(
-                createCalendarEventRequest, userInfo.email);
+                createCalendarEventRequest, userInfo.email,meetResponse);
         if calendarCreateEventResponse is error {
             string customError = string `Error occurred while creating the calendar event!`;
             log:printError(customError, calendarCreateEventResponse);

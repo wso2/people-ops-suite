@@ -24,9 +24,10 @@ configurable string disclaimerMessage = ?;
 #
 # + createCalendarEventRequest - Create calendar event request
 # + creatorEmail - Event creator Email
+# + meetUri - Meet URL
 # + return - JSON response if successful, else an error
 public isolated function createCalendarEvent(CreateCalendarEventRequest createCalendarEventRequest,
-        string creatorEmail) returns CreateCalendarEventResponse|error {
+        string creatorEmail, string? meetUri) returns CreateCalendarEventResponse|error {
 
     // Internal participants validation.
     string:RegExp wso2EmailDomainRegex = re `(?i:^([a-z0-9_\-\.]+)@wso2\.com$)`;
@@ -85,13 +86,14 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
                     'type: CONFERENCE_SOLUTION_TYPE
                 }
             }
-        }
+        },
+        meetUri: meetUri is string ? meetUri : null
     };
 
     http:Request req = new;
     json calendarEventPayloadJson = calendarEventPayload.toJson();
     req.setPayload(calendarEventPayloadJson);
-    http:Response response = check calendarClient->post(string `/events/${calendarId}?sendUpdates=all`, req);
+    http:Response response = check calendarClient->post(string `/events/${creatorEmail}?sendUpdates=all`, req);
 
     if response.statusCode == 201 {
         json responseJson = check response.getJsonPayload();
