@@ -46,6 +46,7 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         host_team,
         host_sub_team,
         host_unit,
+        event_creator,
         start_time, 
         end_time, 
         wso2_participants,
@@ -64,6 +65,7 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
         ${meeting.team},
         ${meeting.subTeam},
         ${meeting.unit},
+        ${meeting.eventCreator},
         ${meeting.startTime}, 
         ${meeting.endTime}, 
         ${meeting.internalParticipants},
@@ -338,4 +340,18 @@ isolated function meetingTitlesByRegionsQuery(string startTime, string endTime, 
         start_time >= ${startTime} AND
         start_time < ${endTime} AND
         meeting_status = ${ACTIVE}
+`;
+# Build query to retrieve the event creator by google even Id.
+# 
+# + googleEventId - Google event Id
+# + return - sql:ParameterizedQuery
+isolated function creatorEmailByGoogleEventId(string googleEventId)
+    returns  sql:ParameterizedQuery=>
+`
+    SELECT
+        event_creator
+    FROM 
+        meeting
+    WHERE google_event_id = ${googleEventId}
+    LIMIT 1
 `;

@@ -151,6 +151,7 @@ public isolated function getMeetingCountsByHost(string startTime, string endTime
     return from MeetingHostStat stat in resultStream
         select stat;
 }
+
 # Fetches meeting titles by region within a date range.
 #
 # + startTime - Start ISO string
@@ -163,4 +164,16 @@ public isolated function getMeetingIdsByRegions(string startTime, string endTime
 
     return from var row in titleStream
         select row.title;
+}
+
+# Fetches event creator by google event Id.
+# 
+# + googleEventId - Google Event Id
+# + return - Creator of google event id or error, if not found
+public isolated function getEventCreatorByGoogleEventId(string googleEventId) returns string|error? {
+    string|sql:Error eventCreator = databaseClient->queryRow(creatorEmailByGoogleEventId(googleEventId));
+    if eventCreator is sql:NoRowsError {
+        return;
+    }
+    return eventCreator;
 }

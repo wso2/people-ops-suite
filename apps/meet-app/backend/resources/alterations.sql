@@ -13,3 +13,7 @@ ALTER TABLE people_ops_suite.meeting
   ADD COLUMN `host_team` VARCHAR(50) NULL DEFAULT 'N/A' AFTER `host_bu`,
   ADD COLUMN `host_sub_team` VARCHAR(50) NULL DEFAULT 'N/A' AFTER `host_team`,
   ADD COLUMN `host_unit` VARCHAR(50) NULL DEFAULT 'N/A' AFTER `host_sub_team`;
+
+-- Add Event Creator column to store the event creation calendarId
+ALTER TABLE people_ops_suite.meeting 
+ADD COLUMN `event_creator` VARCHAR(50) NOT NULL DEFAULT '' AFTER `host_unit`; 
