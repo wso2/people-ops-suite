@@ -660,21 +660,10 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        string|error? creatorEmailResult = database:getEventCreatorByGoogleEventId(meeting.googleEventId);
-        if creatorEmailResult is error {
-            string customError = "Error occurred while fetching the event creator!";
-            log:printError(customError, creatorEmailResult);
-            return <http:InternalServerError>{body: customError};
-        }
-        if creatorEmailResult is null {
-            string customError = "Event creator not found!";
-            log:printError(customError);
-            return <http:InternalServerError>{body: customError};
-        }
 
         // Fetch the attachments of the meeting.
         gcalendar:Attachment[]|error? calendarEventAttachments = calendar:getCalendarEventAttachments(
-                meeting.googleEventId, creatorEmailResult);
+                meeting.googleEventId, meeting.eventCreator);
         if calendarEventAttachments is error {
             string customError = string `Error occurred while fetching the attachments!`;
             log:printError(customError, calendarEventAttachments);
@@ -759,21 +748,9 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        string|error? creatorEmailResult = database:getEventCreatorByGoogleEventId(meeting.googleEventId);
-        if creatorEmailResult is error {
-            string customError = "Error occurred while fetching the event creator!";
-            log:printError(customError, creatorEmailResult);
-            return <http:InternalServerError>{body: customError};
-        }
-        if creatorEmailResult is null {
-            string customError = "Event creator not found!";
-            log:printError(customError);
-            return <http:InternalServerError>{body: customError};
-        }
-
         // Delete the meeting from the calendar.
         calendar:DeleteCalendarEventResponse|error deleteCalendarEventResponse = calendar:deleteCalendarEvent(
-                meeting.googleEventId, creatorEmailResult);
+                meeting.googleEventId, meeting.eventCreator);
         if deleteCalendarEventResponse is error {
             string customError = string `Error occurred while deleting the meeting!`;
             log:printError(customError, deleteCalendarEventResponse);

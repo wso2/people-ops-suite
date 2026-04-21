@@ -196,6 +196,7 @@ isolated function getMeetingQuery(int meetingId) returns sql:ParameterizedQuery 
         title, 
         google_event_id AS 'googleEventId',
         host, 
+        event_creator as 'eventCreator',
         DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS 'startTime',
         DATE_FORMAT(end_time, '%Y-%m-%d %H:%i:%s') AS 'endTime',
         wso2_participants as internalParticipants, 
@@ -340,18 +341,4 @@ isolated function meetingTitlesByRegionsQuery(string startTime, string endTime, 
         start_time >= ${startTime} AND
         start_time < ${endTime} AND
         meeting_status = ${ACTIVE}
-`;
-# Build query to retrieve the event creator by google even Id.
-# 
-# + googleEventId - Google event Id
-# + return - sql:ParameterizedQuery
-isolated function creatorEmailByGoogleEventId(string googleEventId)
-    returns  sql:ParameterizedQuery=>
-`
-    SELECT
-        event_creator
-    FROM 
-        meeting
-    WHERE google_event_id = ${googleEventId}
-    LIMIT 1
 `;

@@ -76,6 +76,8 @@ public type Meeting record {|
     string googleEventId;
     # Host of the meeting
     string host;
+    # Meet creator email
+    string eventCreator;
     # Meeting start time
     string startTime;
     # Meeting end time
