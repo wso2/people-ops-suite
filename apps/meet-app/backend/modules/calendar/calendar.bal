@@ -24,9 +24,10 @@ configurable string disclaimerMessage = ?;
 #
 # + createCalendarEventRequest - Create calendar event request
 # + creatorEmail - Event creator Email
+# + meetUri - Meet URL
 # + return - JSON response if successful, else an error
 public isolated function createCalendarEvent(CreateCalendarEventRequest createCalendarEventRequest,
-        string creatorEmail) returns CreateCalendarEventResponse|error {
+        string creatorEmail, string? meetUri) returns CreateCalendarEventResponse|error {
 
     // Internal participants validation.
     string:RegExp wso2EmailDomainRegex = re `(?i:^([a-z0-9_\-\.]+)@wso2\.com$)`;
@@ -85,13 +86,14 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
                     'type: CONFERENCE_SOLUTION_TYPE
                 }
             }
-        }
+        },
+        meetUri: meetUri is string ? meetUri : null
     };
 
     http:Request req = new;
     json calendarEventPayloadJson = calendarEventPayload.toJson();
     req.setPayload(calendarEventPayloadJson);
-    http:Response response = check calendarClient->post(string `/events/${calendarId}?sendUpdates=all`, req);
+    http:Response response = check calendarClient->post(string `/events/${creatorEmail}?sendUpdates=all`, req);
 
     if response.statusCode == 201 {
         json responseJson = check response.getJsonPayload();
@@ -107,10 +109,11 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
 # Delete an event from the calendar.
 #
 # + eventId - Event Id
+# + creatorEmail - Event creator Email
 # + return - JSON response if successful, else an error
-public isolated function deleteCalendarEvent(string eventId) returns DeleteCalendarEventResponse|error {
+public isolated function deleteCalendarEvent(string eventId , string creatorEmail ) returns DeleteCalendarEventResponse|error {
 
-    http:Response response = check calendarClient->delete(string `/events/${calendarId}/${eventId}`);
+    http:Response response = check calendarClient->delete(string `/events/${creatorEmail}/${eventId}`);
 
     if response.statusCode == 200 {
         json responseJson = check response.getJsonPayload();
@@ -126,10 +129,11 @@ public isolated function deleteCalendarEvent(string eventId) returns DeleteCalen
 # Get an event from the calendar.
 #
 # + eventId - Event Id
+# + creatorEmail - Event creator Email
 # + return - JSON response if successful, else an error
-public isolated function getCalendarEventAttachments(string eventId) returns gcalendar:Attachment[]|error? {
+public isolated function getCalendarEventAttachments(string eventId, string creatorEmail) returns gcalendar:Attachment[]|error? {
 
-    http:Response response = check calendarClient->get(string `/calendars/${calendarId}/events/${eventId}`);
+    http:Response response = check calendarClient->get(string `/calendars/${creatorEmail}/events/${eventId}`);
 
     if response.statusCode == 200 {
         json responseJson = check response.getJsonPayload();
@@ -147,10 +151,11 @@ public isolated function getCalendarEventAttachments(string eventId) returns gca
 # Get a calendar event.
 #
 # + eventId - Event Id
+# + creatorEmail - Event creator Email
 # + return - The event if successful, else an error
-public isolated function getCalendarEvent(string eventId) returns gcalendar:Event|error {
+public isolated function getCalendarEvent(string eventId, string creatorEmail) returns gcalendar:Event|error {
 
-    http:Response response = check calendarClient->get(string `/calendars/${calendarId}/events/${eventId}`);
+    http:Response response = check calendarClient->get(string `/calendars/${creatorEmail}/events/${eventId}`);
 
     if response.statusCode == 200 {
         json responseJson = check response.getJsonPayload();
@@ -165,11 +170,12 @@ public isolated function getCalendarEvent(string eventId) returns gcalendar:Even
 # Get all instances of a recurring event.
 #
 # + eventId - The master event Id
+# + creatorEmail - Event creator Email
 # + return - Array of event instances if successful, else an error
-public isolated function getEventInstances(string eventId) returns gcalendar:Event[]|error {
+public isolated function getEventInstances(string eventId, string creatorEmail) returns gcalendar:Event[]|error {
 
     http:Response response = check calendarClient->get(
-        string `/calendars/${calendarId}/events/${eventId}/instances`
+        string `/calendars/${creatorEmail}/events/${eventId}/instances`
     );
 
     if response.statusCode == 200 {

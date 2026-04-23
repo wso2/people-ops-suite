@@ -365,9 +365,19 @@ service http:InterceptableService / on new http:Listener(9090) {
             meetingType = titleParts[1].trim();
             createCalendarEventRequest.title = string `${titleParts[0]} - ${titleParts[2]}`;
         }
+        string|error meetResponse = calendar:createMeet();
+        if meetResponse is error {
+            string customError = string `Error occurred while creating the meet!`;
+            log:printError(customError, meetResponse);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         // Attempt to create the meeting.
         calendar:CreateCalendarEventResponse|error calendarCreateEventResponse = calendar:createCalendarEvent(
-                createCalendarEventRequest, userInfo.email);
+                createCalendarEventRequest, userInfo.email, meetResponse);
         if calendarCreateEventResponse is error {
             string customError = string `Error occurred while creating the calendar event!`;
             log:printError(customError, calendarCreateEventResponse);
@@ -383,7 +393,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         string rule = "";
         int[] meetingIds = [];
         if isRecurring {
-            gcalendar:Event|error masterEventResp = calendar:getCalendarEvent(calendarCreateEventResponse.id);
+            gcalendar:Event|error masterEventResp = calendar:getCalendarEvent(calendarCreateEventResponse.id, userInfo.email);
             if masterEventResp is error {
                 string customError = string `Error occurred while getting master event!`;
                 log:printError(customError, masterEventResp);
@@ -399,7 +409,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 rule = recurrence[0];
             }
 
-            gcalendar:Event[]|error instances = calendar:getEventInstances(calendarCreateEventResponse.id);
+            gcalendar:Event[]|error instances = calendar:getEventInstances(calendarCreateEventResponse.id, userInfo.email);
             if instances is error {
                 string customError = string `Error occurred while fetching recurring instances!`;
                 log:printError(customError, instances);
@@ -467,6 +477,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     title: originalTitle,
                     googleEventId: instance.id,
                     host: userInfo.email,
+                    eventCreator: userInfo.email,
                     internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
                             .map(internalParticipant => internalParticipant.trim())),
                     startTime: startTimeDb,
@@ -503,6 +514,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 title: originalTitle,
                 googleEventId: calendarCreateEventResponse.id,
                 host: userInfo.email,
+                eventCreator: userInfo.email,
                 internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
                         .map(internalParticipant => internalParticipant.trim())),
                 startTime: createCalendarEventRequest.startTime
@@ -648,9 +660,10 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
+
         // Fetch the attachments of the meeting.
         gcalendar:Attachment[]|error? calendarEventAttachments = calendar:getCalendarEventAttachments(
-                meeting.googleEventId);
+                meeting.googleEventId, meeting.eventCreator);
         if calendarEventAttachments is error {
             string customError = string `Error occurred while fetching the attachments!`;
             log:printError(customError, calendarEventAttachments);
@@ -737,7 +750,7 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         // Delete the meeting from the calendar.
         calendar:DeleteCalendarEventResponse|error deleteCalendarEventResponse = calendar:deleteCalendarEvent(
-                meeting.googleEventId);
+                meeting.googleEventId, meeting.eventCreator);
         if deleteCalendarEventResponse is error {
             string customError = string `Error occurred while deleting the meeting!`;
             log:printError(customError, deleteCalendarEventResponse);

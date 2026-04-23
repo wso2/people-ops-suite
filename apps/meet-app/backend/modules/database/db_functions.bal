@@ -151,6 +151,7 @@ public isolated function getMeetingCountsByHost(string startTime, string endTime
     return from MeetingHostStat stat in resultStream
         select stat;
 }
+
 # Fetches meeting titles by region within a date range.
 #
 # + startTime - Start ISO string
