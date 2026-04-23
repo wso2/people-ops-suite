@@ -42,6 +42,8 @@ public type AddMeetingPayload record {|
     string googleEventId;
     # Host of the meeting
     string host;
+    # Creator of the event
+    string eventCreator;
     # Internal participants' email list
     string internalParticipants;
     # Meeting start time in ISO format
@@ -76,6 +78,8 @@ public type Meeting record {|
     string googleEventId;
     # Host of the meeting
     string host;
+    # Meet creator email
+    string eventCreator;
     # Meeting start time
     string startTime;
     # Meeting end time

@@ -11,6 +11,7 @@ CREATE TABLE meeting (
   `host_team` VARCHAR(50) NULL DEFAULT 'N/A',            -- Team of the host
   `host_sub_team` VARCHAR(50) NULL DEFAULT 'N/A',        -- Sub team of the host
   `host_unit` VARCHAR(50) NULL DEFAULT 'N/A',            -- Unit of the host
+  `event_creator` VARCHAR(50) NOT NULL DEFAULT '<ORIGINAL CREATOR>',  -- Creator of the event 
   `start_time` DATETIME NOT NULL,               -- Start time of the meeting
   `end_time` DATETIME NOT NULL,                 -- End time of the meeting
   `wso2_participants` TEXT NOT NULL,            -- List of participants (comma-separated values)

@@ -103,6 +103,8 @@ public type CreateCalendarEventPayload record {|
             |} conferenceSolutionKey;
         |} createRequest;
     |} conferenceData;
+    # Meet Uri
+    string? meetUri = ();
 |};
 
 # Event create success response record.
