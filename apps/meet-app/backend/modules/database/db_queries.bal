@@ -250,7 +250,7 @@ returns sql:ParameterizedQuery {
             COUNT(meeting_id) AS meetingCount,
             COUNT(*) OVER() AS totalCount   
         FROM meeting
-        WHERE customer_name IS NOT NULL
+        WHERE customer_name IS NOT NULL AND customer_name != ''
     `;
     if customerName is string && customerName.trim().length() > 0 {
         string searchPattern = string `%${customerName}%`;

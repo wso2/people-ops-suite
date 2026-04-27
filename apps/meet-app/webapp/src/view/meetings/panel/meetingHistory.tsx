@@ -309,13 +309,17 @@ function MeetingHistory() {
       async () => {
         setLoadingDelete(true);
         await dispatch(deleteMeeting(meetingId))
+          .unwrap()
           .then(() => {
             setMeetingPage(0);
             dispatch(
               fetchMeetings({
                 searchString: debouncedSearchTerm,
                 limit: pageSize,
-                offset: 0,
+                offset: meetingPage * pageSize,
+                region: regionOption !== "All" ? regionOption : undefined,
+                endTime:
+                  meetingType === "Past" ? formatForAPI(endDate) : undefined,
               }),
             )
               .unwrap()
@@ -381,7 +385,7 @@ function MeetingHistory() {
 
   const handleToggleButtonChange = (
     event: React.MouseEvent<HTMLElement>,
-    nextView: string | null,
+    nextView: "list" | "module" | null,
   ) => {
     if (nextView != null) {
       dispatch(setMeetingView(nextView));
@@ -389,7 +393,7 @@ function MeetingHistory() {
   };
 
   const handlePress = (customerName: string) => {
-    navigate(`/meetings/${customerName}`);
+navigate(`/meetings/${encodeURIComponent(customerName)}`);
   };
 
   const meetingList = meeting?.meetings ?? [];

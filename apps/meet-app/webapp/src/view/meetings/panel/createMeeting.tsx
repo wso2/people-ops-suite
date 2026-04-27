@@ -45,7 +45,11 @@ import { fetchEmployees } from "@slices/employeeSlice/employee";
 import { useConfirmationModalContext } from "@context/DialogContext";
 import { fetchContacts, resetContacts } from "@slices/contactSlice/contact";
 import { addMeetings, fetchMeetingTypes } from "@slices/meetingSlice/meeting";
-import { DatePicker, TimePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import {
+  DatePicker,
+  TimePicker,
+  LocalizationProvider,
+} from "@mui/x-date-pickers";
 import { useAppAuthContext } from "@root/src/context/AuthContext";
 import ErrorHandler from "@root/src/component/common/ErrorHandler";
 import { clearCustomerName } from "@root/src/slices/viewSlice/view";
@@ -75,12 +79,20 @@ interface MeetingRequest {
   recurrenceEndDate: Dayjs | null;
 }
 
-function formatDateTime(date: Dayjs | null, time: Dayjs | null, timeZone: string): string | null {
-  if (!date || !time || !dayjs(date).isValid() || !dayjs(time).isValid()) return null;
-  
+function formatDateTime(
+  date: Dayjs | null,
+  time: Dayjs | null,
+  timeZone: string,
+): string | null {
+  if (!date || !time || !dayjs(date).isValid() || !dayjs(time).isValid())
+    return null;
+
   try {
     const combined = date.hour(time.hour()).minute(time.minute()).second(0);
-    const zonedTime = dayjs.tz(combined.format("YYYY-MM-DDTHH:mm:ss"), timeZone);
+    const zonedTime = dayjs.tz(
+      combined.format("YYYY-MM-DDTHH:mm:ss"),
+      timeZone,
+    );
     return zonedTime.utc().toISOString();
   } catch (error) {
     console.warn("Error formatting date time:", error);
@@ -98,68 +110,106 @@ const validationSchema = yup.object({
     .required("Date is required")
     .test("is-valid-date", "Invalid date", (value) => dayjs(value).isValid())
     .test("is-future-date", "Date must be in the future", function (value) {
-      const selectedTimeZone = this.parent.timeZone;     
+      const selectedTimeZone = this.parent.timeZone;
       if (!value || !selectedTimeZone) return false;
-      const selectedDate = dayjs.tz(value.format("YYYY-MM-DD"), selectedTimeZone);
-      const currentDate  = dayjs().tz(selectedTimeZone).startOf("day");
+      const selectedDate = dayjs.tz(
+        value.format("YYYY-MM-DD"),
+        selectedTimeZone,
+      );
+      const currentDate = dayjs().tz(selectedTimeZone).startOf("day");
       return selectedDate.isSameOrAfter(currentDate, "day");
     }),
   startTime: yup
     .mixed<Dayjs>()
     .required("Start time is required")
     .test("is-valid-time", "Invalid time format", (value) => {
-      return value ? dayjs(value).isValid() : false;})
-    .test("is-future-time", "Start time must be in the future", function (value) {
-      const { date, timeZone } = this.parent;
-      if (!date || !value) return false;
-      const selectedStartDateTime = dayjs.tz(
-        `${date.format("YYYY-MM-DD")}T${value.format("HH:mm")}`,timeZone);
-      return selectedStartDateTime.isAfter(dayjs());
-    }),
+      return value ? dayjs(value).isValid() : false;
+    })
+    .test(
+      "is-future-time",
+      "Start time must be in the future",
+      function (value) {
+        const { date, timeZone } = this.parent;
+        if (!date || !value) return false;
+        const selectedStartDateTime = dayjs.tz(
+          `${date.format("YYYY-MM-DD")}T${value.format("HH:mm")}`,
+          timeZone,
+        );
+        return selectedStartDateTime.isAfter(dayjs());
+      },
+    ),
   endTime: yup
     .mixed<Dayjs>()
     .required("End time is required")
     .test("is-valid-time", "Invalid time format", (value) => {
-      return value ? dayjs(value).isValid() : false;})
-    .test("is-after-startTime", "End time must be after start time", function (value) {
-      const { startTime, date, timeZone } = this.parent;
-      if (!date || !startTime || !value) return false;
-      const start = dayjs.tz(
-        `${date.format("YYYY-MM-DD")}T${startTime.format("HH:mm")}`,timeZone);
-      const end = dayjs.tz(
-        `${date.format("YYYY-MM-DD")}T${value.format("HH:mm")}`,
-        timeZone);
-      return end.isAfter(start);
-    }),
+      return value ? dayjs(value).isValid() : false;
+    })
+    .test(
+      "is-after-startTime",
+      "End time must be after start time",
+      function (value) {
+        const { startTime, date, timeZone } = this.parent;
+        if (!date || !startTime || !value) return false;
+        const start = dayjs.tz(
+          `${date.format("YYYY-MM-DD")}T${startTime.format("HH:mm")}`,
+          timeZone,
+        );
+        const end = dayjs.tz(
+          `${date.format("YYYY-MM-DD")}T${value.format("HH:mm")}`,
+          timeZone,
+        );
+        return end.isAfter(start);
+      },
+    ),
   timeZone: yup.string().required("Timezone is required"),
   internalParticipants: yup
     .string()
-    .test("internal-or-external", "At least one participant is required *", function (value) {
-      const externalParticipants = this.parent.externalParticipants || "";
-      return value?.trim() || externalParticipants.trim();
-    })
+    .test(
+      "internal-or-external",
+      "At least one participant is required *",
+      function (value) {
+        const externalParticipants = this.parent.externalParticipants || "";
+        return value?.trim() || externalParticipants.trim();
+      },
+    )
     .test(
       "valid-internal-emails",
       "Only @wso2.com emails allowed",
       (value) =>
         !value ||
-        value.split(",").every((email) => yup.string().email().isValidSync(email) && email.endsWith("@wso2.com"))
+        value
+          .split(",")
+          .every(
+            (email) =>
+              yup.string().email().isValidSync(email) &&
+              email.endsWith("@wso2.com"),
+          ),
     ),
   externalParticipants: yup
     .string()
-    .test("internal-or-external", "At least one participant is required *", function (value) {
-      const internalParticipants = this.parent.internalParticipants || "";
-      return value?.trim() || internalParticipants.trim();
-    })
+    .test(
+      "internal-or-external",
+      "At least one participant is required *",
+      function (value) {
+        const internalParticipants = this.parent.internalParticipants || "";
+        return value?.trim() || internalParticipants.trim();
+      },
+    )
     .test(
       "valid-external-emails",
       "Invalid email format in external participants",
-      (value) => !value || value.split(",").every((email) => yup.string().email().isValidSync(email))
+      (value) =>
+        !value ||
+        value
+          .split(",")
+          .every((email) => yup.string().email().isValidSync(email)),
     )
     .test(
       "no-wso2-emails",
       "External participants cannot have @wso2.com emails",
-      (value) => !value || !value.split(",").some((email) => email.trim().endsWith("@wso2.com"))
+      (value) =>
+        !value ||
+        !value.split(",").some((email) => email.trim().endsWith("@wso2.com")),
     ),
   isRecurring: yup.boolean().default(false),
   recurrenceFrequency: yup
@@ -170,23 +220,36 @@ const validationSchema = yup.object({
       then: (schema) => schema.required("Choose frequency"),
       otherwise: (schema) => schema.notRequired(),
     }),
-  recurrenceEndDate: yup
-    .mixed<Dayjs | null>()
-    .when("isRecurring", {
-      is: true,
-      then: yup
-        .mixed<Dayjs>()
-        .required("End date is required")
-        .test("is-valid-date", "Invalid end date", (value) => !!value && dayjs(value).isValid())
-        .test("on-or-after-meeting-date", "End date must be on or after meeting date", function (value) {
-          const { date, timeZone } = this.parent as { date: Dayjs | null; timeZone: string };
+  recurrenceEndDate: yup.mixed<Dayjs | null>().when("isRecurring", {
+    is: true,
+    then: yup
+      .mixed<Dayjs>()
+      .required("End date is required")
+      .test(
+        "is-valid-date",
+        "Invalid end date",
+        (value) => !!value && dayjs(value).isValid(),
+      )
+      .test(
+        "on-or-after-meeting-date",
+        "End date must be on or after meeting date",
+        function (value) {
+          const { date, timeZone } = this.parent as {
+            date: Dayjs | null;
+            timeZone: string;
+          };
           if (!date || !value) return false;
-          const startDay = dayjs.tz(date.format("YYYY-MM-DD"), timeZone).startOf("day");
-          const endDay = dayjs.tz(value.format("YYYY-MM-DD"), timeZone).startOf("day");
+          const startDay = dayjs
+            .tz(date.format("YYYY-MM-DD"), timeZone)
+            .startOf("day");
+          const endDay = dayjs
+            .tz(value.format("YYYY-MM-DD"), timeZone)
+            .startOf("day");
           return endDay.isSameOrAfter(startDay, "day");
-        }),
-      otherwise: yup.mixed<Dayjs | null>().nullable().notRequired(),
-    }),
+        },
+      ),
+    otherwise: yup.mixed<Dayjs | null>().nullable().notRequired(),
+  }),
 });
 
 function MeetingForm() {
@@ -198,16 +261,21 @@ function MeetingForm() {
   const [customerId, setCustomerId] = useState<string | null>(null);
   const contactsState = useAppSelector((state) => state.contact.state);
   const employeeState = useAppSelector((state) => state.employee.state);
-  const view = useAppSelector((state)=> state.view);
+  const view = useAppSelector((state) => state.view);
   const contacts = useAppSelector((state) => state.contact.contacts) || [];
   const employees = useAppSelector((state) => state.employee.employees) || [];
   const customers = useAppSelector((state) => state.customer.customers) || [];
-  const meetingTypes = useAppSelector((state) => state.meeting.meetingTypes) || [];
+  const meetingTypes =
+    useAppSelector((state) => state.meeting.meetingTypes) || [];
   const [customerInputValue, setCustomerInputValue] = useState("");
   const [meetingTypeInputValue, setMeetingTypeInputValue] = useState("");
-  const [externalEmailInputValue, setExternalEmailInputValue] = useState<string[]>([]);
+  const [externalEmailInputValue, setExternalEmailInputValue] = useState<
+    string[]
+  >([]);
   const timeZones = useMemo(() => {
-    return typeof (Intl as any).supportedValuesOf === "function" ? (Intl as any).supportedValuesOf("timeZone") : [];
+    return typeof (Intl as any).supportedValuesOf === "function"
+      ? (Intl as any).supportedValuesOf("timeZone")
+      : [];
   }, []);
 
   useEffect(() => {
@@ -237,19 +305,24 @@ function MeetingForm() {
     }
   }, [dispatch, customerId]);
 
-  useEffect(()=>{
-    if(view.customerName){
-      setCustomerInputValue(view.customerName)
-      dispatch(clearCustomerName())
+  useEffect(() => {
+    if (view.customerName) {
+      setCustomerInputValue(view.customerName);
+      dispatch(clearCustomerName());
     }
-    const found = customers.find(c => c.name === view.customerName);
-    if (found) setCustomerId(found.id)
-  },[])
+  }, [view.customerName, dispatch]);
+
+  useEffect(() => {
+    if (customerInputValue && customers.length > 0) {
+      const found = customers.find((c) => c.name === customerInputValue);
+      if (found) setCustomerId(found.id);
+    }
+  }, [customerInputValue, customers]);
 
   const formik = useFormik<MeetingRequest>({
     initialValues: {
       meetingType: "",
-      customerName: view.customerName|| "",
+      customerName: view.customerName || "",
       customTitle: "",
       description: "",
       date: null,
@@ -271,21 +344,38 @@ function MeetingForm() {
         const isRecurring = values.isRecurring;
         const untilUtc = isRecurring
           ? (() => {
-            const iso = formatDateTime(values.recurrenceEndDate, values.startTime, values.timeZone);
-            if (!iso) return null;
-            return dayjs(iso).utc().format("YYYYMMDD[T]HHmmss[Z]");
-          })()
+              const iso = formatDateTime(
+                values.recurrenceEndDate,
+                values.startTime,
+                values.timeZone,
+              );
+              if (!iso) return null;
+              return dayjs(iso).utc().format("YYYYMMDD[T]HHmmss[Z]");
+            })()
           : null;
         const formattedData = {
-          title: `WSO2: ${[values.customerName, values.meetingType, values.customTitle?.trim()]
+          title: `WSO2: ${[
+            values.customerName,
+            values.meetingType,
+            values.customTitle?.trim(),
+          ]
             .filter(Boolean)
             .join(" - ")}`,
           description: values.description,
-          customerName:values.customerName,
+          customerName: values.customerName,
           startTime:
-            values.date && values.startTime ? formatDateTime(values.date, values.startTime, values.timeZone) ?? "" : "",
+            values.date && values.startTime
+              ? (formatDateTime(
+                  values.date,
+                  values.startTime,
+                  values.timeZone,
+                ) ?? "")
+              : "",
           endTime:
-            values.date && values.endTime ? formatDateTime(values.date, values.endTime, values.timeZone) ?? "" : "",
+            values.date && values.endTime
+              ? (formatDateTime(values.date, values.endTime, values.timeZone) ??
+                "")
+              : "",
           timeZone: values.timeZone,
           internalParticipants: values.internalParticipants
             .split(",")
@@ -296,12 +386,14 @@ function MeetingForm() {
             .map((email) => email.trim())
             .filter(Boolean),
           isRecurring,
-          recurrence: isRecurring && untilUtc
-            ? {
-              frequency: values.recurrenceFrequency as RecurrenceFrequencyCore,
-              untilUtc,
-            }
-            : undefined,
+          recurrence:
+            isRecurring && untilUtc
+              ? {
+                  frequency:
+                    values.recurrenceFrequency as RecurrenceFrequencyCore,
+                  untilUtc,
+                }
+              : undefined,
         };
         await dispatch(addMeetings(formattedData)).unwrap();
         resetForm();
@@ -326,7 +418,11 @@ function MeetingForm() {
               <strong>
                 Are you sure you want to create the meeting <br />
               </strong>{" "}
-              {[formik.values.meetingType, formik.values.customerName, formik.values.customTitle?.trim()]
+              {[
+                formik.values.meetingType,
+                formik.values.customerName,
+                formik.values.customTitle?.trim(),
+              ]
                 .filter(Boolean)
                 .join(" - ")}
             </Typography>
@@ -338,7 +434,7 @@ function MeetingForm() {
         await formik.submitForm();
       },
       "Confirm",
-      "Cancel"
+      "Cancel",
     );
   };
 
@@ -358,11 +454,19 @@ function MeetingForm() {
           borderRadius: 3,
           border: 1,
           borderColor: "divider",
-          boxShadow: theme.palette.mode === "dark" ? "0px 0px 10px rgba(120, 125, 129, 0.5)" : 10,
+          boxShadow:
+            theme.palette.mode === "dark"
+              ? "0px 0px 10px rgba(120, 125, 129, 0.5)"
+              : 10,
           overflow: "auto",
         })}
       >
-        <Typography variant="h5" fontWeight="bold" color="primary.main" align="center">
+        <Typography
+          variant="h5"
+          fontWeight="bold"
+          color="primary.main"
+          align="center"
+        >
           Create Meeting
         </Typography>
         <Box sx={{ display: "flex", gap: 2 }}>
@@ -389,7 +493,10 @@ function MeetingForm() {
             }}
             onChange={(_, newValue) => {
               let finalValue = newValue;
-              if (typeof newValue === "string" && newValue.startsWith('Add "')) {
+              if (
+                typeof newValue === "string" &&
+                newValue.startsWith('Add "')
+              ) {
                 finalValue = newValue.slice(5, -1);
               }
               setMeetingTypeInputValue(finalValue || "");
@@ -406,8 +513,13 @@ function MeetingForm() {
                 value={formik.values.meetingType}
                 onBlur={formik.handleBlur}
                 onChange={formik.handleChange}
-                error={formik.touched.meetingType && Boolean(formik.errors.meetingType)}
-                helperText={formik.touched.meetingType && formik.errors.meetingType}
+                error={
+                  formik.touched.meetingType &&
+                  Boolean(formik.errors.meetingType)
+                }
+                helperText={
+                  formik.touched.meetingType && formik.errors.meetingType
+                }
               />
             )}
           />
@@ -431,16 +543,25 @@ function MeetingForm() {
             onInputChange={(_, newInputValue, reason) => {
               if (reason === "input") {
                 setCustomerInputValue(newInputValue);
-                setCustomerId(customers.find((customer) => customer.name === newInputValue)?.id || null);
+                setCustomerId(
+                  customers.find((customer) => customer.name === newInputValue)
+                    ?.id || null,
+                );
               }
             }}
             onChange={(_, newValue) => {
               let finalValue = newValue;
-              if (typeof newValue === "string" && newValue.startsWith('Add "')) {
+              if (
+                typeof newValue === "string" &&
+                newValue.startsWith('Add "')
+              ) {
                 finalValue = newValue.slice(5, -1);
               }
               setCustomerInputValue(finalValue || "");
-              setCustomerId(customers.find((customer) => customer.name === finalValue)?.id || null);
+              setCustomerId(
+                customers.find((customer) => customer.name === finalValue)
+                  ?.id || null,
+              );
               formik.setFieldValue("customerName", finalValue || "");
             }}
             renderInput={(params) => (
@@ -454,8 +575,13 @@ function MeetingForm() {
                 value={formik.values.customerName}
                 onBlur={formik.handleBlur}
                 onChange={formik.handleChange}
-                error={formik.touched.customerName && Boolean(formik.errors.customerName)}
-                helperText={formik.touched.customerName && formik.errors.customerName}
+                error={
+                  formik.touched.customerName &&
+                  Boolean(formik.errors.customerName)
+                }
+                helperText={
+                  formik.touched.customerName && formik.errors.customerName
+                }
               />
             )}
           />
@@ -468,7 +594,9 @@ function MeetingForm() {
           value={formik.values.customTitle}
           onBlur={formik.handleBlur}
           onChange={formik.handleChange}
-          error={formik.touched.customTitle && Boolean(formik.errors.customTitle)}
+          error={
+            formik.touched.customTitle && Boolean(formik.errors.customTitle)
+          }
         />
         <TextField
           fullWidth
@@ -478,7 +606,9 @@ function MeetingForm() {
           value={formik.values.description}
           onBlur={formik.handleBlur}
           onChange={formik.handleChange}
-          error={formik.touched.description && Boolean(formik.errors.description)}
+          error={
+            formik.touched.description && Boolean(formik.errors.description)
+          }
           autoCorrect="off"
           autoCapitalize="none"
           spellCheck={false}
@@ -490,7 +620,12 @@ function MeetingForm() {
             fullWidth
             options={timeZones}
             value={formik.values.timeZone}
-            onChange={async (_, tz) => await formik.setFieldValue("timeZone", tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone)}
+            onChange={async (_, tz) =>
+              await formik.setFieldValue(
+                "timeZone",
+                tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+              )
+            }
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -498,7 +633,9 @@ function MeetingForm() {
                 name="timeZone"
                 label="Timezone"
                 onBlur={formik.handleBlur}
-                error={formik.touched.timeZone && Boolean(formik.errors.timeZone)}
+                error={
+                  formik.touched.timeZone && Boolean(formik.errors.timeZone)
+                }
                 helperText={formik.touched.timeZone && formik.errors.timeZone}
               />
             )}
@@ -562,7 +699,8 @@ function MeetingForm() {
             slotProps={{
               textField: {
                 onBlur: () => formik.setFieldTouched("startTime", true),
-                error: formik.touched.startTime && Boolean(formik.errors.startTime),
+                error:
+                  formik.touched.startTime && Boolean(formik.errors.startTime),
               },
             }}
             sx={{ flex: 1 }}
@@ -572,7 +710,9 @@ function MeetingForm() {
             name="endTime"
             label="End Time *"
             value={formik.values.endTime}
-            disabled={!formik.values.startTime || Boolean(formik.errors.startTime)}
+            disabled={
+              !formik.values.startTime || Boolean(formik.errors.startTime)
+            }
             onChange={async (value) => {
               if (value && dayjs(value).isValid()) {
                 await formik.setFieldValue("endTime", value);
@@ -601,7 +741,11 @@ function MeetingForm() {
             (formik.touched.startTime && Boolean(formik.errors.startTime)) ||
             (formik.touched.endTime && Boolean(formik.errors.endTime))
           }
-          sx={{ marginX: "14px !important", marginBottom: "2px !important", marginTop: "0px !important" }}
+          sx={{
+            marginX: "14px !important",
+            marginBottom: "2px !important",
+            marginTop: "0px !important",
+          }}
         >
           {(formik.touched.date && formik.errors.date) ||
             (formik.touched.startTime && formik.errors.startTime) ||
@@ -615,10 +759,13 @@ function MeetingForm() {
             width: "100%",
             py: 0.5,
             flexWrap: "nowrap",
-            paddingLeft: 0
+            paddingLeft: 0,
           }}
         >
-          <Typography variant="subtitle1" sx={{ opacity: 0.85, whiteSpace: "nowrap" }}>
+          <Typography
+            variant="subtitle1"
+            sx={{ opacity: 0.85, whiteSpace: "nowrap" }}
+          >
             Recurring
           </Typography>
           <Switch
@@ -634,7 +781,12 @@ function MeetingForm() {
             }}
             inputProps={{ "aria-label": "Recurring meeting" }}
           />
-          <Collapse in={formik.values.isRecurring} orientation="horizontal" timeout={200} unmountOnExit>
+          <Collapse
+            in={formik.values.isRecurring}
+            orientation="horizontal"
+            timeout={200}
+            unmountOnExit
+          >
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <TextField
                 select
@@ -660,7 +812,10 @@ function MeetingForm() {
                 format="DD/MM/YYYY"
                 value={formik.values.recurrenceEndDate}
                 disabled={!formik.values.date || Boolean(formik.errors.date)}
-                minDate={formik.values.date || dayjs().tz(formik.values.timeZone).startOf("day")}
+                minDate={
+                  formik.values.date ||
+                  dayjs().tz(formik.values.timeZone).startOf("day")
+                }
                 onChange={async (value) => {
                   await formik.setFieldValue("recurrenceEndDate", value);
                   formik.setFieldTouched("recurrenceEndDate", true);
@@ -671,8 +826,11 @@ function MeetingForm() {
                 }}
                 slotProps={{
                   textField: {
-                    onBlur: () => formik.setFieldTouched("recurrenceEndDate", true),
-                    error: formik.touched.recurrenceEndDate && Boolean(formik.errors.recurrenceEndDate),
+                    onBlur: () =>
+                      formik.setFieldTouched("recurrenceEndDate", true),
+                    error:
+                      formik.touched.recurrenceEndDate &&
+                      Boolean(formik.errors.recurrenceEndDate),
                   },
                 }}
                 sx={{ width: 166 }}
@@ -713,7 +871,9 @@ function MeetingForm() {
           filterSelectedOptions
           value={formik.values.internalParticipants.split(",").filter(Boolean)}
           onChange={(_, newValue) => {
-            const emails = newValue.map((email) => email.trim()).filter(Boolean);
+            const emails = newValue
+              .map((email) => email.trim())
+              .filter(Boolean);
             formik.setFieldValue("internalParticipants", emails.join(","));
           }}
           renderInput={(params) => (
@@ -725,8 +885,10 @@ function MeetingForm() {
               name="internalParticipants"
               onBlur={formik.handleBlur}
               error={
-                (formik.touched.internalParticipants && Boolean(formik.errors.internalParticipants)) ||
-                (formik.touched.externalParticipants && Boolean(formik.errors.externalParticipants))
+                (formik.touched.internalParticipants &&
+                  Boolean(formik.errors.internalParticipants)) ||
+                (formik.touched.externalParticipants &&
+                  Boolean(formik.errors.externalParticipants))
               }
             />
           )}
@@ -735,7 +897,16 @@ function MeetingForm() {
             const employee = employees.find((emp) => emp.workEmail === option);
             const initials = option ? option.charAt(0).toUpperCase() : "";
             return (
-              <li key={key} {...prop} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px" }}>
+              <li
+                key={key}
+                {...prop}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 16px",
+                }}
+              >
                 {employee?.employeeThumbnail ? (
                   <img
                     src={employee?.employeeThumbnail}
@@ -749,13 +920,23 @@ function MeetingForm() {
                     loading="lazy"
                   />
                 ) : (
-                  <Avatar sx={{ width: 24, height: 24, fontSize: 14, marginRight: 1, bgcolor: "#74b3ce" }}>
+                  <Avatar
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      fontSize: 14,
+                      marginRight: 1,
+                      bgcolor: "#74b3ce",
+                    }}
+                  >
                     {initials}
                   </Avatar>
                 )}
                 <div>
                   <div>{`${employee?.firstName} ${employee?.lastName}`}</div>
-                  <div style={{ fontSize: "12px", color: "#888" }}>{option}</div>
+                  <div style={{ fontSize: "12px", color: "#888" }}>
+                    {option}
+                  </div>
                 </div>
               </li>
             );
@@ -763,7 +944,9 @@ function MeetingForm() {
           renderTags={(value, getTagProps) => {
             return value.map((selectedEmail, index) => {
               const { key, ...prop } = getTagProps({ index });
-              const employee = employees.find((emp) => emp.workEmail === selectedEmail);
+              const employee = employees.find(
+                (emp) => emp.workEmail === selectedEmail,
+              );
               const initials = selectedEmail.charAt(0).toUpperCase();
               return (
                 <Chip
@@ -780,7 +963,16 @@ function MeetingForm() {
                         }}
                       />
                     ) : (
-                      <Avatar sx={{ width: 24, height: 24, fontSize: 14, bgcolor: "#74b3ce" }}>{initials}</Avatar>
+                      <Avatar
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          fontSize: 14,
+                          bgcolor: "#74b3ce",
+                        }}
+                      >
+                        {initials}
+                      </Avatar>
                     )
                   }
                   key={key}
@@ -815,16 +1007,26 @@ function MeetingForm() {
             ...contacts.map((contact) => contact.email),
           ]}
           filterSelectedOptions
-          value={formik.values.externalParticipants.split(",").filter((email) => email.trim())}
+          value={formik.values.externalParticipants
+            .split(",")
+            .filter((email) => email.trim())}
           onChange={async (_, newValue) => {
             const emails = newValue
               .flatMap((item) => {
                 if (!item) return [];
-                const emailMatches = item.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g);
+                const emailMatches = item.match(
+                  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+                );
                 return emailMatches || [];
               })
-              .filter((email, index, self): email is string => email !== undefined && self.indexOf(email) === index);
-            await formik.setFieldValue("externalParticipants", emails.join(","));
+              .filter(
+                (email, index, self): email is string =>
+                  email !== undefined && self.indexOf(email) === index,
+              );
+            await formik.setFieldValue(
+              "externalParticipants",
+              emails.join(","),
+            );
             formik.setFieldTouched("externalParticipants", true);
           }}
           onInputChange={(_, newInputValue) => {
@@ -843,14 +1045,16 @@ function MeetingForm() {
                   Boolean(formik.errors.internalParticipants) &&
                   formik.touched.externalParticipants &&
                   Boolean(formik.errors.externalParticipants)) ||
-                (formik.touched.externalParticipants && Boolean(formik.errors.externalParticipants))
+                (formik.touched.externalParticipants &&
+                  Boolean(formik.errors.externalParticipants))
               }
               helperText={
                 (formik.touched.internalParticipants &&
                   formik.errors.internalParticipants &&
                   formik.touched.externalParticipants &&
                   formik.errors.externalParticipants) ||
-                (formik.touched.externalParticipants && formik.errors.externalParticipants)
+                (formik.touched.externalParticipants &&
+                  formik.errors.externalParticipants)
               }
             />
           )}
@@ -859,8 +1063,24 @@ function MeetingForm() {
             const { key, ...prop } = props;
 
             return (
-              <li key={key} {...prop} style={{ display: "flex", alignItems: "center", paddingLeft: 16 }}>
-                <Avatar sx={{ width: 24, height: 24, fontSize: 14, marginRight: 2, bgcolor: "#74b3ce" }}>
+              <li
+                key={key}
+                {...prop}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  paddingLeft: 16,
+                }}
+              >
+                <Avatar
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    fontSize: 14,
+                    marginRight: 2,
+                    bgcolor: "#74b3ce",
+                  }}
+                >
                   {initials}
                 </Avatar>
                 <Typography variant="body2">{option}</Typography>
@@ -876,7 +1096,16 @@ function MeetingForm() {
                 return (
                   <Chip
                     avatar={
-                      <Avatar sx={{ width: 24, height: 24, fontSize: 14, bgcolor: "#74b3ce" }}>{initials}</Avatar>
+                      <Avatar
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          fontSize: 14,
+                          bgcolor: "#74b3ce",
+                        }}
+                      >
+                        {initials}
+                      </Avatar>
                     }
                     label={email}
                     {...prop}
@@ -918,7 +1147,7 @@ function MeetingForm() {
 
 function CreateMeeting() {
   const employeeState = useAppSelector((s) => s.employee.state);
-    if (employeeState === State.failed) {
+  if (employeeState === State.failed) {
     return (
       <Box
         sx={{

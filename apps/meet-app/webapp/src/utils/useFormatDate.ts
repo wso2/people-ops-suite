@@ -15,7 +15,8 @@
 // under the License.
 
 export const formatDateTime = (dateTimeStr: string) => {
-  const utcDate = new Date(dateTimeStr + " UTC");
+  const utcDate = new Date(dateTimeStr);
+  if (Number.isNaN(utcDate.getTime())) return "";
   return utcDate.toLocaleString("en-GB", {
     day: "2-digit",
     month: "short",
@@ -30,5 +31,6 @@ export const formatDateForInput = (date: Date) => {
 };
 
 export const formatForAPI = (dateStr: string) => {
-  return new Date(dateStr).toISOString();
+  const date = new Date(dateStr);
+  return Number.isNaN(date.getTime()) ? "" : new Date(dateStr).toISOString();
 };

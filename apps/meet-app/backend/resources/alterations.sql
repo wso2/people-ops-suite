@@ -1,11 +1,7 @@
--- Add a flag to indicate whether a meeting belongs to a recurring series
+-- Add a column to store the meeting customer name
 ALTER TABLE people_ops_suite.meeting
-  ADD COLUMN is_recurring BOOLEAN NOT NULL DEFAULT 0
+  ADD COLUMN customer_name VARCHAR(255) NULL
   AFTER wso2_participants;
-
--- Add a column to store meeting type 
-ALTER TABLE people_ops_suite.meeting
-ADD COLUMN meeting_type VARCHAR(255) AFTER title;
 
 -- Add Business Unit, Team, Unit and Sub-team columns to store the host's organizational state at the time of the meeting
 ALTER TABLE people_ops_suite.meeting

@@ -620,7 +620,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + offset - Offset of the data
     # + return - MeetingsSummaryResponse | Error
     resource function get customers/meetings/summary(http:RequestContext ctx, string? customerName, int 'limit, int offset)
-    returns MeetingsSummaryResponse|http:Forbidden|http:InternalServerError {
+    returns MeetingsSummaryResponse|http:Forbidden|http:InternalServerError|http:BadRequest {
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
             return <http:InternalServerError>{
@@ -629,6 +629,13 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
+        if 'limit <= 0 || offset < 0 {
+            return <http:BadRequest>{
+                body: {
+                    message: "Invalid pagination parameters!"
+                }
+            };
+       }
         // Fetch the meetings summary from the database.
         database:MeetingSummary[]|error meetingsSummaries = database:fetchMeetingsSummary(customerName, 'limit, offset);
         if meetingsSummaries is error {

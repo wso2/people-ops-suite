@@ -75,6 +75,7 @@ export default function CustomerMeetings() {
   const [loadingAttachments, setLoadingAttachments] = useState<
     Record<number, boolean>
   >({});
+  const prevCustomerRef = useRef<string | undefined>(undefined);
 
   const scrollData = useRef({
     state: customerMeetingsState,
@@ -115,7 +116,18 @@ export default function CustomerMeetings() {
   useEffect(() => {
     if (!customerName) return;
 
-    const loadDataSequentially = async () => {
+    const isNewCustomer = prevCustomerRef.current !== customerName;
+
+    const loadData = async () => {
+      if (isNewCustomer) {
+        dispatch(resetCustomerMeetings());
+        prevCustomerRef.current = customerName;
+
+        if (page !== 0) {
+          setPage(0);
+          return;
+        }
+      }
       try {
         const today = new Date();
         const historyParams = {
@@ -126,7 +138,6 @@ export default function CustomerMeetings() {
           searchString: null,
         };
         await dispatch(fetchMeetingsByCustomer(historyParams)).unwrap();
-
         if (page === 0) {
           dispatch(
             fetchMeetingsByDatesForCustomer({
@@ -137,19 +148,14 @@ export default function CustomerMeetings() {
           );
         }
       } catch (error) {
-        console.error("Sequence interrupted or failed:", error);
+        if (error instanceof Error && error.name !== "ConditionError") {
+          console.error("Fetch failed:", error);
+        }
       }
     };
 
-    loadDataSequentially();
+    loadData();
   }, [customerName, page, dispatch]);
-
-  useEffect(() => {
-    if (customerName) {
-      dispatch(resetCustomerMeetings());
-      setPage(0);
-    }
-  }, [customerName, dispatch]);
 
   const handleAccordionChange = (meetingId: number, isExpanded: boolean) => {
     if (isExpanded && !attachmentMap[meetingId]) {
@@ -167,7 +173,7 @@ export default function CustomerMeetings() {
   };
 
   const handleNewSchedule = () => {
-    navigate("/?tab=create-meeting");
+    navigate("/?tab=`create`-meeting");
     dispatch(setCustomerName(customerName ?? ""));
   };
 
@@ -283,7 +289,7 @@ export default function CustomerMeetings() {
                     meeting={row}
                     handleAccordionChange={handleAccordionChange}
                     formatDateTime={formatDateTime}
-                    handleDeleteMeeting={() => {}} 
+                    handleDeleteMeeting={() => {}}
                     loadingAttachments={loadingAttachments}
                     attachmentMap={attachmentMap}
                   />

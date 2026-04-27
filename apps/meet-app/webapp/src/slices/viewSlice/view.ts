@@ -30,14 +30,14 @@ const ViewSlice = createSlice({
   name: "view",
   initialState,
   reducers: {
-    setMeetingView(state, action) {
+    setMeetingView(state, action:PayloadAction<"list"|"module">) {
       state.view = action.payload;
     },
     setCustomerName(state, action: PayloadAction<string>) {
       state.customerName = action.payload;
     },
     clearCustomerName(state) {
-      state.customerName = "";
+      state.customerName = null;
     },
   },
 });

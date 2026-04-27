@@ -66,7 +66,7 @@ const UpcomingMeetingCard = ({
         p: 2,
       }}
     >
-      <CardContent sx={{ "&:last-child" : "padd"}}>
+      <CardContent sx={{ "&:last-child" : {pb:0}}}>
         <Typography
           variant="h6"
           fontWeight="700"
