@@ -127,7 +127,7 @@ export const fetchCustomersMeetingsSummary = createAsyncThunk(
               type: "error",
             }),
           );
-          reject(error.response.data.message);
+          reject(error?.response?.data?.message ?? error?.message ?? "Request failed");
         });
     });
   },

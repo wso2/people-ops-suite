@@ -173,7 +173,7 @@ export default function CustomerMeetings() {
   };
 
   const handleNewSchedule = () => {
-    navigate("/?tab=`create`-meeting");
+    navigate("/?tab=create-meeting");
     dispatch(setCustomerName(customerName ?? ""));
   };
 

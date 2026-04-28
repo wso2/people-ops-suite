@@ -65,6 +65,7 @@ export const MeetingsAccordion = ({
   userEmail,
 }: MeetingsAccordionProps) => {
   const theme = useTheme();
+
   return (
     <Accordion
       key={meeting.meetingId}
@@ -327,9 +328,8 @@ export const MeetingsAccordion = ({
               startIcon={<DeleteForever />}
               disabled={
                 meeting.meetingStatus === "CANCELLED" ||
-                meeting.timeStatus === "PAST" ||
-                !isAdmin ||
-                userEmail === meeting.host
+                meeting.timeStatus === "PAST" &&
+                (!isAdmin || userEmail !== meeting.host)
               }
               onClick={() =>
                 handleDeleteMeeting(meeting.meetingId, meeting.title)

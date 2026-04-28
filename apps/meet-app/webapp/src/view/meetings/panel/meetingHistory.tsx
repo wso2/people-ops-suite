@@ -143,6 +143,11 @@ function MeetingHistory() {
         refreshUpcomingMeetings();
         setIsInitialLoadDone(true);
       }
+    }).catch((error) => {
+      if (error?.name === 'AbortError' || error?.name === 'ConditionError') {
+        return;
+      }
+      console.error("Failed to fetch meetings:", error);
     });
 
     return () => {
@@ -316,7 +321,7 @@ function MeetingHistory() {
               fetchMeetings({
                 searchString: debouncedSearchTerm,
                 limit: pageSize,
-                offset: meetingPage * pageSize,
+                offset: 0,
                 region: regionOption !== "All" ? regionOption : undefined,
                 endTime:
                   meetingType === "Past" ? formatForAPI(endDate) : undefined,
