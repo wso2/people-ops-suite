@@ -49,6 +49,7 @@ export const AppConfig = {
     contacts: ServiceBaseUrl + "/contacts",
     userInfo: ServiceBaseUrl + "/user-info",
     customers: ServiceBaseUrl + "/customers",
+    customersMeetingsSummary: ServiceBaseUrl + "/customers/meetings/summary",
     employees: ServiceBaseUrl + "/employees",
     regions: ServiceBaseUrl + "/regions",
     appConfig: ServiceBaseUrl + "/app-config",

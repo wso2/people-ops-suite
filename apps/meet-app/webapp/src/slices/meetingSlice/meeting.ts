@@ -47,6 +47,12 @@ interface MeetingState {
   errorMessage: string | null;
   meetings: Meetings | null;
   meetingTypes: string[] | null;
+  dateRangeMeetings: Meeting[] | null;
+  customerMeetings: Meetings | null;
+  customerMeetingsState: State;
+  customerDateRangeMeetings: Meetings | null;
+  customerDateRangeMeetingsState: State;
+  dateRangeState: State;
   backgroundProcess: boolean;
   backgroundProcessMessage: string | null;
 }
@@ -60,6 +66,7 @@ interface AddMeetingPayload {
   internalParticipants: string[];
   externalParticipants: string[];
   recurrence?: { frequency: "DAILY" | "WEEKLY" | "MONTHLY"; untilUtc: string };
+  customerName: string;
   recurrenceRule?: string | null;
   timeStatus?: string | null;
   isRecurring?: boolean;
@@ -93,6 +100,12 @@ const initialState: MeetingState = {
   errorMessage: "",
   meetings: null,
   meetingTypes: null,
+  dateRangeMeetings: null,
+  customerMeetings: null,
+  customerMeetingsState: State.idle,
+  dateRangeState: State.idle,
+  customerDateRangeMeetings: null,
+  customerDateRangeMeetingsState: State.idle,
   backgroundProcess: false,
   backgroundProcessMessage: null,
 };
@@ -213,6 +226,146 @@ export const fetchMeetings = createAsyncThunk(
   },
 );
 
+export const fetchMeetingsByCustomer = createAsyncThunk(
+  "meeting/fetchMeetingByCustomer",
+  async (
+    {
+      searchString,
+      limit,
+      offset,
+      region,
+      endTime,
+      customerName,
+    }: {
+      searchString: string | null;
+      limit: number;
+      offset: number;
+      region?: string;
+      endTime?: string;
+      customerName: string;
+    },
+    { dispatch },
+  ) => {
+    APIService.getCancelToken().cancel();
+    const newCancelTokenSource = APIService.updateCancelToken();
+    return new Promise<Meetings>((resolve, reject) => {
+      APIService.getInstance()
+        .get(AppConfig.serviceUrls.meetings, {
+          params: {
+            searchString,
+            limit,
+            offset,
+            region,
+            endTime,
+            customerName,
+          },
+          cancelToken: newCancelTokenSource.token,
+        })
+        .then((response) => {
+          resolve(response.data);
+        })
+        .catch((error) => {
+          const errorMessage =
+            error.response?.data?.message ||
+            (error.response?.status === HttpStatusCode.InternalServerError
+              ? SnackMessage.error.fetchMeetings
+              : "An unknown error occurred.");
+          dispatch(
+            enqueueSnackbarMessage({
+              message: errorMessage,
+              type: "error",
+            }),
+          );
+          reject(error);
+        });
+    });
+  },
+);
+
+export const fetchMeetingsByDatesForCustomer = createAsyncThunk(
+  "meeting/fetchMeetingsByDatesForCustomer",
+  async (
+    {
+      startTime,
+      endTime,
+      limit,
+      customerName,
+    }: {
+      startTime: string;
+      endTime?: string;
+      limit: number;
+      customerName: string;
+    },
+    { dispatch },
+  ) => {
+    APIService.getCancelToken().cancel();
+    const newCancelTokenSource = APIService.updateCancelToken();
+    return new Promise<Meetings>((resolve, reject) => {
+      APIService.getInstance()
+        .get(AppConfig.serviceUrls.meetings, {
+          params: { startTime, endTime, limit, customerName },
+          cancelToken: newCancelTokenSource.token,
+        })
+        .then((response) => {
+          resolve(response.data);
+        })
+        .catch((error) => {
+          const errorMessage =
+            error.response?.data?.message ||
+            (error.response?.status === HttpStatusCode.InternalServerError
+              ? SnackMessage.error.fetchMeetings
+              : "Failed to fetch upcoming meetings.");
+          dispatch(
+            enqueueSnackbarMessage({
+              message: errorMessage,
+              type: "error",
+            }),
+          );
+          reject(error);
+        });
+    });
+  },
+);
+
+export const fetchMeetingsByDates = createAsyncThunk(
+  "meeting/fetchMeetingsByDates",
+  async (
+    {
+      startTime,
+      endTime,
+      limit,
+    }: { startTime: string; endTime: string; limit: number },
+    { dispatch },
+  ) => {
+    APIService.getCancelToken().cancel();
+    const newCancelTokenSource = APIService.updateCancelToken();
+    return new Promise<Meetings>((resolve, reject) => {
+      APIService.getInstance()
+        .get(AppConfig.serviceUrls.meetings, {
+          params: { startTime, endTime, limit },
+          cancelToken: newCancelTokenSource.token,
+        })
+        .then((response) => {
+          resolve(response.data);
+        })
+        .catch((error) => {
+          const errorMessage =
+            error.response?.data?.message ||
+            (error.response?.status === HttpStatusCode.InternalServerError
+              ? SnackMessage.error.fetchMeetings
+              : "Failed to fetch upcoming meetings.");
+          dispatch(
+            enqueueSnackbarMessage({
+              message: errorMessage,
+              type: "error",
+            }),
+          );
+          reject(error);
+        });
+    });
+  },
+);
+
 export const deleteMeeting = createAsyncThunk(
   "meeting/deleteMeeting",
   async (meetingId: number, { dispatch }) => {
@@ -284,12 +437,32 @@ export const fetchAttachments = createAsyncThunk(
   },
 );
 
+function mergeMeetings(
+  currentMeetings: Meetings | null,
+  newMeetings: Meetings,
+  offset: number,
+): Meetings {
+  if (offset === 0 || !currentMeetings) {
+    // Initial load or search: replace the list
+    return newMeetings;
+  }
+  // Infinite scroll: append to the list
+  return {
+    count: newMeetings.count,
+    meetings: [...currentMeetings.meetings, ...newMeetings.meetings],
+  };
+}
+
 const MeetingSlice = createSlice({
   name: "meeting",
   initialState,
   reducers: {
     resetSubmitState(state) {
       state.submitState = State.idle;
+    },
+    resetCustomerMeetings(state) {
+      state.customerMeetings = null;
+      state.customerMeetingsState = State.idle;
     },
   },
   extraReducers: (builder) => {
@@ -326,11 +499,50 @@ const MeetingSlice = createSlice({
       .addCase(fetchMeetings.fulfilled, (state, action) => {
         state.state = State.success;
         state.stateMessage = "Successfully fetched!";
-        state.meetings = action.payload;
+        const offset = action.meta.arg.offset;
+        state.meetings = mergeMeetings(state.meetings, action.payload, offset);
       })
       .addCase(fetchMeetings.rejected, (state) => {
         state.state = State.failed;
         state.stateMessage = "Failed to fetch!";
+      })
+      .addCase(fetchMeetingsByDates.pending, (state) => {
+        state.dateRangeState = State.loading;
+        state.stateMessage = "Fetching meetings by dates...";
+      })
+      .addCase(fetchMeetingsByDates.fulfilled, (state, action) => {
+        state.dateRangeState = State.success;
+        state.dateRangeMeetings = action.payload.meetings;
+      })
+      .addCase(fetchMeetingsByDates.rejected, (state) => {
+        state.dateRangeState = State.failed;
+      })
+      .addCase(fetchMeetingsByCustomer.pending, (state) => {
+        state.customerMeetingsState = State.loading;
+        state.stateMessage = "Fetching meetings by dates...";
+      })
+      .addCase(fetchMeetingsByCustomer.fulfilled, (state, action) => {
+        state.customerMeetingsState = State.success;
+        const offset = action.meta.arg.offset;
+        state.customerMeetings = mergeMeetings(
+          state.customerMeetings,
+          action.payload,
+          offset,
+        );
+      })
+      .addCase(fetchMeetingsByCustomer.rejected, (state) => {
+        state.customerMeetingsState = State.failed;
+      })
+      .addCase(fetchMeetingsByDatesForCustomer.pending, (state) => {
+        state.customerDateRangeMeetingsState = State.loading;
+        state.stateMessage = "Fetching meeting by dates and customer...";
+      })
+      .addCase(fetchMeetingsByDatesForCustomer.fulfilled, (state, action) => {
+        state.customerDateRangeMeetingsState = State.success;
+        state.customerDateRangeMeetings = action.payload;
+      })
+      .addCase(fetchMeetingsByDatesForCustomer.rejected, (state) => {
+        state.customerDateRangeMeetingsState = State.failed;
       })
       .addCase(deleteMeeting.pending, (state) => {
         state.submitState = State.loading;
@@ -359,5 +571,5 @@ const MeetingSlice = createSlice({
   },
 });
 
-export const { resetSubmitState } = MeetingSlice.actions;
+export const { resetSubmitState , resetCustomerMeetings } = MeetingSlice.actions;
 export default MeetingSlice.reducer;

@@ -48,6 +48,8 @@ public type RecurrenceConfig record {|
 public type CreateCalendarEventRequest record {|
     # Event title
     string title;
+    # Event customer name
+    string customerName;
     # Event description
     string description;
     # Event start time

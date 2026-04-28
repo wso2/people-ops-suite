@@ -14,16 +14,23 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import { lazy } from "react";
+export const formatDateTime = (dateTimeStr: string) => {
+  const utcDate = new Date(dateTimeStr);
+  if (Number.isNaN(utcDate.getTime())) return "";
+  return utcDate.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
-const meetings = lazy(() => import("@view/meetings/meetings"));
-const help = lazy(() => import("@view/help/help"));
-const customerMeetings = lazy(()=>import("@view/customersMeetings/CustomerMeetings"))
-const dashboard = lazy(() => import("@view/dashboard/dashboard"))
+export const formatDateForInput = (date: Date) => {
+  return date.toLocaleDateString("en-CA");
+};
 
-export const View = {
-  meetings,
-  dashboard,
-  help,
-  customerMeetings
+export const formatForAPI = (dateStr: string) => {
+  const date = new Date(dateStr);
+  return Number.isNaN(date.getTime()) ? "" : new Date(dateStr).toISOString();
 };

@@ -16,94 +16,265 @@
 
 import {
   Box,
-  Button,
-  Dialog,
-  Tooltip,
-  Backdrop,
-  TextField,
-  IconButton,
+  Grid,
   Typography,
-  DialogTitle,
-  DialogActions,
-  DialogContent,
+  TextField,
   CircularProgress,
+  Paper,
+  InputAdornment,
   SelectChangeEvent,
 } from "@mui/material";
+import useDebounce from "@utils/useDebounce";
 import { DropdownOption, State } from "@/types/types";
-import { ChangeEvent, useEffect, useMemo, useState, useCallback } from "react";
+import {
+  ChangeEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { ConfirmationType } from "@/types/types";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import ErrorHandler from "@component/common/ErrorHandler";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { useConfirmationModalContext } from "@context/DialogContext";
-import {
-  Loop,
-  RemoveCircleOutline,
-  Delete,
-  Visibility,
-  CheckCircle,
-  DeleteForever,
-  Search,
-} from "@mui/icons-material";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import { Search, Schedule, EventNote } from "@mui/icons-material";
 import {
   fetchMeetings,
   deleteMeeting,
   fetchAttachments,
+  fetchMeetingsByDates,
 } from "@slices/meetingSlice/meeting";
+import { setMeetingView } from "@slices/viewSlice/view";
+import { useTheme } from "@mui/material/styles";
+import {
+  fetchCustomers,
+  fetchCustomersMeetingsSummary,
+} from "@root/src/slices/customerSlice/customer";
+import CustomerCard from "@component/ui/CustomerCard";
+import { useNavigate } from "react-router-dom";
+import { Attachment } from "../../../types/types";
+import { MeetingsAccordion } from "../../../component/ui/MeetingsAccordion";
 import { fetchRegions } from "@root/src/slices/regionsSlice/regions";
 import Dropdown from "@root/src/component/ui/Dropdown";
 import RadioGroup from "@mui/material/RadioGroup";
 import StyledRadio from "@root/src/component/ui/StyledRadio";
-import Chip from "@mui/material/Chip";
-import Stack from "@mui/material/Stack";
+import {
+  formatDateTime,
+  formatDateForInput,
+  formatForAPI,
+} from "@root/src/utils/useFormatDate";
+import UpcomingMeetingCard from "@root/src/component/ui/UpcomingMeetingCard";
 import { Role } from "@root/src/slices/authSlice/auth";
 
-interface Attachment {
-  title: string;
-  fileId: string;
-  fileUrl: string;
-  iconLink: string;
-  mimeType: string;
-}
-
-const formatDateTime = (dateTimeStr: string) => {
-  const utcDate = new Date(dateTimeStr + " UTC");
-  const day = String(utcDate.getDate()).padStart(2, "0");
-  const month = String(utcDate.getMonth() + 1).padStart(2, "0");
-  const year = utcDate.getFullYear();
-  const hours = String(utcDate.getHours()).padStart(2, "0");
-  const minutes = String(utcDate.getMinutes()).padStart(2, "0");
-  return `${day}/${month}/${year}, ${hours}:${minutes}`;
-};
-
-const formatDateForInput = (date: Date) => {
-  return date.toLocaleDateString("en-CA");
-};
-
-const formatForAPI = (dateStr: string) => {
-  return new Date(dateStr).toISOString();
-};
-
 function MeetingHistory() {
+  const theme = useTheme();
   const dispatch = useAppDispatch();
-  const meeting = useAppSelector((state) => state.meeting);
-  const regions = useAppSelector((state) => state.region);
+  const navigate = useNavigate();
+  const meeting = useAppSelector((state) => state.meeting.meetings);
+  const meetingState = useAppSelector((state) => state.meeting.state);
   const privileges = useAppSelector((state) => state.auth);
-  const totalMeetings = meeting.meetings?.count || 0;
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+  const view = useAppSelector((state) => state.view);
+  const upcomingMeetings = useAppSelector(
+    (state) => state.meeting.dateRangeMeetings,
+  );
+  const upcomingMeetingsLoading = useAppSelector(
+    (state) => state.meeting.dateRangeState,
+  );
+  const meetingsSummary = useAppSelector(
+    (state) => state.customer.meetingsSummary,
+  );
+  const meetingsSummaryState = useAppSelector(
+    (state) => state.customer.meetingsSummaryState,
+  );
+  const customers = useAppSelector((state) => state.customer.customers) || [];
+  const customersState = useAppSelector((state) => state.customer.state);
+
+  const regions = useAppSelector((state) => state.region);
+  const [meetingPage, setMeetingPage] = useState(0);
+  const [customerPage, setCustomerPage] = useState(0);
+  const pageSize = 10;
+  const customerPageSize = 10;
+  const meetingScrollData = useRef({ state: meetingState, data: meeting });
+  const customerScrollData = useRef({
+    state: meetingsSummaryState,
+    data: meetingsSummary,
+  });
   const dialogContext = useConfirmationModalContext();
   const [loadingDelete, setLoadingDelete] = useState(false);
-  const [loadingAttachments, setLoadingAttachments] = useState(false);
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [openAttachmentDialog, setOpenAttachmentDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [filteredSearchQuery, setFilteredSearchQuery] = useState<string | null>(
-    null,
-  );
+  const [customerSearch, setCustomerSearch] = useState<string>("");
+  const debouncedSearchTerm = useDebounce(searchQuery, 500);
+  const debouncedCustomerSearchTerm = useDebounce(customerSearch, 500);
+  const [attachmentMap, setAttachmentMap] = useState<
+    Record<number, Attachment[]>
+  >({});
+  const [loadingAttachments, setLoadingAttachments] = useState<
+    Record<number, boolean>
+  >({});
+
   const [regionOption, setRegionRangeOption] = useState<string>("All");
   const [meetingType, setMeetingType] = useState("Past");
   const [endDate, setEndDate] = useState(() => formatDateForInput(new Date()));
+  const [isInitialLoadDone, setIsInitialLoadDone] = useState(false);
+
+  useEffect(() => {
+    const params: any = {
+      searchString: debouncedSearchTerm,
+      limit: pageSize,
+      offset: meetingPage * pageSize,
+    };
+
+    if (regionOption !== "All") {
+      params.region = regionOption;
+    }
+
+    if (meetingType === "Past") {
+      params.endTime = formatForAPI(endDate);
+    }
+
+    const promise = dispatch(fetchMeetings(params));
+
+    promise.unwrap().then(() => {
+      if (!isInitialLoadDone && upcomingMeetingsLoading === State.idle) {
+        refreshUpcomingMeetings();
+        setIsInitialLoadDone(true);
+      }
+    }).catch((error) => {
+      if (error?.name === 'AbortError' || error?.name === 'ConditionError') {
+        return;
+      }
+      console.error("Failed to fetch meetings:", error);
+    });
+
+    return () => {
+      promise.abort();
+    };
+  }, [
+    dispatch,
+    debouncedSearchTerm,
+    meetingPage,
+    pageSize,
+    regionOption,
+    meetingType,
+    endDate,
+  ]);
+
+  useEffect(() => {
+    const params: any = {
+      limit: customerPageSize,
+      offset: customerPage * customerPageSize,
+    };
+    if (debouncedCustomerSearchTerm.trim()) {
+      params.customerName = debouncedCustomerSearchTerm;
+    }
+    dispatch(fetchCustomersMeetingsSummary(params));
+  }, [dispatch, debouncedCustomerSearchTerm, customerPage]);
+
+  useEffect(() => {
+    setMeetingPage(0);
+  }, [debouncedSearchTerm, regionOption, meetingType, endDate]);
+
+  useEffect(() => {
+    setCustomerPage(0);
+  }, [debouncedCustomerSearchTerm]);
+
+  useEffect(() => {
+    if (
+      !customers.length &&
+      (customersState === State.idle || customersState === State.failed)
+    ) {
+      dispatch(fetchCustomers());
+    }
+  }, [dispatch, customers.length]);
+  useEffect(() => {
+    meetingScrollData.current = { state: meetingState, data: meeting };
+  }, [meetingState, meeting]);
+  useEffect(() => {
+    customerScrollData.current = {
+      state: meetingsSummaryState,
+      data: meetingsSummary,
+    };
+  }, [meetingsSummaryState, meetingsSummary]);
+
+  const observer = useRef<IntersectionObserver | null>(null);
+  const meetingObserverTarget = useCallback((node: HTMLDivElement | null) => {
+    if (observer.current) observer.current.disconnect();
+    if (!node) return;
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          const { state, data } = meetingScrollData.current;
+          if (state === State.loading) return;
+
+          const currentCount = data?.meetings?.length || 0;
+          const totalCount = data?.count || 0;
+
+          if (currentCount < totalCount) {
+            setMeetingPage((prev) => prev + 1);
+          }
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.current.observe(node);
+  }, []);
+  const customerObserver = useRef<IntersectionObserver | null>(null);
+  const customerObserverTarget = useCallback((node: HTMLDivElement | null) => {
+    if (customerObserver.current) customerObserver.current.disconnect();
+    if (!node) return;
+    customerObserver.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          const { state, data } = customerScrollData.current;
+
+          if (state === State.loading) return;
+
+          const currentCount = data?.meetingsSummary?.length || 0;
+          const totalCount = data?.count || 0;
+
+          if (currentCount < totalCount) {
+            setCustomerPage((prev) => prev + 1);
+          }
+        }
+      },
+      { threshold: 0.1 },
+    );
+    customerObserver.current.observe(node);
+  }, []);
+
+  const handleAccordionChange = (meetingId: number, isExpanded: boolean) => {
+    if (isExpanded && !attachmentMap[meetingId]) {
+      setLoadingAttachments((prev) => ({ ...prev, [meetingId]: true }));
+      dispatch(fetchAttachments(meetingId)).then((data: any) => {
+        if (data.payload && data.payload.attachments) {
+          setAttachmentMap((prev) => ({
+            ...prev,
+            [meetingId]: data.payload.attachments,
+          }));
+        }
+        setLoadingAttachments((prev) => ({ ...prev, [meetingId]: false }));
+      });
+    }
+  };
+
+  const refreshUpcomingMeetings = () => {
+    const today = new Date();
+    const twoDaysLater = new Date();
+    twoDaysLater.setDate(today.getDate() + 2);
+    return dispatch(
+      fetchMeetingsByDates({
+        startTime: today.toISOString(),
+        endTime: twoDaysLater.toISOString(),
+        limit: 10,
+      }),
+    );
+  };
+
   const handleRadioButtonChange = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedValue = event.target.value;
     setMeetingType(selectedValue);
@@ -111,30 +282,6 @@ function MeetingHistory() {
       setEndDate(formatDateForInput(new Date()));
     }
   };
-  useEffect(() => {
-    const params: any = {
-      searchString: filteredSearchQuery,
-      limit: pageSize,
-      offset: page * pageSize,
-    };
-
-    if (regionOption !== "All") {
-      params.region = regionOption;
-    }
-    if (meetingType === "Past") {
-      params.endTime = formatForAPI(endDate);
-    }
-
-    dispatch(fetchMeetings(params));
-  }, [
-    dispatch,
-    filteredSearchQuery,
-    page,
-    pageSize,
-    regionOption,
-    meetingType,
-    endDate,
-  ]);
 
   useEffect(() => {
     if (regions.state === State.idle) {
@@ -156,521 +303,349 @@ function MeetingHistory() {
   const handleRegionChange = (event: SelectChangeEvent) => {
     setRegionRangeOption(event.target.value);
   };
-  const handleDeleteMeeting = useCallback(
-    (meetingId: number, meetingTitle: string) => {
-      dialogContext.showConfirmation(
-        "Confirm Deletion",
-        <Box>
-          <>
-            <Typography variant="body1">
-              <strong>
-                Are you sure you want to delete the meeting <br />
-              </strong>{" "}
-              {`${meetingTitle} ?`}
-            </Typography>
-          </>
-        </Box>,
-        ConfirmationType.accept,
-        async () => {
-          setLoadingDelete(true);
-          try {
-            await dispatch(deleteMeeting(meetingId)).unwrap();
-            const currentItemsCount = meeting.meetings?.meetings?.length ?? 0;
-            const isLastItemOnPage = currentItemsCount === 1 && page > 0;
-            const newPage = isLastItemOnPage ? page - 1 : page;
 
-            if (isLastItemOnPage) {
-              setPage(newPage);
-            }
-
-            const params: any = {
-              searchString: filteredSearchQuery,
-              limit: pageSize,
-              offset: newPage * pageSize,
-            };
-
-            if (regionOption !== "All") {
-              params.region = regionOption;
-            }
-            if (meetingType === "Past") {
-              params.endTime = formatForAPI(endDate);
-            }
-            dispatch(fetchMeetings(params));
-          } finally {
+  const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
+    dialogContext.showConfirmation(
+      "Confirm Deletion",
+      <Typography variant="body1">
+        Are you sure you want to delete <strong>{meetingTitle}</strong>?
+      </Typography>,
+      ConfirmationType.accept,
+      async () => {
+        setLoadingDelete(true);
+        await dispatch(deleteMeeting(meetingId))
+          .unwrap()
+          .then(() => {
+            setMeetingPage(0);
+            dispatch(
+              fetchMeetings({
+                searchString: debouncedSearchTerm,
+                limit: pageSize,
+                offset: 0,
+                region: regionOption !== "All" ? regionOption : undefined,
+                endTime:
+                  meetingType === "Past" ? formatForAPI(endDate) : undefined,
+              }),
+            )
+              .unwrap()
+              .then(() => {
+                if (
+                  upcomingMeetings?.some((up) => up.meetingId === meetingId)
+                ) {
+                  refreshUpcomingMeetings();
+                }
+              });
+          })
+          .finally(() => {
             setLoadingDelete(false);
-          }
-        },
-        "Yes",
-        "No",
-      );
-    },
-    [
-      dispatch,
-      dialogContext,
-      filteredSearchQuery,
-      pageSize,
-      page,
-      regionOption,
-      meetingType,
-      endDate,
-      meeting.meetings?.meetings?.length,
-    ],
-  );
-
-  const handleViewAttachments = useCallback(
-    async (meetingId: number) => {
-      setLoadingAttachments(true);
-      try {
-        const data = await dispatch(fetchAttachments(meetingId)).unwrap();
-        setAttachments(data.attachments ?? []);
-        setOpenAttachmentDialog(true);
-      } finally {
-        setLoadingAttachments(false);
-      }
-    },
-    [dispatch],
-  );
-
-  const handleCloseAttachmentDialog = () => {
-    setOpenAttachmentDialog(false);
-    setAttachments([]);
+          });
+      },
+      "Yes",
+      "No",
+    );
   };
 
-  const columns: GridColDef[] = useMemo(() => {
-    const baseColumns: GridColDef[] = [
-      {
-        field: "title",
-        headerName: "Title",
-        minWidth: 300,
-        flex: 5,
-        renderCell: (params) => {
-          const title = params.value;
-          const isUpcoming = params.row.timeStatus === "UPCOMING";
-          return (
-            <Stack
-              direction="row"
-              spacing={1}
-              alignItems="center"
-              sx={{ height: "100%" }}
-            >
-              <Typography variant="body2" noWrap>
-                {title}
-              </Typography>
-              {isUpcoming && (
-                <Chip
-                  label="Upcoming"
-                  size="small"
-                  color="primary"
-                  sx={{ height: 20, fontSize: "0.65rem" }}
-                />
-              )}
-            </Stack>
-          );
-        },
-      },
-      {
-        field: "meetingStatus",
-        headerName: "Status",
-        minWidth: 100,
-        flex: 1,
-        headerAlign: "center",
-        align: "center",
-        disableColumnMenu: true,
-        renderCell: (params) => {
-          const status = params.value;
-          return (
-            <Tooltip title={status === "ACTIVE" ? "Active" : "Cancelled"} arrow>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                }}
-              >
-                {status === "ACTIVE" ? (
-                  <CheckCircle color="success" />
-                ) : (
-                  <Delete color="disabled" />
-                )}
-              </Box>
-            </Tooltip>
-          );
-        },
-      },
-      {
-        field: "isRecurring",
-        headerName: "Recurring",
-        minWidth: 100,
-        flex: 1,
-        headerAlign: "center",
-        align: "center",
-        disableColumnMenu: true,
-        renderCell: (params) => {
-          const recurring = Boolean(params.value);
-          return (
-            <Tooltip
-              title={recurring ? "Recurring series" : "One-off meeting"}
-              arrow
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                }}
-              >
-                {recurring ? (
-                  <Loop color="info" />
-                ) : (
-                  <RemoveCircleOutline color="disabled" />
-                )}
-              </Box>
-            </Tooltip>
-          );
-        },
-      },
-      {
-        field: "host",
-        headerName: "Host",
-        minWidth: 120,
-        flex: 2,
-      },
-      {
-        field: "internalParticipants",
-        headerName: "WSO2 Participants",
-        minWidth: 200,
-        flex: 4,
-      },
-      {
-        field: "startTime",
-        headerName: "Start Time",
-        minWidth: 120,
-        flex: 1,
-        renderCell: (params) => formatDateTime(params.value),
-      },
-      {
-        field: "endTime",
-        headerName: "End Time",
-        minWidth: 120,
-        flex: 1,
-        renderCell: (params) => formatDateTime(params.value),
-      },
-      {
-        field: "attachments",
-        headerName: "Attachments",
-        minWidth: 100,
-        flex: 1,
-        headerAlign: "center",
-        align: "center",
-        disableColumnMenu: true,
-        renderCell: (params) => {
-          return (
-            <>
-              <Tooltip title="View Attachments" arrow>
-                <IconButton
-                  color="info"
-                  onClick={() => handleViewAttachments(params.row.meetingId)}
-                  sx={{
-                    backgroundColor: (theme) => theme.palette.info.main,
-                    borderRadius: 2,
-                    width: 25,
-                    height: 25,
-                    border: (theme) => `2px solid ${theme.palette.info.dark}`,
-                    boxShadow: (theme) =>
-                      `0 2px 4px ${theme.palette.info.dark}30`,
-                    "&:hover": {
-                      backgroundColor: (theme) => theme.palette.info.dark,
-                      transform: "translateY(-1px)",
-                      boxShadow: (theme) =>
-                        `0 4px 8px ${theme.palette.info.dark}40`,
-                    },
-                    "&:active": {
-                      transform: "translateY(0px)",
-                      boxShadow: (theme) =>
-                        `0 1px 2px ${theme.palette.info.dark}60`,
-                    },
-                    "& .MuiSvgIcon-root": {
-                      color: (theme) => theme.palette.info.contrastText,
-                      fontSize: "1.1rem",
-                    },
-                    transition: "all 0.2s ease-in-out",
-                  }}
-                >
-                  <Visibility />
-                </IconButton>
-              </Tooltip>
-            </>
-          );
-        },
-      },
-    ];
-    if (meetingType === "All") {
-      baseColumns.push({
-        field: "delete",
-        headerName: "Delete",
-        minWidth: 90,
-        flex: 1,
-        headerAlign: "center",
-        align: "center",
-        disableColumnMenu: true,
-        renderCell: (params) => {
-          const isCancelled: boolean = params.row.meetingStatus === "CANCELLED";
-          const isPast: boolean = params.row.timeStatus === "PAST";
-          const host: string = params.row.host;
-          const canDelete =
-            !isCancelled &&
-            !isPast &&
-            (privileges.roles.includes(Role.ADMIN) ||
-              privileges.userInfo?.email === host);
-          return (
-            <Tooltip
-              title={
-                canDelete
-                  ? "Delete Meeting"
-                  : "You do not have permission to delete this meeting"
-              }
-              arrow
-            >
-              <span>
-                <IconButton
-                  color="error"
-                  disabled={!canDelete}
-                  onClick={() => {
-                    if (canDelete) {
-                      handleDeleteMeeting(
-                        params.row.meetingId,
-                        params.row.title,
-                      );
-                    }
-                  }}
-                  sx={{
-                    backgroundColor: (theme) =>
-                      canDelete
-                        ? theme.palette.error.main
-                        : theme.palette.action.disabledBackground,
-                    borderRadius: 2,
-                    width: 25,
-                    height: 25,
-                    border: (theme) =>
-                      `2px solid ${
-                        canDelete
-                          ? theme.palette.error.dark
-                          : theme.palette.action.disabled
-                      }`,
-                    boxShadow: (theme) =>
-                      canDelete
-                        ? `0 2px 4px ${theme.palette.error.dark}30`
-                        : "none",
-                    "&:hover": {
-                      backgroundColor: (theme) =>
-                        canDelete
-                          ? theme.palette.error.dark
-                          : theme.palette.action.disabledBackground,
-                      transform: canDelete ? "translateY(-1px)" : "none",
-                      boxShadow: (theme) =>
-                        canDelete
-                          ? `0 4px 8px ${theme.palette.error.dark}40`
-                          : "none",
-                    },
-                    "&:active": {
-                      transform: "translateY(0px)",
-                      boxShadow: (theme) =>
-                        canDelete
-                          ? `0 1px 2px ${theme.palette.error.dark}60`
-                          : "none",
-                    },
-                    "& .MuiSvgIcon-root": {
-                      color: (theme) =>
-                        canDelete
-                          ? theme.palette.error.contrastText
-                          : theme.palette.action.disabled,
-                      fontSize: "1.1rem",
-                    },
-                    transition: "all 0.2s ease-in-out",
-                  }}
-                >
-                  <DeleteForever />
-                </IconButton>
-              </span>
-            </Tooltip>
-          );
-        },
-      });
-    }
-    return baseColumns;
-  }, [meetingType, privileges, handleDeleteMeeting, handleViewAttachments]);
+  const sortedUpcomingMeetings = useMemo(() => {
+    if (!upcomingMeetings) return [];
+    return upcomingMeetings
+      .filter((meeting) => meeting.meetingStatus === "ACTIVE")
+      .sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+      )
+      .slice(0, 5);
+  }, [upcomingMeetings]);
 
-  const meetingList = meeting.meetings?.meetings ?? [];
+  const createDateTime = (date: Date) => {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    const isToday =
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate();
+
+    const isTomorrow =
+      date.getFullYear() === tomorrow.getFullYear() &&
+      date.getMonth() === tomorrow.getMonth() &&
+      date.getDate() === tomorrow.getDate();
+
+    const timeStr = date.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    if (isToday) {
+      return `Today, ${timeStr}`;
+    } else if (isTomorrow) {
+      return `Tomorrow, ${timeStr}`;
+    } else {
+      const dateStr = date.toLocaleString("en-GB", {
+        month: "short",
+        day: "2-digit",
+      });
+      return `${dateStr}, ${timeStr}`;
+    }
+  };
+
+  const handleToggleButtonChange = (
+    event: React.MouseEvent<HTMLElement>,
+    nextView: "list" | "module" | null,
+  ) => {
+    if (nextView != null) {
+      dispatch(setMeetingView(nextView));
+    }
+  };
+
+  const handlePress = (customerName: string) => {
+navigate(`/meetings/${encodeURIComponent(customerName)}`);
+  };
+
+  const meetingList = meeting?.meetings ?? [];
 
   return (
-    <Box>
+    <Box
+      sx={{
+        p: { xs: 2, md: 4 },
+        margin: "0 auto",
+        bgcolor: "background.default",
+        minHeight: "100vh",
+      }}
+    >
       <Box
         sx={{
           display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "flex-start",
-          px: 2,
-          pt: 1.5,
-          pb: 1,
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 4,
         }}
       >
-        <RadioGroup
-          row
-          name="use-radio-group"
-          defaultValue="Past"
-          onChange={handleRadioButtonChange}
-        >
-          <StyledRadio value="Past" label="Past Meetings" />
-          <StyledRadio value="All" label="All Meetings" />
-        </RadioGroup>
-        <Dropdown
-          label="Region"
-          value={regionOption}
-          options={regionsOption}
-          onChange={handleRegionChange}
-          isLoading={regions.state === State.loading}
-          size="small"
-        />
-        <TextField
-          label="Search by Title"
-          size="small"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              setFilteredSearchQuery(searchQuery);
-              setPage(0);
-            }
-          }}
-          autoCorrect="off"
-          autoCapitalize="none"
-          spellCheck={false}
-          sx={{
-            width: 300,
-            ml: 2,
-            "& .MuiInputBase-root": {
-              paddingRight: 0,
-            },
-          }}
-          InputProps={{
-            endAdornment: (
-              <IconButton
-                onClick={() => {
-                  setFilteredSearchQuery(searchQuery);
-                  setPage(0);
-                }}
-                sx={{
-                  justifyContent: "center",
-                  borderRadius: 0,
-                }}
-              >
-                <Search />
-              </IconButton>
-            ),
-          }}
-        />
-      </Box>
-      {meeting.state === State.loading ? (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            py: 4,
-          }}
-        >
-          <CircularProgress />
-          <Typography mt={2} color="textSecondary" component="div">
-            Loading meetings, please wait...
-          </Typography>
-        </Box>
-      ) : meeting.state === State.failed ? (
-        <ErrorHandler message="Failed to fetch meetings." />
-      ) : meeting.state === State.success ? (
-        meetingList.length === 0 ? (
-          <ErrorHandler message="No Meetings Found." />
-        ) : (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <Box
             sx={{
-              display: "grid",
-              gridTemplateColumns: "1fr",
-              paddingX: 2,
+              bgcolor: theme.palette.brand.main,
+              borderRadius: 1.5,
+              p: 1,
+              display: "flex",
+              color: "white",
             }}
           >
-            <DataGrid
-              pagination
-              columns={columns}
-              rows={meetingList}
-              rowCount={totalMeetings}
-              paginationMode="server"
-              pageSizeOptions={[5, 10, 20]}
-              rowHeight={47}
-              columnHeaderHeight={48}
-              getRowId={(row) => row.meetingId}
-              disableRowSelectionOnClick
-              paginationModel={{ pageSize, page }}
-              onPaginationModelChange={(model) => {
-                setPageSize(model.pageSize);
-                setPage(model.page);
-              }}
-              sx={{
-                border: 0,
-                width: "100%",
-              }}
-            />
+            <EventNote />
           </Box>
-        )
-      ) : null}
-
-      <Backdrop
-        open={loadingAttachments || loadingDelete}
-        sx={{
-          color: "#fff",
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          backdropFilter: "blur(4px)",
-        }}
-      >
-        <CircularProgress color="inherit" />
-      </Backdrop>
-      <Dialog open={openAttachmentDialog} onClose={handleCloseAttachmentDialog}>
-        <DialogTitle>Attachments</DialogTitle>
-        <DialogContent>
-          {attachments.length === 0 ? (
-            <Typography component="div">No attachments found.</Typography>
-          ) : (
-            <Box>
-              {attachments.map((attachment, index) => (
-                <Box
-                  key={index}
-                  sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                >
-                  <img
-                    src={attachment.iconLink}
-                    alt={attachment.title}
-                    style={{ width: 24, height: 24, marginRight: 8 }}
-                  />
-                  <Button
-                    onClick={() => window.open(attachment.fileUrl, "_blank")}
-                    sx={{
-                      textDecoration: "underline",
-                      color: "primary.main",
-                    }}
-                  >
-                    {attachment.title}
-                  </Button>
-                </Box>
-              ))}
-            </Box>
+          <Box>
+            <Typography variant="h5" fontWeight="700" color="text.primary">
+              Meeting History
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Review past discussions and upcoming schedules.
+            </Typography>
+          </Box>
+        </Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {view.view === "list" && (
+            <>
+              <RadioGroup
+                row
+                name="use-radio-group"
+                defaultValue="Past"
+                onChange={handleRadioButtonChange}
+              >
+                <StyledRadio value="Past" label="Past Meetings" />
+                <StyledRadio value="All" label="All Meetings" />
+              </RadioGroup>
+              <Dropdown
+                label="Region"
+                value={regionOption}
+                options={regionsOption}
+                onChange={handleRegionChange}
+                isLoading={regions.state === State.loading}
+                size="small"
+              />
+            </>
           )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseAttachmentDialog} color="primary">
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+
+          <TextField
+            placeholder={
+              view.view === "list"
+                ? "Search meetings..."
+                : "Search customers..."
+            }
+            size="small"
+            value={view.view === "list" ? searchQuery : customerSearch}
+            onChange={(e) =>
+              view.view === "list"
+                ? setSearchQuery(e.target.value)
+                : setCustomerSearch(e.target.value)
+            }
+            sx={{
+              width: 350,
+              bgcolor: "background.paper",
+              boxShadow: (theme) => theme.customShadows.modern,
+              borderRadius: 2,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+                "& fieldset": { border: "1.5px solid #d1d3d4" },
+                "&:hover fieldset": { border: "1.5px solid #d1d3d4" },
+                "&.Mui-focused fieldset": {
+                  border: `1.5px solid ${theme.palette.brand.main}`,
+                },
+              },
+              "& input": { color: "text.primary" },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <ToggleButtonGroup
+            value={view.view}
+            exclusive
+            onChange={handleToggleButtonChange}
+          >
+            <ToggleButton value="list" aria-label="list">
+              <ViewListIcon />
+            </ToggleButton>
+            <ToggleButton value="module" aria-label="module">
+              <ViewModuleIcon />
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+      </Box>
+
+      <Grid container spacing={4}>
+        <Grid item xs={12} md={view.view === "list" ? 8 : 12}>
+          <Box sx={{ minHeight: 500 }}>
+            {view.view === "list" ? (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {meetingState === State.loading && meetingPage === 0 ? (
+                  <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                    <CircularProgress
+                      sx={{ color: theme.palette.brand.main }}
+                    />
+                  </Box>
+                ) : meetingList.length === 0 ? (
+                  <Paper sx={{ p: 6, textAlign: "center", borderRadius: 3 }}>
+                    <Typography variant="h6" color="text.secondary">
+                      No meetings found.
+                    </Typography>
+                  </Paper>
+                ) : (
+                  <>
+                    {meetingList.map((row) => (
+                      <MeetingsAccordion
+                        key={row.meetingId}
+                        formatDateTime={formatDateTime}
+                        meeting={row}
+                        handleAccordionChange={handleAccordionChange}
+                        handleDeleteMeeting={handleDeleteMeeting}
+                        loadingAttachments={loadingAttachments}
+                        attachmentMap={attachmentMap}
+                        isAdmin={privileges.roles.includes(Role.ADMIN)}
+                        userEmail={privileges.userInfo?.email}
+                      />
+                    ))}
+                    <div
+                      ref={meetingObserverTarget}
+                      style={{
+                        minHeight: "50px",
+                        marginTop: "10px",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        overflowAnchor: "none",
+                      }}
+                    >
+                      {meetingState === State.loading && meetingPage > 0 && (
+                        <CircularProgress
+                          size={24}
+                          sx={{ color: theme.palette.brand.main }}
+                        />
+                      )}
+                    </div>
+                  </>
+                )}
+              </Box>
+            ) : (
+              <Box>
+                <Grid container spacing={3}>
+                  {meetingsSummaryState === State.loading &&
+                  customerPage === 0 ? (
+                    <Grid
+                      item
+                      xs={12}
+                      sx={{ display: "flex", justifyContent: "center", p: 4 }}
+                    >
+                      <CircularProgress />
+                    </Grid>
+                  ) : meetingsSummary?.meetingsSummary &&
+                    meetingsSummary.meetingsSummary.length > 0 ? (
+                    meetingsSummary.meetingsSummary.map((summary, index) => (
+                      <Grid
+                        item
+                        xs={12}
+                        sm={6}
+                        md={4}
+                        lg={3}
+                        key={`${summary.customerName}-${index}`}
+                      >
+                        <CustomerCard
+                          id={index}
+                          customerName={summary.customerName}
+                          meetingCount={summary.meetingCount}
+                          onCardClick={() => handlePress(summary.customerName)}
+                        />
+                      </Grid>
+                    ))
+                  ) : (
+                    <Grid item xs={12}>
+                      <Typography
+                        variant="body1"
+                        color="text.secondary"
+                        align="center"
+                        sx={{ mt: 4 }}
+                      >
+                        No customer summaries available.
+                      </Typography>
+                    </Grid>
+                  )}
+                </Grid>
+                <div
+                  ref={customerObserverTarget}
+                  style={{
+                    minHeight: "50px",
+                    marginTop: "20px",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    overflowAnchor: "none",
+                  }}
+                >
+                  {meetingsSummaryState === State.loading &&
+                    customerPage > 0 && (
+                      <CircularProgress
+                        size={24}
+                        sx={{ color: theme.palette.brand.main }}
+                      />
+                    )}
+                </div>
+              </Box>
+            )}
+          </Box>
+        </Grid>
+
+        {view.view === "list" && (
+          <Grid item xs={12} md={4}>
+            <UpcomingMeetingCard
+              upcomingMeetings={sortedUpcomingMeetings}
+              loadingMeetings={upcomingMeetingsLoading === State.loading}
+              formatDateTime={createDateTime}
+            />
+          </Grid>
+        )}
+      </Grid>
     </Box>
   );
 }

@@ -58,6 +58,7 @@ public isolated function addMeeting(AddMeetingPayload addMeetingPayload, string 
 # Fetch meetings.
 #
 # + hostOrInternalParticipant - Filter by host or internal participant
+# + customerName - Customer name to filter
 # + title - Name to filter  
 # + host - Host email filter  
 # + searchString - Search String to filter host and title
@@ -68,13 +69,13 @@ public isolated function addMeeting(AddMeetingPayload addMeetingPayload, string 
 # + 'limit - Limit of the response
 # + offset - Offset of the number of meetings to retrieve  
 # + return - List of meetings | Error
-public isolated function fetchMeetings(string? hostOrInternalParticipant, string? title, string? host, string? searchString, string? region,
+public isolated function fetchMeetings(string? hostOrInternalParticipant,string? customerName, string? title, string? host, string? searchString, string? region,
         string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
     returns Meeting[]|error {
 
     stream<Meeting, error?> resultStream = databaseClient->query(
         getMeetingsQuery(
-            hostOrInternalParticipant, title, host, searchString, region, startTime, endTime, internalParticipants, 'limit, offset
+            hostOrInternalParticipant,customerName, title, host, searchString, region, startTime, endTime, internalParticipants, 'limit, offset
         )
     );
 
@@ -105,6 +106,20 @@ public isolated function cancelMeeting(int meetingId) returns int|error {
         return error("Error while cancelling the meeting");
     }
     return meetingId;
+}
+
+# Fetch meetings per customer as meetings summary.
+#
+# + customerName - Customer name to filter
+# + 'limit - Limit of the data  
+# + offset - Offset of the data
+# + return - MeetingSummary[] | error
+public isolated function fetchMeetingsSummary(string? customerName , int 'limit , int offset) returns MeetingSummary[]|error {
+    stream<MeetingSummary, error?> resultStream = databaseClient->query(
+        getMeetingsSummaryQuery(customerName,'limit,offset)
+    );
+    return from MeetingSummary meetingSummary in resultStream
+        select meetingSummary;
 }
 
 # Fetches scheduled counts grouped by month for a date range.

@@ -85,7 +85,7 @@ const Sidebar = (props: SidebarProps) => {
           >
             {getActiveRouteDetails(props.roles).map((r, idx) => (
               <div key={idx}>
-                {!r.bottomNav && (
+                {!r.bottomNav && !r.hidden && (
                   <ListLinkItem
                     key={idx}
                     theme={props.theme}

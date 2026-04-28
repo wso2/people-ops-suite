@@ -36,6 +36,13 @@ export interface CommonCardProps {
   dataCardIndex: number;
 }
 
+export interface Attachment {
+  title: string;
+  fileId: string;
+  fileUrl: string;
+  iconLink: string;
+  mimeType: string;
+}
 export interface DropdownOption {
   value: string;
   label: string;
