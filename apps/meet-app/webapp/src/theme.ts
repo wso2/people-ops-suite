@@ -12,68 +12,92 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License. 
+// under the License.
 
 import { PaletteMode, alpha } from "@mui/material";
+import { PaletteColorOptions, PaletteColor } from "@mui/material/styles";
+
+declare module "@mui/material/styles" {
+  interface Theme {
+    customShadows: {
+      modern: string;
+      hover: string;
+    };
+  }
+  interface ThemeOptions {
+    customShadows?: {
+      modern: string;
+      hover: string;
+    };
+  }
+  interface Palette {
+    brand: PaletteColor;
+  }
+  interface PaletteOptions {
+    brand?: PaletteColorOptions;
+  }
+}
 
 // Color Design Tokens
 export const tokens = (mode: PaletteMode) => ({
   ...(mode === "dark"
     ? {
-      grey: {
-        100: "#d1d3d4",
-        200: "#a8abad",
-        300: "#7f8285",
-        400: "#5a5d61",
-        500: "#444a4e",
-        600: "#363b40",
-        700: "#2a2d31",
-      },
-      primary: {
-        100: "#d1d3d4",
-        200: "#555b5f",
-        300: "#373c40",
-      },
-      secondary: {
-        100: "#d1d4d8",
-        200: "#52585c",
-        300: "#3d4246",
-      },
-      success: { 100: "#4caf50" },
-      warning: { 100: "#a89a63" },
-      error: { 100: "#fe4336" },
-      gradient: "linear-gradient(to bottom, #363b40, #2a2d31)",
-    }
+        grey: {
+          100: "#d1d3d4",
+          200: "#a8abad",
+          300: "#7f8285",
+          400: "#5a5d61",
+          500: "#444a4e",
+          600: "#363b40",
+          700: "#2a2d31",
+        },
+        primary: {
+          100: "#d1d3d4",
+          200: "#555b5f",
+          300: "#373c40",
+        },
+        secondary: {
+          100: "#d1d4d8",
+          200: "#52585c",
+          300: "#3d4246",
+        },
+        success: { 100: "#4caf50" },
+        warning: { 100: "#a89a63" },
+        error: { 100: "#fe4336" },
+        gradient: "linear-gradient(to bottom, #363b40, #2a2d31)",
+        brand: "#ff7300",
+      }
     : {
-      grey: {
-        100: "#ffffff",
-        200: "#d1d3d4",
-        300: "#b1b3b5",
-        400: "#949698",
-        500: "#777a7c",
-        600: "#5a5d61",
-        700: "#444a4e",
-      },
-      primary: {
-        100: "#787d81",
-        200: "#63696d",
-        300: "#444a4e",
-      },
-      secondary: {
-        100: "#868c90",
-        200: "#6c7276",
-        300: "#52585c",
-      },
-      success: { 100: "#388e3c" },
-      warning: { 100: "#c1ad70" },
-      error: { 100: "#fe4336" },
-      gradient: "linear-gradient(to bottom, #f1f2f3, #d1d3d4)",
-      background: { default: "#fcfcfc" },
-    }),
+        grey: {
+          100: "#ffffff",
+          200: "#d1d3d4",
+          300: "#b1b3b5",
+          400: "#949698",
+          500: "#777a7c",
+          600: "#5a5d61",
+          700: "#444a4e",
+        },
+        primary: {
+          100: "#787d81",
+          200: "#63696d",
+          300: "#444a4e",
+        },
+        secondary: {
+          100: "#868c90",
+          200: "#6c7276",
+          300: "#52585c",
+        },
+        success: { 100: "#388e3c" },
+        warning: { 100: "#c1ad70" },
+        error: { 100: "#fe4336" },
+        gradient: "linear-gradient(to bottom, #f1f2f3, #d1d3d4)",
+        brand: "#ff7300",
+        background: { default: "#fcfcfc" },
+      }),
 });
 
 // Extend background type
-declare module '@mui/material/styles' {
+declare module "@mui/material/styles" {
   interface TypeBackground {
     autocomplete?: string;
     dataGrid?: string;
@@ -108,71 +132,98 @@ declare module '@mui/material/styles' {
 // MUI Theme Settings
 export const themeSettings = (mode: PaletteMode) => {
   const colors = tokens(mode);
+  const modernShadow =
+    mode === "dark"
+      ? "0 4px 20px 0 rgba(0,0,0,0.5)"
+      : "0 4px 20px 0 rgba(0,0,0,0.05)";
+
+  const hoverShadow =
+    mode === "dark"
+      ? "0 8px 30px 0 rgba(0,0,0,0.6)"
+      : "0 8px 30px 0 rgba(0,0,0,0.1)";
 
   return {
     palette: {
       mode: mode,
       ...(mode === "dark"
         ? {
-          primary: {
-            main: colors.primary[100],
-            dark: colors.primary[300],
-          },
-          secondary: {
-            main: colors.grey[200],
-            dark: colors.secondary[200],
-          },
-          success: { main: colors.success[100] },
-          warning: { main: colors.warning[100] },
-          error: { main: colors.error[100] },
-          background: {
-            default: colors.grey[700],
-            form: colors.grey[600],
-            banner: colors.primary[200],
-            autocomplete: colors.grey[400],
-            dataGrid: colors.grey[500],
-            layout: colors.grey[100],
-            gradient: colors.gradient,
-          },
-          analytics: {
-            cardBg: colors.grey[600],
-            gridLines: colors.grey[700],
-            chartLine1: '#ff7300',
-            chartLine2: '#b0bec5',
-            progressBarBg: colors.grey[700],
-            pieColors: ['#ff7300', '#de6300', '#9e4500', '#632800', '#2e0f00']
+            primary: {
+              main: colors.primary[100],
+              dark: colors.primary[300],
+            },
+            secondary: {
+              main: colors.grey[200],
+              dark: colors.secondary[200],
+            },
+            success: { main: colors.success[100] },
+            warning: { main: colors.warning[100] },
+            error: { main: colors.error[100] },
+            brand: { main: colors.brand },
+            background: {
+              default: colors.grey[700],
+              form: colors.grey[600],
+              banner: colors.primary[200],
+              autocomplete: colors.grey[400],
+              dataGrid: colors.grey[500],
+              layout: colors.grey[100],
+              gradient: colors.gradient,
+            },
+            analytics: {
+              cardBg: colors.grey[600], 
+              gridLines: "rgba(255, 255, 255, 0.1)",
+              chartLine1: "#ff7300",
+              chartLine2: colors.grey[200], 
+              progressBarBg: colors.grey[400],
+              pieColors: [
+                "#ff7300",
+                "#de6300",
+                "#9e4500",
+                "#632800",
+                "#2e0f00",
+              ],
+            },
           }
-        }
         : {
-          primary: {
-            main: colors.primary[300],
-            dark: colors.primary[300],
-          },
-          secondary: {
-            main: colors.secondary[200],
-            dark: colors.secondary[300],
-          },
-          success: { main: colors.success[100] },
-          warning: { main: colors.warning[100] },
-          error: { main: colors.error[100] },
-          background: {
-            default: colors.grey[100],
-            form: colors.grey[100],
-            banner: colors.primary[200],
-            autocomplete: colors.grey[400],
-            dataGrid: colors.grey[300],
-            layout: colors.grey[100],
-            gradient: colors.gradient,
-          },
-          analytics: {
-            cardBg: '#f5f5f5',
-            gridLines: '#eee',
-            chartLine1: '#ff7300',
-            chartLine2: '#473f38',
-            progressBarBg: '#bec0c2',
-            pieColors: ['#ff7300', '#de6300', '#9e4500', '#632800', '#2e0f00']
-          }
-        }),
+            primary: {
+              main: colors.primary[300],
+              dark: colors.primary[300],
+            },
+            secondary: {
+              main: colors.secondary[200],
+              dark: colors.secondary[300],
+            },
+            success: { main: colors.success[100] },
+            warning: { main: colors.warning[100] },
+            error: { main: colors.error[100] },
+            brand: { main: colors.brand },
+            background: {
+              default: colors.grey[100],
+              form: colors.grey[100],
+              banner: colors.primary[200],
+              autocomplete: colors.grey[400],
+              dataGrid: colors.grey[300],
+              layout: colors.grey[100],
+              gradient: colors.gradient,
+            },
+            analytics: {
+              cardBg: "#f5f5f5",
+              gridLines: "#eee",
+              chartLine1: "#ff7300",
+              chartLine2: "#473f38",
+              progressBarBg: "#bec0c2",
+              pieColors: [
+                "#ff7300",
+                "#de6300",
+                "#9e4500",
+                "#632800",
+                "#2e0f00",
+              ],
+            },
+          }),
+    },
+    customShadows: {
+      modern: modernShadow,
+      hover: hoverShadow,
     },
     typography: {
       fontSize: 11,
@@ -188,9 +239,10 @@ export const themeSettings = (mode: PaletteMode) => {
       MuiDataGrid: {
         styleOverrides: {
           columnHeader: {
-            backgroundColor: mode === "dark"
-              ? alpha(colors.primary[300], 0.9)  
-              : alpha(colors.primary[300], 0.2),
+            backgroundColor:
+              mode === "dark"
+                ? alpha(colors.primary[300], 0.9)
+                : alpha(colors.primary[300], 0.2),
             fontWeight: 1000,
           },
           columnHeaderTitle: {
@@ -212,15 +264,16 @@ export const themeSettings = (mode: PaletteMode) => {
         },
       },
       MuiCssBaseline: {
-        styleOverrides: mode === "dark"
-          ? `
+        styleOverrides:
+          mode === "dark"
+            ? `
             input:-webkit-autofill,
             input:-webkit-autofill:hover,
             input:-webkit-autofill:focus,
             input:-webkit-autofill:active {
               -webkit-box-shadow: 0 0 0 30px ${colors.grey[700]} inset !important;
             }`
-          : `
+            : `
             input:-webkit-autofill,
             input:-webkit-autofill:hover,
             input:-webkit-autofill:focus,

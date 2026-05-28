@@ -12,7 +12,7 @@
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
-// under the License. 
+// under the License.
 
 export const SnackMessage = {
   success: {
@@ -28,6 +28,8 @@ export const SnackMessage = {
     fetchContacts: "Unable to retrieve list of Contacts",
     fetchEmployees: "Unable to retrieve list of Employees",
     fetchCustomers: "Unable to retrieve list of Customers",
+    fetchCustomersMeetingsSummary:
+      "Unable to retrieve customers meetings summary",
     fetchRegions: "Unable to retrieve list of Regions",
     fetchAttachments: "Unable to retrieve list of Attachments",
     fetchMeetingTypes: "Unable to retrieve list of Meeting Types",

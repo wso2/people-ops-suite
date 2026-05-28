@@ -54,6 +54,8 @@ public type AddMeetingPayload record {|
     boolean isRecurring;
     # Recurrence rule of the meeting
     string? recurrence_rule;
+    # Customer Name of the meeting
+    string customer_name;
     # Meeting type
     string meetingType;
     # Business unit  of the host
@@ -110,6 +112,16 @@ public type RawMeetingTypes record {|
     string domain;
     # Meeting Types
     string types;
+|};
+
+# [Database]MeetingSummaryTypes type.
+public type MeetingSummary record {|
+    # Customer name
+    string customerName;
+    # Meeting count
+    int meetingCount;
+    # Total unique customers matching the filter 
+    int totalCount;
 |};
 
 # [Database]MeetingTypes type.

@@ -58,10 +58,10 @@ service class ErrorInterceptor {
         }
         return err;
     }
+    
 }
 
 service http:InterceptableService / on new http:Listener(9090) {
-
     # Request interceptor.
     #
     # + return - authorization:JwtInterceptor, ErrorInterceptor
@@ -483,12 +483,13 @@ service http:InterceptableService / on new http:Listener(9090) {
                     startTime: startTimeDb,
                     endTime: endTimeDb,
                     isRecurring: true,
+                    customer_name: createCalendarEventRequest.customerName,
                     recurrence_rule: rule,
                     meetingType: meetingType,
-                    unit: unit,
+                    businessUnit: businessUnit,
                     team: team,
                     subTeam: subTeam,
-                    businessUnit: businessUnit
+                    unit: unit
                 };
                 int|error meetingId = database:addMeeting(addMeetingPayload, userInfo.email);
                 if meetingId is error {
@@ -522,12 +523,13 @@ service http:InterceptableService / on new http:Listener(9090) {
                 endTime: createCalendarEventRequest.endTime
                 .substring(0, createCalendarEventRequest.endTime.length() - 6),
                 isRecurring: false,
+                customer_name: createCalendarEventRequest.customerName,
                 recurrence_rule: null,
                 meetingType: meetingType,
-                unit: unit,
+                businessUnit: businessUnit,
                 team: team,
                 subTeam: subTeam,
-                businessUnit: businessUnit
+                unit: unit
             };
 
             // Insert the meeting details into the database.
@@ -552,6 +554,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + title - Name to filter  
     # + host - Host to filter
     # + searchString - Search String to filter host and title
+    # + customerName - Customer name to filter
     # + startTime - Start time to filter
     # + endTime - End time to filter
     # + internalParticipants - Participants to filter
@@ -559,7 +562,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + offset - Offset of the data
     # + return - Meetings | Error
     resource function get meetings(http:RequestContext ctx, string? title, string? host, string? searchString, string? region,
-            string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
+            string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset, string? customerName)
     returns MeetingListResponse|http:Forbidden|http:InternalServerError|http:BadRequest {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -581,21 +584,20 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-        database:Meeting[]|error meetings = database:fetchMeetings(null, title, host, searchString, region,
+        database:Meeting[]|error meetingsResult = database:fetchMeetings(null, customerName, title, host, searchString, region,
                 startTime, endTime, internalParticipants, 'limit, offset);
-        if meetings is error {
+        if meetingsResult is error {
             string customError = "Error occurred while retrieving the meetings!";
-            log:printError(customError, meetings);
+            log:printError(customError, meetingsResult);
             return <http:InternalServerError>{
                 body: {
                     message: customError
                 }
             };
         }
-
         return {
-            count: (meetings.length() > 0) ? meetings[0].totalCount : 0,
-            meetings: from var meeting in meetings
+            count: (meetingsResult.length() > 0) ? meetingsResult[0].totalCount : 0,
+            meetings: from var meeting in meetingsResult
                 select {
                     meetingId: meeting.meetingId,
                     title: meeting.title,
@@ -608,6 +610,52 @@ service http:InterceptableService / on new http:Listener(9090) {
                     timeStatus: meeting.timeStatus,
                     isRecurring: meeting.isRecurring
                 }
+        };
+    }
+
+    # Get customers meetings summary
+    #
+    # + customerName - Customer name to filter
+    # + 'limit - Limit of the data  
+    # + offset - Offset of the data
+    # + return - MeetingsSummaryResponse | Error
+    resource function get customers/meetings/summary(http:RequestContext ctx, string? customerName, int 'limit, int offset)
+    returns MeetingsSummaryResponse|http:Forbidden|http:InternalServerError|http:BadRequest {
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            return <http:InternalServerError>{
+                body: {
+                    message: "User information header not found!"
+                }
+            };
+        }
+        if 'limit <= 0 || offset < 0 {
+            return <http:BadRequest>{
+                body: {
+                    message: "Invalid pagination parameters!"
+                }
+            };
+       }
+        // Fetch the meetings summary from the database.
+        database:MeetingSummary[]|error meetingsSummaries = database:fetchMeetingsSummary(customerName, 'limit, offset);
+        if meetingsSummaries is error {
+            string customError = string `Error occurred while retrieving the meetings summary`;
+            log:printError(customError, meetingsSummaries);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        int totalCount = (meetingsSummaries.length() > 0) ? meetingsSummaries[0].totalCount : 0;
+        return {
+            count: totalCount,
+            meetingsSummary: from database:MeetingSummary meetingSummary in meetingsSummaries
+                select {
+                    customerName: meetingSummary.customerName,
+                    meetingCount: meetingSummary.meetingCount
+                }
+
         };
     }
 
