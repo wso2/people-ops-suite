@@ -75,6 +75,12 @@ public type MeetingCreationResponse record {|
     int meetingId;
 |};
 
+# Represents the response after minting a standalone Google Meet link.
+public type MeetLinkResponse record {|
+    # Google Meet join URL returned by the calendar-event-service
+    string id;
+|};
+
 # Represents the response when retrieving a list of meetings.
 public type MeetingListResponse record {|
     # Meeting count

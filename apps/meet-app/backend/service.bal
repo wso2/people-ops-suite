@@ -324,6 +324,24 @@ service http:InterceptableService / on new http:Listener(9090) {
         return meetingTypes;
     }
 
+    # Mint a standalone Google Meet link via the calendar-event-service.
+    # Used by the Google Calendar conferencing add-on.
+    #
+    # + return - The Meet link | Error
+    resource function post meet() returns MeetLinkResponse|http:InternalServerError {
+        string|error meetUri = calendar:createMeet();
+        if meetUri is error {
+            string customError = "Error occurred while creating the meet!";
+            log:printError(customError, meetUri);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        return {id: meetUri};
+    }
+
     # Create a new meeting.
     #
     # + createCalendarEventRequest - Create calendar event request
