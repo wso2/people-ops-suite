@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License. 
 import ballerina/http;
-import ballerina/uuid;
+import ballerina/url;
 import ballerinax/googleapis.calendar as gcalendar;
 
 configurable string calendarId = ?;
@@ -78,22 +78,22 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
             ...createCalendarEventRequest.externalParticipants.map((email) => ({email: email.trim()}))
         ],
         guestsCanModify: true,
-        recurrence: recurrenceArray,
-        conferenceData: {
-            createRequest: {
-                requestId: uuid:createType4AsString(),
-                conferenceSolutionKey: {
-                    'type: CONFERENCE_SOLUTION_TYPE
-                }
-            }
-        },
-        meetUri: meetUri is string ? meetUri : null
+        recurrence: recurrenceArray
     };
 
     http:Request req = new;
     json calendarEventPayloadJson = calendarEventPayload.toJson();
     req.setPayload(calendarEventPayloadJson);
-    http:Response response = check calendarClient->post(string `/events/${creatorEmail}?sendUpdates=all`, req);
+
+    // Attach the pre-created (recording-enabled) Meet space to the event via the `meetUri` query
+    // parameter, so the calendar service reuses that space instead of minting a new, non-recording
+    // conference. Passing meetUri in the request body has no effect — the service reads the query.
+    string eventPath = string `/events/${creatorEmail}?sendUpdates=all`;
+    if meetUri is string {
+        string encodedMeetUri = check url:encode(meetUri, "UTF-8");
+        eventPath = string `${eventPath}&meetUri=${encodedMeetUri}`;
+    }
+    http:Response response = check calendarClient->post(eventPath, req);
 
     if response.statusCode == 201 {
         json responseJson = check response.getJsonPayload();

@@ -92,17 +92,6 @@ public type CreateCalendarEventPayload record {|
     boolean guestsCanModify;
     # Recurrence rules
     string[]? recurrence?;
-    # Event conference data
-    record {|
-        record {|
-            string requestId;
-            record {|
-                string 'type;
-            |} conferenceSolutionKey;
-        |} createRequest;
-    |} conferenceData;
-    # Meet Uri
-    string? meetUri = ();
 |};
 
 # Event create success response record.

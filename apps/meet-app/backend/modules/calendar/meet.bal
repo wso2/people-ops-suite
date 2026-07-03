@@ -16,15 +16,17 @@
 import ballerina/http;
 
 # Create a meet
-# 
+#
 # + return - Meet Uri
 public isolated function createMeet() returns error|string {
-    http:Response meetResponse = check calendarClient->post(string `/meet/${calendarId}`, {});
+    http:Response meetResponse = check calendarClient->post(string `/meet/${calendarId}?recordingEnabled=true`, {});
     if meetResponse.statusCode === 201 {
-    json meetJsonPayload = check meetResponse.getJsonPayload();
-    string extractedMeetUri = check meetJsonPayload.id;
-    return extractedMeetUri;
+        json meetJsonPayload = check meetResponse.getJsonPayload();
+        string extractedMeetUri = check meetJsonPayload.id;
+        
+        return extractedMeetUri;
     }
-    json? errorResponseBody = check meetResponse.getJsonPayload();
-    return error(string `Status: ${meetResponse.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+    // Read the error body as text — gateway/auth faults are often not JSON.
+    string errorResponseBody = check meetResponse.getTextPayload();
+    return error(string `Status: ${meetResponse.statusCode}, Response: ${errorResponseBody}`);
 }
