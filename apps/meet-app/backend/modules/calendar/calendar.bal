@@ -20,10 +20,25 @@ import ballerinax/googleapis.calendar as gcalendar;
 configurable string calendarId = ?;
 configurable string disclaimerMessage = ?;
 
-# Create an event in the calendar.
+# Get the shared scheduling account's calendar id.
+#
+# The event is created on this account so it is the event organizer, which is the account whose Drive
+# receives the Meet recording (recordings follow the calendar event organizer). The logged-in user and
+# participants are added as attendees with edit rights.
+#
+# + return - The shared scheduling calendar id
+public isolated function getSchedulingCalendarId() returns string => calendarId;
+
+# Create an event on the shared scheduling calendar.
+#
+# The event is created on the shared account (`calendarId`) so the shared account is the organizer and
+# the Meet recording lands in the shared account's Drive. The logged-in user (`creatorEmail`) and the
+# participants are added as attendees and, together with `guestsCanModify`, can edit the event
+# (time, location, etc.). Guests cannot change the organizer, so the recording stays with the shared
+# account.
 #
 # + createCalendarEventRequest - Create calendar event request
-# + creatorEmail - Event creator Email
+# + creatorEmail - Logged-in user's email (added as an attendee and shown in the disclaimer)
 # + meetUri - Meet URL
 # + return - JSON response if successful, else an error
 public isolated function createCalendarEvent(CreateCalendarEventRequest createCalendarEventRequest,
@@ -93,7 +108,10 @@ public isolated function createCalendarEvent(CreateCalendarEventRequest createCa
     http:Request req = new;
     json calendarEventPayloadJson = calendarEventPayload.toJson();
     req.setPayload(calendarEventPayloadJson);
-    http:Response response = check calendarClient->post(string `/events/${creatorEmail}?sendUpdates=all`, req);
+    // Create the event on the shared scheduling calendar so the shared account is the organizer
+    // (and thus owns the Meet recording). The logged-in user and participants are attendees with
+    // edit rights via guestsCanModify.
+    http:Response response = check calendarClient->post(string `/events/${calendarId}?sendUpdates=all`, req);
 
     if response.statusCode == 201 {
         json responseJson = check response.getJsonPayload();

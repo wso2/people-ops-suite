@@ -358,6 +358,10 @@ service http:InterceptableService / on new http:Listener(9090) {
         string subTeam = employee.subTeam ?: "N/A";
         string businessUnit = employee.businessUnit ?: "N/A";
 
+        // Shared scheduling account: the event is created on this calendar so it is the organizer
+        // and the Meet recording lands in its Drive. Read-backs and DB records target it too.
+        string schedulingCalendarId = calendar:getSchedulingCalendarId();
+
         string originalTitle = createCalendarEventRequest.title;
         string meetingType = "General";
         string[] titleParts = re `-`.split(createCalendarEventRequest.title);
@@ -393,7 +397,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         string rule = "";
         int[] meetingIds = [];
         if isRecurring {
-            gcalendar:Event|error masterEventResp = calendar:getCalendarEvent(calendarCreateEventResponse.id, userInfo.email);
+            gcalendar:Event|error masterEventResp = calendar:getCalendarEvent(calendarCreateEventResponse.id, schedulingCalendarId);
             if masterEventResp is error {
                 string customError = string `Error occurred while getting master event!`;
                 log:printError(customError, masterEventResp);
@@ -409,7 +413,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 rule = recurrence[0];
             }
 
-            gcalendar:Event[]|error instances = calendar:getEventInstances(calendarCreateEventResponse.id, userInfo.email);
+            gcalendar:Event[]|error instances = calendar:getEventInstances(calendarCreateEventResponse.id, schedulingCalendarId);
             if instances is error {
                 string customError = string `Error occurred while fetching recurring instances!`;
                 log:printError(customError, instances);
@@ -477,7 +481,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     title: originalTitle,
                     googleEventId: instance.id,
                     host: userInfo.email,
-                    eventCreator: userInfo.email,
+                    eventCreator: schedulingCalendarId,
                     internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
                             .map(internalParticipant => internalParticipant.trim())),
                     startTime: startTimeDb,
@@ -514,7 +518,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                 title: originalTitle,
                 googleEventId: calendarCreateEventResponse.id,
                 host: userInfo.email,
-                eventCreator: userInfo.email,
+                eventCreator: schedulingCalendarId,
                 internalParticipants: string:'join(", ", ...createCalendarEventRequest.internalParticipants
                         .map(internalParticipant => internalParticipant.trim())),
                 startTime: createCalendarEventRequest.startTime
