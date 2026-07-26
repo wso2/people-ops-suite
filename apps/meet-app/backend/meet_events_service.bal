@@ -14,8 +14,8 @@
 // specific language governing permissions and limitations
 // under the License.
 import meet_app.calendar;
+import meet_app.database;
 import meet_app.drive;
-import meet_app.registry;
 
 import ballerina/http;
 import ballerina/lang.array;
@@ -24,6 +24,10 @@ import ballerina/lang.value;
 import ballerina/log;
 
 configurable int meetEventsListenerPort = 9091;
+
+// Writes performed by these automated flows aren't tied to a specific logged-in user,
+// unlike the rest of this app's created_by/updated_by values.
+const string SYSTEM_ACTOR = "meet-app-system";
 
 # Pub/Sub push envelope -- the actual notification is base64-encoded inside `message.data`.
 # Left open (not a closed record) since Google's push includes other fields (e.g.
@@ -57,8 +61,7 @@ type RecordingReadyEvent record {
 # + spaceName - Resource name of the Meet space (e.g. `spaces/abc123`)
 # + title - The event's title
 # + googleEventId - Calendar event ID the space was created for
-# + calendarId - Calendar the event lives on (the Shared Account's calendar)
-# + salesUser - Email of the event organizer
+# + organizer - Email of the event organizer
 # + startTime - Event start time
 # + endTime - Event end time
 # + internalParticipants - wso2.com attendees, comma-joined
@@ -67,8 +70,7 @@ type SeedRegistryRequest record {|
     string spaceName;
     string title;
     string googleEventId;
-    string calendarId;
-    string salesUser;
+    string organizer;
     string startTime;
     string endTime;
     string internalParticipants;
@@ -85,19 +87,18 @@ service /meet\-events on new http:Listener(meetEventsListenerPort) {
     # + req - Test meeting details to register
     # + return - Confirmation or error
     resource function post seed(@http:Payload SeedRegistryRequest req) returns http:Ok|http:InternalServerError {
-        error? result = registry:upsert({
+        int|error result = database:upsertMeetRecording({
             spaceName: req.spaceName,
             title: req.title,
             googleEventId: req.googleEventId,
-            calendarId: req.calendarId,
-            salesUser: req.salesUser,
+            organizer: req.organizer,
             startTime: req.startTime,
             endTime: req.endTime,
             internalParticipants: req.internalParticipants,
             externalParticipants: req.externalParticipants,
-            state: registry:PENDING,
+            recordingState: database:PENDING,
             driveFileId: ()
-        });
+        }, SYSTEM_ACTOR);
         if result is error {
             log:printError("Failed to seed registry.", result);
             return <http:InternalServerError>{body: {message: "Failed to seed registry."}};
@@ -139,28 +140,27 @@ isolated function processRecordingReady(string recordingName) returns error? {
     string spaceName = info.spaceName;
     string fileId = info.fileId;
 
-    registry:MeetRecording? tracked = check registry:getBySpaceName(spaceName);
+    database:MeetRecordingRow? tracked = check database:getMeetRecordingBySpaceName(spaceName);
     if tracked is () {
         log:printError(string `No registered event found for space ${spaceName}; skipping.`);
         return;
     }
 
-    error? attachResult = calendar:attachRecording(tracked.calendarId, tracked.googleEventId, fileId,
+    error? attachResult = calendar:attachRecording(tracked.organizer, tracked.googleEventId, fileId,
             "Meeting Recording", "video/mp4");
     if attachResult is error {
-        check registry:upsert({
+        _ = check database:upsertMeetRecording({
             spaceName: tracked.spaceName,
             title: tracked.title,
             googleEventId: tracked.googleEventId,
-            calendarId: tracked.calendarId,
-            salesUser: tracked.salesUser,
+            organizer: tracked.organizer,
             startTime: tracked.startTime,
             endTime: tracked.endTime,
             internalParticipants: tracked.internalParticipants,
             externalParticipants: tracked.externalParticipants,
-            state: registry:FAILED,
+            recordingState: database:FAILED,
             driveFileId: fileId
-        });
+        }, SYSTEM_ACTOR);
         return attachResult;
     }
 
@@ -174,22 +174,21 @@ isolated function processRecordingReady(string recordingName) returns error? {
 
     // The organizer isn't part of either participant list (those are just the other
     // attendees), but they need view access to their own meeting's recording too.
-    error? shareResult = drive:grantRecordingAccess(fileId, [tracked.salesUser, ...internalEmails, ...externalEmails]);
+    error? shareResult = drive:grantRecordingAccess(fileId, [tracked.organizer, ...internalEmails, ...externalEmails]);
     if shareResult is error {
         log:printError("Attached recording but some Drive permission grants failed.", shareResult);
     }
 
-    check registry:upsert({
+    _ = check database:upsertMeetRecording({
         spaceName: tracked.spaceName,
         title: tracked.title,
         googleEventId: tracked.googleEventId,
-        calendarId: tracked.calendarId,
-        salesUser: tracked.salesUser,
+        organizer: tracked.organizer,
         startTime: tracked.startTime,
         endTime: tracked.endTime,
         internalParticipants: tracked.internalParticipants,
         externalParticipants: tracked.externalParticipants,
-        state: registry:ATTACHED,
+        recordingState: database:ATTACHED,
         driveFileId: fileId
-    });
+    }, SYSTEM_ACTOR);
 }

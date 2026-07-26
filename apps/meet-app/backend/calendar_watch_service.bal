@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 import meet_app.calendar;
-import meet_app.registry;
+import meet_app.database;
 
 import ballerina/http;
 import ballerina/log;
@@ -72,7 +72,7 @@ service /calendar\-watch on new http:Listener(calendarWatchListenerPort) {
 }
 
 isolated function processCalendarChanges() returns error? {
-    string? syncToken = check registry:getSyncToken();
+    string? syncToken = check database:getSyncToken();
     calendar:ChangedEventsResult changes = check calendar:getChangedEvents(syncToken);
 
     foreach json event in changes.events {
@@ -82,7 +82,7 @@ isolated function processCalendarChanges() returns error? {
         }
     }
 
-    check registry:setSyncToken(changes.nextSyncToken);
+    check database:setSyncToken(changes.nextSyncToken);
 }
 
 isolated function registerEventIfRelevant(json event) returns error? {
@@ -133,17 +133,16 @@ isolated function registerEventIfRelevant(json event) returns error? {
         }
     }
 
-    check registry:upsert({
+    _ = check database:upsertMeetRecording({
         spaceName,
         title,
         googleEventId: eventId,
-        calendarId: organizerEmail,
-        salesUser: organizerEmail,
+        organizer: organizerEmail,
         startTime,
         endTime,
         internalParticipants: string:'join(", ", ...internalEmails),
         externalParticipants: string:'join(", ", ...externalEmails),
-        state: registry:PENDING,
+        recordingState: database:PENDING,
         driveFileId: ()
-    });
+    }, SYSTEM_ACTOR);
 }
