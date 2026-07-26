@@ -118,3 +118,19 @@ public type DeleteCalendarEventResponse record {|
     # Success message
     string message;
 |};
+
+# Response from resolving a recording to its space and Drive file.
+public type RecordingInfoResponse record {|
+    # Resource name of the Meet space (e.g. `spaces/abc123`)
+    string spaceName;
+    # Drive file ID of the recording
+    string fileId;
+|};
+
+# Result of a changed-events sync -- either the first (full) sync or an incremental one.
+public type ChangedEventsResult record {|
+    # Events that changed since the last sync
+    json[] events;
+    # Token to pass into the next call, to get only what changes after this
+    string nextSyncToken;
+|};
