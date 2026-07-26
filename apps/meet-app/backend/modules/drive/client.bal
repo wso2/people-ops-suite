@@ -29,3 +29,20 @@ final http:Client driveClient = check new (driveBaseUrl, {
         ...retryConfig
     }
 });
+
+// Separate client for the Shared Account (Senumi) -- temporary personal-refresh-token
+// credential, standing in for CES/DWD until the Drive scope is approved there. Kept
+// distinct from driveClient above, which belongs to the existing native-Meet flow and
+// must stay untouched.
+configurable Oauth2Config sharedAccountOauthConfig = ?;
+
+final http:Client sharedAccountDriveClient = check new (driveBaseUrl, {
+    auth: {
+        ...sharedAccountOauthConfig
+    },
+    httpVersion: http:HTTP_1_1,
+    http1Settings: {keepAlive: http:KEEPALIVE_NEVER},
+    retryConfig: {
+        ...retryConfig
+    }
+});
