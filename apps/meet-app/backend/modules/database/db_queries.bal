@@ -329,16 +329,133 @@ isolated function countMeetingsByHostQuery(string startTime, string endTime , st
 # + endTime - End of the range
 # + region - Region filter
 # + return - sql:ParameterizedQuery
-isolated function meetingTitlesByRegionsQuery(string startTime, string endTime, string region) 
-    returns sql:ParameterizedQuery => 
+isolated function meetingTitlesByRegionsQuery(string startTime, string endTime, string region)
+    returns sql:ParameterizedQuery =>
 `
-    SELECT 
+    SELECT
         title
-    FROM 
+    FROM
         meeting
-    WHERE 
+    WHERE
         host_sub_team = ${region} AND
         start_time >= ${startTime} AND
         start_time < ${endTime} AND
         meeting_status = ${ACTIVE}
+`;
+
+# Build query to find an existing auto-recorded meeting row by its space name.
+#
+# + spaceName - Resource name of the Meet space
+# + return - sql:ParameterizedQuery - Select query returning just the meeting_id, if found
+isolated function findMeetingIdBySpaceNameQuery(string spaceName) returns sql:ParameterizedQuery =>
+`
+    SELECT meeting_id AS meetingId FROM meeting WHERE space_name = ${spaceName}
+`;
+
+# Build query to insert a new auto-recorded meeting row.
+#
+# + payload - Details to insert
+# + actor - User performing the insert
+# + return - sql:ParameterizedQuery - Insert query for the meeting table
+isolated function insertMeetRecordingQuery(MeetRecordingPayload payload, string actor) returns sql:ParameterizedQuery =>
+`
+    INSERT INTO meeting
+    (
+        title,
+        space_name,
+        google_event_id,
+        host,
+        event_creator,
+        start_time,
+        end_time,
+        wso2_participants,
+        external_participants,
+        recording_state,
+        drive_file_id,
+        meeting_status,
+        created_by,
+        updated_by
+    )
+    VALUES
+    (
+        ${payload.title},
+        ${payload.spaceName},
+        ${payload.googleEventId},
+        ${payload.organizer},
+        ${payload.organizer},
+        ${payload.startTime},
+        ${payload.endTime},
+        ${payload.internalParticipants},
+        ${payload.externalParticipants},
+        ${payload.recordingState},
+        ${payload.driveFileId},
+        ${ACTIVE},
+        ${actor},
+        ${actor}
+    )
+`;
+
+# Build query to update an existing auto-recorded meeting row.
+#
+# + meetingId - ID of the row to update
+# + payload - New details to write
+# + actor - User performing the update
+# + return - sql:ParameterizedQuery - Update query for the meeting table
+isolated function updateMeetRecordingQuery(int meetingId, MeetRecordingPayload payload, string actor)
+    returns sql:ParameterizedQuery =>
+`
+    UPDATE meeting
+    SET
+        title = ${payload.title},
+        google_event_id = ${payload.googleEventId},
+        host = ${payload.organizer},
+        event_creator = ${payload.organizer},
+        start_time = ${payload.startTime},
+        end_time = ${payload.endTime},
+        wso2_participants = ${payload.internalParticipants},
+        external_participants = ${payload.externalParticipants},
+        recording_state = ${payload.recordingState},
+        drive_file_id = ${payload.driveFileId},
+        updated_by = ${actor}
+    WHERE
+        meeting_id = ${meetingId}
+`;
+
+# Build query to fetch the stored Calendar-watch sync token.
+#
+# + return - sql:ParameterizedQuery - Select query for the calendar_watch_state table
+isolated function getSyncTokenQuery() returns sql:ParameterizedQuery =>
+`
+    SELECT sync_token AS syncToken FROM calendar_watch_state WHERE id = 1
+`;
+
+# Build query to store the Calendar-watch sync token for the next poll.
+#
+# + syncToken - Token to store
+# + return - sql:ParameterizedQuery - Update query for the calendar_watch_state table
+isolated function setSyncTokenQuery(string syncToken) returns sql:ParameterizedQuery =>
+`
+    UPDATE calendar_watch_state SET sync_token = ${syncToken} WHERE id = 1
+`;
+
+# Build query to fetch an auto-recorded meeting row by its space name.
+#
+# + spaceName - Resource name of the Meet space
+# + return - sql:ParameterizedQuery - Select query for the meeting table
+isolated function getMeetRecordingBySpaceNameQuery(string spaceName) returns sql:ParameterizedQuery =>
+`
+    SELECT
+        meeting_id AS meetingId,
+        space_name AS spaceName,
+        title,
+        google_event_id AS googleEventId,
+        host AS organizer,
+        DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS startTime,
+        DATE_FORMAT(end_time, '%Y-%m-%d %H:%i:%s') AS endTime,
+        wso2_participants AS internalParticipants,
+        external_participants AS externalParticipants,
+        recording_state AS recordingState,
+        drive_file_id AS driveFileId
+    FROM meeting
+    WHERE space_name = ${spaceName}
 `;
