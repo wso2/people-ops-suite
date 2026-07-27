@@ -346,6 +346,9 @@ dependencies = [
 	{org = "ballerina", name = "time"},
 	{org = "ballerina", name = "uuid"}
 ]
+modules = [
+	{org = "ballerina", packageName = "task", moduleName = "task"}
+]
 
 [[package]]
 org = "ballerina"
@@ -522,6 +525,7 @@ dependencies = [
 	{org = "ballerina", name = "lang.value"},
 	{org = "ballerina", name = "log"},
 	{org = "ballerina", name = "sql"},
+	{org = "ballerina", name = "task"},
 	{org = "ballerina", name = "test"},
 	{org = "ballerina", name = "time"},
 	{org = "ballerina", name = "url"},
