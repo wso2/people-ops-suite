@@ -16,6 +16,7 @@
 import meet_app.calendar;
 import meet_app.database;
 import meet_app.drive;
+import meet_app.people;
 
 import ballerina/http;
 import ballerina/lang.array;
@@ -179,9 +180,31 @@ isolated function processRecordingReady(string recordingName) returns error? {
 
     // The organizer isn't part of either participant list (those are just the other
     // attendees), but they need view access to their own meeting's recording too.
-    error? shareResult = drive:grantRecordingAccess(fileId, [tracked.organizer, ...internalEmails, ...externalEmails]);
+    string[] participantEmails = [tracked.organizer, ...internalEmails, ...externalEmails];
+    error? shareResult = drive:grantRecordingAccess(fileId, participantEmails);
     if shareResult is error {
         log:printError("Attached recording but some Drive permission grants failed.", shareResult);
+    }
+
+    // Everyone in Sales, Channel Sales, and Sales Engineering also gets view access, even if
+    // they weren't on this particular call -- but silently (no notification email), since
+    // they weren't actually a participant.
+    string[]|error salesDepartmentEmails = people:getSalesDepartmentEmails();
+    if salesDepartmentEmails is error {
+        log:printError("Could not fetch Sales department list; skipping their access grant for this recording.",
+                salesDepartmentEmails);
+    } else {
+        string[] extraEmails = [];
+        foreach string email in salesDepartmentEmails {
+            if participantEmails.indexOf(email) == () {
+                extraEmails.push(email);
+            }
+        }
+        error? deptShareResult = drive:grantRecordingAccess(fileId, extraEmails, sendNotificationEmail = false);
+        if deptShareResult is error {
+            log:printError("Attached recording but some Sales department Drive permission grants failed.",
+                    deptShareResult);
+        }
     }
 
     _ = check database:upsertMeetRecording({

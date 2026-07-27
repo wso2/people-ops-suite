@@ -54,9 +54,14 @@ public isolated function setFilePermission(string fileId, DrivePermissionRole ro
 #
 # + fileId - Drive file ID of the recording
 # + emails - Email addresses to grant Viewer access to
+# + sendNotificationEmail - Whether Drive should email each person about the new access.
+#   Defaults to true (Google's own default) for people who were actually on the call; pass
+#   false for broad, non-participant grants (e.g. every Account Manager) so they don't get
+#   a "shared with you" email for every recording.
 # + return - Error only if a permission grant fails; individual failures are still attempted
 #   for the remaining emails rather than aborting the whole batch
-public isolated function grantRecordingAccess(string fileId, string[] emails) returns error? {
+public isolated function grantRecordingAccess(string fileId, string[] emails, boolean sendNotificationEmail = true)
+        returns error? {
     error[] failures = [];
     foreach string email in emails {
         DrivePermissionPayload payload = {
@@ -66,7 +71,8 @@ public isolated function grantRecordingAccess(string fileId, string[] emails) re
         };
         http:Request req = new;
         req.setPayload(payload.toJson());
-        http:Response|error response = sharedAccountDriveClient->post(string `/${fileId}/permissions`, req);
+        http:Response|error response = sharedAccountDriveClient->post(
+                string `/${fileId}/permissions?sendNotificationEmail=${sendNotificationEmail}`, req);
         if response is error {
             failures.push(response);
             continue;
