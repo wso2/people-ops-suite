@@ -49,25 +49,29 @@ service /calendar\-watch on new http:Listener(calendarWatchListenerPort) {
     #
     # + xGoogChannelToken - Shared secret, must match calendarWatchToken
     # + xGoogResourceState - "sync" on the initial confirmation ping, "exists" on real changes
-    # + return - Always 200 -- Google stops sending pings if it ever sees a non-2xx
+    # + return - 200 once processed; 503 on a genuine processing failure, since Google's docs
+    #   confirm 500/502/503/504 responses are retried with backoff, unlike a bare 200 which
+    #   tells Google nothing needs to happen again
     resource function post .(@http:Header {name: "X-Goog-Channel-Token"} string? xGoogChannelToken,
-            @http:Header {name: "X-Goog-Resource-State"} string? xGoogResourceState) returns http:Ok {
+            @http:Header {name: "X-Goog-Resource-State"} string? xGoogResourceState)
+            returns http:Ok|http:ServiceUnavailable {
         if xGoogChannelToken != calendarWatchToken {
             log:printError("Calendar watch ping had a mismatched or missing channel token; ignoring.");
-            return {body: {message: "ignored"}};
+            return <http:Ok>{body: {message: "ignored"}};
         }
 
         // The very first ping after registering a channel is just a confirmation, not a
         // real change -- nothing to sync yet.
         if xGoogResourceState == "sync" {
-            return {body: {message: "sync acknowledged"}};
+            return <http:Ok>{body: {message: "sync acknowledged"}};
         }
 
         error? result = processCalendarChanges();
         if result is error {
             log:printError("Failed to process calendar changes.", result);
+            return <http:ServiceUnavailable>{body: {message: "Failed to process calendar changes; retry."}};
         }
-        return {body: {message: "ok"}};
+        return <http:Ok>{body: {message: "ok"}};
     }
 }
 

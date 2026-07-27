@@ -106,29 +106,34 @@ service /meet\-events on new http:Listener(meetEventsListenerPort) {
         return <http:Ok>{body: {message: "seeded"}};
     }
 
-    resource function post .(@http:Payload PubSubPushEnvelope envelope) returns http:Ok {
+    # + envelope - The Pub/Sub push envelope
+    # + return - 200 once processed, or if the message is permanently unparseable (retrying
+    #   a malformed message would never help); 503 on a genuine processing failure, since
+    #   Pub/Sub retries non-2xx responses with backoff automatically
+    resource function post .(@http:Payload PubSubPushEnvelope envelope) returns http:Ok|http:ServiceUnavailable {
         byte[]|error decoded = array:fromBase64(envelope.message.data);
         if decoded is error {
             log:printError("Could not base64-decode Pub/Sub message data.", decoded);
-            return {body: {message: "ignored"}};
+            return <http:Ok>{body: {message: "ignored"}};
         }
 
         string|error decodedString = strings:fromBytes(decoded);
         if decodedString is error {
             log:printError("Decoded Pub/Sub message data was not valid UTF-8.", decodedString);
-            return {body: {message: "ignored"}};
+            return <http:Ok>{body: {message: "ignored"}};
         }
         RecordingReadyEvent|error event = value:fromJsonStringWithType(decodedString);
         if event is error {
             log:printError("Could not parse recording-ready payload.", event);
-            return {body: {message: "ignored"}};
+            return <http:Ok>{body: {message: "ignored"}};
         }
 
         error? result = processRecordingReady(event.recording.name);
         if result is error {
             log:printError("Failed to process recording-ready event.", result);
+            return <http:ServiceUnavailable>{body: {message: "Failed to process recording-ready event; retry."}};
         }
-        return {body: {message: "ok"}};
+        return <http:Ok>{body: {message: "ok"}};
     }
 }
 
