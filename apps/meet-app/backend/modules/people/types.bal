@@ -81,6 +81,8 @@ public type EmployeeFilter record {|
     string[]? employmentType?;
     # The employee email
     string[]? emails?;
+    # The department, exact match (e.g. "SALES", "CHANNEL SALES", "SALES ENGINEERING")
+    string? department?;
 |};
 
 # Basic employee information.
@@ -97,6 +99,8 @@ public type EmployeeBasic record {|
     string? team = ();
     # Team of the employee
     string? subTeam = ();
+    # Job role of the employee
+    string jobRole;
 |};
 
 # Employees data.

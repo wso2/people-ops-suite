@@ -48,13 +48,15 @@ public isolated function fetchEmployeesBasicInfo(string workEmail) returns Emplo
 # Retrieves all active or marked-leaver employees with specific employment types.
 #
 # + emails - Optional list of emails to filter by
+# + department - Optional department to filter by, exact match (e.g. "SALES")
 # + return - Employee Info Array
-public isolated function getEmployees(string[]? emails = ()) returns EmployeeBasic[]|error {
+public isolated function getEmployees(string[]? emails = (), string? department = ()) returns EmployeeBasic[]|error {
 
     EmployeeFilter filter = {
         employeeStatus: [Active, Marked\ leaver],
         employmentType: allowedEmploymentTypes,
-        emails: emails
+        emails: emails,
+        department
     };
 
     string document = string `query getAllEmployees($filter: EmployeeFilter!, $limit: Int, $offset: Int) {
@@ -64,7 +66,8 @@ public isolated function getEmployees(string[]? emails = ()) returns EmployeeBas
             lastName
             employeeThumbnail
             team: department
-            subTeam: team 
+            subTeam: team
+            jobRole
         }
     }`;
 
@@ -79,6 +82,26 @@ public isolated function getEmployees(string[]? emails = ()) returns EmployeeBas
         fetchMore = response.data.employees.length() > 0;
     }
     return employees;
+}
+
+# Departments whose members should get automatic view access to Meet recordings, regardless
+# of whether they were on the specific call. Exact strings as stored by the HR entity API.
+public final string[] & readonly RECORDING_ACCESS_DEPARTMENTS = ["SALES", "CHANNEL SALES", "SALES ENGINEERING"];
+
+# Retrieves the work emails of every active employee in the Sales, Channel Sales, and Sales
+# Engineering departments. The HR entity API's department filter only accepts one exact value
+# at a time (not a list), so this makes one call per department and combines the results.
+#
+# + return - Work emails of matching employees, or Error
+public isolated function getSalesDepartmentEmails() returns string[]|error {
+    string[] emails = [];
+    foreach string department in RECORDING_ACCESS_DEPARTMENTS {
+        EmployeeBasic[] employees = check getEmployees(department = department);
+        foreach EmployeeBasic employee in employees {
+            emails.push(employee.workEmail);
+        }
+    }
+    return emails;
 }
 
 # Retrieves organization details including nested departments, teams, and sub-teams.
