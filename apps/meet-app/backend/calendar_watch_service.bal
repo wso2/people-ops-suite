@@ -20,7 +20,7 @@ import ballerina/http;
 import ballerina/log;
 
 configurable int calendarWatchListenerPort = 9093;
-configurable string sharedAccountEmail = "senumi@wso2.com";
+configurable string sharedAccountEmail = ?;
 configurable string calendarWatchToken = ?;
 
 // Isolated listener, same reasoning as meet_events_service.bal -- separate from the main
