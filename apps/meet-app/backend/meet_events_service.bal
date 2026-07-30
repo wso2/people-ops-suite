@@ -15,7 +15,7 @@
 // under the License.
 import meet_app.calendar;
 import meet_app.database;
-import meet_app.drive;
+import meet_app.driveservice;
 import meet_app.people;
 
 import ballerina/http;
@@ -139,10 +139,10 @@ service /meet\-events on new http:Listener(meetEventsListenerPort) {
 }
 
 isolated function processRecordingReady(string recordingName) returns error? {
-    // Both the Meet-read and the attach steps now go through CES, which already has DWD
-    // covering both Meet scope (for the recording lookup) and Calendar scope (for the
-    // attach, impersonating the sales user).
-    calendar:RecordingInfoResponse info = check calendar:getRecordingInfo(recordingName);
+    // The recording lookup goes through drive-service (Meet-read scope, narrowly held
+    // alongside Drive on the Shared Account's own refresh token); the attach still goes
+    // through CES, which has DWD Calendar scope covering impersonating the organizer.
+    driveservice:RecordingInfoResponse info = check driveservice:resolveRecording(recordingName);
     string spaceName = info.spaceName;
     string fileId = info.fileId;
 
@@ -181,7 +181,7 @@ isolated function processRecordingReady(string recordingName) returns error? {
     // The organizer isn't part of either participant list (those are just the other
     // attendees), but they need view access to their own meeting's recording too.
     string[] participantEmails = [tracked.organizer, ...internalEmails, ...externalEmails];
-    error? shareResult = drive:grantRecordingAccess(fileId, participantEmails);
+    driveservice:GrantResult[]|error shareResult = driveservice:grantAccess(fileId, participantEmails, true);
     if shareResult is error {
         log:printError("Attached recording but some Drive permission grants failed.", shareResult);
     }
@@ -200,7 +200,7 @@ isolated function processRecordingReady(string recordingName) returns error? {
                 extraEmails.push(email);
             }
         }
-        error? deptShareResult = drive:grantRecordingAccess(fileId, extraEmails, sendNotificationEmail = false);
+        driveservice:GrantResult[]|error deptShareResult = driveservice:grantAccess(fileId, extraEmails, false);
         if deptShareResult is error {
             log:printError("Attached recording but some Sales department Drive permission grants failed.",
                     deptShareResult);

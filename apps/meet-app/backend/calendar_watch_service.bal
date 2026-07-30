@@ -137,6 +137,17 @@ isolated function registerEventIfRelevant(json event) returns error? {
         }
     }
 
+    // Every genuine sales meeting has a customer on it. An add-on-created meeting with no
+    // external participants means the add-on was picked by mistake for what's really an
+    // internal meeting -- flag it and leave it untracked, rather than silently tracking
+    // (and later sharing) a recording of an internal meeting no customer was ever part of.
+    // The calendar event itself is left completely untouched either way.
+    if externalEmails.length() == 0 {
+        log:printError(string `Meeting "${title}" (${eventId}, organizer ${organizerEmail}) was created via the ` +
+                "add-on but has no external participants -- not a real sales meeting. Not tracking it for recording.");
+        return;
+    }
+
     _ = check database:upsertMeetRecording({
         spaceName,
         title,
