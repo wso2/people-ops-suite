@@ -86,16 +86,27 @@ public isolated function getEmployees(string[]? emails = (), string? department 
 
 # Departments whose members should get automatic view access to Meet recordings, regardless
 # of whether they were on the specific call. Exact strings as stored by the HR entity API.
-public final string[] & readonly RECORDING_ACCESS_DEPARTMENTS = ["SALES", "CHANNEL SALES", "SALES ENGINEERING"];
+configurable string[] recordingAccessDepartments = ["SALES", "CHANNEL SALES", "SALES ENGINEERING"];
 
-# Retrieves the work emails of every active employee in the Sales, Channel Sales, and Sales
-# Engineering departments. The HR entity API's department filter only accepts one exact value
-# at a time (not a list), so this makes one call per department and combines the results.
+# When non-empty, used instead of recordingAccessDepartments -- returned directly, skipping
+# the HR entity lookup entirely. For testing on staging with a specific, controlled list of
+# emails (e.g. your own test accounts) instead of granting access to real department members.
+configurable string[] recordingAccessTestEmails = [];
+
+# Retrieves the work emails that should get automatic view access to Meet recordings: either
+# recordingAccessTestEmails directly (if set), or everyone in recordingAccessDepartments
+# (Sales, Channel Sales, and Sales Engineering by default) via the HR entity API. The API's
+# department filter only accepts one exact value at a time (not a list), so the department
+# path makes one call per department and combines the results.
 #
 # + return - Work emails of matching employees, or Error
 public isolated function getSalesDepartmentEmails() returns string[]|error {
+    if recordingAccessTestEmails.length() > 0 {
+        return recordingAccessTestEmails;
+    }
+
     string[] emails = [];
-    foreach string department in RECORDING_ACCESS_DEPARTMENTS {
+    foreach string department in recordingAccessDepartments {
         EmployeeBasic[] employees = check getEmployees(department = department);
         foreach EmployeeBasic employee in employees {
             emails.push(employee.workEmail);
