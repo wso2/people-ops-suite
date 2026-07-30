@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License. 
 import ballerina/http;
+import ballerina/url;
 
 # Create a meet
 #
@@ -86,7 +87,7 @@ public isolated function resolveSpaceName(string meetingCode) returns string|err
 # + return - Changed events plus a fresh syncToken, or error
 public isolated function getChangedEvents(string? syncToken) returns ChangedEventsResult|error {
     string path = syncToken is string
-        ? string `/calendars/${calendarId}/events-changes?syncToken=${syncToken}`
+        ? string `/calendars/${calendarId}/events-changes?syncToken=${check url:encode(syncToken, "UTF-8")}`
         : string `/calendars/${calendarId}/events-changes`;
     http:Response response = check calendarClient->get(path);
     if response.statusCode == 200 {

@@ -143,11 +143,22 @@ isolated function registerEventIfRelevant(json event) returns error? {
     string organizerEmail = check event.organizer.email.ensureType(string);
     string startTime = check event.'start.dateTime.ensureType(string);
     string endTime = check event.end.dateTime.ensureType(string);
+    // entryPoints can hold more than just the video link (e.g. a phone dial-in entry
+    // alongside it) -- entryPoints[0] isn't guaranteed to be the video one, so find it by
+    // type explicitly rather than assuming position.
     json[] entryPoints = check conferenceData.entryPoints.ensureType();
-    if entryPoints.length() == 0 {
+    string? meetingUri = ();
+    foreach json entryPoint in entryPoints {
+        string|error entryPointType = entryPoint.entryPointType.ensureType(string);
+        if entryPointType is string && entryPointType == "video" {
+            meetingUri = check entryPoint.uri.ensureType(string);
+            break;
+        }
+    }
+    if meetingUri is () {
+        // No video entry point -- nothing to record against, skip this event.
         return;
     }
-    string meetingUri = check entryPoints[0].uri.ensureType(string);
     string[] uriParts = re `/`.split(meetingUri);
     string meetingCode = uriParts[uriParts.length() - 1];
 
