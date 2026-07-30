@@ -154,9 +154,68 @@ public type MeetingHostStat record {|
 
 # [Database]Scheduled meeting count for a month.
 #
-# + month_key - The month 
+# + month_key - The month
 # + count - Number of meetings scheduled
 public type ScheduledMeetingStat record {|
     string month_key;
     int count;
+|};
+
+# [Database] Recording processing state, for auto-recorded meetings tracked via the add-on.
+public enum RecordingState {
+    PENDING,
+    ATTACHED,
+    FAILED
+}
+
+# [Database] Insert/update payload for an auto-recorded meeting row.
+#
+# + title - The event's title
+# + spaceName - Resource name of the Meet space (e.g. `spaces/abc123`) -- the lookup key
+# + googleEventId - Calendar event ID the space was created for
+# + organizer - Email of the event organizer
+# + startTime - Event start time
+# + endTime - Event end time
+# + internalParticipants - wso2.com attendees, comma-joined
+# + externalParticipants - Non-wso2.com attendees, comma-joined
+# + recordingState - Current processing state
+# + driveFileId - Drive file ID of the recording, once resolved
+public type MeetRecordingPayload record {|
+    string title;
+    string spaceName;
+    string googleEventId;
+    string organizer;
+    string startTime;
+    string endTime;
+    string internalParticipants;
+    string externalParticipants;
+    RecordingState recordingState;
+    string? driveFileId = ();
+|};
+
+# [Database] An auto-recorded meeting row, read back by space name.
+#
+# + meetingId - Auto-increment meeting ID
+# + spaceName - Resource name of the Meet space
+# + title - The event's title
+# + googleEventId - Calendar event ID
+# + organizer - Email of the event organizer
+# + startTime - Event start time
+# + endTime - Event end time
+# + internalParticipants - wso2.com attendees, comma-joined
+# + externalParticipants - Non-wso2.com attendees, comma-joined
+# + recordingState - Current processing state
+# + driveFileId - Drive file ID of the recording, if resolved yet
+public type MeetRecordingRow record {|
+    int meetingId;
+    string spaceName;
+    string title;
+    string googleEventId;
+    string organizer;
+    string startTime;
+    string endTime;
+    string internalParticipants;
+    string externalParticipants;
+    RecordingState recordingState;
+    string? driveFileId;
 |};

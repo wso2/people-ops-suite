@@ -118,3 +118,23 @@ public type DeleteCalendarEventResponse record {|
     # Success message
     string message;
 |};
+
+# Result of a changed-events sync -- either the first (full) sync or an incremental one.
+public type ChangedEventsResult record {|
+    # Events that changed since the last sync
+    json[] events;
+    # Token to pass into the next call, to get only what changes after this
+    string nextSyncToken;
+|};
+
+# Details of a registered Calendar watch channel, returned so the caller can schedule a
+# precisely-timed renewal instead of guessing at a fixed interval, and stop this exact
+# channel later when superseding it.
+public type WatchChannelResponse record {|
+    # The channel's ID, needed to stop it later
+    string channelId;
+    # Google-assigned ID for the watched resource, needed to stop it later
+    string resourceId;
+    # Unix timestamp in milliseconds when this channel expires
+    string expiration;
+|};

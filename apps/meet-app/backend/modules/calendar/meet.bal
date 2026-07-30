@@ -14,9 +14,10 @@
 // specific language governing permissions and limitations
 // under the License. 
 import ballerina/http;
+import ballerina/url;
 
 # Create a meet
-# 
+#
 # + return - Meet Uri
 public isolated function createMeet() returns error|string {
     http:Response meetResponse = check calendarClient->post(string `/meet/${calendarId}`, {});
@@ -27,4 +28,89 @@ public isolated function createMeet() returns error|string {
     }
     json? errorResponseBody = check meetResponse.getJsonPayload();
     return error(string `Status: ${meetResponse.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+}
+
+# Attaches a Drive file to an existing calendar event as a recording attachment.
+#
+# + salesUser - Email of the event organizer, impersonated for the attach
+# + eventId - Event ID to attach the file to
+# + fileId - Drive file ID to attach
+# + title - Display title for the attachment
+# + mimeType - MIME type of the attached file
+# + return - Error if the attach fails
+public isolated function attachRecording(string salesUser, string eventId, string fileId, string title,
+        string mimeType) returns error? {
+    http:Request req = new;
+    req.setPayload({fileId, title, mimeType});
+    http:Response response = check calendarClient->post(
+            string `/calendars/${salesUser}/events/${eventId}/attachments`, req);
+    if response.statusCode != 200 {
+        json? errorResponseBody = check response.getJsonPayload();
+        return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+    }
+}
+
+# Registers a push-notification channel on the Shared Account's calendar via CES.
+#
+# + webhookUrl - Publicly reachable URL Google should POST pings to
+# + channelId - Caller-chosen unique ID for this channel
+# + token - Shared secret Google echoes back on every ping
+# + return - The registered channel's ID, resourceId, and expiration, or error
+public isolated function watchCalendar(string webhookUrl, string channelId, string token)
+        returns WatchChannelResponse|error {
+    http:Request req = new;
+    req.setPayload({webhookUrl, channelId, token});
+    http:Response response = check calendarClient->post(string `/calendars/${calendarId}/watch`, req);
+    if response.statusCode != 200 {
+        json? errorResponseBody = check response.getJsonPayload();
+        return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+    }
+    json responseJson = check response.getJsonPayload();
+    return responseJson.cloneWithType(WatchChannelResponse);
+}
+
+# Stops a previously-registered Calendar watch channel before it naturally expires, via CES.
+#
+# + channelId - The channel's own ID, from when it was registered
+# + resourceId - The resourceId Google assigned when the channel was registered
+# + return - Error if stopping fails
+public isolated function stopWatchChannel(string channelId, string resourceId) returns error? {
+    http:Response response = check calendarClient->post(
+            string `/calendars/${calendarId}/watch/stop?channelId=${channelId}&resourceId=${resourceId}`, {});
+    if response.statusCode != 200 {
+        json? errorResponseBody = check response.getJsonPayload();
+        return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+    }
+}
+
+# Resolves a meeting's join code to its real Meet space resource name, via CES.
+#
+# + meetingCode - The short code from a meet.google.com/xxx-xxxx-xxx URL
+# + return - The real space resource name (e.g. `spaces/abc123`), or an error
+public isolated function resolveSpaceName(string meetingCode) returns string|error {
+    http:Response response = check calendarClient->get(
+            string `/meet/space-name?meetingCode=${meetingCode}&ownerEmail=${calendarId}`);
+    if response.statusCode == 200 {
+        json responseJson = check response.getJsonPayload();
+        return responseJson.message.ensureType(string);
+    }
+    json? errorResponseBody = check response.getJsonPayload();
+    return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+}
+
+# Gets events that changed on the Shared Account's calendar since the last sync, via CES.
+#
+# + syncToken - Token from the previous call, or `()` for the first-ever sync
+# + return - Changed events plus a fresh syncToken, or error
+public isolated function getChangedEvents(string? syncToken) returns ChangedEventsResult|error {
+    string path = syncToken is string
+        ? string `/calendars/${calendarId}/events-changes?syncToken=${check url:encode(syncToken, "UTF-8")}`
+        : string `/calendars/${calendarId}/events-changes`;
+    http:Response response = check calendarClient->get(path);
+    if response.statusCode == 200 {
+        json responseJson = check response.getJsonPayload();
+        return responseJson.cloneWithType(ChangedEventsResult);
+    }
+    json? errorResponseBody = check response.getJsonPayload();
+    return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
 }

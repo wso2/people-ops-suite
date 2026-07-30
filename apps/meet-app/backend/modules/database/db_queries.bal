@@ -329,16 +329,116 @@ isolated function countMeetingsByHostQuery(string startTime, string endTime , st
 # + endTime - End of the range
 # + region - Region filter
 # + return - sql:ParameterizedQuery
-isolated function meetingTitlesByRegionsQuery(string startTime, string endTime, string region) 
-    returns sql:ParameterizedQuery => 
+isolated function meetingTitlesByRegionsQuery(string startTime, string endTime, string region)
+    returns sql:ParameterizedQuery =>
 `
-    SELECT 
+    SELECT
         title
-    FROM 
+    FROM
         meeting
-    WHERE 
+    WHERE
         host_sub_team = ${region} AND
         start_time >= ${startTime} AND
         start_time < ${endTime} AND
         meeting_status = ${ACTIVE}
+`;
+
+# Build an atomic insert-or-update query for an auto-recorded meeting row, keyed by the
+# space_name UNIQUE constraint. MySQL's ON DUPLICATE KEY UPDATE does the "does this
+# already exist" check and the write as one uninterruptible operation, closing the race
+# window a separate select-then-branch would have. meeting_id = LAST_INSERT_ID(meeting_id)
+# is a standard trick so the existing row's ID is still returned correctly even when the
+# duplicate-key path (update, not insert) is the one that runs.
+#
+# + payload - Details to write
+# + actor - User performing the write
+# + return - sql:ParameterizedQuery - Upsert query for the meeting table
+isolated function upsertMeetRecordingQuery(MeetRecordingPayload payload, string actor) returns sql:ParameterizedQuery =>
+`
+    INSERT INTO meeting
+    (
+        title,
+        space_name,
+        google_event_id,
+        host,
+        event_creator,
+        start_time,
+        end_time,
+        wso2_participants,
+        external_participants,
+        recording_state,
+        drive_file_id,
+        meeting_status,
+        created_by,
+        updated_by
+    )
+    VALUES
+    (
+        ${payload.title},
+        ${payload.spaceName},
+        ${payload.googleEventId},
+        ${payload.organizer},
+        ${payload.organizer},
+        ${payload.startTime},
+        ${payload.endTime},
+        ${payload.internalParticipants},
+        ${payload.externalParticipants},
+        ${payload.recordingState},
+        ${payload.driveFileId},
+        ${ACTIVE},
+        ${actor},
+        ${actor}
+    )
+    ON DUPLICATE KEY UPDATE
+        meeting_id = LAST_INSERT_ID(meeting_id),
+        title = VALUES(title),
+        google_event_id = VALUES(google_event_id),
+        host = VALUES(host),
+        event_creator = VALUES(event_creator),
+        start_time = VALUES(start_time),
+        end_time = VALUES(end_time),
+        wso2_participants = VALUES(wso2_participants),
+        external_participants = VALUES(external_participants),
+        recording_state = VALUES(recording_state),
+        drive_file_id = VALUES(drive_file_id),
+        updated_by = VALUES(updated_by)
+`;
+
+# Build query to fetch the stored Calendar-watch sync token.
+#
+# + return - sql:ParameterizedQuery - Select query for the calendar_watch_state table
+isolated function getSyncTokenQuery() returns sql:ParameterizedQuery =>
+`
+    SELECT sync_token AS syncToken FROM calendar_watch_state WHERE id = 1
+`;
+
+# Build query to store the Calendar-watch sync token for the next poll.
+#
+# + syncToken - Token to store
+# + return - sql:ParameterizedQuery - Update query for the calendar_watch_state table
+isolated function setSyncTokenQuery(string syncToken) returns sql:ParameterizedQuery =>
+`
+    UPDATE calendar_watch_state SET sync_token = ${syncToken} WHERE id = 1
+`;
+
+# Build query to fetch an auto-recorded meeting row by its space name.
+#
+# + spaceName - Resource name of the Meet space
+# + return - sql:ParameterizedQuery - Select query for the meeting table
+isolated function getMeetRecordingBySpaceNameQuery(string spaceName) returns sql:ParameterizedQuery =>
+`
+    SELECT
+        meeting_id AS meetingId,
+        space_name AS spaceName,
+        title,
+        google_event_id AS googleEventId,
+        host AS organizer,
+        DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS startTime,
+        DATE_FORMAT(end_time, '%Y-%m-%d %H:%i:%s') AS endTime,
+        wso2_participants AS internalParticipants,
+        external_participants AS externalParticipants,
+        recording_state AS recordingState,
+        drive_file_id AS driveFileId
+    FROM meeting
+    WHERE space_name = ${spaceName}
 `;

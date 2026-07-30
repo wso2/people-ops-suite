@@ -165,3 +165,49 @@ public isolated function getMeetingIdsByRegions(string startTime, string endTime
     return from var row in titleStream
         select row.title;
 }
+
+# Creates or updates an auto-recorded meeting row, keyed by space name. Atomic: relies on
+# a UNIQUE constraint on space_name plus ON DUPLICATE KEY UPDATE, so there's no separate
+# check-then-write window where two concurrent calls for the same meeting could race.
+#
+# + payload - Details to write
+# + actor - User performing the write
+# + return - The row's meeting_id, or Error
+public isolated function upsertMeetRecording(MeetRecordingPayload payload, string actor) returns int|error {
+    sql:ExecutionResult result = check databaseClient->execute(upsertMeetRecordingQuery(payload, actor));
+    return result.lastInsertId.ensureType(int);
+}
+
+# Gets the stored Calendar-watch sync token, if one's been set yet.
+#
+# + return - The stored sync token, `()` if none stored yet, or Error
+public isolated function getSyncToken() returns string?|error {
+    record {string? syncToken;}|sql:Error result = databaseClient->queryRow(getSyncTokenQuery());
+    if result is sql:NoRowsError {
+        return;
+    }
+    if result is sql:Error {
+        return result;
+    }
+    return result.syncToken;
+}
+
+# Stores the sync token to use on the next Calendar-watch poll.
+#
+# + syncToken - Token returned by the most recent getChangedEvents call
+# + return - Error if the write fails
+public isolated function setSyncToken(string syncToken) returns error? {
+    _ = check databaseClient->execute(setSyncTokenQuery(syncToken));
+}
+
+# Fetches an auto-recorded meeting row by its space name.
+#
+# + spaceName - Resource name of the Meet space
+# + return - The matching row, () if not found, or Error
+public isolated function getMeetRecordingBySpaceName(string spaceName) returns MeetRecordingRow|error? {
+    MeetRecordingRow|sql:Error result = databaseClient->queryRow(getMeetRecordingBySpaceNameQuery(spaceName));
+    if result is sql:NoRowsError {
+        return;
+    }
+    return result;
+}
