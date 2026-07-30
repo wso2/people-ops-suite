@@ -85,7 +85,27 @@ service /calendar\-watch on new http:Listener(calendarWatchListenerPort) {
 isolated map<int> eventFailureCounts = {};
 const int MAX_CONSECUTIVE_EVENT_FAILURES = 3;
 
+// Google can deliver multiple push pings back-to-back with no guarantee of serialized
+// delivery -- without this guard, concurrent runs could read the same syncToken and race
+// to write nextSyncToken. upsertMeetRecording is idempotent, so this couldn't lose data,
+// only cause redundant reprocessing; guarding it is simpler than relying on that.
+isolated boolean calendarChangesProcessingInProgress = false;
+
 isolated function processCalendarChanges() returns error? {
+    lock {
+        if calendarChangesProcessingInProgress {
+            return;
+        }
+        calendarChangesProcessingInProgress = true;
+    }
+    error? result = fetchProcessAndStoreCalendarChanges();
+    lock {
+        calendarChangesProcessingInProgress = false;
+    }
+    return result;
+}
+
+isolated function fetchProcessAndStoreCalendarChanges() returns error? {
     string? syncToken = check database:getSyncToken();
     calendar:ChangedEventsResult changes = check calendar:getChangedEvents(syncToken);
 

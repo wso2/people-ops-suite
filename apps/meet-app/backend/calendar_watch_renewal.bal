@@ -42,18 +42,10 @@ class CalendarWatchRenewalJob {
     *task:Job;
 
     public function execute() {
-        (readonly & record {|string channelId; string resourceId;|})? channelToStop;
-        lock {
-            channelToStop = currentChannel;
-        }
-        if channelToStop is record {|string channelId; string resourceId;|} {
-            error? stopResult = calendar:stopWatchChannel(channelToStop.channelId, channelToStop.resourceId);
-            if stopResult is error {
-                log:printError("Failed to stop the previous calendar watch channel; it'll just expire on its own.",
-                        stopResult);
-            }
-        }
-
+        // Register the replacement before stopping the old channel -- stopping first would
+        // leave no active watch at all if this registration then failed, until the retry
+        // succeeded. Registering first preserves the brief overlap Google's docs recommend
+        // when replacing a channel.
         string channelId = string `${calendarWatchChannelIdPrefix}-${uuid:createType4AsString()}`;
         string webhookUrl = string `${calendarWatchWebhookUrl}/calendar-watch`;
         calendar:WatchChannelResponse|error result = calendar:watchCalendar(webhookUrl, channelId, calendarWatchToken);
@@ -63,8 +55,17 @@ class CalendarWatchRenewalJob {
             return;
         }
 
+        (readonly & record {|string channelId; string resourceId;|})? channelToStop;
         lock {
+            channelToStop = currentChannel;
             currentChannel = {channelId: result.channelId, resourceId: result.resourceId}.cloneReadOnly();
+        }
+        if channelToStop is record {|string channelId; string resourceId;|} {
+            error? stopResult = calendar:stopWatchChannel(channelToStop.channelId, channelToStop.resourceId);
+            if stopResult is error {
+                log:printError("Failed to stop the previous calendar watch channel; it'll just expire on its own.",
+                        stopResult);
+            }
         }
 
         int|error expirationEpochMillis = int:fromString(result.expiration);
