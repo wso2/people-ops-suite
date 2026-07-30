@@ -17,30 +17,85 @@ import meet_app.calendar;
 
 import ballerina/log;
 import ballerina/task;
+import ballerina/time;
 import ballerina/uuid;
 
-// Google's own docs for Events.watch are explicit that there's no "renew" call -- a
-// channel just has to be replaced with a brand new one (a fresh channelId) before it
-// expires, and don't publicly document the exact expiration length. Renewing daily is
-// comfortably inside any reasonable limit, and re-registering is a cheap, harmless
-// operation -- there's no downside to doing it more often than strictly necessary.
+// Google's own docs for Events.watch don't publish a fixed channel lifetime -- rather than
+// guess at a fixed renewal interval, each registration returns its own real expiration
+// time, and this job reschedules itself based on that actual value every time.
 configurable string calendarWatchWebhookUrl = ?;
-configurable decimal calendarWatchRenewalIntervalSeconds = 86400;
 configurable string calendarWatchChannelIdPrefix = ?;
+
+// How long before a channel's real expiration to renew it, and how soon to retry if a
+// renewal attempt itself fails.
+const decimal RENEWAL_SAFETY_MARGIN_SECONDS = 3600;
+const decimal RETRY_DELAY_SECONDS = 300;
+
+// The currently-active channel's details, so the next renewal can stop it before
+// registering its replacement -- otherwise the old channel would keep running alongside
+// the new one until it eventually expired on its own. Kept as a single isolated record
+// (rather than two separate variables) since Ballerina won't let one 'lock' block touch
+// more than one independently-isolated module-level variable at a time.
+isolated (readonly & record {|string channelId; string resourceId;|})? currentChannel = ();
 
 class CalendarWatchRenewalJob {
     *task:Job;
 
     public function execute() {
+        (readonly & record {|string channelId; string resourceId;|})? channelToStop;
+        lock {
+            channelToStop = currentChannel;
+        }
+        if channelToStop is record {|string channelId; string resourceId;|} {
+            error? stopResult = calendar:stopWatchChannel(channelToStop.channelId, channelToStop.resourceId);
+            if stopResult is error {
+                log:printError("Failed to stop the previous calendar watch channel; it'll just expire on its own.",
+                        stopResult);
+            }
+        }
+
         string channelId = string `${calendarWatchChannelIdPrefix}-${uuid:createType4AsString()}`;
         string webhookUrl = string `${calendarWatchWebhookUrl}/calendar-watch`;
-        error? result = calendar:watchCalendar(webhookUrl, channelId, calendarWatchToken);
+        calendar:WatchChannelResponse|error result = calendar:watchCalendar(webhookUrl, channelId, calendarWatchToken);
         if result is error {
-            log:printError("Scheduled Calendar watch renewal failed.", result);
+            log:printError("Scheduled calendar watch renewal failed; retrying soon.", result);
+            scheduleRenewal(RETRY_DELAY_SECONDS);
+            return;
         }
+
+        lock {
+            currentChannel = {channelId: result.channelId, resourceId: result.resourceId}.cloneReadOnly();
+        }
+
+        int|error expirationEpochMillis = int:fromString(result.expiration);
+        if expirationEpochMillis is error {
+            log:printError("Calendar watch channel expiration wasn't a valid number; retrying in a day.",
+                    expirationEpochMillis);
+            scheduleRenewal(86400);
+            return;
+        }
+
+        decimal secondsUntilExpiration = <decimal>expirationEpochMillis / 1000.0d - <decimal>time:utcNow()[0];
+        decimal delaySeconds = secondsUntilExpiration - RENEWAL_SAFETY_MARGIN_SECONDS;
+        // Never schedule sooner than the retry delay, even if the safety margin would
+        // otherwise put the next run in the past (a very short-lived channel) or absurdly
+        // soon.
+        if delaySeconds < RETRY_DELAY_SECONDS {
+            delaySeconds = RETRY_DELAY_SECONDS;
+        }
+        scheduleRenewal(delaySeconds);
+    }
+}
+
+isolated function scheduleRenewal(decimal delaySeconds) {
+    time:Utc nextRun = time:utcAddSeconds(time:utcNow(), delaySeconds);
+    time:Civil nextRunCivil = time:utcToCivil(nextRun);
+    task:JobId|task:Error scheduleResult = task:scheduleOneTimeJob(new CalendarWatchRenewalJob(), nextRunCivil);
+    if scheduleResult is task:Error {
+        log:printError("Failed to schedule the next calendar watch renewal.", scheduleResult);
     }
 }
 
 function init() returns error? {
-    _ = check task:scheduleJobRecurByFrequency(new CalendarWatchRenewalJob(), calendarWatchRenewalIntervalSeconds);
+    scheduleRenewal(0);
 }

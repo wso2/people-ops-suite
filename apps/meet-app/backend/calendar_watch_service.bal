@@ -28,20 +28,22 @@ configurable string calendarWatchToken = ?;
 // Google echoes back on every ping.
 service /calendar\-watch on new http:Listener(calendarWatchListenerPort) {
 
-    # One-time setup: registers the watch channel on the Shared Account's calendar. Call
-    # this once (and again whenever the channel is renewed/re-created), pointing webhookUrl
-    # at this same service's own tunnel URL + "/calendar-watch".
+    # One-time manual setup/testing endpoint: registers a watch channel on the Shared
+    # Account's calendar directly, bypassing the self-renewing scheduled job in
+    # calendar_watch_renewal.bal. Point webhookUrl at this same service's own tunnel URL,
+    # with "/calendar-watch" appended.
     #
     # + webhookUrl - Publicly reachable URL for Google to send pings to
     # + channelId - Unique ID for this channel (pick any new string each time you register)
-    # + return - Confirmation or error
-    resource function post register(string webhookUrl, string channelId) returns http:Ok|http:InternalServerError {
-        error? result = calendar:watchCalendar(webhookUrl, channelId, calendarWatchToken);
+    # + return - The registered channel's details, or error
+    resource function post register(string webhookUrl, string channelId)
+            returns calendar:WatchChannelResponse|http:InternalServerError {
+        calendar:WatchChannelResponse|error result = calendar:watchCalendar(webhookUrl, channelId, calendarWatchToken);
         if result is error {
             log:printError("Failed to register calendar watch channel.", result);
             return <http:InternalServerError>{body: {message: "Failed to register calendar watch."}};
         }
-        return <http:Ok>{body: {message: "Calendar watch registered."}};
+        return result;
     }
 
     # Receives Google's push notification pings -- these carry no event data, just headers

@@ -126,3 +126,15 @@ public type ChangedEventsResult record {|
     # Token to pass into the next call, to get only what changes after this
     string nextSyncToken;
 |};
+
+# Details of a registered Calendar watch channel, returned so the caller can schedule a
+# precisely-timed renewal instead of guessing at a fixed interval, and stop this exact
+# channel later when superseding it.
+public type WatchChannelResponse record {|
+    # The channel's ID, needed to stop it later
+    string channelId;
+    # Google-assigned ID for the watched resource, needed to stop it later
+    string resourceId;
+    # Unix timestamp in milliseconds when this channel expires
+    string expiration;
+|};
