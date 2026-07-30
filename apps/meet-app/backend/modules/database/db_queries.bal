@@ -343,21 +343,17 @@ isolated function meetingTitlesByRegionsQuery(string startTime, string endTime, 
         meeting_status = ${ACTIVE}
 `;
 
-# Build query to find an existing auto-recorded meeting row by its space name.
+# Build an atomic insert-or-update query for an auto-recorded meeting row, keyed by the
+# space_name UNIQUE constraint. MySQL's ON DUPLICATE KEY UPDATE does the "does this
+# already exist" check and the write as one uninterruptible operation, closing the race
+# window a separate select-then-branch would have. meeting_id = LAST_INSERT_ID(meeting_id)
+# is a standard trick so the existing row's ID is still returned correctly even when the
+# duplicate-key path (update, not insert) is the one that runs.
 #
-# + spaceName - Resource name of the Meet space
-# + return - sql:ParameterizedQuery - Select query returning just the meeting_id, if found
-isolated function findMeetingIdBySpaceNameQuery(string spaceName) returns sql:ParameterizedQuery =>
-`
-    SELECT meeting_id AS meetingId FROM meeting WHERE space_name = ${spaceName}
-`;
-
-# Build query to insert a new auto-recorded meeting row.
-#
-# + payload - Details to insert
-# + actor - User performing the insert
-# + return - sql:ParameterizedQuery - Insert query for the meeting table
-isolated function insertMeetRecordingQuery(MeetRecordingPayload payload, string actor) returns sql:ParameterizedQuery =>
+# + payload - Details to write
+# + actor - User performing the write
+# + return - sql:ParameterizedQuery - Upsert query for the meeting table
+isolated function upsertMeetRecordingQuery(MeetRecordingPayload payload, string actor) returns sql:ParameterizedQuery =>
 `
     INSERT INTO meeting
     (
@@ -393,32 +389,19 @@ isolated function insertMeetRecordingQuery(MeetRecordingPayload payload, string 
         ${actor},
         ${actor}
     )
-`;
-
-# Build query to update an existing auto-recorded meeting row.
-#
-# + meetingId - ID of the row to update
-# + payload - New details to write
-# + actor - User performing the update
-# + return - sql:ParameterizedQuery - Update query for the meeting table
-isolated function updateMeetRecordingQuery(int meetingId, MeetRecordingPayload payload, string actor)
-    returns sql:ParameterizedQuery =>
-`
-    UPDATE meeting
-    SET
-        title = ${payload.title},
-        google_event_id = ${payload.googleEventId},
-        host = ${payload.organizer},
-        event_creator = ${payload.organizer},
-        start_time = ${payload.startTime},
-        end_time = ${payload.endTime},
-        wso2_participants = ${payload.internalParticipants},
-        external_participants = ${payload.externalParticipants},
-        recording_state = ${payload.recordingState},
-        drive_file_id = ${payload.driveFileId},
-        updated_by = ${actor}
-    WHERE
-        meeting_id = ${meetingId}
+    ON DUPLICATE KEY UPDATE
+        meeting_id = LAST_INSERT_ID(meeting_id),
+        title = VALUES(title),
+        google_event_id = VALUES(google_event_id),
+        host = VALUES(host),
+        event_creator = VALUES(event_creator),
+        start_time = VALUES(start_time),
+        end_time = VALUES(end_time),
+        wso2_participants = VALUES(wso2_participants),
+        external_participants = VALUES(external_participants),
+        recording_state = VALUES(recording_state),
+        drive_file_id = VALUES(drive_file_id),
+        updated_by = VALUES(updated_by)
 `;
 
 # Build query to fetch the stored Calendar-watch sync token.

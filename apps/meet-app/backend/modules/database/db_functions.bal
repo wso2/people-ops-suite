@@ -166,25 +166,16 @@ public isolated function getMeetingIdsByRegions(string startTime, string endTime
         select row.title;
 }
 
-# Creates or updates an auto-recorded meeting row, keyed by space name.
+# Creates or updates an auto-recorded meeting row, keyed by space name. Atomic: relies on
+# a UNIQUE constraint on space_name plus ON DUPLICATE KEY UPDATE, so there's no separate
+# check-then-write window where two concurrent calls for the same meeting could race.
 #
 # + payload - Details to write
 # + actor - User performing the write
 # + return - The row's meeting_id, or Error
 public isolated function upsertMeetRecording(MeetRecordingPayload payload, string actor) returns int|error {
-    record {int meetingId;}|sql:Error existing = databaseClient->queryRow(
-            findMeetingIdBySpaceNameQuery(payload.spaceName));
-
-    if existing is sql:NoRowsError {
-        sql:ExecutionResult result = check databaseClient->execute(insertMeetRecordingQuery(payload, actor));
-        return check result.lastInsertId.ensureType(int);
-    }
-    if existing is sql:Error {
-        return existing;
-    }
-
-    _ = check databaseClient->execute(updateMeetRecordingQuery(existing.meetingId, payload, actor));
-    return existing.meetingId;
+    sql:ExecutionResult result = check databaseClient->execute(upsertMeetRecordingQuery(payload, actor));
+    return result.lastInsertId.ensureType(int);
 }
 
 # Gets the stored Calendar-watch sync token, if one's been set yet.

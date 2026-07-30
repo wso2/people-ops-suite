@@ -18,3 +18,9 @@ CREATE TABLE calendar_watch_state (
 );
 
 INSERT INTO calendar_watch_state (id, sync_token) VALUES (1, NULL);
+
+
+
+-- Prevents two concurrent upsertMeetRecording calls from ever creating duplicate rows for
+-- the same Meet space; paired with an atomic INSERT ... ON DUPLICATE KEY UPDATE in code.
+ALTER TABLE meeting ADD UNIQUE (space_name);
