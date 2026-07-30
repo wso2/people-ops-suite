@@ -14,7 +14,6 @@
 // specific language governing permissions and limitations
 // under the License. 
 import ballerina/http;
-import ballerina/url;
 
 # Create a meet
 #
@@ -28,22 +27,6 @@ public isolated function createMeet() returns error|string {
     }
     json? errorResponseBody = check meetResponse.getJsonPayload();
     return error(string `Status: ${meetResponse.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
-}
-
-# Resolves a recording (from a recording-ready notification) to its Meet space and Drive file.
-#
-# + recordingName - Full resource name of the recording (e.g. `conferenceRecords/abc/recordings/xyz`)
-# + return - Space name and Drive file ID, or error
-public isolated function getRecordingInfo(string recordingName) returns RecordingInfoResponse|error {
-    string encodedRecordingName = check url:encode(recordingName, "UTF-8");
-    http:Response response = check calendarClient->get(
-            string `/meet/recording-info?recordingName=${encodedRecordingName}&ownerEmail=${calendarId}`);
-    if response.statusCode == 200 {
-        json responseJson = check response.getJsonPayload();
-        return responseJson.cloneWithType(RecordingInfoResponse);
-    }
-    json? errorResponseBody = check response.getJsonPayload();
-    return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
 }
 
 # Attaches a Drive file to an existing calendar event as a recording attachment.
@@ -73,10 +56,9 @@ public isolated function attachRecording(string salesUser, string eventId, strin
 # + token - Shared secret Google echoes back on every ping
 # + return - Error if registration fails
 public isolated function watchCalendar(string webhookUrl, string channelId, string token) returns error? {
-    string encodedWebhookUrl = check url:encode(webhookUrl, "UTF-8");
-    http:Response response = check calendarClient->post(
-            string `/calendars/${calendarId}/watch?webhookUrl=${encodedWebhookUrl}&channelId=${channelId}&token=${token}`,
-            {});
+    http:Request req = new;
+    req.setPayload({webhookUrl, channelId, token});
+    http:Response response = check calendarClient->post(string `/calendars/${calendarId}/watch`, req);
     if response.statusCode != 200 {
         json? errorResponseBody = check response.getJsonPayload();
         return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
