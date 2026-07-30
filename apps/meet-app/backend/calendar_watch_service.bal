@@ -75,18 +75,55 @@ service /calendar\-watch on new http:Listener(calendarWatchListenerPort) {
     }
 }
 
+// Consecutive-failure count per event ID, so one permanently-broken event can't block the
+// sync token forever -- it gets a bounded number of retries, then is given up on (loudly),
+// rather than either silently dropping it on the first failure or stalling everything else
+// behind it indefinitely. Restarting the service resets these, which is an acceptable
+// trade-off: worst case a few extra retries for something that was already failing.
+isolated map<int> eventFailureCounts = {};
+const int MAX_CONSECUTIVE_EVENT_FAILURES = 3;
+
 isolated function processCalendarChanges() returns error? {
     string? syncToken = check database:getSyncToken();
     calendar:ChangedEventsResult changes = check calendar:getChangedEvents(syncToken);
 
+    boolean readyToAdvance = true;
     foreach json event in changes.events {
+        string eventId = check event.id.ensureType(string);
         error? result = registerEventIfRelevant(event);
         if result is error {
-            log:printError("Skipping one changed event due to an error.", result);
+            int attempts = bumpFailureCount(eventId);
+            if attempts >= MAX_CONSECUTIVE_EVENT_FAILURES {
+                log:printError(string `Giving up on event ${eventId} after ${attempts} failed attempts; ` +
+                        "it will not be retried again.", result);
+                clearFailureCount(eventId);
+            } else {
+                log:printError(string `Event ${eventId} failed (attempt ${attempts}/${MAX_CONSECUTIVE_EVENT_FAILURES}); ` +
+                        "will retry next poll.", result);
+                readyToAdvance = false;
+            }
+        } else {
+            clearFailureCount(eventId);
         }
     }
 
-    check database:setSyncToken(changes.nextSyncToken);
+    if readyToAdvance {
+        check database:setSyncToken(changes.nextSyncToken);
+    }
+}
+
+isolated function bumpFailureCount(string eventId) returns int {
+    lock {
+        int next = (eventFailureCounts[eventId] ?: 0) + 1;
+        eventFailureCounts[eventId] = next;
+        return next;
+    }
+}
+
+isolated function clearFailureCount(string eventId) {
+    lock {
+        _ = eventFailureCounts.removeIfHasKey(eventId);
+    }
 }
 
 isolated function registerEventIfRelevant(json event) returns error? {

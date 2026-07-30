@@ -181,9 +181,12 @@ isolated function processRecordingReady(string recordingName) returns error? {
     // The organizer isn't part of either participant list (those are just the other
     // attendees), but they need view access to their own meeting's recording too.
     string[] participantEmails = [tracked.organizer, ...internalEmails, ...externalEmails];
+    error? sharingFailure = ();
+
     driveservice:GrantResult[]|error shareResult = driveservice:grantAccess(fileId, participantEmails, true);
     if shareResult is error {
         log:printError("Attached recording but some Drive permission grants failed.", shareResult);
+        sharingFailure = shareResult;
     }
 
     // Everyone in Sales, Channel Sales, and Sales Engineering also gets view access, even if
@@ -193,6 +196,7 @@ isolated function processRecordingReady(string recordingName) returns error? {
     if salesDepartmentEmails is error {
         log:printError("Could not fetch Sales department list; skipping their access grant for this recording.",
                 salesDepartmentEmails);
+        sharingFailure = salesDepartmentEmails;
     } else {
         string[] extraEmails = [];
         foreach string email in salesDepartmentEmails {
@@ -204,9 +208,14 @@ isolated function processRecordingReady(string recordingName) returns error? {
         if deptShareResult is error {
             log:printError("Attached recording but some Sales department Drive permission grants failed.",
                     deptShareResult);
+            sharingFailure = deptShareResult;
         }
     }
 
+    // The attach itself succeeded regardless of how sharing went, so the DB always reflects
+    // that -- but if any sharing step failed, still surface it as an error after recording
+    // this, so Pub/Sub redelivers the whole event instead of the failure going unnoticed.
+    // Re-running is safe: both the attach and every grant call are idempotent.
     _ = check database:upsertMeetRecording({
         spaceName: tracked.spaceName,
         title: tracked.title,
@@ -219,4 +228,6 @@ isolated function processRecordingReady(string recordingName) returns error? {
         recordingState: database:ATTACHED,
         driveFileId: fileId
     }, SYSTEM_ACTOR);
+
+    return sharingFailure;
 }
