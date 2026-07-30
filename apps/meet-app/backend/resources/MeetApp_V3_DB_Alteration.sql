@@ -1,5 +1,4 @@
 USE people_ops_suite;
-SELECT * FROM people_ops_suite.meeting;
 ALTER TABLE meeting
     ADD COLUMN space_name VARCHAR(255) NULL,
     ADD COLUMN external_participants TEXT NULL,
