@@ -212,10 +212,11 @@ isolated function processRecordingReady(string recordingName) returns error? {
         }
     }
 
-    // The attach itself succeeded regardless of how sharing went, so the DB always reflects
-    // that -- but if any sharing step failed, still surface it as an error after recording
-    // this, so Pub/Sub redelivers the whole event instead of the failure going unnoticed.
-    // Re-running is safe: both the attach and every grant call are idempotent.
+    // Only mark ATTACHED once sharing has actually completed too -- otherwise a recording
+    // whose grants permanently failed (e.g. after Pub/Sub exhausts retries) would sit
+    // indistinguishable from a fully-completed one. FAILED here just means "not done yet,
+    // safe to reprocess": re-running is safe since both the attach and every grant call are
+    // idempotent, so a retry correctly redoes only what's still outstanding.
     _ = check database:upsertMeetRecording({
         spaceName: tracked.spaceName,
         title: tracked.title,
@@ -225,7 +226,7 @@ isolated function processRecordingReady(string recordingName) returns error? {
         endTime: tracked.endTime,
         internalParticipants: tracked.internalParticipants,
         externalParticipants: tracked.externalParticipants,
-        recordingState: database:ATTACHED,
+        recordingState: sharingFailure is () ? database:ATTACHED : database:FAILED,
         driveFileId: fileId
     }, SYSTEM_ACTOR);
 

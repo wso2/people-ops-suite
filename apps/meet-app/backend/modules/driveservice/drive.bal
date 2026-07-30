@@ -40,8 +40,9 @@ public isolated function resolveRecording(string recordingName) returns Recordin
 #   Pass true for people who were actually on the call; false for broad, non-participant
 #   grants (e.g. every Sales/Channel Sales/Sales Engineering employee) so they don't get a
 #   "shared with you" email for every recording.
-# + return - Error if any individual grant failed -- check the response body for exactly
-#   which emails succeeded, since a partial failure doesn't fail the whole request
+# + return - Every per-email result, only if all of them succeeded; an aggregate error
+#   naming the emails that failed (and why) otherwise, so a partial failure doesn't get
+#   silently treated as a full success by callers that only check for `error`
 public isolated function grantAccess(string fileId, string[] emails, boolean sendNotificationEmail)
         returns GrantResult[]|error {
     http:Request req = new;
@@ -53,5 +54,15 @@ public isolated function grantAccess(string fileId, string[] emails, boolean sen
     }
     json responseJson = check response.getJsonPayload();
     GrantAccessResponse grantResponse = check responseJson.cloneWithType(GrantAccessResponse);
+
+    string[] failureMessages = [];
+    foreach GrantResult result in grantResponse.results {
+        if !result.granted {
+            failureMessages.push(string `${result.email} (${result.'error ?: "unknown error"})`);
+        }
+    }
+    if failureMessages.length() > 0 {
+        return error(string `Drive permission grant failed for: ${string:'join(", ", ...failureMessages)}`);
+    }
     return grantResponse.results;
 }
