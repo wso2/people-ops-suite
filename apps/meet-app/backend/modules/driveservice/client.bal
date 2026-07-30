@@ -1,4 +1,4 @@
-// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -15,11 +15,19 @@
 // under the License.
 import ballerina/http;
 
-configurable string driveBaseUrl = ?;
-configurable DriveRetryConfig retryConfig = ?;
+configurable string driveServiceBaseUrl = ?;
+configurable DriveServiceRetryConfig retryConfig = ?;
 configurable Oauth2Config oauthConfig = ?;
 
-final http:Client driveClient = check new (driveBaseUrl, {
+# Meet Backend -> Drive Service Credentials. drive-service is the one and only place in
+# this whole system allowed to call Google Drive's API -- neither this app nor
+# calendar-event-service ever touch Drive directly.
+@display {
+    label: "Drive Service",
+    id: "meet-app/drive-service"
+}
+
+final http:Client driveServiceClient = check new (driveServiceBaseUrl, {
     auth: {
         ...oauthConfig
     },

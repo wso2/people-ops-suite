@@ -48,47 +48,6 @@ public isolated function setFilePermission(string fileId, DrivePermissionRole ro
     return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
 }
 
-# Grants view access to a recording for each person in the list, one permission per
-# person -- not a single domain-wide grant, so access stays limited to people who were
-# actually on the call. Uses the Shared Account's own credential, since it owns the file.
-#
-# + fileId - Drive file ID of the recording
-# + emails - Email addresses to grant Viewer access to
-# + sendNotificationEmail - Whether Drive should email each person about the new access.
-#   Defaults to true (Google's own default) for people who were actually on the call; pass
-#   false for broad, non-participant grants (e.g. every Account Manager) so they don't get
-#   a "shared with you" email for every recording.
-# + return - Error only if a permission grant fails; individual failures are still attempted
-#   for the remaining emails rather than aborting the whole batch
-public isolated function grantRecordingAccess(string fileId, string[] emails, boolean sendNotificationEmail = true)
-        returns error? {
-    error[] failures = [];
-    foreach string email in emails {
-        DrivePermissionPayload payload = {
-            role: VIEWER,
-            'type: USER,
-            emailAddress: email
-        };
-        http:Request req = new;
-        req.setPayload(payload.toJson());
-        http:Response|error response = sharedAccountDriveClient->post(
-                string `/${fileId}/permissions?sendNotificationEmail=${sendNotificationEmail}`, req);
-        if response is error {
-            failures.push(response);
-            continue;
-        }
-        if response.statusCode != 200 {
-            json|error errorBody = response.getJsonPayload();
-            failures.push(error(string `Failed to grant access to ${email}: ${response.statusCode} ${
-                errorBody is json ? errorBody.toJsonString() : ""}`));
-        }
-    }
-    if failures.length() > 0 {
-        return error(string `${failures.length()} of ${emails.length()} Drive permission grants failed.`,
-                cause = failures[0]);
-    }
-}
-
 # Counts WSO2 recordings within a specific date range.
 #
 # + startTime - ISO string for start of period

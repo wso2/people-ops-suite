@@ -1,4 +1,4 @@
-// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -13,19 +13,15 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-import ballerina/http;
 
-configurable string driveBaseUrl = ?;
-configurable DriveRetryConfig retryConfig = ?;
-configurable Oauth2Config oauthConfig = ?;
+# client retry configuration for max retry attempts.
+public const int RETRY_COUNT = 3;
 
-final http:Client driveClient = check new (driveBaseUrl, {
-    auth: {
-        ...oauthConfig
-    },
-    httpVersion: http:HTTP_1_1,
-    http1Settings: {keepAlive: http:KEEPALIVE_NEVER},
-    retryConfig: {
-        ...retryConfig
-    }
-});
+# client retry configuration for wait interval in seconds.
+public const decimal RETRY_INTERVAL = 3.0;
+
+# client retry configuration for interval increment in seconds.
+public const float RETRY_BACKOFF_FACTOR = 2.0;
+
+# client retry configuration for maximum wait interval in seconds.
+public const decimal RETRY_MAX_INTERVAL = 20.0;
