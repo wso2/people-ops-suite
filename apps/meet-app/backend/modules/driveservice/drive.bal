@@ -40,9 +40,11 @@ public isolated function resolveRecording(string recordingName) returns Recordin
 #   Pass true for people who were actually on the call; false for broad, non-participant
 #   grants (e.g. every Sales/Channel Sales/Sales Engineering employee) so they don't get a
 #   "shared with you" email for every recording.
-# + return - Every per-email result, only if all of them succeeded; an aggregate error
-#   naming the emails that failed (and why) otherwise, so a partial failure doesn't get
-#   silently treated as a full success by callers that only check for `error`
+# + return - Every per-email result, only if all of them succeeded; otherwise an aggregate
+#   error carrying the failure count and the distinct reasons (deliberately NOT the email
+#   addresses, which are recipient PII we don't put in logs), so a partial failure isn't
+#   silently treated as a full success by callers that only check for `error`. The full
+#   per-email outcome is still available in the returned results on the success path.
 public isolated function grantAccess(string fileId, string[] emails, boolean sendNotificationEmail)
         returns GrantResult[]|error {
     http:Request req = new;
@@ -55,14 +57,23 @@ public isolated function grantAccess(string fileId, string[] emails, boolean sen
     json responseJson = check response.getJsonPayload();
     GrantAccessResponse grantResponse = check responseJson.cloneWithType(GrantAccessResponse);
 
-    string[] failureMessages = [];
+    // Aggregate failures WITHOUT the email addresses -- those are recipient PII we don't want
+    // in application logs. Keep only a count and the distinct failure reasons (Google's own
+    // error strings, which describe the permission problem, not the recipient).
+    int failedCount = 0;
+    string[] reasons = [];
     foreach GrantResult result in grantResponse.results {
         if !result.granted {
-            failureMessages.push(string `${result.email} (${result.'error ?: "unknown error"})`);
+            failedCount += 1;
+            string reason = result.'error ?: "unknown error";
+            if reasons.indexOf(reason) == () {
+                reasons.push(reason);
+            }
         }
     }
-    if failureMessages.length() > 0 {
-        return error(string `Drive permission grant failed for: ${string:'join(", ", ...failureMessages)}`);
+    if failedCount > 0 {
+        return error(string `${failedCount} of ${grantResponse.results.length()} Drive permission grant(s) failed. ` +
+                string `Reason(s): ${string:'join("; ", ...reasons)}`);
     }
     return grantResponse.results;
 }
