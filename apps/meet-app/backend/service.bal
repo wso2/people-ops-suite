@@ -674,8 +674,8 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // Update editor permissions for all available video/mp4 attachments of the meeting.
-       
+        return {attachments: calendarEventAttachments ?: []};
+    }
 
     # Delete meeting.
     #
@@ -790,7 +790,6 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         time:Civil startCivil = time:utcToCivil(startUtc);
         time:Civil endCivil = time:utcToCivil(endUtc);
-        map<future<int|error>> driveFutureMap = {};
         map<json> metaDataMap = {};
 
         int cursorYear = startCivil.year;
@@ -802,25 +801,12 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
             string monthStr = cursorMonth < 10 ? string `0${cursorMonth}` : cursorMonth.toString();
             string monthKey = string `${cursorYear}-${monthStr}`;
-            string queryStartTime = string `${cursorYear}-${monthStr}-01T00:00:00Z`;
-            int nextMonthVal = cursorMonth + 1;
-            int nextYearVal = cursorYear;
 
-            if (nextMonthVal > 12) {
-                nextMonthVal = 1;
-                nextYearVal = nextYearVal + 1;
-            }
-            string nextMonthStr = nextMonthVal < 10 ? string `0${nextMonthVal}` : nextMonthVal.toString();
-            string queryEndTime = string `${nextYearVal}-${nextMonthStr}-01T00:00:00Z`;
-
-            if (cursorYear == startCivil.year && cursorMonth == startCivil.month) {
-                queryStartTime = startDate;
-            }
-            if (cursorYear == endCivil.year && cursorMonth == endCivil.month) {
-                queryEndTime = endDate;
-            }
-
-           
+            metaDataMap[monthKey] = {
+                "year": cursorYear,
+                "month": cursorMonth,
+                "key": monthKey
+            };
 
             cursorMonth = cursorMonth + 1;
             if cursorMonth > 12 {
@@ -830,23 +816,19 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         map<int> dbCounts = check wait scheduledCounts;
-        map<int|error> driveResults = {};
-
-        foreach string key in driveFutureMap.keys() {
-            driveResults[key] = wait driveFutureMap.get(key);
-        }
         json[] monthlyStats = [];
-        string[] sortedKeys = driveFutureMap.keys().sort(array:DESCENDING);
+        string[] sortedKeys = metaDataMap.keys().sort(array:DESCENDING);
 
         foreach string key in sortedKeys {
             json meta = metaDataMap.get(key);
-            // Drive Count
-            int|error? driveCount = driveResults[key];
             // DB Count
             int scheduledCount = dbCounts.hasKey(key) ? dbCounts.get(key) : 0;
 
+            // recordingCount used to come from the old Drive API's
+            // countWso2RecordingsInDateRange, which is gone now along with that dead client --
+            // kept as a static 0 so the response shape doesn't change for existing consumers.
             _ = check meta.mergeJson({
-                "recordingCount": (driveCount is int) ? driveCount : 0,
+                "recordingCount": 0,
                 "scheduledCount": scheduledCount
             });
             monthlyStats.push(meta);
