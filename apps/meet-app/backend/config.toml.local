@@ -11,24 +11,31 @@
         clientSecret = ""
 
     [meet_app.calendar.retryConfig]
-        count = 
-        interval = 
-        backOffFactor = 
+        count =
+        interval =
+        backOffFactor =
         maxWaitInterval =
 
 [meet_app.people]
     hrEntityBaseUrl = ""
     allowedEmploymentTypes = []
+    # Optional. Departments whose members auto-get view access to recordings.
+    # Defaults to the three below if omitted.
+    recordingAccessDepartments = ["SALES", "CHANNEL SALES", "SALES ENGINEERING"]
+    # Optional. For staging: if non-empty, recordings are shared only with these test
+    # emails instead of the real departments above. Leave empty ([]) in production.
+    recordingAccessTestEmails = []
+
     [meet_app.people.oauthConfig]
         tokenUrl = ""
         clientId = ""
         clientSecret = ""
 
     [meet_app.people.retryConfig]
-        count = 
-        interval = 
-        backOffFactor = 
-        maxWaitInterval = 
+        count =
+        interval =
+        backOffFactor =
+        maxWaitInterval =
 
 [meet_app.sales]
     salesEntityBaseUrl = ""
@@ -38,11 +45,12 @@
         clientSecret = ""
 
     [meet_app.sales.retryConfig]
-        count = 
-        interval = 
-        backOffFactor = 
-        maxWaitInterval = 
+        count =
+        interval =
+        backOffFactor =
+        maxWaitInterval =
 
+# Old scheduling flow's direct Google Drive client (attach permissions + recording counts).
 [meet_app.drive]
     driveBaseUrl = ""
     [meet_app.drive.oauthConfig]
@@ -52,23 +60,37 @@
         refreshToken = ""
 
     [meet_app.drive.retryConfig]
-        count = 
-        interval = 
-        backOffFactor = 
-        maxWaitInterval = 
+        count =
+        interval =
+        backOffFactor =
+        maxWaitInterval =
+
+# New auto-recording flow: talks to the drive-service (Go) via Asgardeo M2M, not Google directly.
+[meet_app.driveservice]
+    driveServiceBaseUrl = ""
+    [meet_app.driveservice.oauthConfig]
+        tokenUrl = ""
+        clientId = ""
+        clientSecret = ""
+
+    [meet_app.driveservice.retryConfig]
+        count =
+        interval =
+        backOffFactor =
+        maxWaitInterval =
 
 [meet_app.database.dbConfig]
     host = ""
     user = ""
     password = ""
     database = ""
-    port = 
+    port =
     [meet_app.database.dbConfig.connectionPool]
-    maxOpenConnections = 
-    maxConnectionLifeTime = 
-    minIdleConnections= 
+    maxOpenConnections =
+    maxConnectionLifeTime =
+    minIdleConnections=
     [meet_app.database.dbConfig.options]
-    connectTimeout = 
+    connectTimeout =
 
 [meet_app.authorization.authorizedRoles]
     SALES_TEAM  = ""
@@ -89,3 +111,17 @@
 [meet_app.salesDesignations]
  teamNameOfAccountManager = ""
  teamNameOfTechnicalOfficer = ""
+
+# Calendar-watch + auto-recording listeners and the watch-channel renewal job.
+[meet_app]
+    # Ports the two extra listeners bind to (defaults shown; override only if needed).
+    calendarWatchListenerPort = 9093
+    meetEventsListenerPort = 9091
+    # The Shared Account whose calendar is watched for add-on meetings.
+    sharedAccountEmail = ""
+    # Shared secret Google echoes back on every watch ping (pick any value).
+    calendarWatchToken = ""
+    # Public URL of THIS service's calendar-watch (9093) endpoint that Google pings.
+    calendarWatchWebhookUrl = ""
+    # Any stable prefix used when naming watch channels.
+    calendarWatchChannelIdPrefix = ""
