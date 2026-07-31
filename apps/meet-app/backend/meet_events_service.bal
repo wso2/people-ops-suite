@@ -174,19 +174,22 @@ isolated function processRecordingReady(string recordingName) returns error? {
     string[] internalEmails = tracked.internalParticipants.length() > 0
         ? commaSplit.split(tracked.internalParticipants).map(e => e.trim())
         : [];
-    string[] externalEmails = tracked.externalParticipants.length() > 0
-        ? commaSplit.split(tracked.externalParticipants).map(e => e.trim())
-        : [];
+    // Grant Drive view access only to internal (wso2.com) people -- the organizer plus the
+    // internal participants. External participants are deliberately excluded: WSO2 blocks
+    // sharing Drive files outside the org, so trying to grant them always failed, which kept
+    // the recording marked FAILED and made Pub/Sub retry the whole thing forever (re-sharing
+    // to everyone else on each retry). External attendees still get the calendar attachment.
+    string[] participantEmails = [tracked.organizer, ...internalEmails];
 
-    // The organizer isn't part of either participant list (those are just the other
-    // attendees), but they need view access to their own meeting's recording too.
-    string[] participantEmails = [tracked.organizer, ...internalEmails, ...externalEmails];
-    error? sharingFailure = ();
-
+    // Access-granting below is BEST-EFFORT. Failures are logged for follow-up but must never
+    // fail this function -- otherwise the webhook returns 503, Pub/Sub retries the whole event
+    // forever, and every retry re-attaches and re-shares (spamming everyone) while a permanent
+    // grant failure (e.g. a Drive cross-domain / silent-sharing restriction) never resolves.
+    // The recording is already attached at this point; that's the actual deliverable.
     driveservice:GrantResult[]|error shareResult = driveservice:grantAccess(fileId, participantEmails, true);
     if shareResult is error {
-        log:printError("Attached recording but some Drive permission grants failed.", shareResult);
-        sharingFailure = shareResult;
+        log:printError("Recording attached, but some participant Drive permission grants failed " +
+                "(best-effort, not retrying).", shareResult);
     }
 
     // Everyone in Sales, Channel Sales, and Sales Engineering also gets view access, even if
@@ -196,7 +199,6 @@ isolated function processRecordingReady(string recordingName) returns error? {
     if salesDepartmentEmails is error {
         log:printError("Could not fetch Sales department list; skipping their access grant for this recording.",
                 salesDepartmentEmails);
-        sharingFailure = salesDepartmentEmails;
     } else {
         string[] extraEmails = [];
         foreach string email in salesDepartmentEmails {
@@ -206,17 +208,15 @@ isolated function processRecordingReady(string recordingName) returns error? {
         }
         driveservice:GrantResult[]|error deptShareResult = driveservice:grantAccess(fileId, extraEmails, false);
         if deptShareResult is error {
-            log:printError("Attached recording but some Sales department Drive permission grants failed.",
-                    deptShareResult);
-            sharingFailure = deptShareResult;
+            log:printError("Recording attached, but some Sales department Drive permission grants failed " +
+                    "(best-effort, not retrying).", deptShareResult);
         }
     }
 
-    // Only mark ATTACHED once sharing has actually completed too -- otherwise a recording
-    // whose grants permanently failed (e.g. after Pub/Sub exhausts retries) would sit
-    // indistinguishable from a fully-completed one. FAILED here just means "not done yet,
-    // safe to reprocess": re-running is safe since both the attach and every grant call are
-    // idempotent, so a retry correctly redoes only what's still outstanding.
+    // The recording is attached -- mark ATTACHED and return success (200) regardless of how
+    // sharing went. Sharing failures are logged above for manual follow-up; they deliberately
+    // do NOT trigger a Pub/Sub retry. (A DB write failure below still surfaces as an error, so
+    // a genuinely transient DB problem is retried.)
     _ = check database:upsertMeetRecording({
         spaceName: tracked.spaceName,
         title: tracked.title,
@@ -226,9 +226,7 @@ isolated function processRecordingReady(string recordingName) returns error? {
         endTime: tracked.endTime,
         internalParticipants: tracked.internalParticipants,
         externalParticipants: tracked.externalParticipants,
-        recordingState: sharingFailure is () ? database:ATTACHED : database:FAILED,
+        recordingState: database:ATTACHED,
         driveFileId: fileId
     }, SYSTEM_ACTOR);
-
-    return sharingFailure;
 }
