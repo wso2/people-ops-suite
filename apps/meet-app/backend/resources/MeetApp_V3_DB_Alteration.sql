@@ -3,13 +3,21 @@ USE people_ops_suite;
 -- (meeting_type, host_bu/team/sub_team/unit, is_recurring) are deliberately kept so the
 -- existing meet-app scheduling functionality keeps working alongside this. The
 -- auto-recording INSERT (upsertMeetRecordingQuery) doesn't set those columns, which is fine:
--- host_* / is_recurring have defaults, and meeting_type is nullable (see the staging
--- remediation note below), so auto-recorded rows simply leave them empty.
+-- host_* / is_recurring have defaults, and meeting_type is made nullable just below, so
+-- auto-recorded rows simply leave them empty.
 ALTER TABLE meeting
     ADD COLUMN space_name VARCHAR(255) NULL,
     ADD COLUMN external_participants TEXT NULL,
     ADD COLUMN drive_file_id VARCHAR(255) NULL,
     ADD COLUMN recording_state ENUM('PENDING', 'ATTACHED', 'FAILED') NULL;
+
+-- meeting_type was originally NOT NULL, but the auto-recording INSERT never sets it, so it
+-- must allow NULL. Safe no-op if already nullable. Run this on any environment where the
+-- meeting_type column still EXISTS (e.g. production upgrading from the original schema).
+-- On an environment that DROPPED meeting_type (see staging remediation below), skip this --
+-- the remediation re-adds it already nullable. The stats query filters `meeting_type IS NOT
+-- NULL`, so auto-recorded rows (NULL type) stay correctly excluded from the type breakdown.
+ALTER TABLE meeting MODIFY meeting_type VARCHAR(255) NULL;
 CREATE TABLE calendar_watch_state (
     id INT PRIMARY KEY DEFAULT 1,
     sync_token VARCHAR(1000) NULL,

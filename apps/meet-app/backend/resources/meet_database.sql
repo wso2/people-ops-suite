@@ -4,7 +4,7 @@ USE `people_ops_suite`;
 CREATE TABLE meeting (
   `meeting_id` INT NOT NULL AUTO_INCREMENT,    -- Unique meeting ID
   `title` VARCHAR(120) NOT NULL,                -- Title of the meeting
-  `meeting_type` VARCHAR(255) NOT NULL,         -- Type of the meeting
+  `meeting_type` VARCHAR(255) NULL,             -- Type of the meeting (nullable: auto-recorded rows have none)
   `google_event_id` VARCHAR(120) NOT NULL,      -- Google event ID
   `host` VARCHAR(60) NOT NULL,                  -- Host of the meeting
   `host_bu` VARCHAR(50) NULL DEFAULT 'N/A',              -- Business unit of the host
