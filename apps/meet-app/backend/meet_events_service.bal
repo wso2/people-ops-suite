@@ -165,7 +165,8 @@ isolated function processRecordingReady(string recordingName) returns error? {
             internalParticipants: tracked.internalParticipants,
             externalParticipants: tracked.externalParticipants,
             recordingState: database:FAILED,
-            driveFileId: fileId
+            driveFileId: fileId,
+            opportunityId: tracked.opportunityId
         }, SYSTEM_ACTOR);
         return attachResult;
     }
@@ -227,6 +228,7 @@ isolated function processRecordingReady(string recordingName) returns error? {
         internalParticipants: tracked.internalParticipants,
         externalParticipants: tracked.externalParticipants,
         recordingState: database:ATTACHED,
-        driveFileId: fileId
+        driveFileId: fileId,
+        opportunityId: tracked.opportunityId
     }, SYSTEM_ACTOR);
 }
