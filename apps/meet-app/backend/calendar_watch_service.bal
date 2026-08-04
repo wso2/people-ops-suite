@@ -186,6 +186,14 @@ isolated function registerEventIfRelevant(json event) returns error? {
 
     string spaceName = check calendar:resolveSpaceName(meetingCode);
 
+    // Written by the RevOS add-on onto every event it creates or links -- absent (not an
+    // error) for a meeting that was never linked to a deal, e.g. tagged addOn by mistake.
+    string? opportunityId = ();
+    json|error opportunityIdResult = event.extendedProperties.'private.revos_opportunity_id;
+    if opportunityIdResult is string {
+        opportunityId = opportunityIdResult;
+    }
+
     json[] attendees = [];
     json|error attendeesResult = event.attendees;
     if attendeesResult is json[] {
@@ -228,6 +236,7 @@ isolated function registerEventIfRelevant(json event) returns error? {
         internalParticipants: string:'join(", ", ...internalEmails),
         externalParticipants: string:'join(", ", ...externalEmails),
         recordingState: database:PENDING,
-        driveFileId: ()
+        driveFileId: (),
+        opportunityId
     }, SYSTEM_ACTOR);
 }

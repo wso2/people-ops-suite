@@ -26,6 +26,13 @@ CREATE TABLE calendar_watch_state (
 
 INSERT INTO calendar_watch_state (id, sync_token) VALUES (1, NULL);
 
+-- Links an auto-recorded meeting back to the Salesforce Opportunity it was scheduled for.
+-- Value comes from the calendar event's own extendedProperties.private.revos_opportunity_id
+-- (written by the RevOS add-on). NULL for the existing manual-scheduling flow, which has no
+-- Salesforce opportunity at all.
+ALTER TABLE people_ops_suite.meeting
+ADD COLUMN `opportunity_id` VARCHAR(255) NULL;
+
 
 
 -- Prevents two concurrent upsertMeetRecording calls from ever creating duplicate rows for

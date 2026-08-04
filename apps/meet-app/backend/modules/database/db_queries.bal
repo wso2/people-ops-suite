@@ -368,6 +368,7 @@ isolated function upsertMeetRecordingQuery(MeetRecordingPayload payload, string 
         external_participants,
         recording_state,
         drive_file_id,
+        opportunity_id,
         meeting_status,
         created_by,
         updated_by
@@ -385,6 +386,7 @@ isolated function upsertMeetRecordingQuery(MeetRecordingPayload payload, string 
         ${payload.externalParticipants},
         ${payload.recordingState},
         ${payload.driveFileId},
+        ${payload.opportunityId},
         ${ACTIVE},
         ${actor},
         ${actor}
@@ -401,6 +403,7 @@ isolated function upsertMeetRecordingQuery(MeetRecordingPayload payload, string 
         external_participants = VALUES(external_participants),
         recording_state = VALUES(recording_state),
         drive_file_id = VALUES(drive_file_id),
+        opportunity_id = VALUES(opportunity_id),
         updated_by = VALUES(updated_by)
 `;
 
@@ -438,7 +441,8 @@ isolated function getMeetRecordingBySpaceNameQuery(string spaceName) returns sql
         wso2_participants AS internalParticipants,
         external_participants AS externalParticipants,
         recording_state AS recordingState,
-        drive_file_id AS driveFileId
+        drive_file_id AS driveFileId,
+        opportunity_id AS opportunityId
     FROM meeting
     WHERE space_name = ${spaceName}
 `;
