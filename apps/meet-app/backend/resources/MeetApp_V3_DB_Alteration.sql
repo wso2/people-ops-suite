@@ -33,6 +33,12 @@ INSERT INTO calendar_watch_state (id, sync_token) VALUES (1, NULL);
 ALTER TABLE people_ops_suite.meeting
 ADD COLUMN `opportunity_id` VARCHAR(255) NULL;
 
+-- Compact deal context (name, stage, amount, account, close date) alongside the meeting,
+-- from the event's extendedProperties.private.revos_opportunity_snapshot -- a JSON string
+-- the add-on already builds and writes onto the event. NULL wherever opportunity_id is NULL.
+ALTER TABLE people_ops_suite.meeting
+ADD COLUMN `opportunity_details` JSON NULL;
+
 
 
 -- Prevents two concurrent upsertMeetRecording calls from ever creating duplicate rows for
