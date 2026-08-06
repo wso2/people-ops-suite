@@ -209,11 +209,15 @@ isolated function registerEventIfRelevant(json event) returns error? {
 
     // Compact deal snapshot (name, stage, amount, account, close date) the add-on writes as
     // one JSON-string property. Stored as-is -- MySQL validates it as JSON on insert, nothing
-    // here needs to parse it back out.
+    // here needs to parse it back out. Only captured when an opportunityId is also present, so
+    // the row can never hold deal details without the id they belong to (matches the schema's
+    // documented "NULL wherever opportunity_id is NULL" invariant).
     string? opportunityDetails = ();
-    json|error opportunitySnapshotResult = event.extendedProperties.'private.revos_opportunity_snapshot;
-    if opportunitySnapshotResult is string {
-        opportunityDetails = opportunitySnapshotResult;
+    if opportunityId is string {
+        json|error opportunitySnapshotResult = event.extendedProperties.'private.revos_opportunity_snapshot;
+        if opportunitySnapshotResult is string {
+            opportunityDetails = opportunitySnapshotResult;
+        }
     }
 
     json[] attendees = [];

@@ -131,8 +131,10 @@ type SeedRegistryRequest record {|
 |};
 
 // Isolated listener, deliberately separate from the main Asgardeo-gated service on 9090.
-// No push-token verification for now -- accepted trade-off for today's demo, behind a
-// short-lived tunnel URL; revisit before this is ever exposed on a stable public endpoint.
+// This endpoint is unauthenticated at the Choreo gateway (Google's Pub/Sub push carries no
+// gateway credential), so the caller is authenticated in-app: when pubsubAuthEnabled is set,
+// verifyPubsubPush() validates the Google-signed OIDC token on every push; when disabled
+// (the staged-rollout default) verification is skipped.
 service /meet\-events on new http:Listener(meetEventsListenerPort) {
 
     # One-off manual seed -- see SeedRegistryRequest.

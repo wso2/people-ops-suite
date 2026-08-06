@@ -98,5 +98,13 @@ isolated function scheduleRenewal(decimal delaySeconds) {
 }
 
 function init() returns error? {
+    // Fail closed on a missing watch-channel secret. calendarWatchToken is required, but an
+    // empty deployed value ("") would make the /calendar-watch token check and the /register
+    // admin-token guard accept an attacker-supplied empty token -- so refuse to start rather
+    // than run open (CWE-1188).
+    if calendarWatchToken.trim() == "" {
+        return error("calendarWatchToken is not configured; refusing to start with an empty " +
+                "watch-channel secret (the /calendar-watch and /register endpoints would fail open).");
+    }
     scheduleRenewal(0);
 }
