@@ -119,9 +119,23 @@
     meetEventsListenerPort = 9091
     # The Shared Account whose calendar is watched for add-on meetings.
     sharedAccountEmail = ""
-    # Shared secret Google echoes back on every watch ping (pick any value).
+    # Strong random shared secret Google echoes back on every watch ping. Use a long random
+    # value (e.g. `openssl rand -hex 32`), NOT a guessable string, and match it when
+    # registering the channel.
     calendarWatchToken = ""
     # Public URL of THIS service's calendar-watch (9093) endpoint that Google pings.
     calendarWatchWebhookUrl = ""
     # Any stable prefix used when naming watch channels.
     calendarWatchChannelIdPrefix = ""
+
+    # Pub/Sub push authentication for the /meet-events (9091) endpoint. This endpoint is
+    # unauthenticated at the gateway (Google's push carries no gateway credential), so the
+    # caller is verified here via the Google-signed OIDC token Pub/Sub attaches when the push
+    # subscription is created with --push-auth-service-account.
+    #   Keep pubsubAuthEnabled=false until the push subscription has been (re)created with an
+    #   auth service account; then set the two values below and flip to true.
+    pubsubAuthEnabled = false
+    # Service account set as the push subscription's auth identity (the token's `email` claim).
+    pubsubPushServiceAccount = ""
+    # Audience the token must carry (--push-auth-token-audience, or the push endpoint URL).
+    pubsubPushAudience = ""
