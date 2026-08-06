@@ -30,14 +30,27 @@ service /calendar\-watch on new http:Listener(calendarWatchListenerPort) {
 
     # One-time manual setup/testing endpoint: registers a watch channel on the Shared
     # Account's calendar directly, bypassing the self-renewing scheduled job in
-    # calendar_watch_renewal.bal. Point webhookUrl at this same service's own tunnel URL,
-    # with "/calendar-watch" appended.
+    # calendar_watch_renewal.bal. Point webhookUrl at this same service's own base URL --
+    # Choreo's exposed path for this service already IS the "/calendar-watch" root, so
+    # nothing further should be appended.
+    #
+    # Guarded by adminToken (reusing calendarWatchToken as a second, unrelated purpose --
+    # it is otherwise just the ping-matching secret) because this whole service has to sit
+    # unauthenticated at the Choreo gateway for Google's own webhook pings to ever reach
+    # the resource below, which would otherwise leave this registration action wide open to
+    # anyone on the internet.
     #
     # + webhookUrl - Publicly reachable URL for Google to send pings to
     # + channelId - Unique ID for this channel (pick any new string each time you register)
+    # + adminToken - Must match the configured calendarWatchToken
     # + return - The registered channel's details, or error
-    resource function post register(string webhookUrl, string channelId)
-            returns calendar:WatchChannelResponse|http:InternalServerError {
+    resource function post register(string webhookUrl, string channelId, string adminToken)
+            returns calendar:WatchChannelResponse|http:InternalServerError|http:Unauthorized {
+        if adminToken != calendarWatchToken {
+            log:printError("Calendar watch registration attempt had a missing or mismatched admin token; refusing.");
+            return <http:Unauthorized>{body: {message: "Unauthorized."}};
+        }
+
         calendar:WatchChannelResponse|error result = calendar:watchCalendar(webhookUrl, channelId, calendarWatchToken);
         if result is error {
             log:printError("Failed to register calendar watch channel.", result);
@@ -194,6 +207,15 @@ isolated function registerEventIfRelevant(json event) returns error? {
         opportunityId = opportunityIdResult;
     }
 
+    // Compact deal snapshot (name, stage, amount, account, close date) the add-on writes as
+    // one JSON-string property. Stored as-is -- MySQL validates it as JSON on insert, nothing
+    // here needs to parse it back out.
+    string? opportunityDetails = ();
+    json|error opportunitySnapshotResult = event.extendedProperties.'private.revos_opportunity_snapshot;
+    if opportunitySnapshotResult is string {
+        opportunityDetails = opportunitySnapshotResult;
+    }
+
     json[] attendees = [];
     json|error attendeesResult = event.attendees;
     if attendeesResult is json[] {
@@ -237,6 +259,7 @@ isolated function registerEventIfRelevant(json event) returns error? {
         externalParticipants: string:'join(", ", ...externalEmails),
         recordingState: database:PENDING,
         driveFileId: (),
-        opportunityId
+        opportunityId,
+        opportunityDetails
     }, SYSTEM_ACTOR);
 }
