@@ -181,6 +181,9 @@ public enum RecordingState {
 # + recordingState - Current processing state
 # + driveFileId - Drive file ID of the recording, once resolved
 # + opportunityId - Salesforce Opportunity ID this call was scheduled for, if any
+# + opportunityDetails - Compact JSON snapshot of the deal (name, stage, amount, account, close
+# date), as a raw JSON string -- stored as-is, not parsed, since nothing here needs individual
+# fields out of it
 public type MeetRecordingPayload record {|
     string title;
     string spaceName;
@@ -193,6 +196,7 @@ public type MeetRecordingPayload record {|
     RecordingState recordingState;
     string? driveFileId = ();
     string? opportunityId = ();
+    string? opportunityDetails = ();
 |};
 
 # [Database] An auto-recorded meeting row, read back by space name.
@@ -209,6 +213,7 @@ public type MeetRecordingPayload record {|
 # + recordingState - Current processing state
 # + driveFileId - Drive file ID of the recording, if resolved yet
 # + opportunityId - Salesforce Opportunity ID this call was scheduled for, if any
+# + opportunityDetails - Compact JSON snapshot of the deal, as a raw JSON string
 public type MeetRecordingRow record {|
     int meetingId;
     string spaceName;
@@ -222,4 +227,5 @@ public type MeetRecordingRow record {|
     RecordingState recordingState;
     string? driveFileId;
     string? opportunityId;
+    string? opportunityDetails;
 |};

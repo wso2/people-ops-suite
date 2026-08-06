@@ -19,12 +19,64 @@ import meet_app.driveservice;
 import meet_app.people;
 
 import ballerina/http;
+import ballerina/jwt;
 import ballerina/lang.array;
 import ballerina/lang.'string as strings;
 import ballerina/lang.value;
 import ballerina/log;
 
 configurable int meetEventsListenerPort = 9091;
+
+// Authentication of the Pub/Sub push. This endpoint must sit unauthenticated at the Choreo
+// gateway (Google's push carries no Choreo credential), so the caller is authenticated HERE
+// instead, by verifying the Google-signed OIDC token Pub/Sub attaches when the push
+// subscription is configured with a service account. Gated on `pubsubAuthEnabled` so the code
+// can be deployed first and enforcement switched on only once the push subscription has been
+// (re)created with `--push-auth-service-account`; otherwise real messages -- which would not
+// yet carry a token -- would be rejected.
+configurable boolean pubsubAuthEnabled = false;
+// The service account set as the push subscription's auth identity; must equal the token's
+// `email` claim.
+configurable string pubsubPushServiceAccount = "";
+// The audience the token must carry -- the value passed to `--push-auth-token-audience`, or
+// the push endpoint URL if no override was set.
+configurable string pubsubPushAudience = "";
+
+// Google's OIDC issuer and public-key (JWKS) endpoint for verifying Pub/Sub push tokens.
+const string GOOGLE_OIDC_ISSUER = "https://accounts.google.com";
+const string GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
+
+# Verifies the Google-signed OIDC token on a Pub/Sub push. Returns an error (which the caller
+# turns into a 401) if enforcement is on and the token is missing, malformed, wrongly signed,
+# or does not carry the expected issuer/audience/service-account. A no-op when enforcement is
+# off.
+#
+# + authorization - The raw `Authorization` header value (expected `Bearer <jwt>`)
+# + return - `()` if authenticated (or enforcement disabled), else an error
+isolated function verifyPubsubPush(string? authorization) returns error? {
+    if !pubsubAuthEnabled {
+        return;
+    }
+    if authorization is () || !authorization.startsWith("Bearer ") {
+        return error("Missing or malformed Authorization header on Pub/Sub push.");
+    }
+    string token = authorization.substring(7).trim();
+    jwt:ValidatorConfig validatorConfig = {
+        issuer: GOOGLE_OIDC_ISSUER,
+        audience: pubsubPushAudience,
+        signatureConfig: {jwksConfig: {url: GOOGLE_JWKS_URL}}
+    };
+    jwt:Payload payload = check jwt:validate(token, validatorConfig);
+    anydata email = payload["email"];
+    anydata emailVerified = payload["email_verified"];
+    if email != pubsubPushServiceAccount {
+        return error(string `Pub/Sub push token 'email' claim did not match the expected push service account.`);
+    }
+    if emailVerified != true {
+        return error("Pub/Sub push token 'email_verified' claim was not true.");
+    }
+    return;
+}
 
 // Writes performed by these automated flows aren't tied to a specific logged-in user,
 // unlike the rest of this app's created_by/updated_by values.
@@ -79,8 +131,10 @@ type SeedRegistryRequest record {|
 |};
 
 // Isolated listener, deliberately separate from the main Asgardeo-gated service on 9090.
-// No push-token verification for now -- accepted trade-off for today's demo, behind a
-// short-lived tunnel URL; revisit before this is ever exposed on a stable public endpoint.
+// This endpoint is unauthenticated at the Choreo gateway (Google's Pub/Sub push carries no
+// gateway credential), so the caller is authenticated in-app: when pubsubAuthEnabled is set,
+// verifyPubsubPush() validates the Google-signed OIDC token on every push; when disabled
+// (the staged-rollout default) verification is skipped.
 service /meet\-events on new http:Listener(meetEventsListenerPort) {
 
     # One-off manual seed -- see SeedRegistryRequest.
@@ -107,11 +161,22 @@ service /meet\-events on new http:Listener(meetEventsListenerPort) {
         return <http:Ok>{body: {message: "seeded"}};
     }
 
+    # + authorization - `Authorization: Bearer <OIDC JWT>` header Pub/Sub attaches when the
+    #   push subscription is configured with an auth service account
     # + envelope - The Pub/Sub push envelope
-    # + return - 200 once processed, or if the message is permanently unparseable (retrying
-    #   a malformed message would never help); 503 on a genuine processing failure, since
-    #   Pub/Sub retries non-2xx responses with backoff automatically
-    resource function post .(@http:Payload PubSubPushEnvelope envelope) returns http:Ok|http:ServiceUnavailable {
+    # + return - 401 if the push token is missing/invalid (enforcement on); 200 once processed,
+    #   or if the message is permanently unparseable (retrying a malformed message would never
+    #   help); 503 on a genuine processing failure, since Pub/Sub retries non-2xx responses
+    #   with backoff automatically
+    resource function post .(@http:Header {name: "Authorization"} string? authorization,
+            @http:Payload PubSubPushEnvelope envelope)
+            returns http:Ok|http:Unauthorized|http:ServiceUnavailable {
+        error? authResult = verifyPubsubPush(authorization);
+        if authResult is error {
+            log:printError("Rejected unauthenticated/invalid Pub/Sub push.", authResult);
+            return <http:Unauthorized>{body: {message: "Unauthorized."}};
+        }
+
         byte[]|error decoded = array:fromBase64(envelope.message.data);
         if decoded is error {
             log:printError("Could not base64-decode Pub/Sub message data.", decoded);
@@ -166,7 +231,8 @@ isolated function processRecordingReady(string recordingName) returns error? {
             externalParticipants: tracked.externalParticipants,
             recordingState: database:FAILED,
             driveFileId: fileId,
-            opportunityId: tracked.opportunityId
+            opportunityId: tracked.opportunityId,
+            opportunityDetails: tracked.opportunityDetails
         }, SYSTEM_ACTOR);
         return attachResult;
     }
@@ -229,6 +295,7 @@ isolated function processRecordingReady(string recordingName) returns error? {
         externalParticipants: tracked.externalParticipants,
         recordingState: database:ATTACHED,
         driveFileId: fileId,
-        opportunityId: tracked.opportunityId
+        opportunityId: tracked.opportunityId,
+        opportunityDetails: tracked.opportunityDetails
     }, SYSTEM_ACTOR);
 }
