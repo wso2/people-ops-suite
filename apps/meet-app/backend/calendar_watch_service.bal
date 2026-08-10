@@ -25,7 +25,7 @@ configurable string calendarWatchToken = ?;
 
 function init() returns error? {
     // Fail closed on a missing watch-channel secret. calendarWatchToken is required, but an
-    // empty deployed value ("") would make the ping check above and the /register admin-token
+    // empty deployed value ("") would make the ping check below and the /register admin-token
     // guard both accept an attacker-supplied empty token -- so refuse to start rather than run
     // open (CWE-1188). (Renewal is now handled by the separate meet-watch-renewal Choreo
     // Scheduled Task, not by this service -- this check used to live in that job's own init().)
