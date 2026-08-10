@@ -112,7 +112,8 @@
  teamNameOfAccountManager = ""
  teamNameOfTechnicalOfficer = ""
 
-# Calendar-watch + auto-recording listeners and the watch-channel renewal job.
+# Calendar-watch + auto-recording listeners. Watch-channel/subscription renewal is handled
+# by the separate meet-watch-renewal Choreo Scheduled Task, not by this service.
 [meet_app]
     # Ports the two extra listeners bind to (defaults shown; override only if needed).
     calendarWatchListenerPort = 9093
@@ -123,10 +124,6 @@
     # value (e.g. `openssl rand -hex 32`), NOT a guessable string, and match it when
     # registering the channel.
     calendarWatchToken = ""
-    # Public URL of THIS service's calendar-watch (9093) endpoint that Google pings.
-    calendarWatchWebhookUrl = ""
-    # Any stable prefix used when naming watch channels.
-    calendarWatchChannelIdPrefix = ""
 
     # Pub/Sub push authentication for the /meet-events (9091) endpoint. This endpoint is
     # unauthenticated at the gateway (Google's push carries no gateway credential), so the
