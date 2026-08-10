@@ -61,26 +61,12 @@ public isolated function watchCalendar(string webhookUrl, string channelId, stri
     http:Request req = new;
     req.setPayload({webhookUrl, channelId, token});
     http:Response response = check calendarClient->post(string `/calendars/${calendarId}/watch`, req);
-    if response.statusCode != 200 {
+    if response.statusCode != 201 {
         json? errorResponseBody = check response.getJsonPayload();
         return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
     }
     json responseJson = check response.getJsonPayload();
     return responseJson.cloneWithType(WatchChannelResponse);
-}
-
-# Stops a previously-registered Calendar watch channel before it naturally expires, via CES.
-#
-# + channelId - The channel's own ID, from when it was registered
-# + resourceId - The resourceId Google assigned when the channel was registered
-# + return - Error if stopping fails
-public isolated function stopWatchChannel(string channelId, string resourceId) returns error? {
-    http:Response response = check calendarClient->post(
-            string `/calendars/${calendarId}/watch/stop?channelId=${channelId}&resourceId=${resourceId}`, {});
-    if response.statusCode != 200 {
-        json? errorResponseBody = check response.getJsonPayload();
-        return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
-    }
 }
 
 # Resolves a meeting's join code to its real Meet space resource name, via CES.
