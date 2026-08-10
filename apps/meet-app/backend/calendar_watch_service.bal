@@ -23,16 +23,28 @@ configurable int calendarWatchListenerPort = 9093;
 configurable string sharedAccountEmail = ?;
 configurable string calendarWatchToken = ?;
 
+function init() returns error? {
+    // Fail closed on a missing watch-channel secret. calendarWatchToken is required, but an
+    // empty deployed value ("") would make the ping check below and the /register admin-token
+    // guard both accept an attacker-supplied empty token -- so refuse to start rather than run
+    // open (CWE-1188). (Renewal is now handled by the separate meet-watch-renewal Choreo
+    // Scheduled Task, not by this service -- this check used to live in that job's own init().)
+    if calendarWatchToken.trim() == "" {
+        return error("calendarWatchToken is not configured; refusing to start with an empty " +
+                "watch-channel secret (the /calendar-watch and /register endpoints would fail open).");
+    }
+}
+
 // Isolated listener, same reasoning as meet_events_service.bal -- separate from the main
 // Asgardeo-gated service, no push-token verification beyond the shared-secret channel token
 // Google echoes back on every ping.
 service /calendar\-watch on new http:Listener(calendarWatchListenerPort) {
 
     # One-time manual setup/testing endpoint: registers a watch channel on the Shared
-    # Account's calendar directly, bypassing the self-renewing scheduled job in
-    # calendar_watch_renewal.bal. Point webhookUrl at this same service's own base URL --
-    # Choreo's exposed path for this service already IS the "/calendar-watch" root, so
-    # nothing further should be appended.
+    # Account's calendar directly. Routine renewal is handled by the separate
+    # meet-watch-renewal Choreo Scheduled Task, not by this service. Point webhookUrl at
+    # this same service's own base URL -- Choreo's exposed path for this service already IS
+    # the "/calendar-watch" root, so nothing further should be appended.
     #
     # Guarded by adminToken (reusing calendarWatchToken as a second, unrelated purpose --
     # it is otherwise just the ping-matching secret) because this whole service has to sit
