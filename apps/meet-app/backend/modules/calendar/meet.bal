@@ -61,7 +61,7 @@ public isolated function watchCalendar(string webhookUrl, string channelId, stri
     http:Request req = new;
     req.setPayload({webhookUrl, channelId, token});
     http:Response response = check calendarClient->post(string `/calendars/${calendarId}/watch`, req);
-    if response.statusCode != 201 {
+    if response.statusCode != 200 && response.statusCode != 201 {
         json? errorResponseBody = check response.getJsonPayload();
         return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
     }
