@@ -69,6 +69,25 @@ public isolated function watchCalendar(string webhookUrl, string channelId, stri
     return responseJson.cloneWithType(WatchChannelResponse);
 }
 
+# Gets a single event as a specific user would see it (impersonated via CES's own DWD
+# credential), via CES. Needed specifically to read `extendedProperties.private` values the
+# RevOS add-on writes -- Google scopes "private" extended properties to the one calendar
+# copy they were set on, so they're only visible when reading the *organizer's* own copy of
+# the event, not the Shared Account's (an attendee's) copy that the calendar-watch poll
+# (getChangedEvents) returns.
+#
+# + organizerEmail - Whose copy of the event to read, impersonated via CES's DWD credential
+# + eventId - The event's ID
+# + return - The event as raw JSON (only `extendedProperties` is actually used), or error
+public isolated function getEvent(string organizerEmail, string eventId) returns json|error {
+    http:Response response = check calendarClient->get(string `/calendars/${organizerEmail}/events/${eventId}`);
+    if response.statusCode != 200 {
+        json? errorResponseBody = check response.getJsonPayload();
+        return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+    }
+    return response.getJsonPayload();
+}
+
 # Resolves a meeting's join code to its real Meet space resource name, via CES.
 #
 # + meetingCode - The short code from a meet.google.com/xxx-xxxx-xxx URL
