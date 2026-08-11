@@ -178,6 +178,19 @@ public isolated function upsertMeetRecording(MeetRecordingPayload payload, strin
     return result.lastInsertId.ensureType(int);
 }
 
+# Registers (or refreshes non-recording details of) an auto-recorded meeting row, keyed by
+# space name -- for calendar-watch's own use. Unlike upsertMeetRecording, this never
+# overwrites recording_state/drive_file_id on an existing row; see
+# registerMeetRecordingQuery for why.
+#
+# + payload - Details to write
+# + actor - User performing the write
+# + return - The row's meeting_id, or Error
+public isolated function registerMeetRecording(MeetRecordingPayload payload, string actor) returns int|error {
+    sql:ExecutionResult result = check databaseClient->execute(registerMeetRecordingQuery(payload, actor));
+    return result.lastInsertId.ensureType(int);
+}
+
 # Gets the stored Calendar-watch sync token, if one's been set yet.
 #
 # + return - The stored sync token, `()` if none stored yet, or Error

@@ -410,6 +410,73 @@ isolated function upsertMeetRecordingQuery(MeetRecordingPayload payload, string 
         updated_by = VALUES(updated_by)
 `;
 
+# Build an insert-or-refresh query for calendar-watch's own registration of an event,
+# keyed the same way as upsertMeetRecordingQuery. Deliberately does NOT overwrite
+# recording_state/drive_file_id on the duplicate-key (update) path -- calendar-watch can
+# be notified again about an event it already registered (e.g. attaching a recording is
+# itself a calendar-event edit, which triggers another change notification), and blindly
+# resetting those two columns back to their initial values would erase progress
+# processRecordingReady() already made. They're still set correctly on a genuine first
+# insert, since VALUES(...) in the INSERT list still applies then.
+#
+# + payload - Details to write
+# + actor - User performing the write
+# + return - sql:ParameterizedQuery - Insert-or-refresh query for the meeting table
+isolated function registerMeetRecordingQuery(MeetRecordingPayload payload, string actor) returns sql:ParameterizedQuery =>
+`
+    INSERT INTO meeting
+    (
+        title,
+        space_name,
+        google_event_id,
+        host,
+        event_creator,
+        start_time,
+        end_time,
+        wso2_participants,
+        external_participants,
+        recording_state,
+        drive_file_id,
+        opportunity_id,
+        opportunity_details,
+        meeting_status,
+        created_by,
+        updated_by
+    )
+    VALUES
+    (
+        ${payload.title},
+        ${payload.spaceName},
+        ${payload.googleEventId},
+        ${payload.organizer},
+        ${payload.organizer},
+        ${payload.startTime},
+        ${payload.endTime},
+        ${payload.internalParticipants},
+        ${payload.externalParticipants},
+        ${payload.recordingState},
+        ${payload.driveFileId},
+        ${payload.opportunityId},
+        ${payload.opportunityDetails},
+        ${ACTIVE},
+        ${actor},
+        ${actor}
+    )
+    ON DUPLICATE KEY UPDATE
+        meeting_id = LAST_INSERT_ID(meeting_id),
+        title = VALUES(title),
+        google_event_id = VALUES(google_event_id),
+        host = VALUES(host),
+        event_creator = VALUES(event_creator),
+        start_time = VALUES(start_time),
+        end_time = VALUES(end_time),
+        wso2_participants = VALUES(wso2_participants),
+        external_participants = VALUES(external_participants),
+        opportunity_id = VALUES(opportunity_id),
+        opportunity_details = VALUES(opportunity_details),
+        updated_by = VALUES(updated_by)
+`;
+
 # Build query to fetch the stored Calendar-watch sync token.
 #
 # + return - sql:ParameterizedQuery - Select query for the calendar_watch_state table
