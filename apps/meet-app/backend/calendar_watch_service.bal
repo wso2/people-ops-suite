@@ -211,24 +211,37 @@ isolated function registerEventIfRelevant(json event) returns error? {
 
     string spaceName = check calendar:resolveSpaceName(meetingCode);
 
-    // Written by the RevOS add-on onto every event it creates or links -- absent (not an
-    // error) for a meeting that was never linked to a deal, e.g. tagged addOn by mistake.
+    // Written by the RevOS add-on onto every event it creates or links, as PRIVATE extended
+    // properties -- which Google scopes to the one calendar copy they were set on (the
+    // organizer's), not to the event generally. The Shared Account's own copy of this event
+    // (what `event` here is -- read via the calendar-watch poll) never has them, so they're
+    // read from a separate, targeted fetch of the organizer's own copy instead, impersonated
+    // via CES's existing DWD credential. A failure here (or the properties genuinely being
+    // absent, e.g. an event tagged addOn by mistake with no deal linked) is not fatal --
+    // the meeting is still tracked, just without opportunity data.
     string? opportunityId = ();
-    json|error opportunityIdResult = event.extendedProperties.'private.revos_opportunity_id;
-    if opportunityIdResult is string {
-        opportunityId = opportunityIdResult;
-    }
-
-    // Compact deal snapshot (name, stage, amount, account, close date) the add-on writes as
-    // one JSON-string property. Stored as-is -- MySQL validates it as JSON on insert, nothing
-    // here needs to parse it back out. Only captured when an opportunityId is also present, so
-    // the row can never hold deal details without the id they belong to (matches the schema's
-    // documented "NULL wherever opportunity_id is NULL" invariant).
     string? opportunityDetails = ();
-    if opportunityId is string {
-        json|error opportunitySnapshotResult = event.extendedProperties.'private.revos_opportunity_snapshot;
-        if opportunitySnapshotResult is string {
-            opportunityDetails = opportunitySnapshotResult;
+    json|error organizerEventResult = calendar:getEvent(organizerEmail, eventId);
+    if organizerEventResult is error {
+        log:printError(string `Could not fetch organizer's own copy of event ${eventId} to read ` +
+                "opportunity properties; continuing without them.", organizerEventResult);
+    } else {
+        json|error opportunityIdResult = organizerEventResult.extendedProperties.'private.revos_opportunity_id;
+        if opportunityIdResult is string {
+            opportunityId = opportunityIdResult;
+        }
+
+        // Compact deal snapshot (name, stage, amount, account, close date) the add-on writes
+        // as one JSON-string property. Stored as-is -- MySQL validates it as JSON on insert,
+        // nothing here needs to parse it back out. Only captured when an opportunityId is
+        // also present, so the row can never hold deal details without the id they belong to
+        // (matches the schema's documented "NULL wherever opportunity_id is NULL" invariant).
+        if opportunityId is string {
+            json|error opportunitySnapshotResult =
+                organizerEventResult.extendedProperties.'private.revos_opportunity_snapshot;
+            if opportunitySnapshotResult is string {
+                opportunityDetails = opportunitySnapshotResult;
+            }
         }
     }
 
@@ -264,7 +277,7 @@ isolated function registerEventIfRelevant(json event) returns error? {
         return;
     }
 
-    _ = check database:upsertMeetRecording({
+    _ = check database:registerMeetRecording({
         spaceName,
         title,
         googleEventId: eventId,
