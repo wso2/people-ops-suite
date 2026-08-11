@@ -472,8 +472,8 @@ isolated function registerMeetRecordingQuery(MeetRecordingPayload payload, strin
         end_time = VALUES(end_time),
         wso2_participants = VALUES(wso2_participants),
         external_participants = VALUES(external_participants),
-        opportunity_id = VALUES(opportunity_id),
-        opportunity_details = VALUES(opportunity_details),
+        opportunity_id = IF(VALUES(opportunity_id) IS NULL, opportunity_id, VALUES(opportunity_id)),
+        opportunity_details = IF(VALUES(opportunity_id) IS NULL, opportunity_details, VALUES(opportunity_details)),
         updated_by = VALUES(updated_by)
 `;
 
