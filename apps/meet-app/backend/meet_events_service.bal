@@ -97,14 +97,20 @@ type PubSubPushEnvelope record {
     string subscription?;
 };
 
-# Recording-ready notification payload, once decoded. Left open for the same reason as
-# PubSubPushEnvelope above.
+# Meet event notification payload, once decoded -- either a recording-ready or a
+# transcript-ready notification. Google sends one or the other, distinguished by which
+# top-level key is present, never both (the Workspace Events subscription is configured
+# with both event types). Left open for the same reason as PubSubPushEnvelope above.
 #
-# + recording - The recording this notification is about
-type RecordingReadyEvent record {
+# + recording - Present for a recording-ready notification
+# + transcript - Present for a transcript-ready notification
+type MeetEventEnvelope record {
     record {
         string name;
-    } recording;
+    } recording?;
+    record {
+        string name;
+    } transcript?;
 };
 
 # One-off manual registration, for testing without waiting on the Calendar-watch flow --
@@ -188,16 +194,28 @@ service /meet\-events on new http:Listener(meetEventsListenerPort) {
             log:printError("Decoded Pub/Sub message data was not valid UTF-8.", decodedString);
             return <http:Ok>{body: {message: "ignored"}};
         }
-        RecordingReadyEvent|error event = value:fromJsonStringWithType(decodedString);
+        MeetEventEnvelope|error event = value:fromJsonStringWithType(decodedString);
         if event is error {
-            log:printError("Could not parse recording-ready payload.", event);
+            log:printError("Could not parse Meet event payload.", event);
             return <http:Ok>{body: {message: "ignored"}};
         }
 
-        error? result = processRecordingReady(event.recording.name);
+        record {string name;}? recording = event?.recording;
+        record {string name;}? transcript = event?.transcript;
+
+        error? result;
+        if recording is record {string name;} {
+            result = processRecordingReady(recording.name);
+        } else if transcript is record {string name;} {
+            result = processTranscriptReady(transcript.name);
+        } else {
+            log:printError("Meet event payload had neither 'recording' nor 'transcript'; ignoring.");
+            return <http:Ok>{body: {message: "ignored"}};
+        }
+
         if result is error {
-            log:printError("Failed to process recording-ready event.", result);
-            return <http:ServiceUnavailable>{body: {message: "Failed to process recording-ready event; retry."}};
+            log:printError("Failed to process Meet event.", result);
+            return <http:ServiceUnavailable>{body: {message: "Failed to process Meet event; retry."}};
         }
         return <http:Ok>{body: {message: "ok"}};
     }
@@ -298,4 +316,69 @@ isolated function processRecordingReady(string recordingName) returns error? {
         opportunityId: tracked.opportunityId,
         opportunityDetails: tracked.opportunityDetails
     }, SYSTEM_ACTOR);
+}
+
+# Mirrors processRecordingReady, but for the transcript pipeline: resolves the transcript
+# to its Drive (Google Doc) file, attaches it to the calendar event, shares it, and marks
+# the row's transcript state -- tracked independently of recording_state via a dedicated
+# narrow UPDATE (updateMeetTranscript) rather than the upsert used for recordings, since
+# not every meeting has a transcript and this must never touch the recording columns.
+#
+# + transcriptName - Full resource name of the transcript
+# + return - Error if a retry-worthy step failed
+isolated function processTranscriptReady(string transcriptName) returns error? {
+    driveservice:TranscriptInfoResponse info = check driveservice:resolveTranscript(transcriptName);
+    string spaceName = info.spaceName;
+    string fileId = info.fileId;
+
+    database:MeetRecordingRow? tracked = check database:getMeetRecordingBySpaceName(spaceName);
+    if tracked is () {
+        log:printError(string `No registered event found for space ${spaceName}; skipping.`);
+        return;
+    }
+
+    error? attachResult = calendar:attachRecording(tracked.organizer, tracked.googleEventId, fileId,
+            "Meeting Transcript", "application/vnd.google-apps.document");
+    if attachResult is error {
+        check database:updateMeetTranscript(spaceName, database:FAILED, fileId, SYSTEM_ACTOR);
+        return attachResult;
+    }
+
+    string:RegExp commaSplit = re `,`;
+    string[] internalEmails = tracked.internalParticipants.length() > 0
+        ? commaSplit.split(tracked.internalParticipants).map(e => e.trim())
+        : [];
+    // Same internal-only rationale as processRecordingReady: external participants can't
+    // be granted Drive access (cross-domain sharing is blocked org-wide), so including
+    // them here would keep this permanently FAILED and stuck on Pub/Sub retry.
+    string[] participantEmails = [tracked.organizer, ...internalEmails];
+
+    // Best-effort, same reasoning as the recording flow: sharing failures must never fail
+    // this function, or a permanent grant failure retries forever, re-attaching and
+    // re-sharing on every retry.
+    driveservice:GrantResult[]|error shareResult = driveservice:grantAccess(fileId, participantEmails, true);
+    if shareResult is error {
+        log:printError("Transcript attached, but some participant Drive permission grants failed " +
+                "(best-effort, not retrying).", shareResult);
+    }
+
+    string[]|error salesDepartmentEmails = people:getSalesDepartmentEmails();
+    if salesDepartmentEmails is error {
+        log:printError("Could not fetch Sales department list; skipping their access grant for this transcript.",
+                salesDepartmentEmails);
+    } else {
+        string[] extraEmails = [];
+        foreach string email in salesDepartmentEmails {
+            if participantEmails.indexOf(email) == () {
+                extraEmails.push(email);
+            }
+        }
+        driveservice:GrantResult[]|error deptShareResult = driveservice:grantAccess(fileId, extraEmails, false);
+        if deptShareResult is error {
+            log:printError("Transcript attached, but some Sales department Drive permission grants failed " +
+                    "(best-effort, not retrying).", deptShareResult);
+        }
+    }
+
+    check database:updateMeetTranscript(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR);
 }
