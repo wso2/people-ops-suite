@@ -224,3 +224,17 @@ public isolated function getMeetRecordingBySpaceName(string spaceName) returns M
     }
     return result;
 }
+
+# Updates just the transcript columns of an existing meeting row, keyed by space name. See
+# updateMeetTranscriptQuery for why this is a dedicated narrow UPDATE rather than folded
+# into upsertMeetRecording/registerMeetRecording.
+#
+# + spaceName - Resource name of the Meet space, the lookup key
+# + transcriptState - New transcript processing state
+# + transcriptFileId - Drive file ID (Google Doc) of the transcript, once resolved
+# + actor - User performing the write
+# + return - Error if the write fails
+public isolated function updateMeetTranscript(string spaceName, RecordingState transcriptState,
+        string? transcriptFileId, string actor) returns error? {
+    _ = check databaseClient->execute(updateMeetTranscriptQuery(spaceName, transcriptState, transcriptFileId, actor));
+}
