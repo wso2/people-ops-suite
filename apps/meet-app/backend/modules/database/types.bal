@@ -214,6 +214,11 @@ public type MeetRecordingPayload record {|
 # + driveFileId - Drive file ID of the recording, if resolved yet
 # + opportunityId - Salesforce Opportunity ID this call was scheduled for, if any
 # + opportunityDetails - Compact JSON snapshot of the deal, as a raw JSON string
+# + transcriptState - Current transcript processing state, () if no transcript for this
+# meeting (either transcription wasn't enabled, or no transcript-ready notification has
+# arrived yet) -- reuses RecordingState rather than a separate enum with the same member
+# names, which would collide as duplicate module-level constants
+# + transcriptFileId - Drive file ID (Google Doc) of the transcript, if resolved yet
 public type MeetRecordingRow record {|
     int meetingId;
     string spaceName;
@@ -228,4 +233,6 @@ public type MeetRecordingRow record {|
     string? driveFileId;
     string? opportunityId;
     string? opportunityDetails;
+    RecordingState? transcriptState;
+    string? transcriptFileId;
 |};
