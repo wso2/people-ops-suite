@@ -39,6 +39,30 @@ ADD COLUMN `opportunity_id` VARCHAR(255) NULL;
 ALTER TABLE people_ops_suite.meeting
 ADD COLUMN `opportunity_details` JSON NULL;
 
+-- Tracks Meet transcript processing, parallel to recording_state/drive_file_id but
+-- deliberately independent: not every meeting has transcription enabled, so unlike
+-- recording_state (set to PENDING as soon as the meeting is registered), this stays NULL
+-- until an actual transcript-ready notification arrives and sets it directly to ATTACHED
+-- or FAILED. NULL means "no transcript for this meeting", not "waiting on one".
+ALTER TABLE people_ops_suite.meeting
+ADD COLUMN `transcript_state` ENUM('PENDING', 'ATTACHED', 'FAILED') NULL;
+
+-- Drive file ID (a Google Doc) of the meeting's transcript, once resolved.
+ALTER TABLE people_ops_suite.meeting
+ADD COLUMN `transcript_file_id` VARCHAR(255) NULL;
+
+-- Tracks Meet smart-notes ("Take Notes with Gemini") processing, parallel to
+-- transcript_state/transcript_file_id but for a separate Google Doc artifact -- same
+-- NULL-means-"none for this meeting" semantics, since smart notes additionally requires
+-- an org-level admin-console toggle and can silently never arrive even when requested.
+ALTER TABLE people_ops_suite.meeting
+ADD COLUMN `smart_notes_state` ENUM('PENDING', 'ATTACHED', 'FAILED') NULL;
+
+-- Drive file ID (a Google Doc, separate from the transcript's) of the meeting's smart
+-- notes, once resolved.
+ALTER TABLE people_ops_suite.meeting
+ADD COLUMN `smart_notes_file_id` VARCHAR(255) NULL;
+
 
 
 -- Prevents two concurrent upsertMeetRecording calls from ever creating duplicate rows for

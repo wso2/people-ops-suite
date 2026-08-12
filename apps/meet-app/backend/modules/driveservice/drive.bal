@@ -32,6 +32,38 @@ public isolated function resolveRecording(string recordingName) returns Recordin
     return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
 }
 
+# Resolves a transcript (from a transcript-ready notification) to its Meet space and
+# Drive (Google Doc) file, via drive-service.
+#
+# + transcriptName - Full resource name of the transcript (e.g. `conferenceRecords/abc/transcripts/xyz`)
+# + return - Space name and Drive file ID, or error
+public isolated function resolveTranscript(string transcriptName) returns TranscriptInfoResponse|error {
+    string encodedTranscriptName = check url:encode(transcriptName, "UTF-8");
+    http:Response response = check driveServiceClient->get(string `/transcripts?name=${encodedTranscriptName}`);
+    if response.statusCode == 200 {
+        json responseJson = check response.getJsonPayload();
+        return responseJson.cloneWithType(TranscriptInfoResponse);
+    }
+    json? errorResponseBody = check response.getJsonPayload();
+    return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+}
+
+# Resolves smart notes (from a smart-notes-ready notification) to its Meet space and
+# Drive (Google Doc) file, via drive-service.
+#
+# + smartNotesName - Full resource name of the smart notes (e.g. `conferenceRecords/abc/smartNotes/xyz`)
+# + return - Space name and Drive file ID, or error
+public isolated function resolveSmartNotes(string smartNotesName) returns SmartNotesInfoResponse|error {
+    string encodedSmartNotesName = check url:encode(smartNotesName, "UTF-8");
+    http:Response response = check driveServiceClient->get(string `/smart-notes?name=${encodedSmartNotesName}`);
+    if response.statusCode == 200 {
+        json responseJson = check response.getJsonPayload();
+        return responseJson.cloneWithType(SmartNotesInfoResponse);
+    }
+    json? errorResponseBody = check response.getJsonPayload();
+    return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+}
+
 # Grants view access to a recording for each person in the list, via drive-service.
 #
 # + fileId - Drive file ID of the recording
