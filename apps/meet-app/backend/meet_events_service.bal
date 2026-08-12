@@ -362,8 +362,12 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
 
     // Best-effort, same reasoning as the recording flow: sharing failures must never fail
     // this function, or a permanent grant failure retries forever, re-attaching and
-    // re-sharing on every retry.
-    driveservice:GrantResult[]|error shareResult = driveservice:grantAccess(fileId, participantEmails, true);
+    // re-sharing on every retry. sendNotificationEmail is false here (unlike recording's
+    // participant grant) -- recording, transcript, and smart notes arrive as three
+    // separate, independently-timed notifications for the same meeting, and participants
+    // already got one "shared with you" email off the recording; access is still granted
+    // silently, discoverable via the calendar event's accumulating attachments.
+    driveservice:GrantResult[]|error shareResult = driveservice:grantAccess(fileId, participantEmails, false);
     if shareResult is error {
         log:printError("Transcript attached, but some participant Drive permission grants failed " +
                 "(best-effort, not retrying).", shareResult);
@@ -427,8 +431,10 @@ isolated function processSmartNotesReady(string smartNotesName) returns error? {
 
     // Best-effort, same reasoning as the other two flows: sharing failures must never
     // fail this function, or a permanent grant failure retries forever, re-attaching and
-    // re-sharing on every retry.
-    driveservice:GrantResult[]|error shareResult = driveservice:grantAccess(fileId, participantEmails, true);
+    // re-sharing on every retry. sendNotificationEmail is false here for the same reason
+    // as processTranscriptReady -- avoid a third "shared with you" email for the same
+    // meeting; access is still granted silently.
+    driveservice:GrantResult[]|error shareResult = driveservice:grantAccess(fileId, participantEmails, false);
     if shareResult is error {
         log:printError("Smart notes attached, but some participant Drive permission grants failed " +
                 "(best-effort, not retrying).", shareResult);
