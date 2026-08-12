@@ -219,6 +219,10 @@ public type MeetRecordingPayload record {|
 # arrived yet) -- reuses RecordingState rather than a separate enum with the same member
 # names, which would collide as duplicate module-level constants
 # + transcriptFileId - Drive file ID (Google Doc) of the transcript, if resolved yet
+# + smartNotesState - Current smart-notes processing state, () if no smart notes for this
+# meeting; same reused-RecordingState and NULL-means-"none" semantics as transcriptState
+# + smartNotesFileId - Drive file ID (Google Doc, separate from the transcript's) of the
+# smart notes, if resolved yet
 public type MeetRecordingRow record {|
     int meetingId;
     string spaceName;
@@ -235,4 +239,6 @@ public type MeetRecordingRow record {|
     string? opportunityDetails;
     RecordingState? transcriptState;
     string? transcriptFileId;
+    RecordingState? smartNotesState;
+    string? smartNotesFileId;
 |};

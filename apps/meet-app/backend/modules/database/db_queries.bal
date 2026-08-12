@@ -515,7 +515,9 @@ isolated function getMeetRecordingBySpaceNameQuery(string spaceName) returns sql
         opportunity_id AS opportunityId,
         opportunity_details AS opportunityDetails,
         transcript_state AS transcriptState,
-        transcript_file_id AS transcriptFileId
+        transcript_file_id AS transcriptFileId,
+        smart_notes_state AS smartNotesState,
+        smart_notes_file_id AS smartNotesFileId
     FROM meeting
     WHERE space_name = ${spaceName}
 `;
@@ -541,6 +543,26 @@ isolated function updateMeetTranscriptQuery(string spaceName, RecordingState tra
     SET
         transcript_state = ${transcriptState},
         transcript_file_id = ${transcriptFileId},
+        updated_by = ${actor}
+    WHERE space_name = ${spaceName}
+`;
+
+# Build a narrow update for just the smart-notes columns of an existing meeting row, keyed
+# by space_name. Same rationale as updateMeetTranscriptQuery -- a separate Google Doc
+# artifact, tracked independently, never folded into the recording/transcript writes.
+#
+# + spaceName - Resource name of the Meet space, the lookup key
+# + smartNotesState - New smart-notes processing state
+# + smartNotesFileId - Drive file ID (Google Doc) of the smart notes, once resolved
+# + actor - User performing the write
+# + return - sql:ParameterizedQuery - Update query for the meeting table
+isolated function updateMeetSmartNotesQuery(string spaceName, RecordingState smartNotesState,
+        string? smartNotesFileId, string actor) returns sql:ParameterizedQuery =>
+`
+    UPDATE meeting
+    SET
+        smart_notes_state = ${smartNotesState},
+        smart_notes_file_id = ${smartNotesFileId},
         updated_by = ${actor}
     WHERE space_name = ${spaceName}
 `;

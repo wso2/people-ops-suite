@@ -238,3 +238,16 @@ public isolated function updateMeetTranscript(string spaceName, RecordingState t
         string? transcriptFileId, string actor) returns error? {
     _ = check databaseClient->execute(updateMeetTranscriptQuery(spaceName, transcriptState, transcriptFileId, actor));
 }
+
+# Updates just the smart-notes columns of an existing meeting row, keyed by space name.
+# See updateMeetSmartNotesQuery for why this is a dedicated narrow UPDATE.
+#
+# + spaceName - Resource name of the Meet space, the lookup key
+# + smartNotesState - New smart-notes processing state
+# + smartNotesFileId - Drive file ID (Google Doc) of the smart notes, once resolved
+# + actor - User performing the write
+# + return - Error if the write fails
+public isolated function updateMeetSmartNotes(string spaceName, RecordingState smartNotesState,
+        string? smartNotesFileId, string actor) returns error? {
+    _ = check databaseClient->execute(updateMeetSmartNotesQuery(spaceName, smartNotesState, smartNotesFileId, actor));
+}
