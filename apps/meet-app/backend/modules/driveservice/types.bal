@@ -54,6 +54,16 @@ public type TranscriptInfoResponse record {|
     string fileId;
 |};
 
+# Response from resolving smart notes to its space and Drive (Google Doc) file, separate
+# from the transcript's.
+#
+# + spaceName - Resource name of the Meet space (e.g. `spaces/abc123`)
+# + fileId - Drive file ID (Google Doc) of the smart notes
+public type SmartNotesInfoResponse record {|
+    string spaceName;
+    string fileId;
+|};
+
 # Outcome of granting access to one email.
 #
 # + email - The email a grant was attempted for

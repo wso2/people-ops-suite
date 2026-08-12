@@ -51,6 +51,18 @@ ADD COLUMN `transcript_state` ENUM('PENDING', 'ATTACHED', 'FAILED') NULL;
 ALTER TABLE people_ops_suite.meeting
 ADD COLUMN `transcript_file_id` VARCHAR(255) NULL;
 
+-- Tracks Meet smart-notes ("Take Notes with Gemini") processing, parallel to
+-- transcript_state/transcript_file_id but for a separate Google Doc artifact -- same
+-- NULL-means-"none for this meeting" semantics, since smart notes additionally requires
+-- an org-level admin-console toggle and can silently never arrive even when requested.
+ALTER TABLE people_ops_suite.meeting
+ADD COLUMN `smart_notes_state` ENUM('PENDING', 'ATTACHED', 'FAILED') NULL;
+
+-- Drive file ID (a Google Doc, separate from the transcript's) of the meeting's smart
+-- notes, once resolved.
+ALTER TABLE people_ops_suite.meeting
+ADD COLUMN `smart_notes_file_id` VARCHAR(255) NULL;
+
 
 
 -- Prevents two concurrent upsertMeetRecording calls from ever creating duplicate rows for

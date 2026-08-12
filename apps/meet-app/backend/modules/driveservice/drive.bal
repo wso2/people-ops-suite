@@ -48,6 +48,22 @@ public isolated function resolveTranscript(string transcriptName) returns Transc
     return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
 }
 
+# Resolves smart notes (from a smart-notes-ready notification) to its Meet space and
+# Drive (Google Doc) file, via drive-service.
+#
+# + smartNotesName - Full resource name of the smart notes (e.g. `conferenceRecords/abc/smartNotes/xyz`)
+# + return - Space name and Drive file ID, or error
+public isolated function resolveSmartNotes(string smartNotesName) returns SmartNotesInfoResponse|error {
+    string encodedSmartNotesName = check url:encode(smartNotesName, "UTF-8");
+    http:Response response = check driveServiceClient->get(string `/smart-notes?name=${encodedSmartNotesName}`);
+    if response.statusCode == 200 {
+        json responseJson = check response.getJsonPayload();
+        return responseJson.cloneWithType(SmartNotesInfoResponse);
+    }
+    json? errorResponseBody = check response.getJsonPayload();
+    return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+}
+
 # Grants view access to a recording for each person in the list, via drive-service.
 #
 # + fileId - Drive file ID of the recording
