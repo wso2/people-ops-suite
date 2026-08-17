@@ -11,10 +11,10 @@
         clientSecret = ""
 
     [meet_app.calendar.retryConfig]
-        count =
-        interval =
-        backOffFactor =
-        maxWaitInterval =
+        count = 
+        interval = 
+        backOffFactor = 
+        maxWaitInterval = 
 
 [meet_app.people]
     hrEntityBaseUrl = ""
@@ -98,7 +98,7 @@
 
 # Validates x-jwt-assertion --  see modules/authorization/types.bal.
 [meet_app.authorization.authConfig]
-   .
+   
     JWTIssuer = ""
     # Choreo's own gateway JWKS endpoint for this org
     JWKSEndPoint = ""
