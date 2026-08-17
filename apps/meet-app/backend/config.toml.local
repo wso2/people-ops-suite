@@ -11,10 +11,10 @@
         clientSecret = ""
 
     [meet_app.calendar.retryConfig]
-        count =
-        interval =
-        backOffFactor =
-        maxWaitInterval =
+        count = 
+        interval = 
+        backOffFactor = 
+        maxWaitInterval = 
 
 [meet_app.people]
     hrEntityBaseUrl = ""
@@ -95,6 +95,16 @@
 [meet_app.authorization.authorizedRoles]
     SALES_TEAM  = ""
     SALES_ADMIN = ""
+
+# Validates x-jwt-assertion --  see modules/authorization/types.bal.
+[meet_app.authorization.authConfig]
+   
+    JWTIssuer = ""
+    # Choreo's own gateway JWKS endpoint for this org
+    JWKSEndPoint = ""
+    # Leave commented out unless this component's "End User Token Audiences" has been
+    # explicitly configured in Choreo -- Choreo does not set an aud claim by default.
+    # JWTAudience = ""
 
 [meet_app.appConfig]
     supportTeamEmails = [

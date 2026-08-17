@@ -26,6 +26,18 @@ public type CustomJwtPayload record {
 public type AppRoles record {|
     # Role for the employee
     string SALES_TEAM;
-    # Role for the head of people operations 
+    # Role for the head of people operations
     string SALES_ADMIN;
+|};
+
+# Choreo backend-JWT (x-jwt-assertion) signature validation configuration. This is Choreo's
+# own gateway-signed JWT, not an Asgardeo-issued token.
+public type AuthConfig record {|
+    # Expected `iss` claim "
+    string JWTIssuer;
+    # Expected `aud` claim. 
+    string? JWTAudience = ();
+    # Choreo's own gateway JWKS endpoint for this org
+    
+    string JWKSEndPoint;
 |};

@@ -19,14 +19,37 @@ import ballerina/log;
 
 public configurable AppRoles authorizedRoles = ?;
 
+# x-jwt-assertion is Choreo's own backend JWT -- signed by the Choreo gateway itself, not
+# by Asgardeo and JWTIssuer is the fixed literal that Choreo stamps on every backend JWT. JWTAudience is
+# left unset unless this component's "End User Token Audiences" has been explicitly configured in Choreo
+configurable readonly & AuthConfig authConfig = ?;
+
+function buildJwtValidatorConfig() returns jwt:ValidatorConfig {
+    jwt:ValidatorConfig validatorConfig = {
+        issuer: authConfig.JWTIssuer,
+        clockSkew: 60d,
+        signatureConfig: {
+            jwksConfig: {url: authConfig.JWKSEndPoint}
+        }
+    };
+    string? audience = authConfig.JWTAudience;
+    if audience is string {
+        validatorConfig.audience = audience;
+    }
+    return validatorConfig;
+}
+
+final readonly & jwt:ValidatorConfig jwtValidatorConfig = buildJwtValidatorConfig().cloneReadOnly();
+
 # To handle authorization for each resource function invocation.
 public isolated service class JwtInterceptor {
 
     *http:RequestInterceptor;
 
     isolated resource function default [string... path](http:RequestContext ctx, http:Request req)
-        returns http:NextService|http:Forbidden|http:InternalServerError|error? {
+        returns http:NextService|http:Forbidden|http:Unauthorized|http:InternalServerError|error? {
 
+        
         string|error idToken = req.getHeader(JWT_ASSERTION_HEADER);
         if idToken is error {
             string errorMsg = "Missing invoker info header!";
@@ -38,14 +61,14 @@ public isolated service class JwtInterceptor {
             };
         }
 
-        [jwt:Header, jwt:Payload]|jwt:Error result = jwt:decode(idToken);
-        if result is jwt:Error {
-            string errorMsg = "Error while reading the Invoker info!";
-            log:printError(errorMsg, result);
-            return <http:InternalServerError>{body: {message: errorMsg}};
+        jwt:Payload|jwt:Error validationResult = jwt:validate(idToken, jwtValidatorConfig);
+        if validationResult is jwt:Error {
+            string errorMsg = "JWT validation failed!";
+            log:printError(errorMsg, validationResult);
+            return <http:Unauthorized>{body: {message: "Invalid token!"}};
         }
 
-        CustomJwtPayload|error userInfo = result[1].cloneWithType(CustomJwtPayload);
+        CustomJwtPayload|error userInfo = validationResult.cloneWithType(CustomJwtPayload);
         if userInfo is error {
             string errorMsg = "Malformed Invoker info object!";
             log:printError(errorMsg, userInfo);
