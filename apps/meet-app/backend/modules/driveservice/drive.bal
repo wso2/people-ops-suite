@@ -109,3 +109,19 @@ public isolated function grantAccess(string fileId, string[] emails, boolean sen
     }
     return grantResponse.results;
 }
+
+# Renames a Drive file, via drive-service  used to replace Google Meet's default
+# recording filename (meeting code + timestamp, decided entirely on Google's side)
+#
+# + fileId - Drive file ID of the recording
+# + name - New file name
+# + return - error, if the rename failed
+public isolated function renameFile(string fileId, string name) returns error? {
+    http:Request req = new;
+    req.setPayload({name});
+    http:Response response = check driveServiceClient->patch(string `/files/${fileId}`, req);
+    if response.statusCode != 204 {
+        json? errorResponseBody = check response.getJsonPayload();
+        return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+    }
+}

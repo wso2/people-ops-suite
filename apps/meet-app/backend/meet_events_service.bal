@@ -242,6 +242,13 @@ isolated function processRecordingReady(string recordingName) returns error? {
         return;
     }
 
+    // Google Meet names the recording file itself after the meeting code and a timestamp
+    // Replace it with the actual event title + start time.
+    error? renameResult = driveservice:renameFile(fileId, string `${tracked.title} (${tracked.startTime})`);
+    if renameResult is error {
+        log:printError("Could not rename the recording's Drive file (best-effort, not retrying).", renameResult);
+    }
+
     error? attachResult = calendar:attachRecording(tracked.organizer, tracked.googleEventId, fileId,
             "Meeting Recording", "video/mp4");
     if attachResult is error {
