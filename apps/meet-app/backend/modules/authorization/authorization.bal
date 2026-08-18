@@ -32,8 +32,9 @@ function buildJwtValidatorConfig() returns jwt:ValidatorConfig {
             jwksConfig: {url: authConfig.JWKSEndPoint}
         }
     };
+    
     string? audience = authConfig.JWTAudience;
-    if audience is string {
+    if audience is string && audience.trim() != "" {
         validatorConfig.audience = audience;
     }
     return validatorConfig;
