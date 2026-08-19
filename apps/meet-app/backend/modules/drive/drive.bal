@@ -62,7 +62,7 @@ public isolated function countWso2RecordingsInDateRange(string startTime, string
             return 0;
         }
     }
-    string driveQuery = string `name contains 'WSO2' and 'me' in owners and mimeType = 'video/mp4' and trashed = false and createdTime >= '${startTime}' and createdTime < '${endTime}'`;
+    string driveQuery = string `'me' in owners and mimeType = 'video/mp4' and trashed = false and createdTime >= '${startTime}' and createdTime < '${endTime}'`;
     string encodedQuery = check url:encode(driveQuery, "UTF-8");
 
     int totalCount = 0;
