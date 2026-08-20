@@ -783,7 +783,7 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + endDate - End date in ISO format
     # + return - Statistics or Error
     resource function get stats(http:RequestContext ctx, string startDate, string endDate, string? region)
-        returns json|http:InternalServerError|http:BadRequest|error {
+        returns json|http:InternalServerError|http:BadRequest {
 
         // Validate Dates
         time:Utc|error startRes = time:utcFromString(startDate);
@@ -851,7 +851,17 @@ service http:InterceptableService / on new http:Listener(9090) {
             }
         }
 
-        map<int> dbCounts = check wait scheduledCounts;
+        map<int>|error scheduledCountsResult = wait scheduledCounts;
+        if scheduledCountsResult is error {
+            string customError = "Error occurred while retrieving the meeting statistics!";
+            log:printError(customError, scheduledCountsResult);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        map<int> dbCounts = scheduledCountsResult;
         map<int|error> driveResults = {};
 
         foreach string key in driveFutureMap.keys() {
@@ -867,25 +877,32 @@ service http:InterceptableService / on new http:Listener(9090) {
             // DB Count
             int scheduledCount = dbCounts.hasKey(key) ? dbCounts.get(key) : 0;
 
-            _ = check meta.mergeJson({
+            json|error mergedMeta = meta.mergeJson({
                 "recordingCount": (driveCount is int) ? driveCount : 0,
                 "scheduledCount": scheduledCount
             });
+            if mergedMeta is error {
+                log:printError(string `Error occurred while building the statistics for ${key}!`, mergedMeta);
+            }
             monthlyStats.push(meta);
         }
         database:MeetingTypeStat[]|error typeResults = wait meetingTypes;
         json[] typeStatsJson = [];
-        if typeResults is database:MeetingTypeStat[] {
+        if typeResults is error {
+            log:printError("Error occurred while retrieving the meeting type statistics!", typeResults);
+        } else {
             typeStatsJson = <json[]>typeResults.toJson();
         }
         json|error peopleRes = wait PeopleStats;
         json[] regionalStats = [];
         json[] amStats = [];
         json[] toStats = [];
-        if peopleRes is json {
-            regionalStats = <json[]>(check peopleRes.regionalStats);
-            amStats = <json[]>(check peopleRes.amStats);
-            toStats = <json[]>(check peopleRes.toStats);
+        if peopleRes is error {
+            log:printError("Error occurred while retrieving the people analytics!", peopleRes);
+        } else {
+            regionalStats = toJsonArray(peopleRes.regionalStats);
+            amStats = toJsonArray(peopleRes.amStats);
+            toStats = toJsonArray(peopleRes.toStats);
         }
 
         return {

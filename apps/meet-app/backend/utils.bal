@@ -18,6 +18,16 @@ import meet_app.people;
 
 import ballerina/cache;
 
+# Narrows the result of a JSON field access to an array, without propagating errors.
+#
+# Field access on a `json` value yields `json|error`, and the value behind an existing key
+# may not be an array at all. Both cases degrade to an empty array here so a missing or
+# malformed field never fails the caller.
+#
+# + value - Result of a JSON field access
+# + return - The value when it is a `json[]`, otherwise an empty array
+isolated function toJsonArray(json|error value) returns json[] => value is json[] ? value : [];
+
 # Aggregates meeting statistics by Account Manager and their respective Regional Teams.
 #
 # + startDate - The start of the analysis range
