@@ -135,7 +135,7 @@
     # registering the channel.
     calendarWatchToken = ""
 
-    # Pub/Sub push authentication for the /meet-events (9091) endpoint. This endpoint is
+    # Pub/Sub push authentication for the /meet-artifacts (9091) endpoint. This endpoint is
     # unauthenticated at the gateway (Google's push carries no gateway credential), so the
     # caller is verified here via the Google-signed OIDC token Pub/Sub attaches when the push
     # subscription is created with --push-auth-service-account.

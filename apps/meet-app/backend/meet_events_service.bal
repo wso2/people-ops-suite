@@ -145,7 +145,7 @@ type SeedRegistryRequest record {|
 // gateway credential), so the caller is authenticated in-app: when pubsubAuthEnabled is set,
 // verifyPubsubPush() validates the Google-signed OIDC token on every push; when disabled
 // (the staged-rollout default) verification is skipped.
-service /meet\-events on new http:Listener(meetEventsListenerPort) {
+service /meet\-artifacts on new http:Listener(meetEventsListenerPort) {
 
     # One-off manual seed -- see SeedRegistryRequest.
     #
