@@ -480,6 +480,10 @@ isolated function processSmartNotesReady(string smartNotesName) returns error? {
 // returns only the ID. The two shapes are not interchangeable: a recording is an MP4, a
 // plain Drive file that opens under drive.google.com/file; a transcript and smart notes are
 // native Google Docs, which only open properly under docs.google.com/document.
+// How many external attendees are worth a contact lookup before giving up -- see
+// resolveCallContactId.
+const int MAX_CONTACT_LOOKUPS = 5;
+
 const string DRIVE_FILE_VIEW_URL_PREFIX = "https://drive.google.com/file/d/";
 const string GOOGLE_DOC_VIEW_URL_PREFIX = "https://docs.google.com/document/d/";
 
@@ -587,11 +591,23 @@ isolated function resolveCallContactId(database:MeetRecordingRow tracked) return
         return;
     }
     string:RegExp commaSplit = re `,`;
+    int attempts = 0;
     foreach string rawEmail in commaSplit.split(tracked.externalParticipants) {
         string email = rawEmail.trim();
         if email.length() == 0 {
             continue;
         }
+        // Bounded on purpose. This runs inside the Pub/Sub push response, so every lookup
+        // spends the subscription's acknowledgement deadline; a large external invite list
+        // would otherwise mean one sequential HTTP round trip per attendee. The first few
+        // attendees are overwhelmingly where the match is, and a miss only costs the
+        // optional contactId.
+        if attempts >= MAX_CONTACT_LOOKUPS {
+            log:printInfo(string `Stopped contact lookup after ${MAX_CONTACT_LOOKUPS} external attendees ` +
+                    string `for space ${tracked.spaceName}; logging the call without a contact.`);
+            break;
+        }
+        attempts += 1;
         string?|error contactId = salesentity:findContactIdByEmail(email);
         if contactId is error {
             log:printError("Contact lookup failed for an external attendee; trying the next one.", contactId);
