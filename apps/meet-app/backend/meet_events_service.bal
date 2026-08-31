@@ -17,6 +17,7 @@ import meet_app.calendar;
 import meet_app.database;
 import meet_app.driveservice;
 import meet_app.people;
+import meet_app.salesentity;
 
 import ballerina/http;
 import ballerina/jwt;
@@ -24,6 +25,7 @@ import ballerina/lang.array;
 import ballerina/lang.'string as strings;
 import ballerina/lang.value;
 import ballerina/log;
+import ballerina/time;
 
 configurable int meetEventsListenerPort = 9091;
 
@@ -244,7 +246,7 @@ isolated function processRecordingReady(string recordingName) returns error? {
 
     // Google Meet names the recording file itself after the meeting code and a timestamp
     // Replace it with the actual event title + start time.
-    error? renameResult = driveservice:renameFile(fileId, string `${tracked.title} (${tracked.startTime})`);
+    error? renameResult = driveservice:renameFile(fileId, recordingTitle(tracked));
     if renameResult is error {
         log:printError("Could not rename the recording's Drive file (best-effort, not retrying).", renameResult);
     }
@@ -330,6 +332,8 @@ isolated function processRecordingReady(string recordingName) returns error? {
         opportunityId: tracked.opportunityId,
         opportunityDetails: tracked.opportunityDetails
     }, SYSTEM_ACTOR);
+
+    logCallActivityIfComplete(spaceName);
 }
 
 # Mirrors processRecordingReady, but for the transcript pipeline: resolves the transcript
@@ -399,6 +403,8 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
     }
 
     check database:updateMeetTranscript(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR);
+
+    logCallActivityIfComplete(spaceName);
 }
 
 # Mirrors processTranscriptReady, but for smart notes ("Take Notes with Gemini") -- a
@@ -466,4 +472,229 @@ isolated function processSmartNotesReady(string smartNotesName) returns error? {
     }
 
     check database:updateMeetSmartNotes(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR);
+
+    logCallActivityIfComplete(spaceName);
+}
+
+// Drive view links are built from the file ID rather than asked for, since drive-service
+// returns only the ID. The two shapes are not interchangeable: a recording is an MP4, a
+// plain Drive file that opens under drive.google.com/file; a transcript and smart notes are
+// native Google Docs, which only open properly under docs.google.com/document.
+const string DRIVE_FILE_VIEW_URL_PREFIX = "https://drive.google.com/file/d/";
+const string GOOGLE_DOC_VIEW_URL_PREFIX = "https://docs.google.com/document/d/";
+
+# The name the recording's Drive file carries, which is also what the Salesforce activity
+# uses as its subject. Google names the file after the raw meeting code and a timestamp;
+# processRecordingReady renames it to this. Defined once so the rename and the activity
+# subject cannot drift apart into two different "recording titles".
+#
+# + tracked - The meeting row
+# + return - Display title of the recording
+isolated function recordingTitle(database:MeetRecordingRow tracked) returns string =>
+    string `${tracked.title} (${tracked.startTime})`;
+
+# Length of the meeting in seconds, from its stored start and end times.
+#
+# Both are stored as naive `yyyy-MM-dd HH:mm:ss` with no zone, so both are read as UTC here
+# -- the offset is the same on each and cancels out of the difference. Returns `()` rather
+# than an error if either fails to parse, since a missing duration must not stop the call
+# being logged.
+#
+# + tracked - The meeting row
+# + return - Duration in whole seconds, or `()` if it couldn't be worked out
+isolated function meetingDurationSeconds(database:MeetRecordingRow tracked) returns int? {
+    time:Utc|error 'start = time:utcFromString(toRfc3339(tracked.startTime));
+    time:Utc|error end = time:utcFromString(toRfc3339(tracked.endTime));
+    if 'start is error || end is error {
+        return;
+    }
+    decimal seconds = time:utcDiffSeconds(end, 'start);
+    if seconds <= 0d {
+        return;
+    }
+    return <int>seconds.round(0);
+}
+
+# Turns the DB's naive `yyyy-MM-dd HH:mm:ss` into the RFC 3339 shape time:utcFromString
+# expects. See meetingDurationSeconds for why pinning it to Z is safe here.
+#
+# + dbTimestamp - Timestamp as stored
+# + return - RFC 3339 timestamp
+isolated function toRfc3339(string dbTimestamp) returns string {
+    string:RegExp space = re ` `;
+    return string `${space.replaceAll(dbTimestamp, "T")}Z`;
+}
+
+# The date the call took place, as Salesforce wants it.
+#
+# Salesforce stores a date only on this kind of activity -- there is no creatable
+# time-of-day field -- so the meeting's start timestamp is cut to its `yyyy-MM-dd` prefix.
+# The read query formats start_time with DATE_FORMAT so it is always long enough, but the
+# length is checked anyway: substring() panics rather than erroring on a short string, and a
+# panic here would take down the webhook over a merely-missing optional field.
+#
+# + startTime - Meeting start timestamp as stored
+# + return - `yyyy-MM-dd` date, or `()` if the timestamp wasn't the expected shape
+isolated function callDate(string startTime) returns string? {
+    if startTime.length() < 10 {
+        return;
+    }
+    return startTime.substring(0, 10);
+}
+
+# The activity's `comment`, carrying the view links for whichever artifacts resolved.
+#
+# This is the field the whole feature exists to deliver: it is what a rep opening the
+# opportunity in Salesforce actually sees. Salesforce allows 32,000 characters here, so
+# links comfortably fit -- but a transcript's contents would not, which is why only links go
+# in.
+#
+# + tracked - The meeting row, after all three artifacts attached
+# + return - Comment body for the call activity
+isolated function buildCallActivityComment(database:MeetRecordingRow tracked) returns string {
+    string[] lines = [
+        string `Auto-logged from the WSO2 Meet recording pipeline for "${tracked.title}".`,
+        ""
+    ];
+    string? recordingFileId = tracked.driveFileId;
+    if recordingFileId is string {
+        lines.push(string `Recording: ${DRIVE_FILE_VIEW_URL_PREFIX}${recordingFileId}/view`);
+    }
+    string? transcriptFileId = tracked.transcriptFileId;
+    if transcriptFileId is string {
+        lines.push(string `Transcript: ${GOOGLE_DOC_VIEW_URL_PREFIX}${transcriptFileId}/edit`);
+    }
+    string? smartNotesFileId = tracked.smartNotesFileId;
+    if smartNotesFileId is string {
+        lines.push(string `Smart notes: ${GOOGLE_DOC_VIEW_URL_PREFIX}${smartNotesFileId}/edit`);
+    }
+    return string:'join("\n", ...lines);
+}
+
+# Finds the Salesforce Contact for the call by looking up the external attendees.
+#
+# Only external (non-wso2.com) attendees are tried: the internal ones are WSO2 staff, who
+# are Salesforce Users rather than Contacts of the customer account, so looking them up
+# would either miss or attach the wrong person. The first email that resolves wins --
+# Salesforce's activity model has room for exactly one `WhoId`, so there is nothing useful
+# to do with a second match. A lookup failure is logged and skipped rather than propagated:
+# `contactId` is optional, and losing it must not cost the whole activity.
+#
+# + tracked - The meeting row
+# + return - Salesforce Contact Id, or `()` if no external attendee resolved to one
+isolated function resolveCallContactId(database:MeetRecordingRow tracked) returns string? {
+    if tracked.externalParticipants.trim().length() == 0 {
+        return;
+    }
+    string:RegExp commaSplit = re `,`;
+    foreach string rawEmail in commaSplit.split(tracked.externalParticipants) {
+        string email = rawEmail.trim();
+        if email.length() == 0 {
+            continue;
+        }
+        string?|error contactId = salesentity:findContactIdByEmail(email);
+        if contactId is error {
+            log:printError("Contact lookup failed for an external attendee; trying the next one.", contactId);
+            continue;
+        }
+        if contactId is string {
+            return contactId;
+        }
+    }
+    return;
+}
+
+# Logs the meeting as a completed call against its Salesforce Opportunity -- but only once
+# the recording, the transcript AND the smart notes have all reached ATTACHED.
+#
+# The three artifacts arrive as three independent Pub/Sub notifications in no guaranteed
+# order, so this runs at the end of all three processors and simply returns unless it finds
+# the row fully complete. Whichever notification lands last is the one that actually logs.
+#
+# Deliberately BEST-EFFORT, in the same spirit as the Drive sharing in the three processors:
+# every failure is logged and swallowed rather than returned. Returning an error would make
+# the webhook answer 503, and Pub/Sub would then retry the whole notification -- re-running
+# the attach and re-sharing the file with everyone, which is the exact retry-storm this
+# pipeline was already bitten by once. The attachments are the primary deliverable and are
+# already in place by this point.
+#
+# + spaceName - Resource name of the Meet space, the lookup key
+isolated function logCallActivityIfComplete(string spaceName) {
+    database:MeetRecordingRow|error? tracked = database:getMeetRecordingBySpaceName(spaceName);
+    if tracked is error {
+        log:printError("Could not re-read the meeting row to check call-activity readiness.", tracked);
+        return;
+    }
+    if tracked is () {
+        return;
+    }
+
+    // The gate. All three must be ATTACHED -- note transcript_state/smart_notes_state are
+    // NULL for a meeting that never produced that artifact, so those meetings never log a
+    // call. That is the specified behaviour, not an oversight.
+    if tracked.recordingState != database:ATTACHED || tracked.transcriptState != database:ATTACHED
+        || tracked.smartNotesState != database:ATTACHED {
+        return;
+    }
+
+    // Cheap pre-check before the claim, so the common "already done" case costs one read
+    // instead of a write. The claim below is what actually makes this safe.
+    if tracked.callActivityId is string {
+        return;
+    }
+
+    // Without an opportunity there is nothing to log the call against: the API requires
+    // exactly one of opportunityId/leadId, and this pipeline never has a lead. Meetings
+    // booked without picking a deal in the add-on land here.
+    string? opportunityId = tracked.opportunityId;
+    if opportunityId is () {
+        log:printInfo(string `Meeting for space ${spaceName} has all artifacts attached but no opportunity; ` +
+                "skipping the Salesforce call activity.");
+        return;
+    }
+
+    boolean|error claimed = database:claimCallActivity(spaceName, SYSTEM_ACTOR);
+    if claimed is error {
+        log:printError("Could not claim the Salesforce call-activity write; skipping it.", claimed);
+        return;
+    }
+    if !claimed {
+        // Another run (or a redelivered notification) already holds it.
+        return;
+    }
+
+    salesentity:CreateCallActivityInput input = {
+        subject: recordingTitle(tracked),
+        // callType is deliberately left unset. It maps to Salesforce's Task.CallType, a
+        // picklist meaning the direction of the call (Inbound/Outbound/Internal); the
+        // Opportunity RecordType we have on the snapshot answers a different question and
+        // would be rejected outright by a restricted picklist. Omitted and null are treated
+        // identically by the service, which normalises both to "not supplied".
+        occurredOn: callDate(tracked.startTime),
+        comment: buildCallActivityComment(tracked),
+        opportunityId: opportunityId,
+        contactId: resolveCallContactId(tracked),
+        durationSeconds: meetingDurationSeconds(tracked)
+    };
+
+    string|error activityId = salesentity:createCallActivity(input);
+    if activityId is error {
+        log:printError(string `Failed to log the Salesforce call activity for space ${spaceName}; ` +
+                "releasing the claim so it can be retried.", activityId);
+        error? released = database:releaseCallActivityClaim(spaceName, SYSTEM_ACTOR);
+        if released is error {
+            log:printError(string `Could not release the call-activity claim for space ${spaceName}; ` +
+                    "the row will stay marked in-progress and needs clearing by hand.", released);
+        }
+        return;
+    }
+
+    error? recorded = database:setCallActivityId(spaceName, activityId, SYSTEM_ACTOR);
+    if recorded is error {
+        log:printError(string `Logged Salesforce call activity ${activityId} for space ${spaceName}, but could ` +
+                "not record its id; the row still holds the in-progress marker, which keeps it from being " +
+                "logged twice.", recorded);
+        return;
+    }
+    log:printInfo(string `Logged Salesforce call activity ${activityId} for space ${spaceName}.`);
 }
