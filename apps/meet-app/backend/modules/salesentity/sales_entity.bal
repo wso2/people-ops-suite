@@ -16,7 +16,7 @@
 import ballerina/http;
 
 # Looks up a Salesforce Contact Id by email, via sales-entity-service.
-#
+# 
 # Returns `()` -- not an error -- when the email simply isn't a known contact. That is the
 # ordinary case for an internal attendee or a customer who was never entered in Salesforce,
 # and it must not stop the call activity from being logged; `contactId` is optional on the
@@ -52,38 +52,23 @@ public isolated function findContactIdByEmail(string email) returns string?|erro
 #
 # + input - Call details. `subject` and `opportunityId` must both be set -- the service
 # rejects a request with no opportunity (and no lead) as a 400
-# + return - Salesforce Id of the created activity; CALL_ACTIVITY_ID_UNKNOWN if it was
-# created but the id could not be read back (see the body of the function for why that is
-# not an error); or an error if the activity was NOT created
+# + return - Salesforce Id of the created activity, or an error
 public isolated function createCallActivity(CreateCallActivityInput input) returns string|error {
     http:Request req = new;
     req.setPayload(input);
-    http:Response response = check salesEntityServiceWriteClient->post("/activities/calls", req);
+    http:Response response = check salesEntityServiceClient->post("/activities/calls", req);
     if response.statusCode != 201 {
         json|error errorResponseBody = response.getJsonPayload();
         return error(string `Call activity creation failed. Status: ${response.statusCode}, ` +
                 string `Response: ${errorResponseBody is json ? errorResponseBody.toJsonString() : "<no body>"}`);
     }
-
-    // Past this point the Task EXISTS in Salesforce, so nothing below may return an error.
-    // The caller releases its claim on an error, and a released claim lets a later run
-    // create the activity a second time -- so a body we can't parse must never be reported
-    // as a failed create. Worst case we lose track of the id, which costs traceability; the
-    // alternative costs a duplicate on the rep's timeline.
-    //
-    // The service returns the bare id as the body, which arrives as text/plain. It is
-    // validated rather than trusted: an unrecognised shape (a JSON error envelope, an HTML
-    // gateway page) would otherwise be written into call_activity_id verbatim and read later
-    // as though it were a real Salesforce id.
-    // Read once and keep the result: re-reading a consumed payload can fail, and a `check`
-    // on that failure would be exactly the after-201 error this comment block forbids.
-    string|error textPayload = response.getTextPayload();
-    string activityId = textPayload is string ? textPayload.trim() : "";
-    string unquoted = activityId.length() > 1 && activityId.startsWith("\"") && activityId.endsWith("\"")
-        ? activityId.substring(1, activityId.length() - 1)
-        : activityId;
-    if SALESFORCE_ID_PATTERN.isFullMatch(unquoted) {
-        return unquoted;
+    // The service returns the bare activity id as the body. It arrives as text/plain when
+    // sent as a Ballerina string body, so read text first and only fall back to JSON --
+    // getJsonPayload() on a text/plain body is itself an error.
+    string|error activityId = response.getTextPayload();
+    if activityId is string {
+        return activityId.trim();
     }
-    return CALL_ACTIVITY_ID_UNKNOWN;
+    json responseJson = check response.getJsonPayload();
+    return responseJson.toString().trim();
 }
