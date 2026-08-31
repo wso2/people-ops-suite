@@ -251,3 +251,40 @@ public isolated function updateMeetSmartNotes(string spaceName, RecordingState s
         string? smartNotesFileId, string actor) returns error? {
     _ = check databaseClient->execute(updateMeetSmartNotesQuery(spaceName, smartNotesState, smartNotesFileId, actor));
 }
+
+# Claims the one-shot Salesforce call-activity logging for a meeting, keyed by space name.
+#
+# Returns true for exactly one caller per meeting: the conditional UPDATE only matches while
+# `call_activity_id` is still NULL, and MySQL applies the predicate and the write atomically.
+# Every later caller -- a redelivered Pub/Sub notification, or a concurrent run for one of
+# the other two artifacts -- gets false and must not log anything. Callers that win the claim
+# and then fail must call releaseCallActivityClaim so the work can be retried.
+#
+# + spaceName - Resource name of the Meet space, the lookup key
+# + actor - User performing the write
+# + return - True if this caller won the claim, false if it was already taken, or Error
+public isolated function claimCallActivity(string spaceName, string actor) returns boolean|error {
+    sql:ExecutionResult result = check databaseClient->execute(claimCallActivityQuery(spaceName, actor));
+    return result.affectedRowCount == 1;
+}
+
+# Records the Salesforce activity Id against the meeting, replacing the claim sentinel.
+#
+# + spaceName - Resource name of the Meet space, the lookup key
+# + callActivityId - Salesforce Id of the created activity
+# + actor - User performing the write
+# + return - Error if the write fails
+public isolated function setCallActivityId(string spaceName, string callActivityId, string actor) returns error? {
+    _ = check databaseClient->execute(setCallActivityIdQuery(spaceName, callActivityId, actor));
+}
+
+# Hands back a claim taken by claimCallActivity when the activity could not be created, so a
+# later notification can retry it. Only clears rows still holding the sentinel, so it can
+# never wipe a real activity Id.
+#
+# + spaceName - Resource name of the Meet space, the lookup key
+# + actor - User performing the write
+# + return - Error if the write fails
+public isolated function releaseCallActivityClaim(string spaceName, string actor) returns error? {
+    _ = check databaseClient->execute(releaseCallActivityClaimQuery(spaceName, actor));
+}
