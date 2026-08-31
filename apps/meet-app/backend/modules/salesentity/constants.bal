@@ -1,0 +1,40 @@
+// Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+# client retry configuration for max retry attempts.
+public const int RETRY_COUNT = 3;
+
+# client retry configuration for wait interval in seconds.
+public const decimal RETRY_INTERVAL = 3.0;
+
+# client retry configuration for interval increment in seconds.
+public const float RETRY_BACKOFF_FACTOR = 2.0;
+
+# client retry configuration for maximum wait interval in seconds.
+public const decimal RETRY_MAX_INTERVAL = 20.0;
+
+# A contact lookup only ever needs the single match for one email address, so ask for one
+# row rather than letting the service apply its much larger default limit.
+public const int CONTACT_SEARCH_LIMIT = 1;
+
+# Shape of a Salesforce record Id: 15 characters, or 18 with the case-safe suffix. Matches
+# the pattern the sales-entity-service itself validates ids against.
+public final string:RegExp SALESFORCE_ID_PATTERN = re `[A-Za-z0-9]{15}([A-Za-z0-9]{3})?`;
+
+# Written into `call_activity_id` when the activity was created but its id could not be read
+# back off the response. Marks the row done so it is never logged twice, while being
+# obviously not a Salesforce Id to anyone reading the column later.
+public const string CALL_ACTIVITY_ID_UNKNOWN = "CREATED_ID_UNKNOWN";

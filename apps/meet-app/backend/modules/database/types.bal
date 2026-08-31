@@ -223,6 +223,10 @@ public type MeetRecordingPayload record {|
 # meeting; same reused-RecordingState and NULL-means-"none" semantics as transcriptState
 # + smartNotesFileId - Drive file ID (Google Doc, separate from the transcript's) of the
 # smart notes, if resolved yet
+# + callActivityId - Salesforce activity Id logged against this meeting's opportunity once
+# the recording, transcript and smart notes have all reached ATTACHED. `()` means it hasn't
+# been logged yet, CALL_ACTIVITY_CLAIMED means a run currently holds the one-shot claim, and
+# anything else is the real activity Id
 public type MeetRecordingRow record {|
     int meetingId;
     string spaceName;
@@ -241,4 +245,12 @@ public type MeetRecordingRow record {|
     string? transcriptFileId;
     RecordingState? smartNotesState;
     string? smartNotesFileId;
+    string? callActivityId;
 |};
+
+# Sentinel written into `call_activity_id` to claim the one-shot Salesforce call-activity
+# logging before the remote call is made. Distinguishes "a run is working on this right
+# now" from "not logged yet" (NULL) and from a real activity Id, so a redelivered Pub/Sub
+# notification can't produce a second activity for the same meeting. Deliberately not a
+# valid Salesforce Id shape, so it can never be mistaken for one.
+public const string CALL_ACTIVITY_CLAIMED = "IN_PROGRESS";

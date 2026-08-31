@@ -20,6 +20,8 @@ USE people_ops_suite;
 
 -- The UNIQUE constraint on space_name prevents two concurrent upsertMeetRecording calls
 -- from  creating duplicate rows for the same Meet space; 
+-- Records the Salesforce activity logged against the meeting's opportunity once the
+-- recording, transcript and smart notes have ALL reached ATTACHED.
 
 ALTER TABLE meeting
     ADD COLUMN space_name            VARCHAR(255) NULL,
@@ -34,6 +36,10 @@ ALTER TABLE meeting
     ADD COLUMN smart_notes_file_id   VARCHAR(255) NULL,
     MODIFY COLUMN meeting_type       VARCHAR(255) NULL,
     ADD UNIQUE (space_name);
+    ADD COLUMN `call_activity_id` VARCHAR(64) NULL;
+
+
+    
 
 -- Holds the sync token for the calendar-watch flow. Single row, id fixed at 1 — the
 -- calendar-watch-renewal component updates channel_id/resource_id/channel_expiration on
