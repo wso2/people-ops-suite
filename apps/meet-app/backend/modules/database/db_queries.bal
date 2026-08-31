@@ -517,7 +517,8 @@ isolated function getMeetRecordingBySpaceNameQuery(string spaceName) returns sql
         transcript_state AS transcriptState,
         transcript_file_id AS transcriptFileId,
         smart_notes_state AS smartNotesState,
-        smart_notes_file_id AS smartNotesFileId
+        smart_notes_file_id AS smartNotesFileId,
+        call_activity_id AS callActivityId
     FROM meeting
     WHERE space_name = ${spaceName}
 `;
@@ -565,4 +566,61 @@ isolated function updateMeetSmartNotesQuery(string spaceName, RecordingState sma
         smart_notes_file_id = ${smartNotesFileId},
         updated_by = ${actor}
     WHERE space_name = ${spaceName}
+`;
+# Build the conditional claim for the one-shot Salesforce call-activity logging, keyed by
+# space_name.
+#
+# `AND call_activity_id IS NULL` is the whole point: the recording, transcript and
+# smart-notes notifications arrive independently and Pub/Sub may redeliver any of them, so
+# more than one run can find all three states ATTACHED and try to log the same call. MySQL
+# applies the predicate and the write as one atomic statement, so exactly one of those runs
+# sees a non-zero affected-row count and proceeds; the rest see zero and stand down. A
+# select-then-write in Ballerina would leave a window between the two where both runs still
+# believe they won.
+#
+# + spaceName - Resource name of the Meet space, the lookup key
+# + actor - User performing the write
+# + return - sql:ParameterizedQuery - Conditional update for the meeting table
+isolated function claimCallActivityQuery(string spaceName, string actor) returns sql:ParameterizedQuery =>
+`
+    UPDATE meeting
+    SET
+        call_activity_id = ${CALL_ACTIVITY_CLAIMED},
+        updated_by = ${actor}
+    WHERE space_name = ${spaceName} AND call_activity_id IS NULL
+`;
+
+# Build the update that replaces the claim sentinel with the real Salesforce activity Id,
+# once the activity has actually been created.
+#
+# + spaceName - Resource name of the Meet space, the lookup key
+# + callActivityId - Salesforce Id of the created activity
+# + actor - User performing the write
+# + return - sql:ParameterizedQuery - Update query for the meeting table
+isolated function setCallActivityIdQuery(string spaceName, string callActivityId, string actor)
+        returns sql:ParameterizedQuery =>
+`
+    UPDATE meeting
+    SET
+        call_activity_id = ${callActivityId},
+        updated_by = ${actor}
+    WHERE space_name = ${spaceName}
+`;
+
+# Build the update that hands the claim back when the activity could not be created.
+#
+# Scoped to rows still holding the sentinel so a release can never wipe a real activity Id
+# -- without that guard, a late failure path could clear an Id a successful run had already
+# written, and the next notification would log the call a second time.
+#
+# + spaceName - Resource name of the Meet space, the lookup key
+# + actor - User performing the write
+# + return - sql:ParameterizedQuery - Conditional update for the meeting table
+isolated function releaseCallActivityClaimQuery(string spaceName, string actor) returns sql:ParameterizedQuery =>
+`
+    UPDATE meeting
+    SET
+        call_activity_id = NULL,
+        updated_by = ${actor}
+    WHERE space_name = ${spaceName} AND call_activity_id = ${CALL_ACTIVITY_CLAIMED}
 `;
