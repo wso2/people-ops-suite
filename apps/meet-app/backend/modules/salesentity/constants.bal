@@ -29,3 +29,12 @@ public const decimal RETRY_MAX_INTERVAL = 20.0;
 # A contact lookup only ever needs the single match for one email address, so ask for one
 # row rather than letting the service apply its much larger default limit.
 public const int CONTACT_SEARCH_LIMIT = 1;
+
+# Shape of a Salesforce record Id: 15 characters, or 18 with the case-safe suffix. Matches
+# the pattern the sales-entity-service itself validates ids against.
+public final string:RegExp SALESFORCE_ID_PATTERN = re `[A-Za-z0-9]{15}([A-Za-z0-9]{3})?`;
+
+# Written into `call_activity_id` when the activity was created but its id could not be read
+# back off the response. Marks the row done so it is never logged twice, while being
+# obviously not a Salesforce Id to anyone reading the column later.
+public const string CALL_ACTIVITY_ID_UNKNOWN = "CREATED_ID_UNKNOWN";
