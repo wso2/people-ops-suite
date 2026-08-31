@@ -42,3 +42,30 @@ final http:Client salesEntityServiceClient = check new (salesEntityServiceBaseUr
         ...retryConfig
     }
 });
+
+# The same service, but with retries deliberately switched OFF -- used only for
+# `POST /activities/calls`.
+#
+# That request CREATES a Salesforce Task. The transport retries on connection-level
+# failures, and the one failure it cannot tell apart is "the request never arrived" from
+# "the request arrived, the Task was created, and the response was lost on the way back".
+# Retrying the second case creates a second Task. The `call_activity_id` claim can't prevent
+# that: it guards against this app calling createCallActivity twice, whereas this duplicate
+# happens inside a single call, below the level the claim can see.
+#
+# The endpoint takes no idempotency key, so not retrying is the only way to keep the create
+# safe. A genuinely dropped request means one missed activity, logged loudly -- much cheaper
+# than a duplicate call on a rep's opportunity timeline. Reads keep using the retrying client
+# above, where replaying a request is harmless.
+@display {
+    label: "Sales Entity Service (no retry)",
+    id: "meet-app/sales-entity-service-no-retry"
+}
+
+final http:Client salesEntityServiceWriteClient = check new (salesEntityServiceBaseUrl, {
+    auth: {
+        ...oauthConfig
+    },
+    httpVersion: http:HTTP_1_1,
+    http1Settings: {keepAlive: http:KEEPALIVE_NEVER}
+});
