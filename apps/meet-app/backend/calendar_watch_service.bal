@@ -24,39 +24,26 @@ configurable string sharedAccountEmail = ?;
 configurable string calendarWatchToken = ?;
 
 function init() returns error? {
-    // Fail closed on a missing watch-channel secret. calendarWatchToken is required, but an
-    // empty deployed value ("") would make the ping check below and the /register admin-token
-    // guard both accept an attacker-supplied empty token -- so refuse to start rather than run
-    // open (CWE-1188). (Renewal is now handled by the separate meet-watch-renewal Choreo
-    // Scheduled Task, not by this service -- this check used to live in that job's own init().)
+ 
     if calendarWatchToken.trim() == "" {
         return error("calendarWatchToken is not configured; refusing to start with an empty " +
                 "watch-channel secret (the /calendar-watch and /register endpoints would fail open).");
     }
 }
 
-// Isolated listener, same reasoning as meet_events_service.bal -- separate from the main
-// Asgardeo-gated service, no push-token verification beyond the shared-secret channel token
-// Google echoes back on every ping.
 service /calendar\-watch on new http:Listener(calendarWatchListenerPort) {
 
     # One-time manual setup/testing endpoint: registers a watch channel on the Shared
     # Account's calendar directly. Routine renewal is handled by the separate
-    # meet-watch-renewal Choreo Scheduled Task, not by this service. Point webhookUrl at
-    # this same service's own base URL -- Choreo's exposed path for this service already IS
-    # the "/calendar-watch" root, so nothing further should be appended.
-    #
-    # Guarded by adminToken (reusing calendarWatchToken as a second, unrelated purpose --
-    # it is otherwise just the ping-matching secret) because this whole service has to sit
-    # unauthenticated at the Choreo gateway for Google's own webhook pings to ever reach
-    # the resource below, which would otherwise leave this registration action wide open to
-    # anyone on the internet.
-    #
+    # meet-watch-renewal Choreo Scheduled Task. 
     # + webhookUrl - Publicly reachable URL for Google to send pings to
     # + channelId - Unique ID for this channel (pick any new string each time you register)
-    # + adminToken - Must match the configured calendarWatchToken
+    # + adminToken - Must match the configured calendarWatchToken. Sent as a header rather
+    # than a query parameter so the Choreo gateway doesn't write the shared secret into its
+    # request logs 
     # + return - The registered channel's details, or error
-    resource function post register(string webhookUrl, string channelId, string adminToken)
+    resource function post register(string webhookUrl, string channelId,
+            @http:Header {name: "X-Admin-Token"} string adminToken)
             returns calendar:WatchChannelResponse|http:InternalServerError|http:Unauthorized {
         if adminToken != calendarWatchToken {
             log:printError("Calendar watch registration attempt had a missing or mismatched admin token; refusing.");
@@ -71,14 +58,13 @@ service /calendar\-watch on new http:Listener(calendarWatchListenerPort) {
         return result;
     }
 
-    # Receives Google's push notification pings -- these carry no event data, just headers
+    # Receives Google's push notification pings . these carry no event data, just headers
     # telling you something changed and which channel it was.
     #
     # + xGoogChannelToken - Shared secret, must match calendarWatchToken
     # + xGoogResourceState - "sync" on the initial confirmation ping, "exists" on real changes
     # + return - 200 once processed; 503 on a genuine processing failure, since Google's docs
-    #   confirm 500/502/503/504 responses are retried with backoff, unlike a bare 200 which
-    #   tells Google nothing needs to happen again
+    #   confirm 500/502/503/504 responses are retried with backoff.
     resource function post .(@http:Header {name: "X-Goog-Channel-Token"} string? xGoogChannelToken,
             @http:Header {name: "X-Goog-Resource-State"} string? xGoogResourceState)
             returns http:Ok|http:ServiceUnavailable {
@@ -105,8 +91,6 @@ service /calendar\-watch on new http:Listener(calendarWatchListenerPort) {
 // Consecutive-failure count per event ID, so one permanently-broken event can't block the
 // sync token forever -- it gets a bounded number of retries, then is given up on (loudly),
 // rather than either silently dropping it on the first failure or stalling everything else
-// behind it indefinitely. Restarting the service resets these, which is an acceptable
-// trade-off: worst case a few extra retries for something that was already failing.
 isolated map<int> eventFailureCounts = {};
 const int MAX_CONSECUTIVE_EVENT_FAILURES = 3;
 
@@ -176,7 +160,7 @@ isolated function clearFailureCount(string eventId) {
 isolated function registerEventIfRelevant(json event) returns error? {
     json|error conferenceData = event.conferenceData;
     if conferenceData is error {
-        // No conference on this event at all -- not one of ours, ignore.
+        // No conference on this event at all 
         return;
     }
 
@@ -211,10 +195,10 @@ isolated function registerEventIfRelevant(json event) returns error? {
 
     string spaceName = check calendar:resolveSpaceName(meetingCode);
 
-    // Written by the RevOS add-on onto every event it creates or links, as PRIVATE extended
+    // Written by the Echo add-on onto every event it creates or links, as PRIVATE extended
     // properties -- which Google scopes to the one calendar copy they were set on (the
     // organizer's), not to the event generally. The Shared Account's own copy of this event
-    // (what `event` here is -- read via the calendar-watch poll) never has them, so they're
+    //  never has them, so they're
     // read from a separate, targeted fetch of the organizer's own copy instead, impersonated
     // via CES's existing DWD credential. A failure here (or the properties genuinely being
     // absent, e.g. an event tagged addOn by mistake with no deal linked) is not fatal --
