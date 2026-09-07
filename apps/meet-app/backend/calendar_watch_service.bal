@@ -58,7 +58,7 @@ service /calendar\-watch on new http:Listener(calendarWatchListenerPort) {
         return result;
     }
 
-    # Receives Google's push notification pings . these carry no event data, just headers
+    # Receives Google's push notification pings - these carry no event data, just headers
     # telling you something changed and which channel it was.
     #
     # + xGoogChannelToken - Shared secret, must match calendarWatchToken
