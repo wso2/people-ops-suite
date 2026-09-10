@@ -50,22 +50,7 @@
         backOffFactor =
         maxWaitInterval =
 
-# Old scheduling flow's direct Google Drive client (attach permissions + recording counts).
-[meet_app.drive]
-    driveBaseUrl = ""
-    [meet_app.drive.oauthConfig]
-        refreshUrl = ""
-        clientId = ""
-        clientSecret = ""
-        refreshToken = ""
-
-    [meet_app.drive.retryConfig]
-        count =
-        interval =
-        backOffFactor =
-        maxWaitInterval =
-
-# New auto-recording flow: talks to the drive-service (Go) via Asgardeo M2M, not Google directly.
+# Drive access goes through the drive-service (Go) via Asgardeo M2M, never to Google directly.
 [meet_app.driveservice]
     driveServiceBaseUrl = ""
     [meet_app.driveservice.oauthConfig]

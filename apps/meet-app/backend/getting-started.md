@@ -62,21 +62,6 @@
         backOffFactor = <Backoff factor: 2.0>
         maxWaitInterval = <Max waiting interval: 20.0>
 
-# Drive Configurations.
-[meet_app.drive]
-    driveBaseUrl = "<Drive Service URL>"
-    [meet_app.drive.oauthConfig]
-        refreshUrl = "<Refresh URL>"
-        clientId = "<Client ID of the app>"
-        clientSecret = "<Client secret of the app>"
-        refreshToken = "<Refresh Token>"
-
-    [meet_app.drive.retryConfig]
-        count = <Retry count: 3>
-        interval = <Retry interval: 3.0>
-        backOffFactor = <Backoff factor: 2.0>
-        maxWaitInterval = <Max waiting interval: 20.0>
-
 # Database Configurations.
 [meet_app.database.dbConfig]
     host = "<Database host>"

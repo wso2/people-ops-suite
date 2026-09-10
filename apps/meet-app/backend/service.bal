@@ -16,7 +16,6 @@
 import meet_app.authorization;
 import meet_app.calendar;
 import meet_app.database;
-import meet_app.drive;
 import meet_app.people;
 import meet_app.sales;
 
@@ -675,20 +674,12 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        // Update editor permissions for all available video/mp4 attachments of the meeting.
-        foreach gcalendar:Attachment attachment in calendarEventAttachments ?: [] {
-            if attachment.mimeType == "video/mp4" {
-                drive:DrivePermissionResponse|error permissionResult = drive:setFilePermission(
-                        <string>attachment.fileId, drive:EDITOR, drive:USER, meeting.host
-                );
-
-                if permissionResult is error {
-                    string customError = string `Failed to update Editor permission for the host!`;
-                    log:printError(customError, permissionResult);
-                }
-            }
-        }
-
+        // The host used to be granted Drive EDITOR on every video/mp4 attachment here. That is
+        // now redundant: drive-service grants the organizer and internal participants Viewer
+        // access at recording-attach time, and renames the recording itself, so nothing in the
+        // pipeline depends on the host holding Editor. NOTE: this was also the only path that
+        // re-granted access after a failed attach-time grant -- those grants are best-effort and
+        // are never retried (see meet_events_service.bal), so there is no longer a backstop.
         return {attachments: calendarEventAttachments ?: []};
     }
 
@@ -805,7 +796,6 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         time:Civil startCivil = time:utcToCivil(startUtc);
         time:Civil endCivil = time:utcToCivil(endUtc);
-        map<future<int|error>> driveFutureMap = {};
         map<json> metaDataMap = {};
 
         int cursorYear = startCivil.year;
@@ -835,9 +825,6 @@ service http:InterceptableService / on new http:Listener(9090) {
                 queryEndTime = endDate;
             }
 
-            // Drive API
-            future<int|error> fDrive = start drive:countWso2RecordingsInDateRange(queryStartTime, queryEndTime, region);
-            driveFutureMap[monthKey] = fDrive;
             metaDataMap[monthKey] = {
                 "year": cursorYear,
                 "month": cursorMonth,
@@ -852,23 +839,21 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         map<int> dbCounts = check wait scheduledCounts;
-        map<int|error> driveResults = {};
 
-        foreach string key in driveFutureMap.keys() {
-            driveResults[key] = wait driveFutureMap.get(key);
-        }
         json[] monthlyStats = [];
-        string[] sortedKeys = driveFutureMap.keys().sort(array:DESCENDING);
+        string[] sortedKeys = metaDataMap.keys().sort(array:DESCENDING);
 
         foreach string key in sortedKeys {
             json meta = metaDataMap.get(key);
-            // Drive Count
-            int|error? driveCount = driveResults[key];
             // DB Count
             int scheduledCount = dbCounts.hasKey(key) ? dbCounts.get(key) : 0;
 
             _ = check meta.mergeJson({
-                "recordingCount": (driveCount is int) ? driveCount : 0,
+                // Always 0: the Drive-backed recording count was removed with the drive module.
+                // Kept as a number rather than null because the webapp types it as `number`
+                // (analyticsSlice/analytics.ts) and charts it. Restore via drive-service if the
+                // real figure is needed again -- it has no files.list/search endpoint yet.
+                "recordingCount": 0,
                 "scheduledCount": scheduledCount
             });
             monthlyStats.push(meta);
