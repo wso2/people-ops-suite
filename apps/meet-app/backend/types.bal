@@ -39,6 +39,16 @@ public type Meeting record {|
     database:TimeStatus timeStatus;
     # Whether the meeting is recurring
     boolean isRecurring;
+    # Call type / meeting category, when the calendar add-on linked this meeting.
+    string? meetingType;
+    # Salesforce Opportunity id, when the call type targets a deal.
+    string? opportunityId;
+    # Deal snapshot as a JSON string; never present without opportunityId.
+    string? opportunityDetails;
+    # Salesforce Account id, when the call type targets an account.
+    string? accountId;
+    # The account's display name.
+    string? accountName;
 |};
 
 # Represents the response structure for retrieving user information.

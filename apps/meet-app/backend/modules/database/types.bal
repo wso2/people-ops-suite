@@ -102,6 +102,17 @@ public type Meeting record {|
     boolean isRecurring;
     # Recurrence rule of the meeting
     string? recurrence_rule;
+    # Call type / meeting category. Written by the calendar add-on's linking flow
+    string? meetingType?;
+    # Salesforce Opportunity the meeting was linked to, Null for account- and lead-targeted calls.
+    string? opportunityId?;
+    # Compact deal snapshot as a JSON string 
+    string? opportunityDetails?;
+    # Salesforce Account the meeting was linked to. Set for account-targeted calls,
+    # where no opportunity exists to carry the customer.
+    string? accountId?;
+    # The account's display name, denormalised so the list needs no Salesforce call.
+    string? accountName?;
 |};
 
 # [Database]RawMeetingTypes type.
@@ -197,6 +208,11 @@ public type MeetRecordingPayload record {|
     string? driveFileId = ();
     string? opportunityId = ();
     string? opportunityDetails = ();
+    # Call type the add-on's linking flow recorded. Lands in `meeting_type`.
+    string? meetingType = ();
+    # Salesforce Account link, for call types that target an account rather than a deal.
+    string? accountId = ();
+    string? accountName = ();
 |};
 
 # [Database] An auto-recorded meeting row, read back by space name.
