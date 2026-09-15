@@ -60,6 +60,7 @@ service class ErrorInterceptor {
 }
 
 
+
 service http:InterceptableService / on new http:Listener(9090) {
 
     # Request interceptor.
@@ -606,7 +607,12 @@ service http:InterceptableService / on new http:Listener(9090) {
                     internalParticipants: meeting.internalParticipants,
                     meetingStatus: meeting.meetingStatus,
                     timeStatus: meeting.timeStatus,
-                    isRecurring: meeting.isRecurring
+                    isRecurring: meeting.isRecurring,
+                    meetingType: meeting?.meetingType,
+                    opportunityId: meeting?.opportunityId,
+                    opportunityDetails: meeting?.opportunityDetails,
+                    accountId: meeting?.accountId,
+                    accountName: meeting?.accountName
                 }
         };
     }
