@@ -50,7 +50,8 @@
         backOffFactor =
         maxWaitInterval =
 
-# Drive access goes through the drive-service (Go) via Asgardeo M2M, never to Google directly.
+
+# New auto-recording flow: talks to the drive-service (Go) via Asgardeo M2M, not Google directly.
 [meet_app.driveservice]
     driveServiceBaseUrl = ""
     [meet_app.driveservice.oauthConfig]
@@ -59,6 +60,21 @@
         clientSecret = ""
 
     [meet_app.driveservice.retryConfig]
+        count =
+        interval =
+        backOffFactor =
+        maxWaitInterval =
+
+# Sales Entity Service (REST) -- owns /contacts/search and /activities/calls, used to log a
+# completed call on the Salesforce timeline once all three artifacts are attached.
+[meet_app.salesentity]
+    salesEntityServiceBaseUrl = ""
+    [meet_app.salesentity.oauthConfig]
+        tokenUrl = ""
+        clientId = ""
+        clientSecret = ""
+
+    [meet_app.salesentity.retryConfig]
         count =
         interval =
         backOffFactor =
