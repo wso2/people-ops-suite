@@ -375,9 +375,6 @@ isolated function upsertMeetRecordingQuery(MeetRecordingPayload payload, string 
         drive_file_id,
         opportunity_id,
         opportunity_details,
-        meeting_type,
-        account_id,
-        account_name,
         meeting_status,
         created_by,
         updated_by
@@ -397,9 +394,6 @@ isolated function upsertMeetRecordingQuery(MeetRecordingPayload payload, string 
         ${payload.driveFileId},
         ${payload.opportunityId},
         ${payload.opportunityDetails},
-        ${payload.meetingType},
-        ${payload.accountId},
-        ${payload.accountName},
         ${ACTIVE},
         ${actor},
         ${actor}
@@ -450,6 +444,9 @@ isolated function registerMeetRecordingQuery(MeetRecordingPayload payload, strin
         drive_file_id,
         opportunity_id,
         opportunity_details,
+        meeting_type,
+        account_id,
+        account_name,
         meeting_status,
         created_by,
         updated_by
@@ -469,6 +466,9 @@ isolated function registerMeetRecordingQuery(MeetRecordingPayload payload, strin
         ${payload.driveFileId},
         ${payload.opportunityId},
         ${payload.opportunityDetails},
+        ${payload.meetingType},
+        ${payload.accountId},
+        ${payload.accountName},
         ${ACTIVE},
         ${actor},
         ${actor}

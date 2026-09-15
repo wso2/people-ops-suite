@@ -8,5 +8,5 @@ USE people_ops_suite;
 
 ALTER TABLE meeting
     ADD COLUMN account_id   VARCHAR(255) NULL,
-    ADD COLUMN `call_activity_id` VARCHAR(64) NULL
+    ADD COLUMN `call_activity_id` VARCHAR(64) NULL,
     ADD COLUMN account_name VARCHAR(255) NULL;
