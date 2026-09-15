@@ -205,6 +205,9 @@ isolated function registerEventIfRelevant(json event) returns error? {
     // the meeting is still tracked, just without opportunity data.
     string? opportunityId = ();
     string? opportunityDetails = ();
+    string? meetingType = ();
+    string? accountId = ();
+    string? accountName = ();
     json|error organizerEventResult = calendar:getEvent(organizerEmail, eventId);
     if organizerEventResult is error {
         log:printError(string `Could not fetch organizer's own copy of event ${eventId} to read ` +
@@ -216,15 +219,31 @@ isolated function registerEventIfRelevant(json event) returns error? {
         }
 
         // Compact deal snapshot (name, stage, amount, account, close date) the add-on writes
-        // as one JSON-string property. Stored as-is -- MySQL validates it as JSON on insert,
-        // nothing here needs to parse it back out. Only captured when an opportunityId is
-        // also present, so the row can never hold deal details without the id they belong to
-        // (matches the schema's documented "NULL wherever opportunity_id is NULL" invariant).
+        // as one JSON-string property. 
         if opportunityId is string {
             json|error opportunitySnapshotResult =
                 organizerEventResult.extendedProperties.'private.revos_opportunity_snapshot;
             if opportunitySnapshotResult is string {
                 opportunityDetails = opportunitySnapshotResult;
+            }
+        }
+
+        // The call type the user picked in the add-on (`monthly_weekly`, `renewal`,
+        // `internal`, ...)
+        json|error callTypeResult = organizerEventResult.extendedProperties.'private.revos_call_type;
+        if callTypeResult is string && callTypeResult.trim() != "" {
+            meetingType = callTypeResult;
+        }
+
+        // The account link, written for call types that target an account rather than a
+        // deal 
+        json|error accountIdResult = organizerEventResult.extendedProperties.'private.revos_account_id;
+        if accountIdResult is string && accountIdResult.trim() != "" {
+            accountId = accountIdResult;
+            json|error accountNameResult =
+                organizerEventResult.extendedProperties.'private.revos_account_name;
+            if accountNameResult is string && accountNameResult.trim() != "" {
+                accountName = accountNameResult;
             }
         }
     }
@@ -262,6 +281,9 @@ isolated function registerEventIfRelevant(json event) returns error? {
         recordingState: database:PENDING,
         driveFileId: (),
         opportunityId,
-        opportunityDetails
+        opportunityDetails,
+        meetingType,
+        accountId,
+        accountName
     }, SYSTEM_ACTOR);
 }

@@ -105,6 +105,11 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
                 wso2_participants as internalParticipants, 
                 is_recurring AS 'isRecurring',
                 meeting_status as meetingStatus,
+                meeting_type AS 'meetingType',
+                opportunity_id AS 'opportunityId',
+                opportunity_details AS 'opportunityDetails',
+                account_id AS 'accountId',
+                account_name AS 'accountName',
                 created_on AS 'createdOn',
                 created_by AS 'createdBy',
                 updated_on AS 'updatedOn',
@@ -439,6 +444,9 @@ isolated function registerMeetRecordingQuery(MeetRecordingPayload payload, strin
         drive_file_id,
         opportunity_id,
         opportunity_details,
+        meeting_type,
+        account_id,
+        account_name,
         meeting_status,
         created_by,
         updated_by
@@ -458,6 +466,9 @@ isolated function registerMeetRecordingQuery(MeetRecordingPayload payload, strin
         ${payload.driveFileId},
         ${payload.opportunityId},
         ${payload.opportunityDetails},
+        ${payload.meetingType},
+        ${payload.accountId},
+        ${payload.accountName},
         ${ACTIVE},
         ${actor},
         ${actor}
@@ -474,6 +485,12 @@ isolated function registerMeetRecordingQuery(MeetRecordingPayload payload, strin
         external_participants = VALUES(external_participants),
         opportunity_id = IF(VALUES(opportunity_id) IS NULL, opportunity_id, VALUES(opportunity_id)),
         opportunity_details = IF(VALUES(opportunity_id) IS NULL, opportunity_details, VALUES(opportunity_details)),
+        -- Same guard the opportunity columns use: a later poll that could not read the
+        -- organizer's copy of the event arrives with these NULL, and must not wipe what an
+        -- earlier poll already learned.
+        meeting_type = IF(VALUES(meeting_type) IS NULL, meeting_type, VALUES(meeting_type)),
+        account_id = IF(VALUES(account_id) IS NULL, account_id, VALUES(account_id)),
+        account_name = IF(VALUES(account_id) IS NULL, account_name, VALUES(account_name)),
         updated_by = VALUES(updated_by)
 `;
 
