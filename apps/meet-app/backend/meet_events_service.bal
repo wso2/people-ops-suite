@@ -694,6 +694,16 @@ isolated function logCallActivityIfComplete(string spaceName) {
     };
 
     string|error activityId = salesentity:createCallActivity(input);
+    if activityId is salesentity:CallActivityIndeterminate {
+        // Deliberately KEEPS the claim. The activity may already exist in Salesforce; releasing
+        // here would let a later notification create a duplicate on the rep's timeline. Holding
+        // it costs at most one unlogged call, which is recoverable by hand from the log line
+        // below -- a duplicate is not.
+        log:printError(string `Could not confirm whether the Salesforce call activity for space ${spaceName} ` +
+                "was created; keeping the claim so it cannot be logged twice. Check Salesforce for an " +
+                "activity against this meeting and clear the claim by hand if none exists.", activityId);
+        return;
+    }
     if activityId is error {
         log:printError(string `Failed to log the Salesforce call activity for space ${spaceName}; ` +
                 "releasing the claim so it can be retried.", activityId);

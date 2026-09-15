@@ -69,7 +69,17 @@ public isolated function createCallActivity(CreateCallActivityInput input) retur
     http:Request req = new;
     req.setPayload(input);
 
-    http:Response response = check salesEntityServiceWriteClient->post("/activities/calls", req);
+    // Not `check`: a transport failure here is indeterminate, not a refusal. The request may
+    // already have reached the service and created the Task, so this must not be reported to
+    // the caller as "nothing was created" -- that would release the claim and let a later run
+    // create a second activity.
+    http:Response|error response = salesEntityServiceWriteClient->post("/activities/calls", req);
+    if response is error {
+        return error CallActivityIndeterminate(
+                "Call activity create did not complete; it is unknown whether Salesforce created it.",
+                response);
+    }
+
     if response.statusCode != 201 {
         json|error errorResponseBody = response.getJsonPayload();
         return error(string `Call activity creation failed. Status: ${response.statusCode}, ` +

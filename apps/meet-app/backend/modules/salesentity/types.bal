@@ -87,3 +87,12 @@ public type CreateCallActivityInput record {|
     string? contactId?;
     int? durationSeconds?;
 |};
+
+# Raised when a call-activity create could not be confirmed either way: the request left this
+# process but no response came back, so the Task may or may not exist in Salesforce.
+#
+# Distinct from a plain error on purpose. A plain error means the service answered and refused,
+# so nothing was created and the claim is safe to release. This one means we do not know -- and
+# releasing the claim on "do not know" is what puts a duplicate on a rep's timeline, the exact
+# outcome createCallActivity's post-201 handling already goes out of its way to avoid.
+public type CallActivityIndeterminate distinct error;
