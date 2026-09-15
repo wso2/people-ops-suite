@@ -35,7 +35,7 @@ ALTER TABLE meeting
     ADD COLUMN smart_notes_state     ENUM('PENDING', 'ATTACHED', 'FAILED') NULL,
     ADD COLUMN smart_notes_file_id   VARCHAR(255) NULL,
     MODIFY COLUMN meeting_type       VARCHAR(255) NULL,
-    ADD UNIQUE (space_name);
+    ADD UNIQUE (space_name),
     ADD COLUMN `call_activity_id` VARCHAR(64) NULL;
 
 
