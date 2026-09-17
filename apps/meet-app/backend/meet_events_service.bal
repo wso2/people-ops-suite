@@ -402,7 +402,10 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
         }
     }
 
-    check database:updateMeetTranscript(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR);
+    // transcriptName is stored alongside the file id: the Drive document is the transcript
+    // as prose, while this resource name is what reaches Meet's timed entries — the only
+    // form a transcript synchronised to the recording can be built from.
+    check database:updateMeetTranscript(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR, transcriptName);
 
     logCallActivityIfComplete(spaceName);
 }
