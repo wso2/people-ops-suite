@@ -81,3 +81,35 @@ public type GrantResult record {|
 public type GrantAccessResponse record {|
     GrantResult[] results;
 |};
+
+# One utterance in a transcript, ready for a UI to render and seek to.
+#
+# + speaker - Participant's display name, resolved by drive-service from the conference's
+# participant list; falls back to the participant resource name when Meet had no name
+# + text - What was said
+# + offsetSeconds - Where the line sits in the RECORDING, which is what a player seeks to.
+# Approximate: see drive-service's ListTranscript for the anchor it rests on
+# + startTime - Absolute instant the line began, kept so a caller that knows better where
+# the recording started can redo the arithmetic
+# + endTime - Absolute instant the line ended
+public type TranscriptLine record {|
+    string speaker;
+    string text;
+    decimal offsetSeconds;
+    string startTime;
+    string endTime;
+|};
+
+# A whole conversation.
+#
+# + lines - The utterances, in order
+public type TranscriptResponse record {|
+    TranscriptLine[] lines;
+|};
+
+# A Google Doc's contents as plain text.
+#
+# + text - The document body
+public type DocumentTextResponse record {|
+    string text;
+|};
