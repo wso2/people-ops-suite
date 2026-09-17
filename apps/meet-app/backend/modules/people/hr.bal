@@ -144,10 +144,14 @@ public isolated function getOrgDetails(OrgDetailsFilter? filter = ()) returns Bu
     BusinessUnit[] businessUnits = [];
     boolean fetchMore = true;
     while fetchMore {
-        OrgDetailsResponse response = check hrClient->execute(
+        
+        OrgDetailsResponse|error response = trap hrClient->execute(
             document,
             {filter, 'limit: DEFAULT_LIMIT, offset: businessUnits.length()}
         );
+        if response is error {
+            return response;
+        }
         businessUnits.push(...response.data.orgDetails);
         fetchMore = response.data.orgDetails.length() > 0;
     }
