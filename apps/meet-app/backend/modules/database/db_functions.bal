@@ -235,8 +235,9 @@ public isolated function getMeetRecordingBySpaceName(string spaceName) returns M
 # + actor - User performing the write
 # + return - Error if the write fails
 public isolated function updateMeetTranscript(string spaceName, RecordingState transcriptState,
-        string? transcriptFileId, string actor) returns error? {
-    _ = check databaseClient->execute(updateMeetTranscriptQuery(spaceName, transcriptState, transcriptFileId, actor));
+        string? transcriptFileId, string actor, string? transcriptName = ()) returns error? {
+    _ = check databaseClient->execute(
+            updateMeetTranscriptQuery(spaceName, transcriptState, transcriptFileId, transcriptName, actor));
 }
 
 # Updates just the smart-notes columns of an existing meeting row, keyed by space name.

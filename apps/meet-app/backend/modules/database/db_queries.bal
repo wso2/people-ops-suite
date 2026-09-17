@@ -103,8 +103,17 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
                 DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS 'startTime',
                 DATE_FORMAT(end_time, '%Y-%m-%d %H:%i:%s') AS 'endTime',
                 wso2_participants as internalParticipants, 
+                external_participants AS 'externalParticipants',
                 is_recurring AS 'isRecurring',
                 meeting_status as meetingStatus,
+                -- Selected so a list row carries the same shape as a detail row. Not
+                -- required by the mapper -- an unselected field is simply nil -- but it
+                -- keeps one record type from meaning two different things depending on
+                -- which query loaded it.
+                drive_file_id AS 'driveFileId',
+                transcript_file_id AS 'transcriptFileId',
+                transcript_name AS 'transcriptName',
+                smart_notes_file_id AS 'smartNotesFileId',
                 meeting_type AS 'meetingType',
                 opportunity_id AS 'opportunityId',
                 opportunity_details AS 'opportunityDetails',
@@ -168,7 +177,19 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
         filters.push(sql:queryConcat(`end_time <= ${endTime}`));
     }
     if searchString is string {
-        filters.push(sql:queryConcat(`(host like ${"%" + searchString + "%"} OR title LIKE ${"%" + searchString + "%"} )`));
+        // One box, several columns.
+        // `account_name` covers account-linked meetings. Opportunity-linked ones have
+        // no account row (see calendar_watch_service): their customer lives inside the
+        // opportunity_details JSON. 
+        // `meeting_type` matches the STORED value (`monthly_weekly`),
+        string pattern = "%" + searchString + "%";
+        filters.push(sql:queryConcat(`(
+            host LIKE ${pattern}
+            OR title LIKE ${pattern}
+            OR account_name LIKE ${pattern}
+            OR meeting_type LIKE ${pattern}
+            OR opportunity_details ->> '$.customerName' LIKE ${pattern}
+        )`));
     }
 
     // Building the WHERE clause.
@@ -205,8 +226,18 @@ isolated function getMeetingQuery(int meetingId) returns sql:ParameterizedQuery 
         DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS 'startTime',
         DATE_FORMAT(end_time, '%Y-%m-%d %H:%i:%s') AS 'endTime',
         wso2_participants as internalParticipants, 
+        external_participants AS 'externalParticipants',
         is_recurring AS 'isRecurring', 
         meeting_status as meetingStatus,
+        drive_file_id AS 'driveFileId',
+        transcript_file_id AS 'transcriptFileId',
+        transcript_name AS 'transcriptName',
+        smart_notes_file_id AS 'smartNotesFileId',
+        meeting_type AS 'meetingType',
+        opportunity_id AS 'opportunityId',
+        opportunity_details AS 'opportunityDetails',
+        account_id AS 'accountId',
+        account_name AS 'accountName',
         created_on AS 'createdOn',
         created_by AS 'createdBy',
         updated_on AS 'updatedOn',
@@ -533,6 +564,7 @@ isolated function getMeetRecordingBySpaceNameQuery(string spaceName) returns sql
         opportunity_details AS opportunityDetails,
         transcript_state AS transcriptState,
         transcript_file_id AS transcriptFileId,
+        transcript_name AS transcriptName,
         smart_notes_state AS smartNotesState,
         smart_notes_file_id AS smartNotesFileId,
         call_activity_id AS callActivityId
@@ -542,12 +574,7 @@ isolated function getMeetRecordingBySpaceNameQuery(string spaceName) returns sql
 
 # Build a narrow update for just the transcript columns of an existing meeting row, keyed
 # by space_name. Deliberately separate from upsertMeetRecordingQuery/
-# registerMeetRecordingQuery -- folding transcript_state/transcript_file_id into either of
-# those would require re-supplying every recording column too on every write, or risk
-# overwriting them with stale values, which is exactly the class of bug already found once
-# with recording_state (see registerMeetRecordingQuery's doc comment above). A plain
-# UPDATE is enough here since the row is always already registered by calendar-watch by
-# the time a transcript-ready notification can arrive.
+# registerMeetRecordingQuery
 #
 # + spaceName - Resource name of the Meet space, the lookup key
 # + transcriptState - New transcript processing state
@@ -555,12 +582,15 @@ isolated function getMeetRecordingBySpaceNameQuery(string spaceName) returns sql
 # + actor - User performing the write
 # + return - sql:ParameterizedQuery - Update query for the meeting table
 isolated function updateMeetTranscriptQuery(string spaceName, RecordingState transcriptState,
-        string? transcriptFileId, string actor) returns sql:ParameterizedQuery =>
+        string? transcriptFileId, string? transcriptName, string actor) returns sql:ParameterizedQuery =>
 `
     UPDATE meeting
     SET
         transcript_state = ${transcriptState},
         transcript_file_id = ${transcriptFileId},
+        -- Kept only when supplied: a FAILED write arrives without one, and must not erase
+        -- the name an earlier successful notification stored.
+        transcript_name = IF(${transcriptName} IS NULL, transcript_name, ${transcriptName}),
         updated_by = ${actor}
     WHERE space_name = ${spaceName}
 `;
