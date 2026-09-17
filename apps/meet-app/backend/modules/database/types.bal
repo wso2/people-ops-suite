@@ -84,6 +84,8 @@ public type Meeting record {|
     string endTime;
     # Internal participants' email list
     string internalParticipants;
+    # External (non-wso2.com) attendees, comma-joined.
+    string? externalParticipants;
     # Meeting status (e.g., 'ACTIVE', 'CANCELLED')
     MeetingStatus meetingStatus;
     # Timestamp when created
@@ -103,16 +105,24 @@ public type Meeting record {|
     # Recurrence rule of the meeting
     string? recurrence_rule;
     # Call type / meeting category. Written by the calendar add-on's linking flow
-    string? meetingType?;
+    string? meetingType;
     # Salesforce Opportunity the meeting was linked to, Null for account- and lead-targeted calls.
-    string? opportunityId?;
+    string? opportunityId;
     # Compact deal snapshot as a JSON string 
-    string? opportunityDetails?;
+    string? opportunityDetails;
     # Salesforce Account the meeting was linked to. Set for account-targeted calls,
     # where no opportunity exists to carry the customer.
-    string? accountId?;
+    string? accountId;
     # The account's display name, denormalised so the list needs no Salesforce call.
-    string? accountName?;
+    string? accountName;
+    # Drive file id of the recording, once the pipeline has attached one. Optional for the
+    # same reason as the fields above
+    string? driveFileId;
+    # Google Doc ids for the transcript and the smart notes, plus Meet's own resource name
+    # for the transcript.
+    string? transcriptFileId;
+    string? transcriptName;
+    string? smartNotesFileId;
 |};
 
 # [Database]RawMeetingTypes type.
@@ -259,6 +269,9 @@ public type MeetRecordingRow record {|
     string? opportunityDetails;
     RecordingState? transcriptState;
     string? transcriptFileId;
+    # Meet's own resource name for the transcript. What the timed-entries API needs; NULL
+    # on rows written before it was stored, which fall back to the Drive document.
+    string? transcriptName;
     RecordingState? smartNotesState;
     string? smartNotesFileId;
     string? callActivityId;
