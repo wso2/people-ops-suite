@@ -124,17 +124,27 @@ const string NOTES_QUICK_HEADING = "\u{270D}\u{FE0F} Quick notes";
 const string NOTES_FULL_HEADING = "\u{1F4DD} Full notes";
 const string NOTES_TRANSCRIPT_HEADING = "\u{1F4D6} Transcript";
 
-# Lines Google adds for its own product, not content anyone asked for.
+# Google's own prompts and surveys, not content anyone asked for.
 #
-# Matched on a prefix rather than exactly: the survey and tip wording changes, and a
-# feedback prompt that drifts by a word should still be dropped rather than reappearing
-# in the middle of someone's meeting notes.
+# Matched on a PREFIX rather than exactly, because the survey and tip wording drifts: a
+# feedback prompt that changes by a word should still be dropped rather than reappearing
+# in the middle of someone's meeting notes. Every entry here is long and specific enough
+# that no sentence a person would write starts with it.
 final readonly & string[] NOTES_CHROME_PREFIXES = [
     "Please rate the new",
     "Want to see more?",
     "Tip: You can always access",
     "You should review Gemini's notes",
-    "How is the quality of these specific notes?",
+    "How is the quality of these specific notes?"
+];
+
+# Google's standalone section labels, matched EXACTLY and never as a prefix.
+#
+# These are ordinary words, so prefix-matching them eats real content: "Notes" as a
+# prefix deletes "Notes from the customer: ...", and "Meeting records" deletes "Meeting
+# records are kept for seven years". A bare label sits on its own line, so requiring the
+# whole trimmed line to equal it drops the label and nothing else.
+final readonly & string[] NOTES_CHROME_LABELS = [
     "Notes",
     "Meeting records"
 ];
@@ -178,6 +188,12 @@ isolated function notesWithoutTranscript(string text) returns string {
         }
 
         boolean isChrome = false;
+        foreach string label in NOTES_CHROME_LABELS {
+            if trimmed == label {
+                isChrome = true;
+                break;
+            }
+        }
         foreach string prefix in NOTES_CHROME_PREFIXES {
             if trimmed.startsWith(prefix) {
                 isChrome = true;
