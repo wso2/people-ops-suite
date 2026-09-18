@@ -16,7 +16,9 @@
 import meet_app.authorization;
 import meet_app.calendar;
 import meet_app.database;
+import meet_app.driveservice;
 import meet_app.people;
+import meet_app.playback;
 import meet_app.sales;
 
 import ballerina/cache;
@@ -25,6 +27,18 @@ import ballerina/lang.array;
 import ballerina/log;
 import ballerina/time;
 import ballerinax/googleapis.calendar as gcalendar;
+
+// Playback. Streaming itself lives in drive-service (Go), which handles HTTP Range far
+// more readily than this service would; what happens here is only the authorisation
+// decision and the short-lived token that records it. See modules/playback.
+//
+// All three are optional: a deployment that leaves them unset simply has no playback, and
+// /meetings/{id}/playback answers 404 rather than this service failing to start.
+configurable string playbackBaseUrl = "";
+configurable string playbackSigningSecret = "";
+# Hours rather than minutes: a token that expires mid-playback surfaces to a viewer as an
+# unexplained stall, not a clean error, so the window covers the longest call plus review.
+configurable int playbackTokenTtlSeconds = 21600;
 
 public configurable AppConfig appConfig = ?;
 public configurable SalesDesignations salesDesignations = ?;
@@ -58,7 +72,6 @@ service class ErrorInterceptor {
         return err;
     }
 }
-
 
 
 service http:InterceptableService / on new http:Listener(9090) {
@@ -605,6 +618,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     startTime: meeting.startTime,
                     endTime: meeting.endTime,
                     internalParticipants: meeting.internalParticipants,
+                    externalParticipants: meeting.externalParticipants,
                     meetingStatus: meeting.meetingStatus,
                     timeStatus: meeting.timeStatus,
                     isRecurring: meeting.isRecurring,
@@ -615,6 +629,153 @@ service http:InterceptableService / on new http:Listener(9090) {
                     accountName: meeting?.accountName
                 }
         };
+    }
+
+    # Get one meeting.
+    #
+    # The list endpoint cannot serve a direct link: it is paged and filtered, so the meeting
+    # asked for may be on no page the caller would fetch. The detail page needs exactly one.
+    #
+    # + meetingId - meetingId to fetch
+    # + return - Meeting|InternalServerError|Forbidden|NotFound
+    resource function get meetings/[int meetingId](http:RequestContext ctx)
+        returns Meeting|http:InternalServerError|http:Forbidden|http:NotFound {
+
+        database:Meeting|http:InternalServerError|http:Forbidden|http:NotFound meeting =
+            authorizedMeeting(ctx, meetingId);
+        if meeting !is database:Meeting {
+            return meeting;
+        }
+
+        return {
+            meetingId: meeting.meetingId,
+            title: meeting.title,
+            googleEventId: meeting.googleEventId,
+            host: meeting.host,
+            startTime: meeting.startTime,
+            endTime: meeting.endTime,
+            internalParticipants: meeting.internalParticipants,
+            externalParticipants: meeting.externalParticipants,
+            meetingStatus: meeting.meetingStatus,
+            timeStatus: meeting.timeStatus,
+            isRecurring: meeting.isRecurring,
+            meetingType: meeting.meetingType,
+            opportunityId: meeting.opportunityId,
+            opportunityDetails: meeting.opportunityDetails,
+            accountId: meeting.accountId,
+            accountName: meeting.accountName
+        };
+    }
+
+    # Get a signed, time-limited URL for streaming a meeting's recording.
+    #
+    # The URL returned points at drive-service, NOT at this service: streaming is
+    # deliberately not this service's job. What happens here is the authorisation decision --
+    # the same host/participant/admin rule as every other meeting route -- recorded in an
+    # HMAC token bound to one file, one viewer and an expiry.
+    #
+    # + meetingId - meetingId whose recording to stream
+    # + return - PlaybackResponse|InternalServerError|Forbidden|NotFound
+    resource function get meetings/[int meetingId]/playback(http:RequestContext ctx)
+        returns PlaybackResponse|http:InternalServerError|http:Forbidden|http:NotFound {
+
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            string customError = "User information header not found!";
+            log:printError(customError, userInfo);
+            return <http:InternalServerError>{body: {message: customError}};
+        }
+
+        database:Meeting|http:InternalServerError|http:Forbidden|http:NotFound meeting =
+            authorizedMeeting(ctx, meetingId);
+        if meeting !is database:Meeting {
+            return meeting;
+        }
+
+        // Not configured and no recording are both 404 rather than 500: neither is an error
+        // on the caller's part, and the message tells the two apart.
+        if playbackBaseUrl == "" || playbackSigningSecret == "" {
+            return <http:NotFound>{body: {message: "Playback is not enabled on this deployment."}};
+        }
+        string? driveFileId = meeting.driveFileId;
+        if driveFileId is () {
+            return <http:NotFound>{body: {message: "No recording is attached to this meeting."}};
+        }
+
+        string|error token = playback:mintToken(driveFileId, userInfo.email, playbackSigningSecret,
+                playbackTokenTtlSeconds);
+        if token is error {
+            string customError = "Error occurred while minting the playback token!";
+            log:printError(customError, token);
+            return <http:InternalServerError>{body: {message: customError}};
+        }
+
+        return {
+            url: playback:playbackUrl(playbackBaseUrl, driveFileId, token),
+            expiresAt: time:utcToString(time:utcAddSeconds(time:utcNow(), <decimal>playbackTokenTtlSeconds))
+        };
+    }
+
+    # Get a meeting's transcript as timed, speaker-attributed lines.
+    #
+    # 404 when the meeting predates `transcript_name` being stored, in which case only the
+    # Drive document exists and there is nothing to synchronise against the recording.
+    #
+    # + meetingId - meetingId whose transcript to read
+    # + return - TranscriptResponse|InternalServerError|Forbidden|NotFound
+    resource function get meetings/[int meetingId]/transcript(http:RequestContext ctx)
+        returns TranscriptResponse|http:InternalServerError|http:Forbidden|http:NotFound {
+
+        database:Meeting|http:InternalServerError|http:Forbidden|http:NotFound meeting =
+            authorizedMeeting(ctx, meetingId);
+        if meeting !is database:Meeting {
+            return meeting;
+        }
+
+        string? transcriptName = meeting.transcriptName;
+        if transcriptName is () {
+            return <http:NotFound>{body: {message: "No timed transcript is stored for this meeting."}};
+        }
+
+        driveservice:TranscriptResponse|error transcript = driveservice:listTranscript(transcriptName);
+        if transcript is error {
+            string customError = "Error occurred while retrieving the transcript!";
+            log:printError(customError, transcript);
+            return <http:InternalServerError>{body: {message: customError}};
+        }
+
+        return {lines: transcript.lines};
+    }
+
+    # Get a meeting's smart notes as plain text.
+    #
+    # Meet writes these only as a Google Doc, so this exports the document and strips the
+    # transcript and Google's own chrome out of it -- see notesWithoutTranscript.
+    #
+    # + meetingId - meetingId whose notes to read
+    # + return - SmartNotesResponse|InternalServerError|Forbidden|NotFound
+    resource function get meetings/[int meetingId]/smart\-notes(http:RequestContext ctx)
+        returns SmartNotesResponse|http:InternalServerError|http:Forbidden|http:NotFound {
+
+        database:Meeting|http:InternalServerError|http:Forbidden|http:NotFound meeting =
+            authorizedMeeting(ctx, meetingId);
+        if meeting !is database:Meeting {
+            return meeting;
+        }
+
+        string? smartNotesFileId = meeting.smartNotesFileId;
+        if smartNotesFileId is () {
+            return <http:NotFound>{body: {message: "No smart notes are attached to this meeting."}};
+        }
+
+        driveservice:DocumentTextResponse|error document = driveservice:exportDocumentText(smartNotesFileId);
+        if document is error {
+            string customError = "Error occurred while retrieving the smart notes!";
+            log:printError(customError, document);
+            return <http:InternalServerError>{body: {message: customError}};
+        }
+
+        return {text: notesWithoutTranscript(document.text)};
     }
 
     # Get attachments of a meeting.
@@ -660,7 +821,12 @@ service http:InterceptableService / on new http:Listener(9090) {
         // Return Forbidden if a non-admin user views attachments of a meeting they did not host.
         string:RegExp r = re `,`;
         string user = userInfo.email;
-        if !isAdmin && meeting.host != user && r.split(meeting.internalParticipants).indexOf(user) == () {
+        // Trimmed: internalParticipants is joined with ", " (calendar_watch_service.bal),
+        // so splitting on "," alone leaves a leading space on every entry but the first and
+        // indexOf never matches them -- every participant except the first gets a 403.
+        string[] participants = from string participant in r.split(meeting.internalParticipants)
+            select participant.trim();
+        if !isAdmin && meeting.host != user && participants.indexOf(user) == () {
             return <http:Forbidden>{
                 body: {message: "Insufficient privileges to view the attachments!"}
             };
@@ -889,3 +1055,52 @@ service http:InterceptableService / on new http:Listener(9090) {
     }
 }
 
+# Fetches a meeting and applies the same visibility rule every meeting route uses: a sales
+# admin sees any meeting, anyone else only meetings they hosted or attended.
+#
+# Factored out because four routes needed the identical sequence -- read the user header,
+# fetch, distinguish missing from failed, then decide -- and four copies of an authorisation
+# check is four places for them to drift apart.
+#
+# Returns the meeting, or the exact error response the caller should return unchanged.
+#
+# + ctx - Request context carrying the user header
+# + meetingId - meetingId to fetch
+# + return - The meeting, or the response to return instead
+isolated function authorizedMeeting(http:RequestContext ctx, int meetingId)
+    returns database:Meeting|http:InternalServerError|http:Forbidden|http:NotFound {
+
+    authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+    if userInfo is error {
+        string customError = "User information header not found!";
+        log:printError(customError, userInfo);
+        return <http:InternalServerError>{body: {message: customError}};
+    }
+
+    database:Meeting|error? meeting = database:fetchMeeting(meetingId);
+    if meeting is error {
+        string customError = "Error occurred while fetching the meeting!";
+        log:printError(customError, meeting);
+        return <http:InternalServerError>{body: {message: customError}};
+    }
+    // 404 rather than the 500 the older attachments route returns for this: asking for a
+    // meeting that does not exist is not a server fault, and the detail page needs to be
+    // able to tell "gone" from "broken".
+    if meeting is () {
+        return <http:NotFound>{body: {message: "Meeting not found!"}};
+    }
+
+    boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
+    string:RegExp r = re `,`;
+    string user = userInfo.email;
+    // Trimmed: internalParticipants is joined with ", " (calendar_watch_service.bal), so
+    // splitting on "," alone leaves a leading space on every entry but the first and indexOf
+    // never matches them -- every participant except the first gets a 403.
+    string[] participants = from string participant in r.split(meeting.internalParticipants)
+        select participant.trim();
+    if !isAdmin && meeting.host != user && participants.indexOf(user) == () {
+        return <http:Forbidden>{body: {message: "Insufficient privileges to view this meeting!"}};
+    }
+
+    return meeting;
+}

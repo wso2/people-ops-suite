@@ -138,15 +138,23 @@ final readonly & string[] NOTES_CHROME_PREFIXES = [
     "How is the quality of these specific notes?"
 ];
 
-# Google's standalone section labels, matched EXACTLY and never as a prefix.
+# Google's document navigation labels.
 #
-# These are ordinary words, so prefix-matching them eats real content: "Notes" as a
-# prefix deletes "Notes from the customer: ...", and "Meeting records" deletes "Meeting
-# records are kept for seven years". A bare label sits on its own line, so requiring the
-# whole trimmed line to equal it drops the label and nothing else.
+# Matched by REMOVAL rather than by equality or by prefix, because neither simpler rule
+# survives the real documents. Prefix-matching eats content -- "Notes" would delete "Notes
+# from the customer: ..." and "Meeting records" would delete "Meeting records are kept for
+# seven years". Exact-matching misses the nav row, which arrives as one line of several
+# labels run together and varies by which artifacts the meeting produced: "Meeting records
+# Transcript Recording" on a call with both, fewer labels on a call with one.
+#
+# So a line is chrome only when NOTHING is left after every label is taken out of it. That
+# drops the row whatever order or subset it uses, and keeps any line carrying real words.
 final readonly & string[] NOTES_CHROME_LABELS = [
-    "Notes",
-    "Meeting records"
+    "Meeting records",
+    "Smart notes",
+    "Transcript",
+    "Recording",
+    "Notes"
 ];
 
 # A bare date line, e.g. "Sep 16, 2026".
@@ -187,13 +195,13 @@ isolated function notesWithoutTranscript(string text) returns string {
             continue;
         }
 
-        boolean isChrome = false;
+        // Chrome if the line is made of nothing but navigation labels -- see the note on
+        // NOTES_CHROME_LABELS for why this is removal rather than a comparison.
+        string residue = trimmed;
         foreach string label in NOTES_CHROME_LABELS {
-            if trimmed == label {
-                isChrome = true;
-                break;
-            }
+            residue = withoutAll(residue, label);
         }
+        boolean isChrome = trimmed != "" && residue.trim() == "";
         foreach string prefix in NOTES_CHROME_PREFIXES {
             if trimmed.startsWith(prefix) {
                 isChrome = true;
@@ -212,4 +220,23 @@ isolated function notesWithoutTranscript(string text) returns string {
         kept.push(trimmed == "" ? "" : line);
     }
     return string:'join("\n", ...kept).trim();
+}
+
+# Removes every occurrence of a literal fragment from a string.
+#
+# Deliberately not a regular expression: the fragments are Google's own label text, and
+# treating them as patterns would make a stray character in a future label match far more
+# than intended.
+#
+# + text - The string to strip
+# + fragment - The literal to remove, every time it occurs
+# + return - `text` with every occurrence removed
+isolated function withoutAll(string text, string fragment) returns string {
+    string result = text;
+    int? at = result.indexOf(fragment);
+    while at is int {
+        result = result.substring(0, at) + result.substring(at + fragment.length());
+        at = result.indexOf(fragment);
+    }
+    return result;
 }
