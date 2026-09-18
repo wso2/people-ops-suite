@@ -605,6 +605,7 @@ service http:InterceptableService / on new http:Listener(9090) {
                     startTime: meeting.startTime,
                     endTime: meeting.endTime,
                     internalParticipants: meeting.internalParticipants,
+                    externalParticipants: meeting.externalParticipants,
                     meetingStatus: meeting.meetingStatus,
                     timeStatus: meeting.timeStatus,
                     isRecurring: meeting.isRecurring,
