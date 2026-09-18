@@ -74,7 +74,6 @@ service class ErrorInterceptor {
 }
 
 
-
 service http:InterceptableService / on new http:Listener(9090) {
 
     # Request interceptor.
@@ -822,7 +821,12 @@ service http:InterceptableService / on new http:Listener(9090) {
         // Return Forbidden if a non-admin user views attachments of a meeting they did not host.
         string:RegExp r = re `,`;
         string user = userInfo.email;
-        if !isAdmin && meeting.host != user && r.split(meeting.internalParticipants).indexOf(user) == () {
+        // Trimmed: internalParticipants is joined with ", " (calendar_watch_service.bal),
+        // so splitting on "," alone leaves a leading space on every entry but the first and
+        // indexOf never matches them -- every participant except the first gets a 403.
+        string[] participants = from string participant in r.split(meeting.internalParticipants)
+            select participant.trim();
+        if !isAdmin && meeting.host != user && participants.indexOf(user) == () {
             return <http:Forbidden>{
                 body: {message: "Insufficient privileges to view the attachments!"}
             };
@@ -1089,7 +1093,12 @@ isolated function authorizedMeeting(http:RequestContext ctx, int meetingId)
     boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
     string:RegExp r = re `,`;
     string user = userInfo.email;
-    if !isAdmin && meeting.host != user && r.split(meeting.internalParticipants).indexOf(user) == () {
+    // Trimmed: internalParticipants is joined with ", " (calendar_watch_service.bal), so
+    // splitting on "," alone leaves a leading space on every entry but the first and indexOf
+    // never matches them -- every participant except the first gets a 403.
+    string[] participants = from string participant in r.split(meeting.internalParticipants)
+        select participant.trim();
+    if !isAdmin && meeting.host != user && participants.indexOf(user) == () {
         return <http:Forbidden>{body: {message: "Insufficient privileges to view this meeting!"}};
     }
 
