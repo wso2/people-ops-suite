@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License. 
 import meet_app.database;
+import meet_app.driveservice;
 
 import ballerinax/googleapis.calendar as gcalendar;
 
@@ -33,6 +34,9 @@ public type Meeting record {|
     string endTime;
     # Internal participants' email list
     string internalParticipants;
+    # External (non-wso2.com) attendees, comma-joined. Null on meetings recorded before
+    # this was captured — distinct from a meeting that genuinely had none.
+    string? externalParticipants;
     # Meeting status (e.g., 'ACTIVE', 'CANCELLED')
     database:MeetingStatus meetingStatus;
     # Time Status (e.g., 'PAST', 'UPCOMING')
@@ -91,6 +95,28 @@ public type MeetingListResponse record {|
     int count;
     # Meeting list
     Meeting[] meetings;
+|};
+
+# Represents a signed, time-limited URL for streaming a meeting's recording.
+public type PlaybackResponse record {|
+    # URL a <video> element can be pointed at directly.
+    string url;
+    # When the URL stops working, as an ISO-8601 instant. Returned so the caller can
+    # refresh before a viewer meets a stall rather than after.
+    string expiresAt;
+|};
+
+# Represents a meeting's transcript as timed, speaker-attributed lines.
+public type TranscriptResponse record {|
+    # The utterances, in order.
+    driveservice:TranscriptLine[] lines;
+|};
+
+# Represents a meeting's smart notes.
+public type SmartNotesResponse record {|
+    # The notes as plain text. Meet writes these only as a Google Doc, so there is no
+    # richer structure to offer.
+    string text;
 |};
 
 # Represents the response when retrieving attachments for a meeting.

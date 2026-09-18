@@ -125,3 +125,28 @@ public isolated function renameFile(string fileId, string name) returns error? {
         return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
     }
 }
+
+# Lists a transcript's timed entries, with speakers resolved.
+#
+# This is the structured form of the conversation -- who spoke, what they said, and when --
+# as opposed to the Drive document, which is the same conversation as prose. Only the
+# structured form can drive a player.
+#
+# + transcriptName - Meet resource name (e.g. `conferenceRecords/abc/transcripts/xyz`)
+# + return - The conversation, or an error
+public isolated function listTranscript(string transcriptName) returns TranscriptResponse|error {
+    string encoded = check url:encode(transcriptName, "UTF-8");
+    return driveServiceClient->get(string `/transcripts/entries?name=${encoded}`);
+}
+
+# Reads a Google Doc as plain text.
+#
+# Used for smart notes, which Meet writes only as a Doc -- there is no API giving them back
+# as structure the way transcripts have one.
+#
+# + fileId - Drive file id of the document
+# + return - Its text, or an error
+public isolated function exportDocumentText(string fileId) returns DocumentTextResponse|error {
+    string encoded = check url:encode(fileId, "UTF-8");
+    return driveServiceClient->get(string `/files/${encoded}/text`);
+}

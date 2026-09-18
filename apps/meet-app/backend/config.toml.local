@@ -147,3 +147,8 @@
     pubsubPushServiceAccount = ""
     # Audience the token must carry (--push-auth-token-audience, or the push endpoint URL).
     pubsubPushAudience = ""
+
+    playbackBaseUrl = ""
+    playbackSigningSecret = ""
+    playbackTokenTtlSeconds =  
+
