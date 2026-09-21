@@ -42,11 +42,11 @@ public type SalesEntityRetryConfig record {|
 # ones this app actually filters on are declared here -- sending the rest as explicit nulls
 # would say the same thing as omitting them, just more verbosely and with more to keep in
 # sync when the service adds a field.
-#
-# + email - Contact email to match on
-# + 'limit - Maximum rows to return
+
 public type ContactFilter record {|
+    #Contact email to match on
     string email;
+    #Maximum rows to return
     int 'limit = CONTACT_SEARCH_LIMIT;
 |};
 
@@ -55,36 +55,34 @@ public type ContactFilter record {|
 # Open on purpose: the service returns ~25 fields per contact and this app needs exactly
 # two of them. A closed record would break on the next field the service adds.
 #
-# + id - Salesforce Contact Id -- the value that goes in the call activity's `contactId`
-# + email - Contact email, echoed back
+
 public type Contact record {
+    #Salesforce Contact Id -- the value that goes in the call activity's `contactId`
     string? id = ();
+    #Contact email, echoed back
     string? email = ();
 };
 
 # Payload for `POST /activities/calls`, mirroring the service's `CreateCallActivityInput`.
-#
-# + subject - Short title for the call, shown in the Salesforce activity timeline
-# + callType - Direction of the call (Salesforce's Task.CallType picklist:
-# Inbound/Outbound/Internal). Part of the service's contract, but this app never sets it --
-# nothing in the recording pipeline knows the call's direction
-# + occurredOn - Date the call took place, `yyyy-MM-dd`. Salesforce stores a date only --
-# there is no time-of-day field creatable on an activity of this kind, so the meeting's
-# start time is truncated to its date before it gets here
-# + comment - Free-text notes; this is where the recording/transcript/smart-notes links go.
-# The underlying Salesforce field holds 32,000 characters
-# + opportunityId - Opportunity the call relates to. The service requires EXACTLY ONE of
-# `opportunityId` or `leadId` and rejects a request carrying both or neither with a 400
-# + contactId - Contact who was on the call. Only meaningful alongside `opportunityId` --
-# a lead already occupies the same underlying Salesforce field (`WhoId`)
-# + durationSeconds - Length of the call in seconds
+
 public type CreateCallActivityInput record {|
+    #Short title for the call, shown in the Salesforce activity timeline
     string subject;
+    #Description of the call, shown in the Salesforce activity timeline
+    string? description?;
+    #Direction of the call (Salesforce's Task.CallType picklist:Inbound/Outbound/Internal).
     string? callType?;
+    #Date the call took place, `yyyy-MM-dd`. 
     string? occurredOn?;
+    #Free-text notes; this is where the recording/transcript/smart-notes links go.
     string? comment?;
+    #Opportunity the call relates to. The service requires EXACTLY ONE of `opportunityId`.
     string? opportunityId?;
+    #Account the call relates to
+    string? accountId?;
+    #Contact who was on the call
     string? contactId?;
+    #Length of the call in seconds
     int? durationSeconds?;
 |};
 

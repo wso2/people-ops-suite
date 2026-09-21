@@ -267,6 +267,8 @@ public type MeetRecordingRow record {|
     string? driveFileId;
     string? opportunityId;
     string? opportunityDetails;
+    # Salesforce Account the meeting was linked to.
+    string? accountId;
     RecordingState? transcriptState;
     string? transcriptFileId;
     # Meet's own resource name for the transcript. What the timed-entries API needs; NULL

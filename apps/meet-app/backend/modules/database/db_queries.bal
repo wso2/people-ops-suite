@@ -562,6 +562,7 @@ isolated function getMeetRecordingBySpaceNameQuery(string spaceName) returns sql
         drive_file_id AS driveFileId,
         opportunity_id AS opportunityId,
         opportunity_details AS opportunityDetails,
+        account_id AS accountId,
         transcript_state AS transcriptState,
         transcript_file_id AS transcriptFileId,
         transcript_name AS transcriptName,
