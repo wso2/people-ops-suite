@@ -591,7 +591,8 @@ isolated function resolveCallContactId(database:MeetRecordingRow tracked) return
     return;
 }
 
-# Logs the meeting as a completed call against its Salesforce Opportunity -- but only once
+# Logs the meeting as a completed call against its Salesforce Opportunity -- or against its
+# Account, for the call types that link to a customer rather than to a deal -- but only once
 # the recording, the transcript AND the smart notes have all reached ATTACHED.
 #
 # The three artifacts arrive as three independent Pub/Sub notifications in no guaranteed
@@ -630,13 +631,18 @@ isolated function logCallActivityIfComplete(string spaceName) {
         return;
     }
 
-    // Without an opportunity there is nothing to log the call against: the API requires
-    // exactly one of opportunityId/leadId, and this pipeline never has a lead. Meetings
-    // booked without picking a deal in the add-on land here.
+    // Without a Salesforce target there is nothing to log the call against: the API requires
+    // exactly one of opportunityId/accountId/leadId, and this pipeline never has a lead.
+    //
+    // An account-type call (`monthly_weekly`, `outbound`) never carries a deal -- the add-on
+    // links it straight to the customer -- so it logs against the account instead of being
+    // dropped. It is still real customer contact and belongs on the timeline. What lands here
+    // now is only a meeting tagged for the add-on with nothing picked at all.
     string? opportunityId = tracked.opportunityId;
-    if opportunityId is () {
-        log:printInfo(string `Meeting for space ${spaceName} has all artifacts attached but no opportunity; ` +
-                "skipping the Salesforce call activity.");
+    string? accountId = tracked.accountId;
+    if opportunityId is () && accountId is () {
+        log:printInfo(string `Meeting for space ${spaceName} has all artifacts attached but no opportunity ` +
+                "or account; skipping the Salesforce call activity.");
         return;
     }
 
@@ -659,7 +665,11 @@ isolated function logCallActivityIfComplete(string spaceName) {
         // identically by the service, which normalises both to "not supplied".
         occurredOn: callDate(tracked.startTime),
         comment: buildCallActivityComment(tracked),
+        // Exactly one target, never both. The add-on writes the deal's own account onto a
+        // deal-linked event as well, so a row can genuinely hold both ids -- and the two
+        // share one Salesforce field, so sending both is a 400. 
         opportunityId: opportunityId,
+        accountId: opportunityId is () ? accountId : (),
         contactId: resolveCallContactId(tracked),
         durationSeconds: meetingDurationSeconds(tracked)
     };
@@ -667,9 +677,7 @@ isolated function logCallActivityIfComplete(string spaceName) {
     string|error activityId = salesentity:createCallActivity(input);
     if activityId is salesentity:CallActivityIndeterminate {
         // Deliberately KEEPS the claim. The activity may already exist in Salesforce; releasing
-        // here would let a later notification create a duplicate on the rep's timeline. Holding
-        // it costs at most one unlogged call, which is recoverable by hand from the log line
-        // below -- a duplicate is not.
+        // here would let a later notification create a duplicate on the rep's timeline. 
         log:printError(string `Could not confirm whether the Salesforce call activity for space ${spaceName} ` +
                 "was created; keeping the claim so it cannot be logged twice. Check Salesforce for an " +
                 "activity against this meeting and clear the claim by hand if none exists.", activityId);
@@ -693,7 +701,9 @@ isolated function logCallActivityIfComplete(string spaceName) {
                 "logged twice.", recorded);
         return;
     }
-    log:printInfo(string `Logged Salesforce call activity ${activityId} for space ${spaceName}.`);
+    log:printInfo(string `Logged Salesforce call activity ${activityId} for space ${spaceName} against ` +
+            (opportunityId is () ? string `account ${accountId ?: ""}` : string `opportunity ${opportunityId}`) +
+            ".");
 }
 
 # Grants the recording-access departments view access to an artifact, off the response path.
