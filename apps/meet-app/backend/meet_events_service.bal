@@ -244,6 +244,11 @@ isolated function processRecordingReady(string recordingName) returns error? {
         return;
     }
 
+    if tracked.recordingState == database:ATTACHED && tracked.driveFileId == fileId {
+        log:printInfo(string `Recording for space ${spaceName} is already attached; skipping.`);
+        return;
+    }
+
     // Google Meet names the recording file itself after the meeting code and a timestamp
     // Replace it with the actual event title + start time.
     error? renameResult = driveservice:renameFile(fileId, recordingTitle(tracked));
@@ -293,26 +298,9 @@ isolated function processRecordingReady(string recordingName) returns error? {
                 "(best-effort, not retrying).", shareResult);
     }
 
-    // Everyone in Sales, Channel Sales, and Sales Engineering also gets view access, even if
-    // they weren't on this particular call -- but silently (no notification email), since
-    // they weren't actually a participant.
-    string[]|error salesDepartmentEmails = people:getSalesDepartmentEmails();
-    if salesDepartmentEmails is error {
-        log:printError("Could not fetch Sales department list; skipping their access grant for this recording.",
-                salesDepartmentEmails);
-    } else {
-        string[] extraEmails = [];
-        foreach string email in salesDepartmentEmails {
-            if participantEmails.indexOf(email) == () {
-                extraEmails.push(email);
-            }
-        }
-        driveservice:GrantResult[]|error deptShareResult = driveservice:grantAccess(fileId, extraEmails, false);
-        if deptShareResult is error {
-            log:printError("Recording attached, but some Sales department Drive permission grants failed " +
-                    "(best-effort, not retrying).", deptShareResult);
-        }
-    }
+    // Started, not awaited -- see shareWithDepartments for why this must not hold up the
+    // webhook's response. 
+    _ = start shareWithDepartments(fileId, participantEmails.cloneReadOnly(), "Recording");
 
     // The recording is attached -- mark ATTACHED and return success (200) regardless of how
     // sharing went. Sharing failures are logged above for manual follow-up; they deliberately
@@ -336,11 +324,8 @@ isolated function processRecordingReady(string recordingName) returns error? {
     logCallActivityIfComplete(spaceName);
 }
 
-# Mirrors processRecordingReady, but for the transcript pipeline: resolves the transcript
-# to its Drive (Google Doc) file, attaches it to the calendar event, shares it, and marks
-# the row's transcript state -- tracked independently of recording_state via a dedicated
-# narrow UPDATE (updateMeetTranscript) rather than the upsert used for recordings, since
-# not every meeting has a transcript and this must never touch the recording columns.
+# Resolves the transcript to its Drive (Google Doc) file, attaches it to the calendar event, shares it, and marks
+# the row's transcript state 
 #
 # + transcriptName - Full resource name of the transcript
 # + return - Error if a retry-worthy step failed
@@ -352,6 +337,14 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
     database:MeetRecordingRow? tracked = check database:getMeetRecordingBySpaceName(spaceName);
     if tracked is () {
         log:printError(string `No registered event found for space ${spaceName}; skipping.`);
+        return;
+    }
+
+    // Pub/Sub redelivers whenever it does not get a 200 in time, and without this the
+    // handler starts from the top every time: re-attaching the file, renaming it again,
+    // and re-running the participant grant.
+    if tracked.transcriptState == database:ATTACHED && tracked.transcriptFileId == fileId {
+        log:printInfo(string `Transcript for space ${spaceName} is already attached; skipping.`);
         return;
     }
 
@@ -373,34 +366,16 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
 
     // Best-effort, same reasoning as the recording flow: sharing failures must never fail
     // this function, or a permanent grant failure retries forever, re-attaching and
-    // re-sharing on every retry. sendNotificationEmail is false here (unlike recording's
-    // participant grant) -- recording, transcript, and smart notes arrive as three
-    // separate, independently-timed notifications for the same meeting, and participants
-    // already got one "shared with you" email off the recording; access is still granted
-    // silently, discoverable via the calendar event's accumulating attachments.
+    // re-sharing on every retry. sendNotificationEmail is false here 
     driveservice:GrantResult[]|error shareResult = driveservice:grantAccess(fileId, participantEmails, false);
     if shareResult is error {
         log:printError("Transcript attached, but some participant Drive permission grants failed " +
                 "(best-effort, not retrying).", shareResult);
     }
 
-    string[]|error salesDepartmentEmails = people:getSalesDepartmentEmails();
-    if salesDepartmentEmails is error {
-        log:printError("Could not fetch Sales department list; skipping their access grant for this transcript.",
-                salesDepartmentEmails);
-    } else {
-        string[] extraEmails = [];
-        foreach string email in salesDepartmentEmails {
-            if participantEmails.indexOf(email) == () {
-                extraEmails.push(email);
-            }
-        }
-        driveservice:GrantResult[]|error deptShareResult = driveservice:grantAccess(fileId, extraEmails, false);
-        if deptShareResult is error {
-            log:printError("Transcript attached, but some Sales department Drive permission grants failed " +
-                    "(best-effort, not retrying).", deptShareResult);
-        }
-    }
+    // Started, not awaited -- see shareWithDepartments for why this must not hold
+    // up the webhook's response.
+    _ = start shareWithDepartments(fileId, participantEmails.cloneReadOnly(), "Transcript");
 
     // transcriptName is stored alongside the file id: the Drive document is the transcript
     // as prose, while this resource name is what reaches Meet's timed entries — the only
@@ -428,6 +403,14 @@ isolated function processSmartNotesReady(string smartNotesName) returns error? {
         return;
     }
 
+    // Pub/Sub redelivers whenever it does not get a 200 in time, and without this the
+    // handler starts from the top every time: re-attaching the file, renaming it again,
+    // and re-running the participant grant.
+    if tracked.smartNotesState == database:ATTACHED && tracked.smartNotesFileId == fileId {
+        log:printInfo(string `Smart notes for space ${spaceName} is already attached; skipping.`);
+        return;
+    }
+
     error? attachResult = calendar:attachRecording(tracked.organizer, tracked.googleEventId, fileId,
             "Meeting Notes", "application/vnd.google-apps.document");
     if attachResult is error {
@@ -448,31 +431,16 @@ isolated function processSmartNotesReady(string smartNotesName) returns error? {
     // Best-effort, same reasoning as the other two flows: sharing failures must never
     // fail this function, or a permanent grant failure retries forever, re-attaching and
     // re-sharing on every retry. sendNotificationEmail is false here for the same reason
-    // as processTranscriptReady -- avoid a third "shared with you" email for the same
-    // meeting; access is still granted silently.
+    // as processTranscriptReady.
     driveservice:GrantResult[]|error shareResult = driveservice:grantAccess(fileId, participantEmails, false);
     if shareResult is error {
         log:printError("Smart notes attached, but some participant Drive permission grants failed " +
                 "(best-effort, not retrying).", shareResult);
     }
 
-    string[]|error salesDepartmentEmails = people:getSalesDepartmentEmails();
-    if salesDepartmentEmails is error {
-        log:printError("Could not fetch Sales department list; skipping their access grant for these smart notes.",
-                salesDepartmentEmails);
-    } else {
-        string[] extraEmails = [];
-        foreach string email in salesDepartmentEmails {
-            if participantEmails.indexOf(email) == () {
-                extraEmails.push(email);
-            }
-        }
-        driveservice:GrantResult[]|error deptShareResult = driveservice:grantAccess(fileId, extraEmails, false);
-        if deptShareResult is error {
-            log:printError("Smart notes attached, but some Sales department Drive permission grants failed " +
-                    "(best-effort, not retrying).", deptShareResult);
-        }
-    }
+    // Started, not awaited -- see shareWithDepartments for why this must not hold
+    // up the webhook's response.
+    _ = start shareWithDepartments(fileId, participantEmails.cloneReadOnly(), "Smart notes");
 
     check database:updateMeetSmartNotes(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR);
 
@@ -726,4 +694,41 @@ isolated function logCallActivityIfComplete(string spaceName) {
         return;
     }
     log:printInfo(string `Logged Salesforce call activity ${activityId} for space ${spaceName}.`);
+}
+
+# Grants the recording-access departments view access to an artifact, off the response path.
+#
+# Sharing with the Sales departments is several hundred separate
+# Drive calls, one per person; Pub/Sub stops waiting for the webhook after about ten seconds
+# and treats the silence as a failed delivery, so it redelivers.
+#
+# + fileId - Drive file to share
+# + participantEmails - Already granted individually; excluded so nobody is granted twice
+# + artifact - Names the artifact in log lines ("Recording", "Transcript", "Smart notes")
+isolated function shareWithDepartments(string fileId, string[] participantEmails, string artifact) {
+    string[]|error salesDepartmentEmails = people:getSalesDepartmentEmails();
+    if salesDepartmentEmails is error {
+        log:printError(string `Could not fetch Sales department list; skipping their access ` +
+                string `grant for this ${artifact.toLowerAscii()}.`, salesDepartmentEmails);
+        return;
+    }
+
+    string[] extraEmails = [];
+    foreach string email in salesDepartmentEmails {
+        if participantEmails.indexOf(email) == () {
+            extraEmails.push(email);
+        }
+    }
+    // drive-service rejects an empty list with a 400, which would then be logged as a grant
+    // failure when in fact there was simply nobody left to grant.
+    if extraEmails.length() == 0 {
+        return;
+    }
+
+    driveservice:GrantResult[]|error deptShareResult =
+        driveservice:grantAccess(fileId, extraEmails, false);
+    if deptShareResult is error {
+        log:printError(string `${artifact} attached, but some Sales department Drive permission ` +
+                "grants failed (best-effort, not retrying).", deptShareResult);
+    }
 }
