@@ -246,6 +246,9 @@ isolated function processRecordingReady(string recordingName) returns error? {
 
     if tracked.recordingState == database:ATTACHED && tracked.driveFileId == fileId {
         log:printInfo(string `Recording for space ${spaceName} is already attached; skipping.`);
+        // Still checked, because the artifact being attached does NOT mean the call
+        // activity was logged. 
+        logCallActivityIfComplete(spaceName);
         return;
     }
 
@@ -345,6 +348,9 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
     // and re-running the participant grant.
     if tracked.transcriptState == database:ATTACHED && tracked.transcriptFileId == fileId {
         log:printInfo(string `Transcript for space ${spaceName} is already attached; skipping.`);
+        // Still checked, because the artifact being attached does NOT mean the call
+        // activity was logged.
+        logCallActivityIfComplete(spaceName);
         return;
     }
 
@@ -408,6 +414,8 @@ isolated function processSmartNotesReady(string smartNotesName) returns error? {
     // and re-running the participant grant.
     if tracked.smartNotesState == database:ATTACHED && tracked.smartNotesFileId == fileId {
         log:printInfo(string `Smart notes for space ${spaceName} is already attached; skipping.`);
+
+        logCallActivityIfComplete(spaceName);
         return;
     }
 
