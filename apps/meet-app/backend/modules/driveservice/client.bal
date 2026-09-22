@@ -33,12 +33,16 @@ final http:Client driveServiceClient = check new (driveServiceBaseUrl, {
     },
     httpVersion: http:HTTP_1_1,
     http1Settings: {keepAlive: http:KEEPALIVE_NEVER},
-    // Well above the default 30s, because one call here is not one request: granting the
-    // Sales departments view access is a few hundred separate Drive calls, and measured at
-    // ~35s for 148 people. At the default this timed out mid-share and the retry below
-    // restarted the whole thing -- four full runs, several hundred wasted Drive calls, and
-    // a pile of 409s from the grants the earlier runs had already made.
-    timeout: 180,
+    // Far above the default 30s, because one call here is not one request: granting the
+    // recording-access departments is a few hundred separate Drive calls. Measured at 215s
+    // for 374 people -- and that is with concurrency deliberately held low and conflicting
+    // writes retried, both of which cost time and buy correctness.
+    //
+    // 180s was NOT enough and would have re-created the exact failure this was meant to end:
+    // the call outliving the timeout, `retryConfig` restarting the whole share, and four full
+    // runs of several hundred Drive calls apiece. The number has to sit above the real
+    // duration with room for a slower day, not just above the last measurement.
+    timeout: 600,
     retryConfig: {
         ...retryConfig
     }
