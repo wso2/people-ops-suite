@@ -33,6 +33,12 @@ final http:Client driveServiceClient = check new (driveServiceBaseUrl, {
     },
     httpVersion: http:HTTP_1_1,
     http1Settings: {keepAlive: http:KEEPALIVE_NEVER},
+    // Well above the default 30s, because one call here is not one request: granting the
+    // Sales departments view access is a few hundred separate Drive calls, and measured at
+    // ~35s for 148 people. At the default this timed out mid-share and the retry below
+    // restarted the whole thing -- four full runs, several hundred wasted Drive calls, and
+    // a pile of 409s from the grants the earlier runs had already made.
+    timeout: 180,
     retryConfig: {
         ...retryConfig
     }
