@@ -14,6 +14,8 @@
 // specific language governing permissions and limitations
 // under the License. 
 
+import ballerina/log;
+
 # Allowed employment types.
 configurable string[] allowedEmploymentTypes = ?;
 
@@ -101,17 +103,37 @@ configurable string[] recordingAccessTestEmails = [];
 #
 # + return - Work emails of matching employees, or Error
 public isolated function getSalesDepartmentEmails() returns string[]|error {
-    if recordingAccessTestEmails.length() > 0 {
-        return recordingAccessTestEmails;
+    // Blank entries are dropped BEFORE the emptiness check, because the Choreo config UI
+    // cannot express a genuinely empty array. A plain `length() > 0` is then TRUE, so the
+    // HR lookup is skipped entirely and a single empty string is handed to Drive, which
+    // refuses it with "The specified emailAddress is invalid or not applicable for the
+    // given permission type" -- once per artifact, on every meeting, for ever. 
+    string[] testEmails = from string email in recordingAccessTestEmails
+        where email.trim().length() > 0
+        select email.trim();
+    if testEmails.length() > 0 {
+        return testEmails;
     }
 
     string[] emails = [];
     foreach string department in recordingAccessDepartments {
         EmployeeBasic[] employees = check getEmployees(department = department);
+        // COUNTS ONLY, never the addresses
+        log:printInfo(string `Recording access: department '${department}' resolved to ` +
+                string `${employees.length()} employee(s).`);
         foreach EmployeeBasic employee in employees {
-            emails.push(employee.workEmail);
+            // Same reasoning one level down: a record with no work email must not become a
+            // blank Drive grant. Drive rejects it, and because the grants are best-effort
+            // the whole department share is reported as failed over one empty string.
+            string workEmail = employee.workEmail.trim();
+            if workEmail.length() == 0 {
+                continue;
+            }
+            emails.push(workEmail);
         }
     }
+    log:printInfo(string `Recording access: ${recordingAccessDepartments.length()} department(s) ` +
+            string `resolved to ${emails.length()} email(s) in total.`);
     return emails;
 }
 
