@@ -33,32 +33,38 @@ function buildJwtValidatorConfig() returns jwt:ValidatorConfig {
         }
     };
     
-    // One audience or several. With a list, jwt:validate passes a token whose `aud` matches
-    // ANY entry -- which is what lets two different clients (the meet-app webapp and One
-    // WSO2, each with its own client ID) call this one backend. Blank entries are dropped, and
-    // nothing left means no audience check at all, exactly as an unset value did before.
+    // One audience or several, as comma-separated client IDs in one string. With a list,
+    // jwt:validate passes a token whose `aud` matches ANY entry -- which is what lets two
+    // different clients (the meet-app webapp and One WSO2, each with its own client ID) call
+    // this one backend. Unset or blank means no audience check at all, as before.
     //
-    // A list written as ONE string is accepted too. Choreo's configuration form does not keep
-    // the "array" choice for this string|string[] field: it saves the list as the text
-    // `["id1","id2"]` and passes it as a single string, which would otherwise be read as one
-    // audience -- brackets, quotes and all -- and reject every caller. So a string is split
-    // on commas after dropping brackets and quotes; that also accepts a plain `id1, id2`.
-    // Client IDs never contain those characters, so a single ID is unaffected.
-    string|string[]? audience = authConfig.JWTAudience;
-    string[] audiences = [];
-    if audience is string {
-        audiences = re `,`.split(re `[\[\]"']`.replaceAll(audience, ""));
-    } else if audience is string[] {
-        audiences = audience;
+    // Brackets and quotes are dropped before splitting, so a value written as `["id1","id2"]`
+    // -- what Choreo's form saves when someone tries to enter an array -- reads the same as
+    // `id1, id2`. Client IDs never contain those characters, so a single ID is unaffected.
+    string? audience = authConfig.JWTAudience;
+    boolean configured = audience is string && audience.trim() != "";
+    string[] accepted = [];
+    boolean hadEmptyEntry = false;
+    if audience is string && configured {
+        foreach string part in re `,`.split(re `[\[\]"']`.replaceAll(audience, "")) {
+            string entry = part.trim();
+            if entry == "" {
+                hadEmptyEntry = true;
+            } else if accepted.indexOf(entry) == () {
+                accepted.push(entry);
+            }
+        }
     }
-    string[] accepted = from string entry in audiences
-        where entry.trim() != ""
-        select entry.trim();
+    if hadEmptyEntry {
+        // Skipped rather than failing startup: a stray comma is a typo, and refusing to start
+        // would take down every listener in this service over it.
+        log:printWarn("JWTAudience has an empty entry (check for a stray comma); it was ignored.");
+    }
     if accepted.length() == 1 {
         validatorConfig.audience = accepted[0];
     } else if accepted.length() > 1 {
         validatorConfig.audience = accepted;
-    } else if audience is string[] || (audience is string && audience.trim() != "") {
+    } else if configured {
         // Treated as unset, like a blank string -- but said out loud: a value that parses to
         // no usable entries is almost certainly a misconfiguration, and failing closed instead
         // would reject every request (jwt:validate refuses all tokens against an empty list).
