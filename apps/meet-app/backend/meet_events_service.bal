@@ -744,7 +744,7 @@ isolated function shareWithDepartments(string fileId, string[] participantEmails
     }
 
     driveservice:GrantResult[]|error deptShareResult =
-        driveservice:grantAccess(fileId, extraEmails, false);
+        driveservice:grantAccess(fileId, extraEmails, false, bulk = true);
     if deptShareResult is error {
         log:printError(string `${artifact} attached, but some Sales department Drive permission ` +
                 "grants failed (best-effort, not retrying).", deptShareResult);
