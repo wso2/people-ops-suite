@@ -51,6 +51,11 @@ function buildJwtValidatorConfig() returns jwt:ValidatorConfig {
         validatorConfig.audience = accepted[0];
     } else if accepted.length() > 1 {
         validatorConfig.audience = accepted;
+    } else if audience is string[] {
+        // Treated as unset, like a blank string -- but said out loud: a list that filters to
+        // nothing is almost certainly a misconfiguration, and failing closed instead would
+        // reject every request (jwt:validate refuses all tokens against an empty audience list).
+        log:printWarn("JWTAudience is set to a list with no usable entries; the audience check is DISABLED.");
     }
     return validatorConfig;
 }
