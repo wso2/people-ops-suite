@@ -301,10 +301,6 @@ isolated function processRecordingReady(string recordingName) returns error? {
                 "(best-effort, not retrying).", shareResult);
     }
 
-    // Started, not awaited -- see shareWithDepartments for why this must not hold up the
-    // webhook's response. 
-    _ = start shareWithDepartments(fileId, participantEmails.cloneReadOnly(), "Recording");
-
     // The recording is attached -- mark ATTACHED and return success (200) regardless of how
     // sharing went. Sharing failures are logged above for manual follow-up; they deliberately
     // do NOT trigger a Pub/Sub retry. (A DB write failure below still surfaces as an error, so
@@ -323,6 +319,12 @@ isolated function processRecordingReady(string recordingName) returns error? {
         opportunityId: tracked.opportunityId,
         opportunityDetails: tracked.opportunityDetails
     }, SYSTEM_ACTOR);
+
+    // Started, not awaited -- see shareWithDepartments for why this must not hold up the
+    // webhook's response. Started only AFTER the ATTACHED write: if that write fails, the
+    // handler returns 503 and Pub/Sub redelivers, and a share started before it would then
+    // run twice, concurrently, on the same file.
+    _ = start shareWithDepartments(fileId, participantEmails.cloneReadOnly(), "Recording");
 
     logCallActivityIfComplete(spaceName);
 }
@@ -379,14 +381,13 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
                 "(best-effort, not retrying).", shareResult);
     }
 
-    // Started, not awaited -- see shareWithDepartments for why this must not hold
-    // up the webhook's response.
-    _ = start shareWithDepartments(fileId, participantEmails.cloneReadOnly(), "Transcript");
-
     // transcriptName is stored alongside the file id: the Drive document is the transcript
     // as prose, while this resource name is what reaches Meet's timed entries — the only
     // form a transcript synchronised to the recording can be built from.
     check database:updateMeetTranscript(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR, transcriptName);
+
+    // Started, not awaited, and only after the ATTACHED write -- see processRecordingReady.
+    _ = start shareWithDepartments(fileId, participantEmails.cloneReadOnly(), "Transcript");
 
     logCallActivityIfComplete(spaceName);
 }
@@ -446,11 +447,10 @@ isolated function processSmartNotesReady(string smartNotesName) returns error? {
                 "(best-effort, not retrying).", shareResult);
     }
 
-    // Started, not awaited -- see shareWithDepartments for why this must not hold
-    // up the webhook's response.
-    _ = start shareWithDepartments(fileId, participantEmails.cloneReadOnly(), "Smart notes");
-
     check database:updateMeetSmartNotes(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR);
+
+    // Started, not awaited, and only after the ATTACHED write -- see processRecordingReady.
+    _ = start shareWithDepartments(fileId, participantEmails.cloneReadOnly(), "Smart notes");
 
     logCallActivityIfComplete(spaceName);
 }
