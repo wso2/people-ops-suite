@@ -105,7 +105,9 @@
     JWKSEndPoint = ""
     # Leave commented out unless this component's "End User Token Audiences" has been
     # explicitly configured in Choreo -- Choreo does not set an aud claim by default.
-    # JWTAudience = ""
+    # One client:  JWTAudience = "<client-id>"
+    # Several (e.g. the meet-app webapp AND One WSO2) -- a token matching ANY entry passes:
+    # JWTAudience = ["<meet-app-webapp-client-id>", "<one-wso2-client-id>"]
 
 [meet_app.appConfig]
     supportTeamEmails = [
