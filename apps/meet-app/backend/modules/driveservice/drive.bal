@@ -77,11 +77,15 @@ public isolated function resolveSmartNotes(string smartNotesName) returns SmartN
 #   addresses, which are recipient PII we don't put in logs), so a partial failure isn't
 #   silently treated as a full success by callers that only check for `error`. The full
 #   per-email outcome is still available in the returned results on the success path.
-public isolated function grantAccess(string fileId, string[] emails, boolean sendNotificationEmail)
-        returns GrantResult[]|error {
+# + bulk - True only for the department-wide grant: sends it through driveServiceBulkClient,
+#   whose long timeout suits a few hundred Drive writes. Everything else stays on the
+#   fast-failing driveServiceClient.
+public isolated function grantAccess(string fileId, string[] emails, boolean sendNotificationEmail,
+        boolean bulk = false) returns GrantResult[]|error {
+    http:Client driveClient = bulk ? driveServiceBulkClient : driveServiceClient;
     http:Request req = new;
     req.setPayload({emails, sendNotificationEmail});
-    http:Response response = check driveServiceClient->post(string `/files/${fileId}/permissions`, req);
+    http:Response response = check driveClient->post(string `/files/${fileId}/permissions`, req);
     if response.statusCode != 200 {
         json? errorResponseBody = check response.getJsonPayload();
         return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);

@@ -33,17 +33,23 @@ final http:Client driveServiceClient = check new (driveServiceBaseUrl, {
     },
     httpVersion: http:HTTP_1_1,
     http1Settings: {keepAlive: http:KEEPALIVE_NEVER},
-    // Far above the default 30s, because one call here is not one request: granting the
-    // recording-access departments is a few hundred separate Drive calls. Measured at 215s
-    // for 374 people -- and that is with concurrency deliberately held low and conflicting
-    // writes retried, both of which cost time and buy correctness.
-    //
-    // 180s was NOT enough and would have re-created the exact failure this was meant to end:
-    // the call outliving the timeout, `retryConfig` restarting the whole share, and four full
-    // runs of several hundred Drive calls apiece. The number has to sit above the real
-    // duration with room for a slower day, not just above the last measurement.
-    timeout: 600,
+    // Every call except the department-wide grant: single, quick requests, several of them
+    // on the Meet webhook's response path (resolve, rename, the participant grant) and two
+    // behind user-facing pages (transcript, smart notes). They must fail fast on a stall
+    timeout: 30,
     retryConfig: {
         ...retryConfig
     }
+});
+
+# The department-wide grant ONLY (see shareWithDepartments). Same service and credentials as
+# driveServiceClient, but one call here is not one request: it is a few hundred separate Drive
+# writes.
+final http:Client driveServiceBulkClient = check new (driveServiceBaseUrl, {
+    auth: {
+        ...oauthConfig
+    },
+    httpVersion: http:HTTP_1_1,
+    http1Settings: {keepAlive: http:KEEPALIVE_NEVER},
+    timeout: 600
 });
