@@ -33,7 +33,23 @@ final http:Client driveServiceClient = check new (driveServiceBaseUrl, {
     },
     httpVersion: http:HTTP_1_1,
     http1Settings: {keepAlive: http:KEEPALIVE_NEVER},
+    // Every call except the department-wide grant: single, quick requests, several of them
+    // on the Meet webhook's response path (resolve, rename, the participant grant) and two
+    // behind user-facing pages (transcript, smart notes). They must fail fast on a stall
+    timeout: 30,
     retryConfig: {
         ...retryConfig
     }
+});
+
+# The department-wide grant ONLY (see shareWithDepartments). Same service and credentials as
+# driveServiceClient, but one call here is not one request: it is a few hundred separate Drive
+# writes.
+final http:Client driveServiceBulkClient = check new (driveServiceBaseUrl, {
+    auth: {
+        ...oauthConfig
+    },
+    httpVersion: http:HTTP_1_1,
+    http1Settings: {keepAlive: http:KEEPALIVE_NEVER},
+    timeout: 600
 });
