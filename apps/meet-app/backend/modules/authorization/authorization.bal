@@ -33,9 +33,29 @@ function buildJwtValidatorConfig() returns jwt:ValidatorConfig {
         }
     };
     
-    string? audience = authConfig.JWTAudience;
-    if audience is string && audience.trim() != "" {
-        validatorConfig.audience = audience;
+    // One audience or several. With a list, jwt:validate passes a token whose `aud` matches
+    // ANY entry -- which is what lets two different clients (the meet-app webapp and One
+    // WSO2, each with its own client ID) call this one backend. Blank entries are dropped, and
+    // nothing left means no audience check at all, exactly as an unset value did before.
+    string|string[]? audience = authConfig.JWTAudience;
+    string[] audiences = [];
+    if audience is string {
+        audiences = [audience];
+    } else if audience is string[] {
+        audiences = audience;
+    }
+    string[] accepted = from string entry in audiences
+        where entry.trim() != ""
+        select entry.trim();
+    if accepted.length() == 1 {
+        validatorConfig.audience = accepted[0];
+    } else if accepted.length() > 1 {
+        validatorConfig.audience = accepted;
+    } else if audience is string[] {
+        // Treated as unset, like a blank string -- but said out loud: a list that filters to
+        // nothing is almost certainly a misconfiguration, and failing closed instead would
+        // reject every request (jwt:validate refuses all tokens against an empty audience list).
+        log:printWarn("JWTAudience is set to a list with no usable entries; the audience check is DISABLED.");
     }
     return validatorConfig;
 }
