@@ -37,10 +37,17 @@ function buildJwtValidatorConfig() returns jwt:ValidatorConfig {
     // ANY entry -- which is what lets two different clients (the meet-app webapp and One
     // WSO2, each with its own client ID) call this one backend. Blank entries are dropped, and
     // nothing left means no audience check at all, exactly as an unset value did before.
+    //
+    // A list written as ONE string is accepted too. Choreo's configuration form does not keep
+    // the "array" choice for this string|string[] field: it saves the list as the text
+    // `["id1","id2"]` and passes it as a single string, which would otherwise be read as one
+    // audience -- brackets, quotes and all -- and reject every caller. So a string is split
+    // on commas after dropping brackets and quotes; that also accepts a plain `id1, id2`.
+    // Client IDs never contain those characters, so a single ID is unaffected.
     string|string[]? audience = authConfig.JWTAudience;
     string[] audiences = [];
     if audience is string {
-        audiences = [audience];
+        audiences = re `,`.split(re `[\[\]"']`.replaceAll(audience, ""));
     } else if audience is string[] {
         audiences = audience;
     }
@@ -51,11 +58,16 @@ function buildJwtValidatorConfig() returns jwt:ValidatorConfig {
         validatorConfig.audience = accepted[0];
     } else if accepted.length() > 1 {
         validatorConfig.audience = accepted;
-    } else if audience is string[] {
-        // Treated as unset, like a blank string -- but said out loud: a list that filters to
-        // nothing is almost certainly a misconfiguration, and failing closed instead would
-        // reject every request (jwt:validate refuses all tokens against an empty audience list).
-        log:printWarn("JWTAudience is set to a list with no usable entries; the audience check is DISABLED.");
+    } else if audience is string[] || (audience is string && audience.trim() != "") {
+        // Treated as unset, like a blank string -- but said out loud: a value that parses to
+        // no usable entries is almost certainly a misconfiguration, and failing closed instead
+        // would reject every request (jwt:validate refuses all tokens against an empty list).
+        log:printWarn("JWTAudience is set but has no usable entries; the audience check is DISABLED.");
+    }
+    if accepted.length() > 0 {
+        // Client IDs are not secrets. Logged so what was actually loaded is visible, rather
+        // than inferred from "invalid audience" errors.
+        log:printInfo("JWT audience check configured.", audiences = accepted);
     }
     return validatorConfig;
 }
