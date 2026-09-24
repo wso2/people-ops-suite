@@ -33,29 +33,47 @@ function buildJwtValidatorConfig() returns jwt:ValidatorConfig {
         }
     };
     
-    // One audience or several. With a list, jwt:validate passes a token whose `aud` matches
-    // ANY entry -- which is what lets two different clients (the meet-app webapp and One
-    // WSO2, each with its own client ID) call this one backend. Blank entries are dropped, and
-    // nothing left means no audience check at all, exactly as an unset value did before.
-    string|string[]? audience = authConfig.JWTAudience;
-    string[] audiences = [];
-    if audience is string {
-        audiences = [audience];
-    } else if audience is string[] {
-        audiences = audience;
+    // One audience or several, as comma-separated client IDs in one string. With a list,
+    // jwt:validate passes a token whose `aud` matches ANY entry -- which is what lets two
+    // different clients (the meet-app webapp and One WSO2, each with its own client ID) call
+    // this one backend. Unset or blank means no audience check at all, as before.
+    //
+    // Brackets and quotes are dropped before splitting, so a value written as `["id1","id2"]`
+    // -- what Choreo's form saves when someone tries to enter an array -- reads the same as
+    // `id1, id2`. Client IDs never contain those characters, so a single ID is unaffected.
+    string? audience = authConfig.JWTAudience;
+    boolean configured = audience is string && audience.trim() != "";
+    string[] accepted = [];
+    boolean hadEmptyEntry = false;
+    if audience is string && configured {
+        foreach string part in re `,`.split(re `[\[\]"']`.replaceAll(audience, "")) {
+            string entry = part.trim();
+            if entry == "" {
+                hadEmptyEntry = true;
+            } else if accepted.indexOf(entry) == () {
+                accepted.push(entry);
+            }
+        }
     }
-    string[] accepted = from string entry in audiences
-        where entry.trim() != ""
-        select entry.trim();
+    if hadEmptyEntry {
+        // Skipped rather than failing startup: a stray comma is a typo, and refusing to start
+        // would take down every listener in this service over it.
+        log:printWarn("JWTAudience has an empty entry (check for a stray comma); it was ignored.");
+    }
     if accepted.length() == 1 {
         validatorConfig.audience = accepted[0];
     } else if accepted.length() > 1 {
         validatorConfig.audience = accepted;
-    } else if audience is string[] {
-        // Treated as unset, like a blank string -- but said out loud: a list that filters to
-        // nothing is almost certainly a misconfiguration, and failing closed instead would
-        // reject every request (jwt:validate refuses all tokens against an empty audience list).
-        log:printWarn("JWTAudience is set to a list with no usable entries; the audience check is DISABLED.");
+    } else if configured {
+        // Treated as unset, like a blank string -- but said out loud: a value that parses to
+        // no usable entries is almost certainly a misconfiguration, and failing closed instead
+        // would reject every request (jwt:validate refuses all tokens against an empty list).
+        log:printWarn("JWTAudience is set but has no usable entries; the audience check is DISABLED.");
+    }
+    if accepted.length() > 0 {
+        // Client IDs are not secrets. Logged so what was actually loaded is visible, rather
+        // than inferred from "invalid audience" errors.
+        log:printInfo("JWT audience check configured.", audiences = accepted);
     }
     return validatorConfig;
 }

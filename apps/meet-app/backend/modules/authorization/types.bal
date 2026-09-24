@@ -35,10 +35,12 @@ public type AppRoles record {|
 public type AuthConfig record {|
     # Expected `iss` claim "
     string JWTIssuer;
-    # Accepted `aud` claim(s). One string, or a list when more than one client calls this
-    # backend (e.g. the meet-app webapp AND One WSO2) -- a token passes if its `aud` matches
-    # ANY entry. A single string stays valid so existing configs keep working unchanged.
-    string|string[]? JWTAudience = ();
+    # Accepted `aud` claim(s): one client ID, or several separated by commas when more than one
+    # client calls this backend (e.g. "<meet-app-webapp-id>, <one-wso2-id>"). A token passes if
+    # its `aud` matches ANY of them. A plain string rather than string[] on purpose: Choreo's
+    # configuration form cannot store an array for this field, so one text value is the only
+    # form that survives it.
+    string? JWTAudience = ();
     # Choreo's own gateway JWKS endpoint for this org
     
     string JWKSEndPoint;

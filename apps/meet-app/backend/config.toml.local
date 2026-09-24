@@ -106,8 +106,9 @@
     # Leave commented out unless this component's "End User Token Audiences" has been
     # explicitly configured in Choreo -- Choreo does not set an aud claim by default.
     # One client:  JWTAudience = "<client-id>"
-    # Several (e.g. the meet-app webapp AND One WSO2) -- a token matching ANY entry passes:
-    # JWTAudience = ["<meet-app-webapp-client-id>", "<one-wso2-client-id>"]
+    # Several (e.g. the meet-app webapp AND One WSO2), comma-separated in ONE string -- a token
+    # matching ANY entry passes. A TOML array is NOT accepted (the field is a plain string):
+    # JWTAudience = "<meet-app-webapp-client-id>, <one-wso2-client-id>"
 
 [meet_app.appConfig]
     supportTeamEmails = [
