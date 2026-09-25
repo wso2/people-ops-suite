@@ -74,6 +74,7 @@ service class ErrorInterceptor {
 }
 
 
+
 service http:InterceptableService / on new http:Listener(9090) {
 
     # Request interceptor.
@@ -816,21 +817,9 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
-
-        // Return Forbidden if a non-admin user views attachments of a meeting they did not host.
-        string:RegExp r = re `,`;
-        string user = userInfo.email;
-        // Trimmed: internalParticipants is joined with ", " (calendar_watch_service.bal),
-        // so splitting on "," alone leaves a leading space on every entry but the first and
-        // indexOf never matches them -- every participant except the first gets a 403.
-        string[] participants = from string participant in r.split(meeting.internalParticipants)
-            select participant.trim();
-        if !isAdmin && meeting.host != user && participants.indexOf(user) == () {
-            return <http:Forbidden>{
-                body: {message: "Insufficient privileges to view the attachments!"}
-            };
-        }
+        // No per-meeting check, for the same reason as authorizedMeeting: every member of the
+        // authorised groups may view every meeting, and JwtInterceptor has already refused
+        // anyone outside them.
 
 
         // Fetch the attachments of the meeting.
@@ -1055,8 +1044,8 @@ service http:InterceptableService / on new http:Listener(9090) {
     }
 }
 
-# Fetches a meeting and applies the same visibility rule every meeting route uses: a sales
-# admin sees any meeting, anyone else only meetings they hosted or attended.
+# Fetches a meeting for the routes that show one (details, playback, transcript, smart notes).
+# Viewing is open to every member of the authorised groups -- see the note at the end.
 #
 # Factored out because four routes needed the identical sequence -- read the user header,
 # fetch, distinguish missing from failed, then decide -- and four copies of an authorisation
@@ -1090,17 +1079,9 @@ isolated function authorizedMeeting(http:RequestContext ctx, int meetingId)
         return <http:NotFound>{body: {message: "Meeting not found!"}};
     }
 
-    boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
-    string:RegExp r = re `,`;
-    string user = userInfo.email;
-    // Trimmed: internalParticipants is joined with ", " (calendar_watch_service.bal), so
-    // splitting on "," alone leaves a leading space on every entry but the first and indexOf
-    // never matches them -- every participant except the first gets a 403.
-    string[] participants = from string participant in r.split(meeting.internalParticipants)
-        select participant.trim();
-    if !isAdmin && meeting.host != user && participants.indexOf(user) == () {
-        return <http:Forbidden>{body: {message: "Insufficient privileges to view this meeting!"}};
-    }
-
+    // No per-meeting check: anyone who reached this route is already in an authorised group
+    // (SALES_TEAM or SALES_ADMIN -- JwtInterceptor refuses everyone else on every request),
+    // and every member of those groups may view every meeting. Which group that is differs
+    // per environment (the Sales group in production), set in authorizedRoles.
     return meeting;
 }
