@@ -25,3 +25,8 @@ public const float RETRY_BACKOFF_FACTOR = 2.0;
 
 # client retry configuration for maximum wait interval in seconds.
 public const decimal RETRY_MAX_INTERVAL = 20.0;
+
+# People per request in grantAccessInBatches. Each batch must finish well inside the Choreo
+# gateway's 60-second limit: stage granted roughly 2-4 people a second per share, so 25 takes
+# about 10 seconds, leaving room for drive-service's rate-limit backoff on a throttled batch.
+const int GRANT_BATCH_SIZE = 25;
