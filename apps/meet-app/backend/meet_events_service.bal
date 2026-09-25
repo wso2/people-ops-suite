@@ -387,7 +387,14 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
     check database:updateMeetTranscript(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR, transcriptName);
 
     // Started, not awaited, and only after the ATTACHED write -- see processRecordingReady.
-    _ = start shareWithDepartments(fileId, participantEmails.cloneReadOnly(), "Transcript");
+    // Skipped when the transcript IS the smart-notes document: with Gemini note-taking on, Meet
+    // writes the transcript into the notes doc, so both artifacts resolve to one file
+    if tracked.smartNotesState == database:ATTACHED && tracked.smartNotesFileId == fileId {
+        log:printInfo(string `Transcript for space ${spaceName} is the smart-notes document; ` +
+                "its department share is not repeated.");
+    } else {
+        _ = start shareWithDepartments(fileId, participantEmails.cloneReadOnly(), "Transcript");
+    }
 
     logCallActivityIfComplete(spaceName);
 }
@@ -450,7 +457,14 @@ isolated function processSmartNotesReady(string smartNotesName) returns error? {
     check database:updateMeetSmartNotes(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR);
 
     // Started, not awaited, and only after the ATTACHED write -- see processRecordingReady.
-    _ = start shareWithDepartments(fileId, participantEmails.cloneReadOnly(), "Smart notes");
+    // Skipped when the transcript already resolved to this same document -- see the matching
+    // check in processTranscriptReady.
+    if tracked.transcriptState == database:ATTACHED && tracked.transcriptFileId == fileId {
+        log:printInfo(string `Smart notes for space ${spaceName} are the transcript document; ` +
+                "its department share is not repeated.");
+    } else {
+        _ = start shareWithDepartments(fileId, participantEmails.cloneReadOnly(), "Smart notes");
+    }
 
     logCallActivityIfComplete(spaceName);
 }
@@ -743,8 +757,9 @@ isolated function shareWithDepartments(string fileId, string[] participantEmails
         return;
     }
 
-    driveservice:GrantResult[]|error deptShareResult =
-        driveservice:grantAccess(fileId, extraEmails, false, bulk = true);
+    // In batches: one request for a few hundred people outlives the Choreo gateway's 60s limit
+    // and is cut off part-way -- see grantAccessInBatches.
+    error? deptShareResult = driveservice:grantAccessInBatches(fileId, extraEmails, false);
     if deptShareResult is error {
         log:printError(string `${artifact} attached, but some Sales department Drive permission ` +
                 "grants failed (best-effort, not retrying).", deptShareResult);
