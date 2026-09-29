@@ -14,16 +14,34 @@
 // specific language governing permissions and limitations
 // under the License. 
 
-# Helper function to user has roles.
+# Splits a comma-separated config value into its entries, trimmed and de-duplicated.
 #
-# + requiredRoles - Required Role list
-# + userRoles - Roles list, The user has
-# + return - Allow or not
-public isolated function checkPermissions(string[] requiredRoles, string[] userRoles) returns boolean {
-    if userRoles.length() == 0 && requiredRoles.length() > 0 {
-        return false;
+# Brackets and quotes are dropped before splitting, so a value written as `["a","b"]` -- what
+# Choreo's configuration form saves when someone tries to enter an array -- reads the same as
+# `a, b`. Group names and client IDs never contain those characters, so a single value is
+# unaffected.
+#
+# + value - Raw config value
+# + return - The entries, and whether an empty entry (e.g. a stray comma) was skipped
+public isolated function splitConfigList(string value) returns [string[], boolean] {
+    string[] entries = [];
+    boolean hadEmptyEntry = false;
+    foreach string part in re `,`.split(re `[\[\]"']`.replaceAll(value, "")) {
+        string entry = part.trim();
+        if entry == "" {
+            hadEmptyEntry = true;
+        } else if entries.indexOf(entry) == () {
+            entries.push(entry);
+        }
     }
+    return [entries, hadEmptyEntry];
+}
 
-    final string[] & readonly userRolesReadOnly = userRoles.cloneReadOnly();
-    return requiredRoles.every(role => userRolesReadOnly.indexOf(role) !is ());
+# Checks whether the user belongs to at least one of the allowed groups.
+#
+# + allowedGroups - Groups that grant the role
+# + userGroups - Groups the user belongs to
+# + return - True if any user group is in the allowed list
+public isolated function hasAnyGroup(readonly & string[] allowedGroups, string[] userGroups) returns boolean {
+    return userGroups.some(g => allowedGroups.indexOf(g) !is ());
 }
