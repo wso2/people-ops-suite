@@ -57,9 +57,9 @@ public isolated function findContactIdByEmail(string email) returns string?|erro
 # cannot help, because that duplicate happens inside a single call, below the level the claim
 # can see.
 #
-# `ownerId` is deliberately never sent: the service defaults an omitted owner to the
-# integration user, which is the right attribution for an activity this pipeline raised on its
-# own rather than one a rep logged by hand.
+# The owner is sent as `ownerEmail` (the meeting's organizer), not `ownerId`: this service knows
+# the rep only by email, and the sales-entity service resolves it to their Salesforce user. When
+# that fails the service still creates the activity, owned by the integration user.
 #
 # + input - Call details. `subject` and `opportunityId` must both be set -- the service rejects
 # a request carrying no opportunity (and no lead) with a 400
