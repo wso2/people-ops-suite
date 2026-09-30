@@ -693,7 +693,10 @@ isolated function logCallActivityIfComplete(string spaceName) {
         opportunityId: opportunityId,
         accountId: opportunityId is () ? accountId : (),
         contactId: resolveCallContactId(tracked),
-        durationSeconds: meetingDurationSeconds(tracked)
+        durationSeconds: meetingDurationSeconds(tracked),
+        // The organizer is the rep who scheduled and ran the call, so Salesforce should show them
+        // as having made it -- not the integration user.
+        ownerEmail: tracked.organizer
     };
 
     string|error activityId = salesentity:createCallActivity(input);

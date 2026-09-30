@@ -84,6 +84,11 @@ public type CreateCallActivityInput record {|
     string? contactId?;
     #Length of the call in seconds
     int? durationSeconds?;
+    #Email of the person who ran the call -- the meeting's organizer. The service resolves it to
+    #their Salesforce user and makes them the activity's owner ("Assigned To"); when no single
+    #active Salesforce user has this email, the activity is still created, owned by the
+    #integration user.
+    string? ownerEmail?;
 |};
 
 # Raised when a call-activity create could not be confirmed either way: the request left this
