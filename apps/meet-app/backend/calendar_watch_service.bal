@@ -157,6 +157,26 @@ isolated function clearFailureCount(string eventId) {
     }
 }
 
+# Whether a calendar event is an Echo meeting this watch should track.
+#
+# An event qualifies if it carries the add-on's SHARED `echo_armed` marker, or the older
+# `addOn` conference type. The marker is needed because the add-on now attaches its space as
+# `hangoutsMeet` -- Meet only treats an event's external guests as invited (no "Ask to join"
+# in a TRUSTED space) for that type. Unlike the private `revos_*` properties, shared
+# properties are copied onto the Shared Account's copy of the event, so this check needs no
+# extra fetch. `addOn` is kept for events armed before the switch.
+#
+# + event - The event as returned by the Shared Account's changed-events feed
+# + return - True if the event is an Echo meeting
+isolated function isEchoMeeting(json event) returns boolean {
+    json|error conferenceType = event.conferenceData.conferenceSolution.'key.'type;
+    if conferenceType is string && conferenceType == ADD_ON_CONFERENCE_TYPE {
+        return true;
+    }
+    json|error sharedProperties = event.extendedProperties.shared;
+    return sharedProperties is map<json> && sharedProperties[ECHO_ARMED_PROPERTY] == "true";
+}
+
 isolated function registerEventIfRelevant(json event) returns error? {
     json|error conferenceData = event.conferenceData;
     if conferenceData is error {
@@ -164,8 +184,7 @@ isolated function registerEventIfRelevant(json event) returns error? {
         return;
     }
 
-    json|error conferenceType = conferenceData.conferenceSolution.'key.'type;
-    if conferenceType is error || conferenceType != "addOn" {
+    if !isEchoMeeting(event) {
         return;
     }
 

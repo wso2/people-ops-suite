@@ -22,3 +22,9 @@ const string CUSTOMERS_CACHE_KEY = "customers";
 
 # Cache key of regions.
 const string REGIONS_CACHE_KEY = "regions";
+
+# Conference solution type the Echo add-on originally tagged its meetings with.
+const string ADD_ON_CONFERENCE_TYPE = "addOn";
+
+# Shared extended property the Echo add-on writes onto every meeting it arms.
+const string ECHO_ARMED_PROPERTY = "echo_armed";
