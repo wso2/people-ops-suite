@@ -16,6 +16,7 @@
 import meet_app.calendar;
 import meet_app.database;
 import meet_app.driveservice;
+import meet_app.echobackend;
 import meet_app.people;
 import meet_app.salesentity;
 
@@ -350,6 +351,9 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
     // and re-running the participant grant.
     if tracked.transcriptState == database:ATTACHED && tracked.transcriptFileId == fileId {
         log:printInfo(string `Transcript for space ${spaceName} is already attached; skipping.`);
+        // Notified again, because the transcript being attached does NOT mean echo-backend heard
+        // about it: the first attempt may have failed. echo-backend ignores a meeting it already has.
+        _ = start echobackend:notifyTranscriptReady(tracked.meetingId);
         // Still checked, because the artifact being attached does NOT mean the call
         // activity was logged.
         logCallActivityIfComplete(spaceName);
@@ -385,6 +389,11 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
     // as prose, while this resource name is what reaches Meet's timed entries — the only
     // form a transcript synchronised to the recording can be built from.
     check database:updateMeetTranscript(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR, transcriptName);
+
+    // Tell echo-backend now so it starts extracting the MEDDPICC answers immediately instead of
+    // at its next poll. Started, not awaited, and only after the ATTACHED write it reads; it
+    // can never fail this function, and a missed call is caught by echo-backend's own poll.
+    _ = start echobackend:notifyTranscriptReady(tracked.meetingId);
 
     // Started, not awaited, and only after the ATTACHED write -- see processRecordingReady.
     // Skipped when the transcript IS the smart-notes document: with Gemini note-taking on, Meet
