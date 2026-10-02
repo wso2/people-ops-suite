@@ -128,6 +128,17 @@
 
 # Calendar-watch + auto-recording listeners. Watch-channel/subscription renewal is handled
 # by the separate meet-watch-renewal Choreo Scheduled Task, not by this service.
+
+# echo-backend: told the moment a transcript is ATTACHED so it starts extracting the MEDDPICC
+# answers right away. Both empty = off; echo-backend then finds the transcript on its own poll a
+# few minutes later, so this speeds things up but is not required. echoWebhookToken must equal
+# echo-backend's ECHO_WEBHOOK_SECRET. echoBackendBaseUrl is the echo-backend API endpoint including
+# its version path. When echo-backend is reached through the Choreo gateway, also add
+# [meet_app.echobackend.echoOauthConfig] with tokenUrl, clientId and clientSecret.
+[meet_app.echobackend]
+echoBackendBaseUrl = ""
+echoWebhookToken = ""
+
 [meet_app]
     # Ports the two extra listeners bind to (defaults shown; override only if needed).
     calendarWatchListenerPort = 9093
