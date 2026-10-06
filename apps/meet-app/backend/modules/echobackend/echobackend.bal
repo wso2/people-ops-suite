@@ -20,15 +20,12 @@ import ballerina/log;
 # safe default: echo-backend then finds new transcripts on its own poll, a few minutes later.
 configurable string echoBackendBaseUrl = "";
 
-# Shared secret echo-backend expects in the X-Echo-Webhook-Token header. Must equal its
-# ECHO_WEBHOOK_SECRET. Empty switches the notification off.
-configurable string echoWebhookToken = "";
-
-# OAuth2 client-credentials settings, only needed when echo-backend is reached through the
-# Choreo gateway, which wants a token on top of the shared secret.
+# OAuth2 client-credentials settings (an Asgardeo client). The token is sent as the bearer token;
+# the Choreo gateway validates it and passes it to echo-backend, which accepts it only when this
+# client's ID is in its ECHO_WEBHOOK_CLIENT_IDS. Unset switches the notification off.
 configurable EchoOauth2Config? echoOauthConfig = ();
 
-# OAuth2 client-credentials settings for the Choreo gateway.
+# OAuth2 client-credentials settings for echo-backend.
 #
 # + tokenUrl - Token endpoint
 # + clientId - Client ID
@@ -39,14 +36,23 @@ public type EchoOauth2Config record {|
     string clientSecret;
 |};
 
-# Header carrying the shared secret (matches echo-backend's WebhookTokenHeader).
-const string WEBHOOK_TOKEN_HEADER = "X-Echo-Webhook-Token";
+# echo-backend gets a notification only when it is fully configured. The OAuth2 client fetches
+# its first token while it is created, so a token endpoint that is down at startup only switches
+# the notification off (logged) instead of stopping meet-app; echo-backend's poll still runs.
+final http:Client? echoClient = startEchoClient(echoBackendBaseUrl, echoOauthConfig);
 
-# echo-backend gets a notification only when it is fully configured.
-final http:Client? echoClient = check newEchoClient(echoBackendBaseUrl, echoWebhookToken, echoOauthConfig);
+isolated function startEchoClient(string baseUrl, EchoOauth2Config? oauth) returns http:Client? {
+    http:Client?|error echo = trap newEchoClient(baseUrl, oauth);
+    if echo is error {
+        log:printWarn("Could not set up the echo-backend client; transcript-ready notifications are off " +
+                "and echo-backend will pick transcripts up on its poll.", echo);
+        return ();
+    }
+    return echo;
+}
 
-isolated function newEchoClient(string baseUrl, string token, EchoOauth2Config? oauth) returns http:Client?|error {
-    if baseUrl.trim() == "" || token == "" {
+isolated function newEchoClient(string baseUrl, EchoOauth2Config? oauth) returns http:Client?|error {
+    if baseUrl.trim() == "" || oauth is () {
         return ();
     }
     // Short timeout and no retries: this runs in the background after the transcript is
@@ -56,9 +62,7 @@ isolated function newEchoClient(string baseUrl, string token, EchoOauth2Config? 
         http1Settings: {keepAlive: http:KEEPALIVE_NEVER},
         timeout: 10
     };
-    if oauth is EchoOauth2Config {
-        config.auth = {...oauth};
-    }
+    config.auth = {...oauth};
     return new (baseUrl, config);
 }
 
@@ -77,16 +81,15 @@ public isolated function notifyTranscriptReady(int meetingId) {
     if echo is () {
         return;
     }
-    error? result = send(echo, echoWebhookToken, meetingId);
+    error? result = send(echo, meetingId);
     if result is error {
         log:printWarn(string `Could not notify echo-backend about the transcript of meeting ${meetingId}; ` +
                 "it will pick the meeting up on its next poll.", result);
     }
 }
 
-isolated function send(http:Client echo, string token, int meetingId) returns error? {
-    http:Response response = check echo->post(transcriptReadyPath(meetingId), (),
-            {[WEBHOOK_TOKEN_HEADER]: token});
+isolated function send(http:Client echo, int meetingId) returns error? {
+    http:Response response = check echo->post(transcriptReadyPath(meetingId), ());
     // 202 is echo-backend's answer whether or not it queued a run (it may already have one).
     if response.statusCode != http:STATUS_ACCEPTED {
         return error(string `echo-backend answered ${response.statusCode}`);

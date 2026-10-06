@@ -17,19 +17,24 @@ import ballerina/test;
 
 // A stand-in for echo-backend that records what meet-app sends it.
 isolated string lastPath = "";
-isolated string lastToken = "";
+isolated string lastAuthorization = "";
 isolated int answerWith = 202;
 
 listener http:Listener mockEcho = new (19099);
 
 service / on mockEcho {
+    // Token endpoint for the OAuth2 client-credentials grant.
+    resource function post token() returns json {
+        return {access_token: "m2m-token", token_type: "Bearer", expires_in: 3600};
+    }
+
     resource function post internal/meetings/[int meetingId]/transcript\-ready(
-            @http:Header {name: "X-Echo-Webhook-Token"} string? token) returns http:Response {
+            @http:Header {name: "Authorization"} string? authorization) returns http:Response {
         lock {
             lastPath = string `/internal/meetings/${meetingId}/transcript-ready`;
         }
         lock {
-            lastToken = token ?: "";
+            lastAuthorization = authorization ?: "";
         }
         http:Response res = new;
         lock {
@@ -43,18 +48,23 @@ function mockClient() returns http:Client|error {
     return new ("http://localhost:19099");
 }
 
+final EchoOauth2Config & readonly mockOauth = {tokenUrl: "http://localhost:19099/token", clientId: "id", clientSecret: "s"};
+
 @test:Config {}
-function testSendsTheMeetingIdAndTheSecret() returns error? {
+function testSendsTheMeetingId() returns error? {
     lock {
         answerWith = 202;
     }
-    http:Client c = check mockClient();
-    check send(c, "s3cret", 616);
+    http:Client? c = check newEchoClient("http://localhost:19099", mockOauth);
+    if c is () {
+        test:assertFail("a configured client was expected");
+    }
+    check send(c, 616);
     lock {
         test:assertEquals(lastPath, "/internal/meetings/616/transcript-ready");
     }
     lock {
-        test:assertEquals(lastToken, "s3cret", "echo-backend checks this header");
+        test:assertEquals(lastAuthorization, "Bearer m2m-token", "echo-backend checks this token");
     }
 }
 
@@ -64,7 +74,7 @@ function testAnythingButAcceptedIsAnError() returns error? {
         answerWith = 401;
     }
     http:Client c = check mockClient();
-    error? result = send(c, "wrong", 7);
+    error? result = send(c, 7);
     test:assertTrue(result is error, "a rejected call must be reported so it is logged");
     if result is error {
         test:assertTrue(result.message().includes("401"));
@@ -81,9 +91,15 @@ function testPathHasTheFixedShape() {
 
 @test:Config {}
 function testNotConfiguredMeansNoClient() returns error? {
-    test:assertTrue(check newEchoClient("", "tok", ()) is (), "no URL: off");
-    test:assertTrue(check newEchoClient("http://localhost:19099", "", ()) is (), "no secret: off");
-    test:assertTrue(check newEchoClient("http://localhost:19099", "tok", ()) is http:Client);
+    test:assertTrue(check newEchoClient("", mockOauth) is (), "no URL: off");
+    test:assertTrue(check newEchoClient("http://localhost:19099", ()) is (), "no OAuth2 client: off");
+    test:assertTrue(check newEchoClient("http://localhost:19099", mockOauth) is http:Client);
+}
+
+@test:Config {}
+function testTokenEndpointDownMeansOffNotACrash() {
+    EchoOauth2Config down = {tokenUrl: "http://localhost:1/token", clientId: "id", clientSecret: "s"};
+    test:assertTrue(startEchoClient("http://localhost:19099", down) is (), "startup must not fail");
 }
 
 // With nothing configured (the default) the notifier does nothing and, above all, does not fail.
@@ -95,6 +111,6 @@ function testNotifyDoesNothingWhenOff() {
 @test:Config {}
 function testNotifyNeverFailsWhenEchoIsUnreachable() returns error? {
     http:Client c = check new ("http://localhost:1");
-    error? result = send(c, "tok", 5);
+    error? result = send(c, 5);
     test:assertTrue(result is error, "the error is returned to notifyTranscriptReady, which only logs it");
 }
