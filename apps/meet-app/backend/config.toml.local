@@ -131,13 +131,17 @@
 
 # echo-backend: told the moment a transcript is ATTACHED so it starts extracting the MEDDPICC
 # answers right away. Both empty = off; echo-backend then finds the transcript on its own poll a
-# few minutes later, so this speeds things up but is not required. echoWebhookToken must equal
-# echo-backend's ECHO_WEBHOOK_SECRET. echoBackendBaseUrl is the echo-backend API endpoint including
-# its version path. When echo-backend is reached through the Choreo gateway, also add
-# [meet_app.echobackend.echoOauthConfig] with tokenUrl, clientId and clientSecret.
+# few minutes later, so this speeds things up but is not required. echoBackendBaseUrl is the
+# echo-backend API endpoint including its version path. The call carries an Asgardeo
+# client-credentials token: fill in echoOauthConfig below, and put that client's ID in
+# echo-backend's ECHO_WEBHOOK_CLIENT_IDS. Without echoOauthConfig the notification is off.
 [meet_app.echobackend]
 echoBackendBaseUrl = ""
-echoWebhookToken = ""
+
+[meet_app.echobackend.echoOauthConfig]
+tokenUrl = ""
+clientId = ""
+clientSecret = ""
 
 [meet_app]
     # Ports the two extra listeners bind to (defaults shown; override only if needed).

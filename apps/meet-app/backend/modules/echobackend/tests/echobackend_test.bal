@@ -17,19 +17,19 @@ import ballerina/test;
 
 // A stand-in for echo-backend that records what meet-app sends it.
 isolated string lastPath = "";
-isolated string lastToken = "";
+isolated string lastAuthorization = "";
 isolated int answerWith = 202;
 
 listener http:Listener mockEcho = new (19099);
 
 service / on mockEcho {
     resource function post internal/meetings/[int meetingId]/transcript\-ready(
-            @http:Header {name: "X-Echo-Webhook-Token"} string? token) returns http:Response {
+            @http:Header {name: "Authorization"} string? authorization) returns http:Response {
         lock {
             lastPath = string `/internal/meetings/${meetingId}/transcript-ready`;
         }
         lock {
-            lastToken = token ?: "";
+            lastAuthorization = authorization ?: "";
         }
         http:Response res = new;
         lock {
@@ -44,17 +44,14 @@ function mockClient() returns http:Client|error {
 }
 
 @test:Config {}
-function testSendsTheMeetingIdAndTheSecret() returns error? {
+function testSendsTheMeetingId() returns error? {
     lock {
         answerWith = 202;
     }
     http:Client c = check mockClient();
-    check send(c, "s3cret", 616);
+    check send(c, 616);
     lock {
         test:assertEquals(lastPath, "/internal/meetings/616/transcript-ready");
-    }
-    lock {
-        test:assertEquals(lastToken, "s3cret", "echo-backend checks this header");
     }
 }
 
@@ -64,7 +61,7 @@ function testAnythingButAcceptedIsAnError() returns error? {
         answerWith = 401;
     }
     http:Client c = check mockClient();
-    error? result = send(c, "wrong", 7);
+    error? result = send(c, 7);
     test:assertTrue(result is error, "a rejected call must be reported so it is logged");
     if result is error {
         test:assertTrue(result.message().includes("401"));
@@ -81,9 +78,10 @@ function testPathHasTheFixedShape() {
 
 @test:Config {}
 function testNotConfiguredMeansNoClient() returns error? {
-    test:assertTrue(check newEchoClient("", "tok", ()) is (), "no URL: off");
-    test:assertTrue(check newEchoClient("http://localhost:19099", "", ()) is (), "no secret: off");
-    test:assertTrue(check newEchoClient("http://localhost:19099", "tok", ()) is http:Client);
+    EchoOauth2Config oauth = {tokenUrl: "http://localhost:19099/token", clientId: "id", clientSecret: "s"};
+    test:assertTrue(check newEchoClient("", oauth) is (), "no URL: off");
+    test:assertTrue(check newEchoClient("http://localhost:19099", ()) is (), "no OAuth2 client: off");
+    test:assertTrue(check newEchoClient("http://localhost:19099", oauth) is http:Client);
 }
 
 // With nothing configured (the default) the notifier does nothing and, above all, does not fail.
@@ -95,6 +93,6 @@ function testNotifyDoesNothingWhenOff() {
 @test:Config {}
 function testNotifyNeverFailsWhenEchoIsUnreachable() returns error? {
     http:Client c = check new ("http://localhost:1");
-    error? result = send(c, "tok", 5);
+    error? result = send(c, 5);
     test:assertTrue(result is error, "the error is returned to notifyTranscriptReady, which only logs it");
 }
