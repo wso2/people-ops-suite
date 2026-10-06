@@ -23,6 +23,11 @@ isolated int answerWith = 202;
 listener http:Listener mockEcho = new (19099);
 
 service / on mockEcho {
+    // Token endpoint for the OAuth2 client-credentials grant.
+    resource function post token() returns json {
+        return {access_token: "m2m-token", token_type: "Bearer", expires_in: 3600};
+    }
+
     resource function post internal/meetings/[int meetingId]/transcript\-ready(
             @http:Header {name: "Authorization"} string? authorization) returns http:Response {
         lock {
@@ -43,15 +48,23 @@ function mockClient() returns http:Client|error {
     return new ("http://localhost:19099");
 }
 
+final EchoOauth2Config & readonly mockOauth = {tokenUrl: "http://localhost:19099/token", clientId: "id", clientSecret: "s"};
+
 @test:Config {}
 function testSendsTheMeetingId() returns error? {
     lock {
         answerWith = 202;
     }
-    http:Client c = check mockClient();
+    http:Client? c = check newEchoClient("http://localhost:19099", mockOauth);
+    if c is () {
+        test:assertFail("a configured client was expected");
+    }
     check send(c, 616);
     lock {
         test:assertEquals(lastPath, "/internal/meetings/616/transcript-ready");
+    }
+    lock {
+        test:assertEquals(lastAuthorization, "Bearer m2m-token", "echo-backend checks this token");
     }
 }
 
@@ -78,10 +91,15 @@ function testPathHasTheFixedShape() {
 
 @test:Config {}
 function testNotConfiguredMeansNoClient() returns error? {
-    EchoOauth2Config oauth = {tokenUrl: "http://localhost:19099/token", clientId: "id", clientSecret: "s"};
-    test:assertTrue(check newEchoClient("", oauth) is (), "no URL: off");
+    test:assertTrue(check newEchoClient("", mockOauth) is (), "no URL: off");
     test:assertTrue(check newEchoClient("http://localhost:19099", ()) is (), "no OAuth2 client: off");
-    test:assertTrue(check newEchoClient("http://localhost:19099", oauth) is http:Client);
+    test:assertTrue(check newEchoClient("http://localhost:19099", mockOauth) is http:Client);
+}
+
+@test:Config {}
+function testTokenEndpointDownMeansOffNotACrash() {
+    EchoOauth2Config down = {tokenUrl: "http://localhost:1/token", clientId: "id", clientSecret: "s"};
+    test:assertTrue(startEchoClient("http://localhost:19099", down) is (), "startup must not fail");
 }
 
 // With nothing configured (the default) the notifier does nothing and, above all, does not fail.

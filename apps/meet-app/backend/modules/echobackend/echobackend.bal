@@ -36,8 +36,20 @@ public type EchoOauth2Config record {|
     string clientSecret;
 |};
 
-# echo-backend gets a notification only when it is fully configured.
-final http:Client? echoClient = check newEchoClient(echoBackendBaseUrl, echoOauthConfig);
+# echo-backend gets a notification only when it is fully configured. The OAuth2 client fetches
+# its first token while it is created, so a token endpoint that is down at startup only switches
+# the notification off (logged) instead of stopping meet-app; echo-backend's poll still runs.
+final http:Client? echoClient = startEchoClient(echoBackendBaseUrl, echoOauthConfig);
+
+isolated function startEchoClient(string baseUrl, EchoOauth2Config? oauth) returns http:Client? {
+    http:Client?|error echo = trap newEchoClient(baseUrl, oauth);
+    if echo is error {
+        log:printWarn("Could not set up the echo-backend client; transcript-ready notifications are off " +
+                "and echo-backend will pick transcripts up on its poll.", echo);
+        return ();
+    }
+    return echo;
+}
 
 isolated function newEchoClient(string baseUrl, EchoOauth2Config? oauth) returns http:Client?|error {
     if baseUrl.trim() == "" || oauth is () {
