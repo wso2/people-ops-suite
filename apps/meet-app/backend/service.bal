@@ -121,10 +121,10 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         // Fetch the user's privileges based on the roles.
         int[] privileges = [];
-        if authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups) {
+        if authorization:hasAnyGroup(authorization:salesTeamGroups, userInfo.groups) {
             privileges.push(authorization:SALES_TEAM_PRIVILEGE);
         }
-        if authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups) {
+        if authorization:hasAnyGroup(authorization:salesAdminGroups, userInfo.groups) {
             privileges.push(authorization:SALES_ADMIN_PRIVILEGE);
         }
 
@@ -882,7 +882,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
+        boolean isAdmin = authorization:hasAnyGroup(authorization:salesAdminGroups, userInfo.groups);
 
         // Check if the user has sufficient privileges to delete and ensure the meeting is active and upcoming.
         if !isAdmin && (meeting.host != userInfo.email) {
