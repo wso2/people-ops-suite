@@ -85,6 +85,11 @@ isolated function verifyPubsubPush(string? authorization) returns error? {
 // unlike the rest of this app's created_by/updated_by values.
 const string SYSTEM_ACTOR = "meet-app-system";
 
+// The add-on's call type for a recorded WSO2-only discussion about a deal or account, and
+// the Salesforce Task.CallType picklist value its call activity is logged with.
+const string INTERNAL_MEETING_TYPE = "internal";
+const string SF_CALL_TYPE_INTERNAL = "Internal";
+
 # Pub/Sub push envelope -- the actual notification is base64-encoded inside `message.data`.
 # Left open (not a closed record) since Google's push includes other fields (e.g.
 # `attributes`) that don't matter here but must not break data binding.
@@ -689,11 +694,12 @@ isolated function logCallActivityIfComplete(string spaceName) {
 
     salesentity:CreateCallActivityInput input = {
         subject: recordingTitle(tracked),
-        // callType is deliberately left unset. It maps to Salesforce's Task.CallType, a
-        // picklist meaning the direction of the call (Inbound/Outbound/Internal); the
-        // Opportunity RecordType we have on the snapshot answers a different question and
-        // would be rejected outright by a restricted picklist. Omitted and null are treated
-        // identically by the service, which normalises both to "not supplied".
+        // callType maps to Salesforce's Task.CallType, a picklist meaning the direction of
+        // the call (Inbound/Outbound/Internal). Only an Internal discussion sets it, so the
+        // customer's timeline shows it was a WSO2-only call; everything else leaves it unset,
+        // since the Opportunity RecordType answers a different question and would be rejected
+        // by a restricted picklist. Omitted and null are treated identically by the service.
+        callType: tracked.meetingType == INTERNAL_MEETING_TYPE ? SF_CALL_TYPE_INTERNAL : (),
         occurredOn: callDate(tracked.startTime),
         comment: buildCallActivityComment(tracked),
         // Exactly one target, never both. The add-on writes the deal's own account onto a

@@ -277,6 +277,8 @@ public type MeetRecordingRow record {|
     RecordingState? smartNotesState;
     string? smartNotesFileId;
     string? callActivityId;
+    # Call type the add-on wrote on the event (`revos_call_type`), e.g. `internal`.
+    string? meetingType = ();
 |};
 
 # Sentinel written into `call_activity_id` to claim the one-shot Salesforce call-activity
