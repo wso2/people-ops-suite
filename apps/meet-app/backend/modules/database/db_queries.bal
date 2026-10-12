@@ -568,7 +568,8 @@ isolated function getMeetRecordingBySpaceNameQuery(string spaceName) returns sql
         transcript_name AS transcriptName,
         smart_notes_state AS smartNotesState,
         smart_notes_file_id AS smartNotesFileId,
-        call_activity_id AS callActivityId
+        call_activity_id AS callActivityId,
+        meeting_type AS meetingType
     FROM meeting
     WHERE space_name = ${spaceName}
 `;
