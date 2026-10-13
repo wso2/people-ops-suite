@@ -87,11 +87,12 @@ isolated function addMeetingQuery(AddMeetingPayload meeting, string createdBy) r
 # + startTime - Start time filter  
 # + endTime - End time filter  
 # + internalParticipants - Participants filter
+# + echoOnly - Keep only meetings registered by the calendar add-on (Echo)
 # + 'limit - Limit of the data  
 # + offset - offset of the query
 # + return - sql:ParameterizedQuery - Select query for the meeting table
 isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? title, string? host, string? searchString, string? region,
-        string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
+        string? startTime, string? endTime, string[]? internalParticipants, boolean echoOnly, int? 'limit, int? offset)
     returns sql:ParameterizedQuery {
 
     sql:ParameterizedQuery mainQuery = `
@@ -175,6 +176,12 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
     }
     if endTime is string {
         filters.push(sql:queryConcat(`end_time <= ${endTime}`));
+    }
+    if echoOnly {
+        // There is no source column. `space_name` stands in for one: the calendar watcher
+        // sets it on every add-on event it registers (the recording pipeline looks meetings
+        // up by it), and meetings scheduled through this app's own form never have one.
+        filters.push(`space_name IS NOT NULL`);
     }
     if searchString is string {
         // One box, several columns.

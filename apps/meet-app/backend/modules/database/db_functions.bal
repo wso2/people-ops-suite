@@ -69,12 +69,13 @@ public isolated function addMeeting(AddMeetingPayload addMeetingPayload, string 
 # + offset - Offset of the number of meetings to retrieve  
 # + return - List of meetings | Error
 public isolated function fetchMeetings(string? hostOrInternalParticipant, string? title, string? host, string? searchString, string? region,
-        string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
+        string? startTime, string? endTime, string[]? internalParticipants, boolean echoOnly, int? 'limit, int? offset)
     returns Meeting[]|error {
 
     stream<Meeting, error?> resultStream = databaseClient->query(
         getMeetingsQuery(
-            hostOrInternalParticipant, title, host, searchString, region, startTime, endTime, internalParticipants, 'limit, offset
+            hostOrInternalParticipant, title, host, searchString, region, startTime, endTime, internalParticipants,
+            echoOnly, 'limit, offset
         )
     );
 

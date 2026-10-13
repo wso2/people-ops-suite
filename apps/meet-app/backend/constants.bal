@@ -22,3 +22,6 @@ const string CUSTOMERS_CACHE_KEY = "customers";
 
 # Cache key of regions.
 const string REGIONS_CACHE_KEY = "regions";
+
+# `source` value of `GET /meetings` that keeps only meetings registered by the calendar add-on (Echo).
+const string ECHO_SOURCE = "echo";
