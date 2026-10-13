@@ -115,6 +115,10 @@ public type Meeting record {|
     string? accountId;
     # The account's display name, denormalised so the list needs no Salesforce call.
     string? accountName;
+    # Salesforce Lead the meeting was linked to. Set for lead-targeted (Inbound) calls.
+    string? leadId = ();
+    # The lead's company, denormalised like accountName.
+    string? leadCompany = ();
     # Drive file id of the recording, once the pipeline has attached one. Optional for the
     # same reason as the fields above
     string? driveFileId;
@@ -223,6 +227,9 @@ public type MeetRecordingPayload record {|
     # Salesforce Account link, for call types that target an account rather than a deal.
     string? accountId = ();
     string? accountName = ();
+    # Salesforce Lead link, for the call type that targets a lead (Inbound).
+    string? leadId = ();
+    string? leadCompany = ();
 |};
 
 # [Database] An auto-recorded meeting row, read back by space name.
@@ -279,6 +286,8 @@ public type MeetRecordingRow record {|
     string? callActivityId;
     # Call type the add-on wrote on the event (`revos_call_type`), e.g. `internal`.
     string? meetingType = ();
+    # Salesforce Lead the meeting was linked to (Inbound calls).
+    string? leadId = ();
 |};
 
 # Sentinel written into `call_activity_id` to claim the one-shot Salesforce call-activity
