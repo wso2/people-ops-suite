@@ -208,6 +208,8 @@ isolated function registerEventIfRelevant(json event) returns error? {
     string? meetingType = ();
     string? accountId = ();
     string? accountName = ();
+    string? leadId = ();
+    string? leadCompany = ();
     json|error organizerEventResult = calendar:getEvent(organizerEmail, eventId);
     if organizerEventResult is error {
         log:printError(string `Could not fetch organizer's own copy of event ${eventId} to read ` +
@@ -246,6 +248,8 @@ isolated function registerEventIfRelevant(json event) returns error? {
                 accountName = accountNameResult;
             }
         }
+
+        [leadId, leadCompany] = readLeadLink(organizerEventResult);
     }
 
     json[] attendees = [];
@@ -284,6 +288,24 @@ isolated function registerEventIfRelevant(json event) returns error? {
         opportunityDetails,
         meetingType,
         accountId,
-        accountName
+        accountName,
+        leadId,
+        leadCompany
     }, SYSTEM_ACTOR);
+}
+
+# Reads the lead link the add-on writes for the call type that targets a Salesforce Lead
+# (Inbound): `revos_lead_id`, plus `revos_lead_company` for display. Blank values count as
+# absent.
+#
+# + organizerEvent - The organizer's own copy of the event, where the private properties live
+# + return - [lead id, lead company]; each () when absent
+isolated function readLeadLink(json organizerEvent) returns [string?, string?] {
+    json|error leadIdResult = organizerEvent.extendedProperties.'private.revos_lead_id;
+    if leadIdResult !is string || leadIdResult.trim() == "" {
+        return [(), ()];
+    }
+    json|error leadCompanyResult = organizerEvent.extendedProperties.'private.revos_lead_company;
+    string? leadCompany = leadCompanyResult is string && leadCompanyResult.trim() != "" ? leadCompanyResult : ();
+    return [leadIdResult, leadCompany];
 }
