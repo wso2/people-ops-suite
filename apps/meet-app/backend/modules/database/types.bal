@@ -296,3 +296,21 @@ public type MeetRecordingRow record {|
 # notification can't produce a second activity for the same meeting. Deliberately not a
 # valid Salesforce Id shape, so it can never be mistaken for one.
 public const string CALL_ACTIVITY_CLAIMED = "IN_PROGRESS";
+
+# [Database] An Inbound meeting whose lead link is not stored yet: a candidate for the
+# lead backfill.
+#
+# + meetingId - Auto-increment meeting ID
+# + spaceName - Resource name of the Meet space
+# + title - The event's title
+# + googleEventId - Calendar event ID
+# + organizer - Email of the event organizer, whose copy of the event holds the link
+# + startTime - Event start time
+public type LeadBackfillCandidate record {|
+    int meetingId;
+    string spaceName;
+    string title;
+    string googleEventId;
+    string organizer;
+    string startTime;
+|};

@@ -162,3 +162,62 @@ public type Regions record {|
     # List of Regions
     string[] regions;
 |};
+
+# What the lead backfill did, or would do, for one Inbound meeting.
+public enum LeadBackfillStatus {
+    # Dry run: the event carries a lead, which would be stored
+    WOULD_LINK,
+    # The lead was stored and the call handed to the Salesforce call-activity logging
+    LINKED,
+    # Another writer stored a lead first; nothing changed
+    ALREADY_LINKED,
+    # The organizer's copy of the event has no lead link
+    NO_LEAD_ON_EVENT,
+    # The organizer's copy of the event could not be read
+    EVENT_READ_FAILED,
+    # The lead could not be stored
+    UPDATE_FAILED
+}
+
+# One Inbound meeting in a lead backfill response.
+public type LeadBackfillItem record {|
+    # Meeting ID
+    int meetingId;
+    # Title of the meeting
+    string title;
+    # Start time of the meeting
+    string startTime;
+    # Lead id read from the event, if any
+    string? leadId;
+    # Lead company read from the event, if any
+    string? leadCompany;
+    # What happened
+    LeadBackfillStatus status;
+|};
+
+# One batch of the lead backfill.
+public type LeadBackfillResponse record {|
+    # Whether this was a dry run (nothing written)
+    boolean dryRun;
+    # The meetings looked at in this batch
+    LeadBackfillItem[] meetings;
+    # Pass as afterMeetingId to get the next batch; () when this was the last one
+    int? nextAfterMeetingId;
+|};
+
+# Builds one lead backfill result row.
+#
+# + candidate - The Inbound meeting looked at
+# + leadId - Lead id read from the event, if any
+# + leadCompany - Lead company read from the event, if any
+# + status - What happened
+# + return - The result row
+isolated function leadBackfillItem(database:LeadBackfillCandidate candidate, string? leadId, string? leadCompany,
+        LeadBackfillStatus status) returns LeadBackfillItem => {
+    meetingId: candidate.meetingId,
+    title: candidate.title,
+    startTime: candidate.startTime,
+    leadId,
+    leadCompany,
+    status
+};

@@ -692,3 +692,50 @@ isolated function releaseCallActivityClaimQuery(string spaceName, string actor) 
         updated_by = ${actor}
     WHERE space_name = ${spaceName} AND call_activity_id = ${CALL_ACTIVITY_CLAIMED}
 `;
+
+# Build query to find recent Inbound meetings with no lead link stored, oldest id first,
+# after a cursor. Only add-on meetings (with a Meet space) qualify.
+#
+# + inboundMeetingType - The `meeting_type` the add-on stores for an Inbound call
+# + days - How far back to look, by start time
+# + afterMeetingId - Only meetings with a larger id (the cursor)
+# + 'limit - Most rows to return
+# + return - sql:ParameterizedQuery - Select query for the meeting table
+isolated function getLeadBackfillCandidatesQuery(string inboundMeetingType, int days, int afterMeetingId,
+        int 'limit) returns sql:ParameterizedQuery =>
+`
+    SELECT
+        meeting_id AS meetingId,
+        space_name AS spaceName,
+        title,
+        google_event_id AS googleEventId,
+        host AS organizer,
+        DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS startTime
+    FROM meeting
+    WHERE meeting_type = ${inboundMeetingType}
+        AND space_name IS NOT NULL
+        AND lead_id IS NULL
+        AND start_time >= UTC_TIMESTAMP() - INTERVAL ${days} DAY
+        AND meeting_id > ${afterMeetingId}
+    ORDER BY meeting_id
+    LIMIT ${'limit}
+`;
+
+# Build query to store a meeting's lead link. Only fills a row that has none, so it can
+# never overwrite a link the calendar watcher stored.
+#
+# + meetingId - Meeting to update
+# + leadId - Salesforce Lead id
+# + leadCompany - The lead's company, if known
+# + actor - User performing the write
+# + return - sql:ParameterizedQuery - Update query for the meeting table
+isolated function setMeetingLeadQuery(int meetingId, string leadId, string? leadCompany, string actor)
+    returns sql:ParameterizedQuery =>
+`
+    UPDATE meeting
+    SET lead_id = ${leadId},
+        lead_company = ${leadCompany},
+        updated_by = ${actor}
+    WHERE meeting_id = ${meetingId}
+        AND lead_id IS NULL
+`;

@@ -90,6 +90,9 @@ const string SYSTEM_ACTOR = "meet-app-system";
 const string INTERNAL_MEETING_TYPE = "internal";
 const string SF_CALL_TYPE_INTERNAL = "Internal";
 
+// The add-on's call type for an Inbound call, the one that targets a Salesforce Lead.
+const string INBOUND_MEETING_TYPE = "inbound";
+
 # Pub/Sub push envelope -- the actual notification is base64-encoded inside `message.data`.
 # Left open (not a closed record) since Google's push includes other fields (e.g.
 # `attributes`) that don't matter here but must not break data binding.
