@@ -292,6 +292,12 @@ isolated function registerEventIfRelevant(json event) returns error? {
         leadId,
         leadCompany
     }, SYSTEM_ACTOR);
+
+    // A rep can link the deal, account or lead after the call, once every artifact is already
+    // attached. No artifact notification will arrive again to trigger the logging, so check
+    // here too. Normally a single read: it returns early unless the meeting is complete, not
+    // yet logged and has a target, and its claim stops a call being logged twice.
+    logCallActivityIfComplete(spaceName);
 }
 
 # Reads the lead link the add-on writes for the call type that targets a Salesforce Lead
