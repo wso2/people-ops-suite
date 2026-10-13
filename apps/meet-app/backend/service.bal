@@ -570,11 +570,13 @@ service http:InterceptableService / on new http:Listener(9090) {
     # + startTime - Start time to filter
     # + endTime - End time to filter
     # + internalParticipants - Participants to filter
+    # + 'source - How the meeting was set up. `echo` keeps only meetings registered by the
+    # calendar add-on (Echo); omitted means every meeting
     # + 'limit - Limit of the data  
     # + offset - Offset of the data
     # + return - Meetings | Error
     resource function get meetings(http:RequestContext ctx, string? title, string? host, string? searchString, string? region,
-            string? startTime, string? endTime, string[]? internalParticipants, int? 'limit, int? offset)
+            string? startTime, string? endTime, string[]? internalParticipants, string? 'source, int? 'limit, int? offset)
     returns MeetingListResponse|http:Forbidden|http:InternalServerError|http:BadRequest {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -596,8 +598,19 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
+        // Rejected rather than ignored: an unknown value silently falling back to "every
+        // meeting" would look like a working filter to the caller.
+        if 'source is string && 'source != ECHO_SOURCE {
+            string customError = string `Unsupported source '${'source}'. Supported: ${ECHO_SOURCE}.`;
+            log:printError(customError);
+            return <http:BadRequest>{
+                body: {
+                    message: customError
+                }
+            };
+        }
         database:Meeting[]|error meetings = database:fetchMeetings(null, title, host, searchString, region,
-                startTime, endTime, internalParticipants, 'limit, offset);
+                startTime, endTime, internalParticipants, 'source == ECHO_SOURCE, 'limit, offset);
         if meetings is error {
             string customError = "Error occurred while retrieving the meetings!";
             log:printError(customError, meetings);
