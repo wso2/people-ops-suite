@@ -115,6 +115,10 @@ public type Meeting record {|
     string? accountId;
     # The account's display name, denormalised so the list needs no Salesforce call.
     string? accountName;
+    # Salesforce Lead the meeting was linked to. Set for lead-targeted (Inbound) calls.
+    string? leadId = ();
+    # The lead's company, denormalised like accountName.
+    string? leadCompany = ();
     # Drive file id of the recording, once the pipeline has attached one. Optional for the
     # same reason as the fields above
     string? driveFileId;
@@ -223,6 +227,9 @@ public type MeetRecordingPayload record {|
     # Salesforce Account link, for call types that target an account rather than a deal.
     string? accountId = ();
     string? accountName = ();
+    # Salesforce Lead link, for the call type that targets a lead (Inbound).
+    string? leadId = ();
+    string? leadCompany = ();
 |};
 
 # [Database] An auto-recorded meeting row, read back by space name.
@@ -279,6 +286,8 @@ public type MeetRecordingRow record {|
     string? callActivityId;
     # Call type the add-on wrote on the event (`revos_call_type`), e.g. `internal`.
     string? meetingType = ();
+    # Salesforce Lead the meeting was linked to (Inbound calls).
+    string? leadId = ();
 |};
 
 # Sentinel written into `call_activity_id` to claim the one-shot Salesforce call-activity
@@ -287,3 +296,21 @@ public type MeetRecordingRow record {|
 # notification can't produce a second activity for the same meeting. Deliberately not a
 # valid Salesforce Id shape, so it can never be mistaken for one.
 public const string CALL_ACTIVITY_CLAIMED = "IN_PROGRESS";
+
+# [Database] An Inbound meeting whose lead link is not stored yet: a candidate for the
+# lead backfill.
+#
+# + meetingId - Auto-increment meeting ID
+# + spaceName - Resource name of the Meet space
+# + title - The event's title
+# + googleEventId - Calendar event ID
+# + organizer - Email of the event organizer, whose copy of the event holds the link
+# + startTime - Event start time
+public type LeadBackfillCandidate record {|
+    int meetingId;
+    string spaceName;
+    string title;
+    string googleEventId;
+    string organizer;
+    string startTime;
+|};

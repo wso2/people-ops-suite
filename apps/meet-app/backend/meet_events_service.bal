@@ -90,6 +90,9 @@ const string SYSTEM_ACTOR = "meet-app-system";
 const string INTERNAL_MEETING_TYPE = "internal";
 const string SF_CALL_TYPE_INTERNAL = "Internal";
 
+// The add-on's call type for an Inbound call, the one that targets a Salesforce Lead.
+const string INBOUND_MEETING_TYPE = "inbound";
+
 # Pub/Sub push envelope -- the actual notification is base64-encoded inside `message.data`.
 # Left open (not a closed record) since Google's push includes other fields (e.g.
 # `attributes`) that don't matter here but must not break data binding.
@@ -668,17 +671,19 @@ isolated function logCallActivityIfComplete(string spaceName) {
     }
 
     // Without a Salesforce target there is nothing to log the call against: the API requires
-    // exactly one of opportunityId/accountId/leadId, and this pipeline never has a lead.
+    // exactly one of opportunityId/accountId/leadId.
     //
     // An account-type call (`monthly_weekly`, `outbound`) never carries a deal -- the add-on
     // links it straight to the customer -- so it logs against the account instead of being
-    // dropped. It is still real customer contact and belongs on the timeline. What lands here
-    // now is only a meeting tagged for the add-on with nothing picked at all.
+    // dropped. An Inbound call targets a Salesforce Lead and logs against it. Each is real
+    // customer contact and belongs on a timeline. What lands here now is only a meeting tagged
+    // for the add-on with nothing picked at all.
     string? opportunityId = tracked.opportunityId;
-    string? accountId = tracked.accountId;
-    if opportunityId is () && accountId is () {
-        log:printInfo(string `Meeting for space ${spaceName} has all artifacts attached but no opportunity ` +
-                "or account; skipping the Salesforce call activity.");
+    string? accountId = opportunityId is () ? tracked.accountId : ();
+    string? leadId = opportunityId is () && accountId is () ? tracked.leadId : ();
+    if opportunityId is () && accountId is () && leadId is () {
+        log:printInfo(string `Meeting for space ${spaceName} has all artifacts attached but no opportunity, ` +
+                "account or lead; skipping the Salesforce call activity.");
         return;
     }
 
@@ -702,12 +707,15 @@ isolated function logCallActivityIfComplete(string spaceName) {
         callType: tracked.meetingType == INTERNAL_MEETING_TYPE ? SF_CALL_TYPE_INTERNAL : (),
         occurredOn: callDate(tracked.startTime),
         comment: buildCallActivityComment(tracked),
-        // Exactly one target, never both. The add-on writes the deal's own account onto a
-        // deal-linked event as well, so a row can genuinely hold both ids -- and the two
-        // share one Salesforce field, so sending both is a 400. 
+        // Exactly one target, picked above in the order deal, account, lead. The add-on writes
+        // the deal's own account onto a deal-linked event as well, so a row can genuinely hold
+        // both ids -- and the two share one Salesforce field, so sending both is a 400.
         opportunityId: opportunityId,
-        accountId: opportunityId is () ? accountId : (),
-        contactId: resolveCallContactId(tracked),
+        accountId: accountId,
+        leadId: leadId,
+        // A lead takes the Task's WhoId, the field a contact would use, so the service refuses
+        // the two together. The lead IS the person on a lead call.
+        contactId: leadId is () ? resolveCallContactId(tracked) : (),
         durationSeconds: meetingDurationSeconds(tracked),
         // The organizer is the rep who scheduled and ran the call, so Salesforce should show them
         // as having made it -- not the integration user.

@@ -290,3 +290,32 @@ public isolated function setCallActivityId(string spaceName, string callActivity
 public isolated function releaseCallActivityClaim(string spaceName, string actor) returns error? {
     _ = check databaseClient->execute(releaseCallActivityClaimQuery(spaceName, actor));
 }
+
+# Finds recent Inbound meetings with no lead link stored -- candidates for the lead backfill.
+#
+# + inboundMeetingType - The `meeting_type` the add-on stores for an Inbound call
+# + days - How far back to look, by start time
+# + afterMeetingId - Only meetings with a larger id (the cursor)
+# + 'limit - Most rows to return
+# + return - Candidates, oldest id first, or Error
+public isolated function fetchLeadBackfillCandidates(string inboundMeetingType, int days, int afterMeetingId,
+        int 'limit) returns LeadBackfillCandidate[]|error {
+    stream<LeadBackfillCandidate, error?> resultStream = databaseClient->query(
+        getLeadBackfillCandidatesQuery(inboundMeetingType, days, afterMeetingId, 'limit));
+    return from LeadBackfillCandidate candidate in resultStream
+        select candidate;
+}
+
+# Stores a meeting's lead link, if it has none yet.
+#
+# + meetingId - Meeting to update
+# + leadId - Salesforce Lead id
+# + leadCompany - The lead's company, if known
+# + actor - User performing the write
+# + return - True if the row was updated, false if it already had a lead, or Error
+public isolated function setMeetingLead(int meetingId, string leadId, string? leadCompany, string actor)
+        returns boolean|error {
+    sql:ExecutionResult result = check databaseClient->execute(setMeetingLeadQuery(meetingId, leadId, leadCompany,
+            actor));
+    return result.affectedRowCount == 1;
+}

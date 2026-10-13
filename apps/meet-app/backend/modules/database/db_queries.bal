@@ -120,6 +120,8 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
                 opportunity_details AS 'opportunityDetails',
                 account_id AS 'accountId',
                 account_name AS 'accountName',
+                lead_id AS 'leadId',
+                lead_company AS 'leadCompany',
                 created_on AS 'createdOn',
                 created_by AS 'createdBy',
                 updated_on AS 'updatedOn',
@@ -187,13 +189,14 @@ isolated function getMeetingsQuery(string? hostOrInternalParticipant, string? ti
         // One box, several columns.
         // `account_name` covers account-linked meetings. Opportunity-linked ones have
         // no account row (see calendar_watch_service): their customer lives inside the
-        // opportunity_details JSON. 
+        // opportunity_details JSON. Lead-linked (Inbound) meetings carry `lead_company`.
         // `meeting_type` matches the STORED value (`monthly_weekly`),
         string pattern = "%" + searchString + "%";
         filters.push(sql:queryConcat(`(
             host LIKE ${pattern}
             OR title LIKE ${pattern}
             OR account_name LIKE ${pattern}
+            OR lead_company LIKE ${pattern}
             OR meeting_type LIKE ${pattern}
             OR opportunity_details ->> '$.customerName' LIKE ${pattern}
         )`));
@@ -245,6 +248,8 @@ isolated function getMeetingQuery(int meetingId) returns sql:ParameterizedQuery 
         opportunity_details AS 'opportunityDetails',
         account_id AS 'accountId',
         account_name AS 'accountName',
+        lead_id AS 'leadId',
+        lead_company AS 'leadCompany',
         created_on AS 'createdOn',
         created_by AS 'createdBy',
         updated_on AS 'updatedOn',
@@ -485,6 +490,8 @@ isolated function registerMeetRecordingQuery(MeetRecordingPayload payload, strin
         meeting_type,
         account_id,
         account_name,
+        lead_id,
+        lead_company,
         meeting_status,
         created_by,
         updated_by
@@ -507,6 +514,8 @@ isolated function registerMeetRecordingQuery(MeetRecordingPayload payload, strin
         ${payload.meetingType},
         ${payload.accountId},
         ${payload.accountName},
+        ${payload.leadId},
+        ${payload.leadCompany},
         ${ACTIVE},
         ${actor},
         ${actor}
@@ -529,6 +538,8 @@ isolated function registerMeetRecordingQuery(MeetRecordingPayload payload, strin
         meeting_type = IF(VALUES(meeting_type) IS NULL, meeting_type, VALUES(meeting_type)),
         account_id = IF(VALUES(account_id) IS NULL, account_id, VALUES(account_id)),
         account_name = IF(VALUES(account_id) IS NULL, account_name, VALUES(account_name)),
+        lead_id = IF(VALUES(lead_id) IS NULL, lead_id, VALUES(lead_id)),
+        lead_company = IF(VALUES(lead_id) IS NULL, lead_company, VALUES(lead_company)),
         updated_by = VALUES(updated_by)
 `;
 
@@ -576,7 +587,8 @@ isolated function getMeetRecordingBySpaceNameQuery(string spaceName) returns sql
         smart_notes_state AS smartNotesState,
         smart_notes_file_id AS smartNotesFileId,
         call_activity_id AS callActivityId,
-        meeting_type AS meetingType
+        meeting_type AS meetingType,
+        lead_id AS leadId
     FROM meeting
     WHERE space_name = ${spaceName}
 `;
@@ -679,4 +691,51 @@ isolated function releaseCallActivityClaimQuery(string spaceName, string actor) 
         call_activity_id = NULL,
         updated_by = ${actor}
     WHERE space_name = ${spaceName} AND call_activity_id = ${CALL_ACTIVITY_CLAIMED}
+`;
+
+# Build query to find recent Inbound meetings with no lead link stored, oldest id first,
+# after a cursor. Only add-on meetings (with a Meet space) qualify.
+#
+# + inboundMeetingType - The `meeting_type` the add-on stores for an Inbound call
+# + days - How far back to look, by start time
+# + afterMeetingId - Only meetings with a larger id (the cursor)
+# + 'limit - Most rows to return
+# + return - sql:ParameterizedQuery - Select query for the meeting table
+isolated function getLeadBackfillCandidatesQuery(string inboundMeetingType, int days, int afterMeetingId,
+        int 'limit) returns sql:ParameterizedQuery =>
+`
+    SELECT
+        meeting_id AS meetingId,
+        space_name AS spaceName,
+        title,
+        google_event_id AS googleEventId,
+        host AS organizer,
+        DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS startTime
+    FROM meeting
+    WHERE meeting_type = ${inboundMeetingType}
+        AND space_name IS NOT NULL
+        AND lead_id IS NULL
+        AND start_time >= UTC_TIMESTAMP() - INTERVAL ${days} DAY
+        AND meeting_id > ${afterMeetingId}
+    ORDER BY meeting_id
+    LIMIT ${'limit}
+`;
+
+# Build query to store a meeting's lead link. Only fills a row that has none, so it can
+# never overwrite a link the calendar watcher stored.
+#
+# + meetingId - Meeting to update
+# + leadId - Salesforce Lead id
+# + leadCompany - The lead's company, if known
+# + actor - User performing the write
+# + return - sql:ParameterizedQuery - Update query for the meeting table
+isolated function setMeetingLeadQuery(int meetingId, string leadId, string? leadCompany, string actor)
+    returns sql:ParameterizedQuery =>
+`
+    UPDATE meeting
+    SET lead_id = ${leadId},
+        lead_company = ${leadCompany},
+        updated_by = ${actor}
+    WHERE meeting_id = ${meetingId}
+        AND lead_id IS NULL
 `;

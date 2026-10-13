@@ -80,6 +80,9 @@ public type CreateCallActivityInput record {|
     string? opportunityId?;
     #Account the call relates to
     string? accountId?;
+    #Lead the call relates to (Inbound calls). Salesforce puts a lead in the Task's WhoId, so
+    #the service refuses it together with `contactId`.
+    string? leadId?;
     #Contact who was on the call
     string? contactId?;
     #Length of the call in seconds

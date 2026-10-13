@@ -640,7 +640,9 @@ service http:InterceptableService / on new http:Listener(9090) {
                     opportunityId: meeting?.opportunityId,
                     opportunityDetails: meeting?.opportunityDetails,
                     accountId: meeting?.accountId,
-                    accountName: meeting?.accountName
+                    accountName: meeting?.accountName,
+                    leadId: meeting?.leadId,
+                    leadCompany: meeting?.leadCompany
                 }
         };
     }
@@ -677,7 +679,9 @@ service http:InterceptableService / on new http:Listener(9090) {
             opportunityId: meeting.opportunityId,
             opportunityDetails: meeting.opportunityDetails,
             accountId: meeting.accountId,
-            accountName: meeting.accountName
+            accountName: meeting.accountName,
+            leadId: meeting.leadId,
+            leadCompany: meeting.leadCompany
         };
     }
 
@@ -855,6 +859,86 @@ service http:InterceptableService / on new http:Listener(9090) {
         // re-granted access after a failed attach-time grant -- those grants are best-effort and
         // are never retried (see meet_events_service.bal), so there is no longer a backstop.
         return {attachments: calendarEventAttachments ?: []};
+    }
+
+    # One-off backfill of the lead link on recent Inbound meetings, for SALES_ADMIN only.
+    #
+    # Inbound calls target a Salesforce Lead, but until the lead columns existed the calendar
+    # watcher never stored it, so those calls were never logged in Salesforce. This reads
+    # `revos_lead_id` / `revos_lead_company` back from each organizer's copy of the event,
+    # stores them, and hands the meeting to the call-activity logging -- which still only logs
+    # once all artifacts are attached, and whose claim stops a call being logged twice.
+    #
+    # Works in small batches so one call stays well under the Choreo gateway's 60-second cap:
+    # repeat with `afterMeetingId = nextAfterMeetingId` until it is absent. A DRY RUN by
+    # default; pass `dryRun=false` to write.
+    #
+    # + dryRun - When true (the default), only report what would change
+    # + days - How far back to look, by start time (1-90)
+    # + 'limit - Most meetings per batch (1-25)
+    # + afterMeetingId - Cursor from the previous batch
+    # + return - LeadBackfillResponse|Forbidden|BadRequest|InternalServerError
+    resource function post meetings/lead\-backfill(http:RequestContext ctx, boolean dryRun = true, int days = 30,
+            int 'limit = 10, int afterMeetingId = 0)
+        returns LeadBackfillResponse|http:Forbidden|http:BadRequest|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            log:printError("User information header not found!", userInfo);
+            return <http:InternalServerError>{body: {message: "User information header not found!"}};
+        }
+        if !authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups) {
+            return <http:Forbidden>{body: {message: "Only a Sales admin can run the lead backfill."}};
+        }
+        if days < 1 || days > 90 || 'limit < 1 || 'limit > 25 || afterMeetingId < 0 {
+            return <http:BadRequest>{body: {message: "days must be 1-90, limit 1-25 and afterMeetingId >= 0."}};
+        }
+
+        database:LeadBackfillCandidate[]|error candidates =
+            database:fetchLeadBackfillCandidates(INBOUND_MEETING_TYPE, days, afterMeetingId, 'limit);
+        if candidates is error {
+            string customError = "Error occurred while finding Inbound meetings to backfill!";
+            log:printError(customError, candidates);
+            return <http:InternalServerError>{body: {message: customError}};
+        }
+
+        LeadBackfillItem[] items = [];
+        foreach database:LeadBackfillCandidate candidate in candidates {
+            json|error organizerEvent = calendar:getEvent(candidate.organizer, candidate.googleEventId);
+            if organizerEvent is error {
+                log:printError(string `Lead backfill: could not read event ${candidate.googleEventId}.`, organizerEvent);
+                items.push(leadBackfillItem(candidate, (), (), EVENT_READ_FAILED));
+                continue;
+            }
+            [string?, string?] [leadId, leadCompany] = readLeadLink(organizerEvent);
+            if leadId is () {
+                items.push(leadBackfillItem(candidate, (), (), NO_LEAD_ON_EVENT));
+                continue;
+            }
+            if dryRun {
+                items.push(leadBackfillItem(candidate, leadId, leadCompany, WOULD_LINK));
+                continue;
+            }
+            boolean|error updated = database:setMeetingLead(candidate.meetingId, leadId, leadCompany, userInfo.email);
+            if updated is error {
+                log:printError(string `Lead backfill: could not store the lead on meeting ${candidate.meetingId}.`,
+                        updated);
+                items.push(leadBackfillItem(candidate, leadId, leadCompany, UPDATE_FAILED));
+                continue;
+            }
+            if updated {
+                // Best-effort and claim-guarded, like every other caller of it.
+                logCallActivityIfComplete(candidate.spaceName);
+            }
+            items.push(leadBackfillItem(candidate, leadId, leadCompany, updated ? LINKED : ALREADY_LINKED));
+        }
+
+        log:printInfo(string `Lead backfill by ${userInfo.email}: ${items.length()} meeting(s), dryRun=${dryRun}.`);
+        return {
+            dryRun,
+            meetings: items,
+            nextAfterMeetingId: candidates.length() == 'limit ? candidates[candidates.length() - 1].meetingId : ()
+        };
     }
 
     # Delete meeting.
