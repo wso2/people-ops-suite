@@ -53,6 +53,10 @@ public type Meeting record {|
     string? accountId;
     # The account's display name.
     string? accountName;
+    # Salesforce Lead id, when the call type targets a lead (Inbound).
+    string? leadId;
+    # The lead's company, shown where an account name would be.
+    string? leadCompany;
 |};
 
 # Represents the response structure for retrieving user information.

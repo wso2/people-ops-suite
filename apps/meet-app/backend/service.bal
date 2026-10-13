@@ -640,7 +640,9 @@ service http:InterceptableService / on new http:Listener(9090) {
                     opportunityId: meeting?.opportunityId,
                     opportunityDetails: meeting?.opportunityDetails,
                     accountId: meeting?.accountId,
-                    accountName: meeting?.accountName
+                    accountName: meeting?.accountName,
+                    leadId: meeting?.leadId,
+                    leadCompany: meeting?.leadCompany
                 }
         };
     }
@@ -677,7 +679,9 @@ service http:InterceptableService / on new http:Listener(9090) {
             opportunityId: meeting.opportunityId,
             opportunityDetails: meeting.opportunityDetails,
             accountId: meeting.accountId,
-            accountName: meeting.accountName
+            accountName: meeting.accountName,
+            leadId: meeting.leadId,
+            leadCompany: meeting.leadCompany
         };
     }
 
