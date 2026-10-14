@@ -36,24 +36,14 @@ function buildJwtValidatorConfig() returns jwt:ValidatorConfig {
     // One audience or several, as comma-separated client IDs in one string. With a list,
     // jwt:validate passes a token whose `aud` matches ANY entry -- which is what lets two
     // different clients (the meet-app webapp and One WSO2, each with its own client ID) call
-    // this one backend. Unset or blank means no audience check at all, as before.
-    //
-    // Brackets and quotes are dropped before splitting, so a value written as `["id1","id2"]`
-    // -- what Choreo's form saves when someone tries to enter an array -- reads the same as
-    // `id1, id2`. Client IDs never contain those characters, so a single ID is unaffected.
+    // this one backend. Unset or blank means no audience check at all, as before. See
+    // splitConfigList for how the value is parsed.
     string? audience = authConfig.JWTAudience;
     boolean configured = audience is string && audience.trim() != "";
     string[] accepted = [];
     boolean hadEmptyEntry = false;
     if audience is string && configured {
-        foreach string part in re `,`.split(re `[\[\]"']`.replaceAll(audience, "")) {
-            string entry = part.trim();
-            if entry == "" {
-                hadEmptyEntry = true;
-            } else if accepted.indexOf(entry) == () {
-                accepted.push(entry);
-            }
-        }
+        [accepted, hadEmptyEntry] = splitConfigList(audience);
     }
     if hadEmptyEntry {
         // Skipped rather than failing startup: a stray comma is a typo, and refusing to start
@@ -79,6 +69,33 @@ function buildJwtValidatorConfig() returns jwt:ValidatorConfig {
 }
 
 final readonly & jwt:ValidatorConfig jwtValidatorConfig = buildJwtValidatorConfig().cloneReadOnly();
+
+# Parses one authorizedRoles entry into its list of Asgardeo groups. Same format as
+# JWTAudience: one group, or several separated by commas (e.g. "sales-team, sales-leads"). A user
+# in ANY of the listed groups holds the role.
+#
+# + roleName - Role name, for log messages
+# + value - Raw config value
+# + return - The groups granting the role
+function parseRoleGroups(string roleName, string value) returns readonly & string[] {
+    [string[], boolean] [groups, hadEmptyEntry] = splitConfigList(value);
+    if hadEmptyEntry && groups.length() > 0 {
+        log:printWarn(string `${roleName} has an empty entry (check for a stray comma); it was ignored.`);
+    }
+    if groups.length() == 0 {
+        // Fails closed: with no groups, nobody holds this role.
+        log:printWarn(string `${roleName} has no groups configured; nobody will hold this role.`);
+    } else {
+        log:printInfo(string `${roleName} groups configured.`, groups = groups);
+    }
+    return groups.cloneReadOnly();
+}
+
+# Asgardeo groups that grant the SALES_TEAM role.
+public final readonly & string[] salesTeamGroups = parseRoleGroups("SALES_TEAM", authorizedRoles.SALES_TEAM);
+
+# Asgardeo groups that grant the SALES_ADMIN role.
+public final readonly & string[] salesAdminGroups = parseRoleGroups("SALES_ADMIN", authorizedRoles.SALES_ADMIN);
 
 # To handle authorization for each resource function invocation.
 public isolated service class JwtInterceptor {
@@ -114,11 +131,9 @@ public isolated service class JwtInterceptor {
             return <http:InternalServerError>{body: {message: errorMsg}};
         }
 
-        foreach anydata role in authorizedRoles.toArray() {
-            if userInfo.groups.some(r => r === role) {
-                ctx.set(HEADER_USER_INFO, userInfo);
-                return ctx.next();
-            }
+        if hasAnyGroup(salesTeamGroups, userInfo.groups) || hasAnyGroup(salesAdminGroups, userInfo.groups) {
+            ctx.set(HEADER_USER_INFO, userInfo);
+            return ctx.next();
         }
 
         log:printError(

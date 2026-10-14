@@ -93,6 +93,8 @@
     [meet_app.database.dbConfig.options]
     connectTimeout =
 
+# One Asgardeo group per role, or several comma-separated ("group-a, group-b"); a user in ANY
+# of them holds the role.
 [meet_app.authorization.authorizedRoles]
     SALES_TEAM  = ""
     SALES_ADMIN = ""

@@ -22,11 +22,14 @@ public type CustomJwtPayload record {
     string[] groups;
 };
 
-# Application specific role mapping.
+# Application specific role mapping. Each role takes one Asgardeo group, or several separated
+# by commas (e.g. "sales-team, sales-leads"); a user in ANY of them holds the role. A plain string
+# rather than string[] for the same reason as JWTAudience: Choreo's configuration form cannot
+# store an array.
 public type AppRoles record {|
-    # Role for the employee
+    # Group(s) for the employee
     string SALES_TEAM;
-    # Role for the head of people operations
+    # Group(s) for the head of people operations
     string SALES_ADMIN;
 |};
 
