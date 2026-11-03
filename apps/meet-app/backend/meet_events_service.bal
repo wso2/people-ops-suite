@@ -253,13 +253,24 @@ isolated function processRecordingReady(string recordingName) returns error? {
         return;
     }
 
-    if tracked.recordingState == database:ATTACHED && tracked.driveFileId == fileId {
-        log:printInfo(string `Recording for space ${spaceName} is already attached; skipping.`);
+    // A call can hold several recordings -- each stop and restart is its own resource -- so
+    // "already done" is decided per recording, not per meeting. The meeting's own columns
+    // count too: they hold the part the pipeline attached before parts were kept separately.
+    if check isPartAttached(database:RECORDING_PART, recordingName, fileId)
+        || (tracked.recordingState == database:ATTACHED && tracked.driveFileId == fileId) {
+        log:printInfo(string `Recording ${recordingName} is already attached; skipping.`);
+        // Recorded again so a part copied in by the V6 migration picks up its real name.
+        check database:upsertMeetingPart(database:RECORDING_PART,
+                partPayload(tracked.meetingId, recordingName, info, database:ATTACHED), SYSTEM_ACTOR);
         // Still checked, because the artifact being attached does NOT mean the call
-        // activity was logged. 
+        // activity was logged.
         logCallActivityIfComplete(spaceName);
         return;
     }
+
+    // The meeting's own columns keep holding the first part, for the readers that know only
+    // one recording per meeting. A later part never overwrites them.
+    boolean isFirstPart = tracked.recordingState != database:ATTACHED;
 
     // Google Meet names the recording file itself after the meeting code and a timestamp
     // Replace it with the actual event title + start time.
@@ -271,6 +282,11 @@ isolated function processRecordingReady(string recordingName) returns error? {
     error? attachResult = calendar:attachRecording(tracked.organizer, tracked.googleEventId, fileId,
             "Meeting Recording", "video/mp4");
     if attachResult is error {
+        check database:upsertMeetingPart(database:RECORDING_PART,
+                partPayload(tracked.meetingId, recordingName, info, database:FAILED), SYSTEM_ACTOR);
+        if !isFirstPart {
+            return attachResult;
+        }
         _ = check database:upsertMeetRecording({
             spaceName: tracked.spaceName,
             title: tracked.title,
@@ -314,20 +330,24 @@ isolated function processRecordingReady(string recordingName) returns error? {
     // sharing went. Sharing failures are logged above for manual follow-up; they deliberately
     // do NOT trigger a Pub/Sub retry. (A DB write failure below still surfaces as an error, so
     // a genuinely transient DB problem is retried.)
-    _ = check database:upsertMeetRecording({
-        spaceName: tracked.spaceName,
-        title: tracked.title,
-        googleEventId: tracked.googleEventId,
-        organizer: tracked.organizer,
-        startTime: tracked.startTime,
-        endTime: tracked.endTime,
-        internalParticipants: tracked.internalParticipants,
-        externalParticipants: tracked.externalParticipants,
-        recordingState: database:ATTACHED,
-        driveFileId: fileId,
-        opportunityId: tracked.opportunityId,
-        opportunityDetails: tracked.opportunityDetails
-    }, SYSTEM_ACTOR);
+    check database:upsertMeetingPart(database:RECORDING_PART,
+            partPayload(tracked.meetingId, recordingName, info, database:ATTACHED), SYSTEM_ACTOR);
+    if isFirstPart {
+        _ = check database:upsertMeetRecording({
+            spaceName: tracked.spaceName,
+            title: tracked.title,
+            googleEventId: tracked.googleEventId,
+            organizer: tracked.organizer,
+            startTime: tracked.startTime,
+            endTime: tracked.endTime,
+            internalParticipants: tracked.internalParticipants,
+            externalParticipants: tracked.externalParticipants,
+            recordingState: database:ATTACHED,
+            driveFileId: fileId,
+            opportunityId: tracked.opportunityId,
+            opportunityDetails: tracked.opportunityDetails
+        }, SYSTEM_ACTOR);
+    }
 
     // Started, not awaited -- see shareWithDepartments for why this must not hold up the
     // webhook's response. Started only AFTER the ATTACHED write: if that write fails, the
@@ -496,6 +516,55 @@ const int MAX_CONTACT_LOOKUPS = 5;
 
 const string DRIVE_FILE_VIEW_URL_PREFIX = "https://drive.google.com/file/d/";
 const string GOOGLE_DOC_VIEW_URL_PREFIX = "https://docs.google.com/document/d/";
+
+# Whether this exact part is already recorded as ATTACHED with this file -- the redelivery
+# check, per part rather than per meeting.
+#
+# + kind - Which kind of part
+# + name - Meet's resource name for the part
+# + fileId - The Drive file the notification resolved to
+# + return - True if already attached, or Error
+isolated function isPartAttached(database:PartKind kind, string name, string fileId) returns boolean|error {
+    database:MeetingPart? part = check database:getMeetingPartByName(kind, name);
+    return part is database:MeetingPart && part.state == database:ATTACHED && part.driveFileId == fileId;
+}
+
+# Whether the meeting already has an ATTACHED part of the other document kind in this file --
+# a transcript and smart notes that are one Google Doc, which is shared with the departments
+# once. A failed lookup answers false: sharing a file twice costs repeated grants, while
+# skipping a share could leave the departments without it.
+#
+# + otherKind - The other document kind to look among
+# + meetingId - The meeting
+# + fileId - The document
+# + return - True if the document is already one of those parts
+isolated function isSharedDocument(database:PartKind otherKind, int meetingId, string fileId) returns boolean {
+    boolean|error shared = database:hasAttachedPartWithFile(otherKind, meetingId, fileId);
+    if shared is error {
+        log:printError("Could not check whether the document is already shared as another part; " +
+                "sharing it anyway.", shared);
+        return false;
+    }
+    return shared;
+}
+
+# The part row for a resolved artifact.
+#
+# + meetingId - Meeting the part belongs to
+# + name - Meet's resource name for the part
+# + info - What drive-service resolved it to
+# + state - Processing state to record
+# + return - The payload
+isolated function partPayload(int meetingId, string name, driveservice:ArtifactInfoResponse info,
+        database:RecordingState state) returns database:MeetingPartPayload => {
+    meetingId,
+    name,
+    conferenceRecord: info?.conferenceRecordName,
+    driveFileId: info.fileId,
+    startTime: info?.startTime,
+    endTime: info?.endTime,
+    state
+};
 
 # The name the recording's Drive file carries, which is also what the Salesforce activity
 # uses as its subject. Google names the file after the raw meeting code and a timestamp;
