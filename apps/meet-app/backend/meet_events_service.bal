@@ -376,9 +376,13 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
 
     // Pub/Sub redelivers whenever it does not get a 200 in time, and without this the
     // handler starts from the top every time: re-attaching the file, renaming it again,
-    // and re-running the participant grant.
-    if tracked.transcriptState == database:ATTACHED && tracked.transcriptFileId == fileId {
-        log:printInfo(string `Transcript for space ${spaceName} is already attached; skipping.`);
+    // and re-running the participant grant. Decided per transcript, since a call can hold
+    // several -- see processRecordingReady.
+    if check isPartAttached(database:TRANSCRIPT_PART, transcriptName, fileId)
+        || (tracked.transcriptState == database:ATTACHED && tracked.transcriptFileId == fileId) {
+        log:printInfo(string `Transcript ${transcriptName} is already attached; skipping.`);
+        check database:upsertMeetingPart(database:TRANSCRIPT_PART,
+                partPayload(tracked.meetingId, transcriptName, info, database:ATTACHED), SYSTEM_ACTOR);
         // Notified again, because the transcript being attached does NOT mean echo-backend heard
         // about it: the first attempt may have failed. echo-backend ignores a meeting it already has.
         _ = start echobackend:notifyTranscriptReady(tracked.meetingId);
@@ -388,10 +392,17 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
         return;
     }
 
+    // The meeting's own columns keep holding the first transcript -- see processRecordingReady.
+    boolean isFirstPart = tracked.transcriptState != database:ATTACHED;
+
     error? attachResult = calendar:attachRecording(tracked.organizer, tracked.googleEventId, fileId,
             "Meeting Transcript", "application/vnd.google-apps.document");
     if attachResult is error {
-        check database:updateMeetTranscript(spaceName, database:FAILED, fileId, SYSTEM_ACTOR);
+        check database:upsertMeetingPart(database:TRANSCRIPT_PART,
+                partPayload(tracked.meetingId, transcriptName, info, database:FAILED), SYSTEM_ACTOR);
+        if isFirstPart {
+            check database:updateMeetTranscript(spaceName, database:FAILED, fileId, SYSTEM_ACTOR);
+        }
         return attachResult;
     }
 
@@ -416,7 +427,11 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
     // transcriptName is stored alongside the file id: the Drive document is the transcript
     // as prose, while this resource name is what reaches Meet's timed entries — the only
     // form a transcript synchronised to the recording can be built from.
-    check database:updateMeetTranscript(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR, transcriptName);
+    check database:upsertMeetingPart(database:TRANSCRIPT_PART,
+            partPayload(tracked.meetingId, transcriptName, info, database:ATTACHED), SYSTEM_ACTOR);
+    if isFirstPart {
+        check database:updateMeetTranscript(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR, transcriptName);
+    }
 
     // Tell echo-backend now so it starts extracting the MEDDPICC answers immediately instead of
     // at its next poll. Started, not awaited, and only after the ATTACHED write it reads; it
@@ -425,8 +440,10 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
 
     // Started, not awaited, and only after the ATTACHED write -- see processRecordingReady.
     // Skipped when the transcript IS the smart-notes document: with Gemini note-taking on, Meet
-    // writes the transcript into the notes doc, so both artifacts resolve to one file
-    if tracked.smartNotesState == database:ATTACHED && tracked.smartNotesFileId == fileId {
+    // writes the transcript into the notes doc, so both artifacts resolve to one file. Checked
+    // across every smart-notes part, since a call can hold several.
+    if (tracked.smartNotesState == database:ATTACHED && tracked.smartNotesFileId == fileId)
+        || isSharedDocument(database:SMART_NOTE_PART, tracked.meetingId, fileId) {
         log:printInfo(string `Transcript for space ${spaceName} is the smart-notes document; ` +
                 "its department share is not repeated.");
     } else {
