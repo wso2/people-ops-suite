@@ -658,33 +658,85 @@ isolated function callDate(string startTime) returns string? {
     return startTime.substring(0, 10);
 }
 
-# The activity's `comment`, carrying the view links for whichever artifacts resolved.
+# The activity's `comment`, carrying the view links for every attached part.
 #
 # This is the field the whole feature exists to deliver: it is what a rep opening the
 # opportunity in Salesforce actually sees. Salesforce allows 32,000 characters here, so
 # links comfortably fit -- but a transcript's contents would not, which is why only links go
 # in.
 #
+# The call is logged once, when the first recording, transcript and smart notes are all in, so
+# it links every part attached by then; a part that arrives later is not listed.
+#
 # + tracked - The meeting row, after all three artifacts attached
+# + files - Drive file ids of the attached parts, per kind, in the order they happened
 # + return - Comment body for the call activity
-isolated function buildCallActivityComment(database:MeetRecordingRow tracked) returns string {
+isolated function buildCallActivityComment(database:MeetRecordingRow tracked, CallFiles files) returns string {
     string[] lines = [
         string `Auto-logged from the WSO2 Meet recording pipeline for "${tracked.title}".`,
         ""
     ];
-    string? recordingFileId = tracked.driveFileId;
-    if recordingFileId is string {
-        lines.push(string `Recording: ${DRIVE_FILE_VIEW_URL_PREFIX}${recordingFileId}/view`);
-    }
-    string? transcriptFileId = tracked.transcriptFileId;
-    if transcriptFileId is string {
-        lines.push(string `Transcript: ${GOOGLE_DOC_VIEW_URL_PREFIX}${transcriptFileId}/edit`);
-    }
-    string? smartNotesFileId = tracked.smartNotesFileId;
-    if smartNotesFileId is string {
-        lines.push(string `Smart notes: ${GOOGLE_DOC_VIEW_URL_PREFIX}${smartNotesFileId}/edit`);
-    }
+    addFileLines(lines, "Recording", files.recordings, DRIVE_FILE_VIEW_URL_PREFIX, "/view");
+    addFileLines(lines, "Transcript", files.transcripts, GOOGLE_DOC_VIEW_URL_PREFIX, "/edit");
+    addFileLines(lines, "Smart notes", files.smartNotes, GOOGLE_DOC_VIEW_URL_PREFIX, "/edit");
     return string:'join("\n", ...lines);
+}
+
+# Appends one link per file, numbered only when there is more than one.
+#
+# + lines - The comment lines so far
+# + label - What the files are, e.g. "Recording"
+# + fileIds - The files, in order
+# + urlPrefix - View URL up to the file id
+# + urlSuffix - View URL after the file id
+isolated function addFileLines(string[] lines, string label, string[] fileIds, string urlPrefix, string urlSuffix) {
+    foreach int i in 0 ..< fileIds.length() {
+        string numbered = fileIds.length() > 1 ? string `${label} ${i + 1}` : label;
+        lines.push(string `${numbered}: ${urlPrefix}${fileIds[i]}${urlSuffix}`);
+    }
+}
+
+# The attached files of each kind, for the call activity's comment.
+#
+# + recordings - Recording file ids, in order
+# + transcripts - Transcript file ids, in order
+# + smartNotes - Smart notes file ids, in order
+type CallFiles record {|
+    string[] recordings;
+    string[] transcripts;
+    string[] smartNotes;
+|};
+
+# Gathers every attached part's file for the comment. A kind whose parts cannot be read falls
+# back to the meeting's own column, which still holds its first part -- a shorter comment beats
+# none, since the call is logged only once.
+#
+# + tracked - The meeting row
+# + return - The files per kind
+isolated function attachedCallFiles(database:MeetRecordingRow tracked) returns CallFiles => {
+    recordings: attachedFiles(database:RECORDING_PART, tracked.meetingId, tracked.driveFileId),
+    transcripts: attachedFiles(database:TRANSCRIPT_PART, tracked.meetingId, tracked.transcriptFileId),
+    smartNotes: attachedFiles(database:SMART_NOTE_PART, tracked.meetingId, tracked.smartNotesFileId)
+};
+
+isolated function attachedFiles(database:PartKind kind, int meetingId, string? fallbackFileId) returns string[] {
+    database:MeetingPart[]|error parts = database:getMeetingParts(kind, meetingId);
+    if parts is error {
+        log:printError(string `Could not read the meeting's ${kind} parts; the call activity lists only the first.`,
+                parts);
+        if fallbackFileId is string {
+            return [fallbackFileId];
+        }
+        return [];
+    }
+    string[] fileIds = [];
+    foreach database:MeetingPart part in parts {
+        string? fileId = part.driveFileId;
+        if part.state == database:ATTACHED && fileId is string && fileIds.indexOf(fileId) == () {
+            fileIds.push(fileId);
+        }
+    }
+    return fileIds;
 }
 
 # Finds the Salesforce Contact for the call by looking up the external attendees.
@@ -808,7 +860,7 @@ isolated function logCallActivityIfComplete(string spaceName) {
         // by a restricted picklist. Omitted and null are treated identically by the service.
         callType: tracked.meetingType == INTERNAL_MEETING_TYPE ? SF_CALL_TYPE_INTERNAL : (),
         occurredOn: callDate(tracked.startTime),
-        comment: buildCallActivityComment(tracked),
+        comment: buildCallActivityComment(tracked, attachedCallFiles(tracked)),
         // Exactly one target, picked above in the order deal, account, lead. The add-on writes
         // the deal's own account onto a deal-linked event as well, so a row can genuinely hold
         // both ids -- and the two share one Salesforce field, so sending both is a 400.
