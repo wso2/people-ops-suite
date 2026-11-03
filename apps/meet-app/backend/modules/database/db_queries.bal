@@ -739,3 +739,139 @@ isolated function setMeetingLeadQuery(int meetingId, string leadId, string? lead
     WHERE meeting_id = ${meetingId}
         AND lead_id IS NULL
 `;
+
+# The table holding one kind of part, and that table's Meet-name column. Identifiers cannot be
+# bound as parameters, so each is a fixed literal picked here -- never text from a caller.
+#
+# + kind - Which kind of part
+# + return - [table, name column]
+isolated function partTable(PartKind kind) returns [sql:ParameterizedQuery, sql:ParameterizedQuery] {
+    match kind {
+        RECORDING_PART => {
+            return [`meeting_recording`, `recording_name`];
+        }
+        TRANSCRIPT_PART => {
+            return [`meeting_transcript`, `transcript_name`];
+        }
+    }
+    return [`meeting_smart_note`, `smart_note_name`];
+}
+
+# The SELECT list shared by every part read, shaped as MeetingPart.
+#
+# + nameColumn - The kind's Meet-name column, from partTable
+# + return - sql:ParameterizedQuery - SELECT clause, ending before FROM
+isolated function partSelect(sql:ParameterizedQuery nameColumn) returns sql:ParameterizedQuery =>
+    sql:queryConcat(`
+    SELECT
+        id,
+        meeting_id AS meetingId,
+        `, nameColumn, ` AS name,
+        conference_record AS conferenceRecord,
+        drive_file_id AS driveFileId,
+        DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS startTime,
+        DATE_FORMAT(end_time, '%Y-%m-%d %H:%i:%s') AS endTime,
+        state
+    `);
+
+# Build an atomic insert-or-update for one part, keyed by the UNIQUE Meet name -- so a
+# redelivered notification updates its own row and never a sibling part's. A value that is
+# NULL on the update path (a FAILED write before the times were known, say) keeps what an
+# earlier write stored rather than erasing it.
+#
+# + kind - Which kind of part
+# + payload - Details to write
+# + startTime - Part start, already in the DB's `yyyy-MM-dd HH:mm:ss` UTC form
+# + endTime - Part end, same form
+# + actor - User performing the write
+# + return - sql:ParameterizedQuery - Upsert query for the kind's table
+isolated function upsertMeetingPartQuery(PartKind kind, MeetingPartPayload payload, string? startTime,
+        string? endTime, string actor) returns sql:ParameterizedQuery {
+    [sql:ParameterizedQuery, sql:ParameterizedQuery] [partTableName, nameColumn] = partTable(kind);
+    return sql:queryConcat(`INSERT INTO `, partTableName, ` (meeting_id, `, nameColumn, `, conference_record, drive_file_id,
+            start_time, end_time, state, created_by, updated_by)
+        VALUES (${payload.meetingId}, ${payload.name}, ${payload.conferenceRecord}, ${payload.driveFileId},
+            ${startTime}, ${endTime}, ${payload.state}, ${actor}, ${actor})
+        ON DUPLICATE KEY UPDATE
+            conference_record = IF(VALUES(conference_record) IS NULL, conference_record, VALUES(conference_record)),
+            drive_file_id = VALUES(drive_file_id),
+            start_time = IF(VALUES(start_time) IS NULL, start_time, VALUES(start_time)),
+            end_time = IF(VALUES(end_time) IS NULL, end_time, VALUES(end_time)),
+            state = VALUES(state),
+            updated_by = VALUES(updated_by)`);
+}
+
+# Build the update that gives a part copied in by the V6 migration its real Meet name, found
+# by the meeting and its file. Only touches a row still carrying the placeholder, so it can
+# never rename a part that already has a real name.
+#
+# + kind - Which kind of part
+# + payload - The real name and details for the same file
+# + startTime - Part start, DB form
+# + endTime - Part end, DB form
+# + actor - User performing the write
+# + return - sql:ParameterizedQuery - Conditional update for the kind's table
+isolated function adoptLegacyPartQuery(PartKind kind, MeetingPartPayload payload, string? startTime,
+        string? endTime, string actor) returns sql:ParameterizedQuery {
+    [sql:ParameterizedQuery, sql:ParameterizedQuery] [partTableName, nameColumn] = partTable(kind);
+    return sql:queryConcat(`UPDATE `, partTableName, ` SET `, nameColumn, ` = ${payload.name},
+            conference_record = ${payload.conferenceRecord},
+            start_time = ${startTime},
+            end_time = ${endTime},
+            updated_by = ${actor}
+        WHERE meeting_id = ${payload.meetingId}
+            AND drive_file_id = ${payload.driveFileId}
+            AND `, nameColumn, ` LIKE ${LEGACY_PART_PREFIX + "%"}
+        LIMIT 1`);
+}
+
+# Build query to fetch one part by its Meet name.
+#
+# + kind - Which kind of part
+# + name - Meet's resource name
+# + return - sql:ParameterizedQuery - Select query for the kind's table
+isolated function getMeetingPartByNameQuery(PartKind kind, string name) returns sql:ParameterizedQuery {
+    [sql:ParameterizedQuery, sql:ParameterizedQuery] [partTableName, nameColumn] = partTable(kind);
+    return sql:queryConcat(partSelect(nameColumn), ` FROM `, partTableName, ` WHERE `, nameColumn, ` = ${name}`);
+}
+
+# Build query to fetch one part of a meeting by its id. Scoped to the meeting so a part id
+# from another meeting is simply not found.
+#
+# + kind - Which kind of part
+# + meetingId - Meeting the part must belong to
+# + partId - The part's row id
+# + return - sql:ParameterizedQuery - Select query for the kind's table
+isolated function getMeetingPartQuery(PartKind kind, int meetingId, int partId) returns sql:ParameterizedQuery {
+    [sql:ParameterizedQuery, sql:ParameterizedQuery] [partTableName, nameColumn] = partTable(kind);
+    return sql:queryConcat(partSelect(nameColumn), ` FROM `, partTableName,
+            ` WHERE meeting_id = ${meetingId} AND id = ${partId}`);
+}
+
+# Build query to fetch every part of one kind for a meeting, in the order they happened.
+# Parts with Meet times sort by them. Parts without (older than Meet's 30 days, or copied in
+# by V6 and not yet backfilled) sort by their place among the event's attachments, which is
+# the order they arrived in, and come first: a meeting has either kind, rarely both.
+#
+# + kind - Which kind of part
+# + meetingId - The meeting
+# + return - sql:ParameterizedQuery - Select query for the kind's table
+isolated function getMeetingPartsQuery(PartKind kind, int meetingId) returns sql:ParameterizedQuery {
+    [sql:ParameterizedQuery, sql:ParameterizedQuery] [partTableName, nameColumn] = partTable(kind);
+    return sql:queryConcat(partSelect(nameColumn), ` FROM `, partTableName, ` WHERE meeting_id = ${meetingId}
+        ORDER BY start_time IS NOT NULL, start_time, attachment_order IS NULL, attachment_order, id`);
+}
+
+# Build query counting a meeting's ATTACHED parts of one kind that use the given file -- how a
+# transcript and smart notes sharing one Google Doc are told apart from two separate files.
+#
+# + kind - Which kind of part
+# + meetingId - The meeting
+# + driveFileId - The file
+# + return - sql:ParameterizedQuery - Count query for the kind's table
+isolated function countAttachedPartsWithFileQuery(PartKind kind, int meetingId, string driveFileId)
+        returns sql:ParameterizedQuery {
+    [sql:ParameterizedQuery, sql:ParameterizedQuery] [partTableName, _] = partTable(kind);
+    return sql:queryConcat(`SELECT COUNT(*) AS total FROM `, partTableName, ` WHERE meeting_id = ${meetingId}
+        AND drive_file_id = ${driveFileId} AND state = ${ATTACHED}`);
+}

@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License. 
 import ballerina/sql;
+import ballerina/time;
 
 # Build the database select query with dynamic filter attributes.
 #
@@ -38,3 +39,25 @@ isolated function buildSqlSelectQuery(sql:ParameterizedQuery mainQuery, sql:Para
 
     return updatedQuery;
 }
+
+# Turns an RFC 3339 instant as Meet gives it (e.g. `2026-10-01T10:20:00.123456Z`) into the
+# `yyyy-MM-dd HH:mm:ss` UTC form the DATETIME columns hold, dropping the fraction. Unknown or
+# unparseable times become () -- a part with no time is still a part worth keeping.
+#
+# + rfc3339 - The instant, or () / "" when Meet did not set it
+# + return - The DB form, or ()
+public isolated function toDbDateTime(string? rfc3339) returns string? {
+    if rfc3339 is () || rfc3339 == "" {
+        return;
+    }
+    time:Utc|error utc = time:utcFromString(rfc3339);
+    if utc is error {
+        return;
+    }
+    time:Civil civil = time:utcToCivil(utc);
+    decimal seconds = civil.second ?: 0d;
+    return string `${civil.year}-${twoDigits(civil.month)}-${twoDigits(civil.day)} ` +
+        string `${twoDigits(civil.hour)}:${twoDigits(civil.minute)}:${twoDigits(<int>seconds.floor())}`;
+}
+
+isolated function twoDigits(int n) returns string => n < 10 ? string `0${n}` : n.toString();

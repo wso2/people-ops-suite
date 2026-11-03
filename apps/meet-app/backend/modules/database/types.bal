@@ -297,6 +297,60 @@ public type MeetRecordingRow record {|
 # valid Salesforce Id shape, so it can never be mistaken for one.
 public const string CALL_ACTIVITY_CLAIMED = "IN_PROGRESS";
 
+# [Database] Which kind of call output a part is. Each kind has its own table
+# (`meeting_recording`, `meeting_transcript`, `meeting_smart_note`) of the same shape.
+public enum PartKind {
+    RECORDING_PART = "recording",
+    TRANSCRIPT_PART = "transcript",
+    SMART_NOTE_PART = "smart note"
+}
+
+# Prefix of the placeholder name the V6 migration gave each meeting's existing file, which was
+# stored without its Meet resource name. Never the start of a real Meet name.
+public const string LEGACY_PART_PREFIX = "legacy:";
+
+# [Database] One part of a call: a recording, transcript or smart notes session. A call can
+# produce several of each -- every stop and restart is a new part.
+#
+# + id - Row id, which the API uses to address the part
+# + meetingId - Meeting the part belongs to
+# + name - Meet's resource name (e.g. `conferenceRecords/abc/recordings/xyz`), or a
+# LEGACY_PART_PREFIX placeholder on a part copied in by the V6 migration
+# + conferenceRecord - The call, e.g. `conferenceRecords/abc`; () on copied-in parts
+# + driveFileId - Drive file id
+# + startTime - When the part started, `yyyy-MM-dd HH:mm:ss` UTC; () when unknown
+# + endTime - When the part ended, same format; () when unknown
+# + state - Processing state
+public type MeetingPart record {|
+    int id;
+    int meetingId;
+    string name;
+    string? conferenceRecord;
+    string? driveFileId;
+    string? startTime;
+    string? endTime;
+    RecordingState state;
+|};
+
+# [Database] Insert/update payload for one part, keyed by its Meet resource name.
+#
+# + meetingId - Meeting the part belongs to
+# + name - Meet's resource name
+# + conferenceRecord - The call, if known
+# + driveFileId - Drive file id
+# + startTime - When the part started, RFC 3339 as Meet gives it; () or "" when unknown
+# + endTime - When the part ended, RFC 3339; () or "" when unknown
+# + state - Processing state
+public type MeetingPartPayload record {|
+    int meetingId;
+    string name;
+    string? conferenceRecord = ();
+    string driveFileId;
+    string? startTime = ();
+    string? endTime = ();
+    RecordingState state;
+|};
+
 # [Database] An Inbound meeting whose lead link is not stored yet: a candidate for the
 # lead backfill.
 #
