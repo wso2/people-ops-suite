@@ -36,33 +36,35 @@ public type DriveServiceRetryConfig record {|
     decimal maxWaitInterval = RETRY_MAX_INTERVAL;
 |};
 
-# Response from resolving a recording to its space and Drive file.
+# Response from resolving a recording, transcript or smart notes to its space and Drive file.
+#
+# A call can produce several of each -- every stop and restart is a new part -- so drive-service
+# also says which call the part belongs to and when the part itself ran. Those three are
+# optional: an older drive-service does not send them, and these closed records would refuse
+# any field they did not declare, so they must be declared before drive-service sends them.
 #
 # + spaceName - Resource name of the Meet space (e.g. `spaces/abc123`)
-# + fileId - Drive file ID of the recording
-public type RecordingInfoResponse record {|
+# + fileId - Drive file ID (an MP4 for a recording, a Google Doc otherwise)
+# + conferenceRecordName - The call, e.g. `conferenceRecords/abc123`
+# + startTime - When this part started, RFC 3339; empty when Meet has not set it
+# + endTime - When this part ended, RFC 3339; empty when Meet has not set it
+public type ArtifactInfoResponse record {|
     string spaceName;
     string fileId;
+    string conferenceRecordName?;
+    string startTime?;
+    string endTime?;
 |};
 
+# Response from resolving a recording to its space and Drive file.
+public type RecordingInfoResponse ArtifactInfoResponse;
+
 # Response from resolving a transcript to its space and Drive (Google Doc) file.
-#
-# + spaceName - Resource name of the Meet space (e.g. `spaces/abc123`)
-# + fileId - Drive file ID (Google Doc) of the transcript
-public type TranscriptInfoResponse record {|
-    string spaceName;
-    string fileId;
-|};
+public type TranscriptInfoResponse ArtifactInfoResponse;
 
 # Response from resolving smart notes to its space and Drive (Google Doc) file, separate
 # from the transcript's.
-#
-# + spaceName - Resource name of the Meet space (e.g. `spaces/abc123`)
-# + fileId - Drive file ID (Google Doc) of the smart notes
-public type SmartNotesInfoResponse record {|
-    string spaceName;
-    string fileId;
-|};
+public type SmartNotesInfoResponse ArtifactInfoResponse;
 
 # Outcome of granting access to one email.
 #
