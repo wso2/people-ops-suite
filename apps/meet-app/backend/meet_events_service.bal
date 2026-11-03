@@ -474,17 +474,28 @@ isolated function processSmartNotesReady(string smartNotesName) returns error? {
     // Pub/Sub redelivers whenever it does not get a 200 in time, and without this the
     // handler starts from the top every time: re-attaching the file, renaming it again,
     // and re-running the participant grant.
-    if tracked.smartNotesState == database:ATTACHED && tracked.smartNotesFileId == fileId {
-        log:printInfo(string `Smart notes for space ${spaceName} is already attached; skipping.`);
+    // Decided per smart-notes session, since a call can hold several -- see processRecordingReady.
+    if check isPartAttached(database:SMART_NOTE_PART, smartNotesName, fileId)
+        || (tracked.smartNotesState == database:ATTACHED && tracked.smartNotesFileId == fileId) {
+        log:printInfo(string `Smart notes ${smartNotesName} are already attached; skipping.`);
+        check database:upsertMeetingPart(database:SMART_NOTE_PART,
+                partPayload(tracked.meetingId, smartNotesName, info, database:ATTACHED), SYSTEM_ACTOR);
 
         logCallActivityIfComplete(spaceName);
         return;
     }
 
+    // The meeting's own columns keep holding the first smart notes -- see processRecordingReady.
+    boolean isFirstPart = tracked.smartNotesState != database:ATTACHED;
+
     error? attachResult = calendar:attachRecording(tracked.organizer, tracked.googleEventId, fileId,
             "Meeting Notes", "application/vnd.google-apps.document");
     if attachResult is error {
-        check database:updateMeetSmartNotes(spaceName, database:FAILED, fileId, SYSTEM_ACTOR);
+        check database:upsertMeetingPart(database:SMART_NOTE_PART,
+                partPayload(tracked.meetingId, smartNotesName, info, database:FAILED), SYSTEM_ACTOR);
+        if isFirstPart {
+            check database:updateMeetSmartNotes(spaceName, database:FAILED, fileId, SYSTEM_ACTOR);
+        }
         return attachResult;
     }
 
@@ -508,12 +519,17 @@ isolated function processSmartNotesReady(string smartNotesName) returns error? {
                 "(best-effort, not retrying).", shareResult);
     }
 
-    check database:updateMeetSmartNotes(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR);
+    check database:upsertMeetingPart(database:SMART_NOTE_PART,
+            partPayload(tracked.meetingId, smartNotesName, info, database:ATTACHED), SYSTEM_ACTOR);
+    if isFirstPart {
+        check database:updateMeetSmartNotes(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR);
+    }
 
     // Started, not awaited, and only after the ATTACHED write -- see processRecordingReady.
-    // Skipped when the transcript already resolved to this same document -- see the matching
+    // Skipped when a transcript already resolved to this same document -- see the matching
     // check in processTranscriptReady.
-    if tracked.transcriptState == database:ATTACHED && tracked.transcriptFileId == fileId {
+    if (tracked.transcriptState == database:ATTACHED && tracked.transcriptFileId == fileId)
+        || isSharedDocument(database:TRANSCRIPT_PART, tracked.meetingId, fileId) {
         log:printInfo(string `Smart notes for space ${spaceName} are the transcript document; ` +
                 "its department share is not repeated.");
     } else {
