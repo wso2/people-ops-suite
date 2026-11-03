@@ -13,7 +13,53 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import ballerina/http;
 import ballerina/test;
+
+// A stand-in for drive-service's space listing that records what meet-app asked for.
+isolated string lastArtifactsQuery = "";
+
+listener http:Listener mockDriveService = new (19098);
+
+service / on mockDriveService {
+    resource function get spaces/[string spaceId]/artifacts(string 'from, string to) returns json {
+        lock {
+            lastArtifactsQuery = string `${spaceId} ${'from} ${to}`;
+        }
+        return {
+            calls: [
+                {
+                    conferenceRecordName: "conferenceRecords/c1",
+                    startTime: "2026-10-01T10:00:00Z",
+                    endTime: "2026-10-01T11:00:00Z",
+                    recordings: [
+                        {name: "conferenceRecords/c1/recordings/r1", fileId: "f1", startTime: "", endTime: ""},
+                        {name: "conferenceRecords/c1/recordings/r2", fileId: "f2", startTime: "", endTime: ""}
+                    ],
+                    transcripts: [],
+                    smartNotes: []
+                }
+            ]
+        };
+    }
+}
+
+@test:Config
+function testListSpaceArtifactsAsksForTheSpaceAndWindow() returns error? {
+    CallArtifacts[] calls = check listSpaceArtifacts("spaces/abc", "2026-10-01T09:30:00Z", "2026-10-01T11:00:00Z");
+    lock {
+        test:assertEquals(lastArtifactsQuery, "abc 2026-10-01T09:30:00Z 2026-10-01T11:00:00Z");
+    }
+    test:assertEquals(calls.length(), 1);
+    test:assertEquals(calls[0].recordings.length(), 2);
+    test:assertEquals(calls[0].recordings[1].fileId, "f2");
+}
+
+@test:Config
+function testListSpaceArtifactsRefusesANonSpaceName() {
+    CallArtifacts[]|error calls = listSpaceArtifacts("abc-defg-hij", "2026-10-01T09:30:00Z", "2026-10-01T11:00:00Z");
+    test:assertTrue(calls is error);
+}
 
 // meet-app must read drive-service's resolve response both before and after drive-service
 // starts sending the part's call and times, so either can be deployed first.

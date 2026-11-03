@@ -66,6 +66,43 @@ public type TranscriptInfoResponse ArtifactInfoResponse;
 # from the transcript's.
 public type SmartNotesInfoResponse ArtifactInfoResponse;
 
+# One finished part of a call, from drive-service's space listing.
+#
+# + name - Meet's resource name, e.g. `conferenceRecords/abc/recordings/xyz`
+# + fileId - Drive file ID
+# + startTime - When the part started, RFC 3339; empty when unknown
+# + endTime - When the part ended, RFC 3339; empty when unknown
+public type Artifact record {|
+    string name;
+    string fileId;
+    string startTime;
+    string endTime;
+|};
+
+# One call on a Meet space and every finished part it produced.
+#
+# + conferenceRecordName - The call, e.g. `conferenceRecords/abc`
+# + startTime - When the call started, RFC 3339
+# + endTime - When the call ended, RFC 3339; empty while it runs
+# + recordings - Its recordings
+# + transcripts - Its transcripts
+# + smartNotes - Its smart notes; may share a Google Doc with a transcript
+public type CallArtifacts record {|
+    string conferenceRecordName;
+    string startTime;
+    string endTime;
+    Artifact[] recordings;
+    Artifact[] transcripts;
+    Artifact[] smartNotes;
+|};
+
+# drive-service's answer for a space's calls.
+#
+# + calls - The calls in the window
+public type SpaceArtifactsResponse record {|
+    CallArtifacts[] calls;
+|};
+
 # Outcome of granting access to one email.
 #
 # + email - The email a grant was attempted for

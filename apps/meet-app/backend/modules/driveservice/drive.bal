@@ -64,6 +64,32 @@ public isolated function resolveSmartNotes(string smartNotesName) returns SmartN
     return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
 }
 
+# Lists every call on a Meet space that started inside the window, with each finished
+# recording, transcript and smart notes, via drive-service. Meet keeps a call for 30 days, so
+# an older window comes back empty.
+#
+# + spaceName - Resource name of the Meet space (e.g. `spaces/abc123`)
+# + 'from - Earliest call start to include, RFC 3339
+# + to - Latest call start to include, RFC 3339
+# + return - The calls, or error
+public isolated function listSpaceArtifacts(string spaceName, string 'from, string to) returns CallArtifacts[]|error {
+    if !spaceName.startsWith("spaces/") {
+        return error(string `Not a Meet space name: ${spaceName}`);
+    }
+    string spaceId = check url:encode(spaceName.substring("spaces/".length()), "UTF-8");
+    string encodedFrom = check url:encode('from, "UTF-8");
+    string encodedTo = check url:encode(to, "UTF-8");
+    http:Response response = check driveServiceClient->get(
+            string `/spaces/${spaceId}/artifacts?from=${encodedFrom}&to=${encodedTo}`);
+    if response.statusCode == 200 {
+        json responseJson = check response.getJsonPayload();
+        SpaceArtifactsResponse artifacts = check responseJson.cloneWithType();
+        return artifacts.calls;
+    }
+    json? errorResponseBody = check response.getJsonPayload();
+    return error(string `Status: ${response.statusCode}, Response: ${errorResponseBody.toJsonString()}`);
+}
+
 # Grants view access to a recording for each person in the list, via drive-service.
 #
 # + fileId - Drive file ID of the recording
