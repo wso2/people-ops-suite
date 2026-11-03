@@ -225,6 +225,48 @@ public type LeadBackfillResponse record {|
     int? nextAfterMeetingId;
 |};
 
+# What the parts backfill did, or would do, for one meeting.
+public enum PartsBackfillStatus {
+    # Both sources were read and every part they listed was looked at
+    CHECKED,
+    # A source could not be read (see unreadSources); a later run retries it
+    INCOMPLETE
+}
+
+# One meeting in a parts backfill response. Parts are named by Meet's resource name.
+public type PartsBackfillItem record {|
+    # Meeting ID
+    int meetingId;
+    # Title of the meeting
+    string title;
+    # Scheduled start of the meeting
+    string startTime;
+    # Calls Meet found on the meeting's space inside its window; 0 for a meeting older than
+    # Meet's 30 days, whose parts come from the calendar event alone
+    int callsFound;
+    # Files attached to the calendar event as a recording, transcript or notes
+    int eventAttachments;
+    # Parts the meeting had no record of: stored, or in a dry run, would be stored. Named by
+    # Meet's resource name, or `legacy:file:<Drive file id>` when only the event knows them
+    string[] missingParts;
+    # Parts that could not be checked or stored; a later run retries them
+    string[] failedParts;
+    # Sources that could not be read: "meet" and/or "calendar"
+    string[] unreadSources;
+    # What happened
+    PartsBackfillStatus status;
+|};
+
+# One batch of the parts backfill.
+public type PartsBackfillResponse record {|
+    # Whether this was a dry run (nothing written)
+    boolean dryRun;
+    # The meetings looked at in this batch
+    PartsBackfillItem[] meetings;
+    # Pass as afterMeetingId to get the next batch; () when this was the last one
+    int? nextAfterMeetingId;
+|};
+
 # Builds one lead backfill result row.
 #
 # + candidate - The Inbound meeting looked at

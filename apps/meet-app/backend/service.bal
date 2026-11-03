@@ -992,6 +992,66 @@ service http:InterceptableService / on new http:Listener(9090) {
         };
     }
 
+    # One-off backfill of the recordings, transcripts and smart notes each recent meeting is
+    # missing, for any member of the Sales team or Sales admins.
+    #
+    # Until parts were kept separately, a second recording, transcript or smart notes in the
+    # same call overwrote the first in the database, so the app kept one of each. The files
+    # themselves were attached to the event and shared when they arrived; only their record
+    # was lost. This stores each part a meeting has no record of -- nothing is attached or shared
+    # again -- from two sources: Meet, through drive-service, for calls inside its 30 days (real
+    # names and exact times), and the calendar event's attachments for meetings of any age (the
+    # file only, ordered by when it was attached). echo-backend is told when a meeting gains
+    # transcripts.
+    #
+    # Works in small batches so one call stays well under the Choreo gateway's 60-second cap:
+    # repeat with `afterMeetingId = nextAfterMeetingId` until it is absent. A DRY RUN by
+    # default; pass `dryRun=false` to write.
+    #
+    # + dryRun - When true (the default), only report what is missing
+    # + days - How far back to look, by start time (1-365)
+    # + 'limit - Most meetings per batch (1-25)
+    # + afterMeetingId - Cursor from the previous batch
+    # + return - PartsBackfillResponse|Forbidden|BadRequest|InternalServerError
+    resource function post meetings/parts\-backfill(http:RequestContext ctx, boolean dryRun = true, int days = 30,
+            int 'limit = 5, int afterMeetingId = 0)
+        returns PartsBackfillResponse|http:Forbidden|http:BadRequest|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            log:printError("User information header not found!", userInfo);
+            return <http:InternalServerError>{body: {message: "User information header not found!"}};
+        }
+        // Open to the whole Sales team, not only admins: it only stores records of files the
+        // pipeline already attached and shared, never attaches or shares anything itself, and
+        // skips what is already stored, so running it again is harmless.
+        if !authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups)
+            && !authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups) {
+            return <http:Forbidden>{body: {message: "Only the Sales team can run the parts backfill."}};
+        }
+        if days < 1 || days > 365 || 'limit < 1 || 'limit > 25 || afterMeetingId < 0 {
+            return <http:BadRequest>{body: {message: "days must be 1-365, limit 1-25 and afterMeetingId >= 0."}};
+        }
+
+        database:PartsBackfillCandidate[]|error candidates =
+            database:fetchPartsBackfillCandidates(days, afterMeetingId, 'limit);
+        if candidates is error {
+            string customError = "Error occurred while finding meetings to backfill!";
+            log:printError(customError, candidates);
+            return <http:InternalServerError>{body: {message: customError}};
+        }
+
+        PartsBackfillItem[] items = from database:PartsBackfillCandidate candidate in candidates
+            select backfillMeetingParts(candidate, dryRun);
+
+        log:printInfo(string `Parts backfill by ${userInfo.email}: ${items.length()} meeting(s), dryRun=${dryRun}.`);
+        return {
+            dryRun,
+            meetings: items,
+            nextAfterMeetingId: candidates.length() == 'limit ? candidates[candidates.length() - 1].meetingId : ()
+        };
+    }
+
     # Delete meeting.
     #
     # + meetingId - meetingId to delete  

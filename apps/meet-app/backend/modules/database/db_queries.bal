@@ -862,6 +862,23 @@ isolated function getMeetingPartsQuery(PartKind kind, int meetingId) returns sql
         ORDER BY start_time IS NOT NULL, start_time, attachment_order IS NULL, attachment_order, id`);
 }
 
+# Build the update recording where a meeting's file sits among the calendar event's
+# attachments.
+#
+# + kind - Which kind of part
+# + meetingId - The meeting
+# + driveFileId - The file
+# + attachmentOrder - Its position among the event's attachments, from 0
+# + actor - User performing the write
+# + return - sql:ParameterizedQuery - Update query for the kind's table
+isolated function setPartAttachmentOrderQuery(PartKind kind, int meetingId, string driveFileId, int attachmentOrder,
+        string actor) returns sql:ParameterizedQuery {
+    [sql:ParameterizedQuery, sql:ParameterizedQuery] [partTableName, _] = partTable(kind);
+    return sql:queryConcat(`UPDATE `, partTableName, ` SET attachment_order = ${attachmentOrder},
+            updated_by = ${actor}
+        WHERE meeting_id = ${meetingId} AND drive_file_id = ${driveFileId}`);
+}
+
 # Build query counting a meeting's ATTACHED parts of one kind that use the given file -- how a
 # transcript and smart notes sharing one Google Doc are told apart from two separate files.
 #
@@ -875,3 +892,31 @@ isolated function countAttachedPartsWithFileQuery(PartKind kind, int meetingId, 
     return sql:queryConcat(`SELECT COUNT(*) AS total FROM `, partTableName, ` WHERE meeting_id = ${meetingId}
         AND drive_file_id = ${driveFileId} AND state = ${ATTACHED}`);
 }
+
+# Build query to find recent add-on meetings for the parts backfill, oldest id first, after a
+# cursor. Only meetings that have already started, and only ones still active.
+#
+# + days - How far back to look, by start time
+# + afterMeetingId - Only meetings with a larger id (the cursor)
+# + 'limit - Most rows to return
+# + return - sql:ParameterizedQuery - Select query for the meeting table
+isolated function getPartsBackfillCandidatesQuery(int days, int afterMeetingId, int 'limit)
+        returns sql:ParameterizedQuery =>
+`
+    SELECT
+        meeting_id AS meetingId,
+        space_name AS spaceName,
+        title,
+        google_event_id AS googleEventId,
+        host AS organizer,
+        DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS startTime,
+        DATE_FORMAT(end_time, '%Y-%m-%d %H:%i:%s') AS endTime
+    FROM meeting
+    WHERE space_name IS NOT NULL
+        AND meeting_status = ${ACTIVE}
+        AND start_time >= UTC_TIMESTAMP() - INTERVAL ${days} DAY
+        AND start_time <= UTC_TIMESTAMP()
+        AND meeting_id > ${afterMeetingId}
+    ORDER BY meeting_id
+    LIMIT ${'limit}
+`;

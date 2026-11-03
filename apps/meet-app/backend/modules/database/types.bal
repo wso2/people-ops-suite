@@ -351,6 +351,25 @@ public type MeetingPartPayload record {|
     RecordingState state;
 |};
 
+# [Database] An add-on meeting recent enough for the parts backfill.
+#
+# + meetingId - Auto-increment meeting ID
+# + spaceName - Resource name of the Meet space
+# + title - The event's title
+# + googleEventId - Calendar event ID, whose attachments list every part the pipeline attached
+# + organizer - Email of the event organizer, whose copy of the event the parts were attached to
+# + startTime - Scheduled start, `yyyy-MM-dd HH:mm:ss` UTC
+# + endTime - Scheduled end, same format
+public type PartsBackfillCandidate record {|
+    int meetingId;
+    string spaceName;
+    string title;
+    string googleEventId;
+    string organizer;
+    string startTime;
+    string endTime;
+|};
+
 # [Database] An Inbound meeting whose lead link is not stored yet: a candidate for the
 # lead backfill.
 #

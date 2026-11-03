@@ -378,6 +378,35 @@ public isolated function hasAttachedPartWithFile(PartKind kind, int meetingId, s
     return row.total > 0;
 }
 
+# Records where a meeting's file sits among the calendar event's attachments, which orders
+# parts that have no Meet times.
+#
+# + kind - Which kind of part
+# + meetingId - The meeting
+# + driveFileId - The file
+# + attachmentOrder - Its position among the event's attachments, from 0
+# + actor - User performing the write
+# + return - Error if the write fails
+public isolated function setPartAttachmentOrder(PartKind kind, int meetingId, string driveFileId, int attachmentOrder,
+        string actor) returns error? {
+    _ = check databaseClient->execute(setPartAttachmentOrderQuery(kind, meetingId, driveFileId, attachmentOrder,
+            actor));
+}
+
+# Finds recent add-on meetings for the parts backfill.
+#
+# + days - How far back to look, by start time
+# + afterMeetingId - Only meetings with a larger id (the cursor)
+# + 'limit - Most rows to return
+# + return - Candidates, oldest id first, or Error
+public isolated function fetchPartsBackfillCandidates(int days, int afterMeetingId, int 'limit)
+        returns PartsBackfillCandidate[]|error {
+    stream<PartsBackfillCandidate, error?> resultStream = databaseClient->query(
+            getPartsBackfillCandidatesQuery(days, afterMeetingId, 'limit));
+    return from PartsBackfillCandidate candidate in resultStream
+        select candidate;
+}
+
 # Stores a meeting's lead link, if it has none yet.
 #
 # + meetingId - Meeting to update
