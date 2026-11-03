@@ -57,6 +57,26 @@ public type Meeting record {|
     string? leadId;
     # The lead's company, shown where an account name would be.
     string? leadCompany;
+    # Every recording of the call, in the order they happened -- each stop and restart is a
+    # new part. Only on the single-meeting route; the list leaves it out.
+    MeetingPartView[] recordings?;
+    # Every transcript of the call, in order. Only on the single-meeting route.
+    MeetingPartView[] transcripts?;
+    # Every smart notes of the call, in order. Only on the single-meeting route.
+    MeetingPartView[] smartNotes?;
+|};
+
+# One recording, transcript or smart notes of a call, as the meeting page lists it. Pass its
+# id to the playback, transcript or smart-notes route to open that part.
+public type MeetingPartView record {|
+    # Part id
+    int id;
+    # When the part started, RFC 3339 UTC; () for a part stored before times were kept
+    string? startTime;
+    # When the part ended, RFC 3339 UTC; () when unknown
+    string? endTime;
+    # PENDING, ATTACHED or FAILED; only ATTACHED parts can be opened
+    database:RecordingState state;
 |};
 
 # Represents the response structure for retrieving user information.
