@@ -247,7 +247,8 @@ public type PartsBackfillItem record {|
     # Files attached to the calendar event as a recording, transcript or notes
     int eventAttachments;
     # Parts the meeting had no record of: stored, or in a dry run, would be stored. Named by
-    # Meet's resource name, or `legacy:file:<Drive file id>` when only the event knows them
+    # Meet's resource name, or `legacy:file:<meeting id>:<Drive file id>` when only the event
+    # knows them
     string[] missingParts;
     # Parts Meet lists that were left alone: not attached to the calendar event, or still being
     # processed by their own notification. Their notification attaches and shares them.

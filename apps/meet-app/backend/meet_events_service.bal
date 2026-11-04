@@ -774,8 +774,9 @@ isolated function backfillFromEvent(PartsBackfillItem item, gcalendar:Attachment
         item.eventAttachments += 1;
 
         // Prefixed like the V6 placeholders, so Meet's real name, if it ever arrives for this
-        // file, replaces it instead of adding the file a second time.
-        string name = string `${database:LEGACY_PART_PREFIX}file:${fileId}`;
+        // file, replaces it instead of adding the file a second time. Carries the meeting id
+        // too, so the same file on two meetings' events can never share -- and overwrite -- a row.
+        string name = string `${database:LEGACY_PART_PREFIX}file:${item.meetingId}:${fileId}`;
         boolean|error known = database:hasAttachedPartWithFile(kind, item.meetingId, fileId);
         if known is error {
             log:printError(string `Parts backfill: could not check ${name}.`, known);
