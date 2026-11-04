@@ -999,10 +999,12 @@ service http:InterceptableService / on new http:Listener(9090) {
     # same call overwrote the first in the database, so the app kept one of each. The files
     # themselves were attached to the event and shared when they arrived; only their record
     # was lost. This stores each part a meeting has no record of -- nothing is attached or shared
-    # again -- from two sources: Meet, through drive-service, for calls inside its 30 days (real
-    # names and exact times), and the calendar event's attachments for meetings of any age (the
-    # file only, ordered by when it was attached). echo-backend is told when a meeting gains
-    # transcripts.
+    # -- for the meetings that started in the last `days` days, at most one year back, from two
+    # sources: Meet, through drive-service, for calls inside its 30 days (real names and exact
+    # times), and the calendar event's attachments, which cover the rest of the window (the file
+    # only, ordered by when it was attached). A part is stored as attached only when the event has
+    # its file; the others are reported in unattachedParts and left to their notification.
+    # echo-backend is told when a meeting gains transcripts.
     #
     # Works in small batches so one call stays well under the Choreo gateway's 60-second cap:
     # repeat with `afterMeetingId = nextAfterMeetingId` until it is absent. A DRY RUN by

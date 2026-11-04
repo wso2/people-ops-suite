@@ -568,15 +568,18 @@ const string SMART_NOTES_ATTACHMENT_TITLE = "Meeting Notes";
 
 # Finds the parts one meeting has no record of and, unless this is a dry run, stores them.
 #
-# Stores only. The live pipeline attached every part to the calendar event, renamed and shared
-# it when its notification arrived; what was lost is the database record, because each part
-# overwrote the meeting's single file column. So nothing is attached, renamed or shared again.
+# Stores only. The live pipeline attached a part to the calendar event, renamed and shared it
+# when its notification arrived; what was lost is the database record, because each part
+# overwrote the meeting's single file column. So nothing is attached, renamed or shared here --
+# and a part is stored as ATTACHED only when the event really has its file. A part that is not
+# on the event, or whose own processing has not finished, is left to its notification, which
+# attaches and shares it; it is reported in unattachedParts.
 #
-# Two sources, in this order:
+# The event is read first, then two sources:
 # 1. Meet, for a call still inside its 30 days: every part with its real name and exact times.
-# 2. The calendar event, for a meeting of any age: every file the pipeline attached. A part
-#    only the event knows gets a placeholder name and no times; its place among the event's
-#    attachments -- the order the parts arrived in -- orders it instead.
+# 2. The calendar event itself, for older meetings too: every file the pipeline attached. A
+#    part only the event knows gets a placeholder name and no times; its place among the
+#    event's attachments -- the order the parts arrived in -- orders it instead.
 #
 # + candidate - The meeting
 # + dryRun - When true, only report
@@ -590,15 +593,35 @@ isolated function backfillMeetingParts(database:PartsBackfillCandidate candidate
         callsFound: 0,
         eventAttachments: 0,
         missingParts: [],
+        unattachedParts: [],
         failedParts: [],
         unreadSources: [],
         status: CHECKED
     };
-    // Files already reported missing, so a file both sources list is reported once.
-    string[] reportedFiles = [];
 
-    int transcriptsAdded = backfillFromMeet(item, candidate, dryRun, reportedFiles);
-    transcriptsAdded += backfillFromEvent(item, candidate, dryRun, reportedFiles);
+    // Without the event nothing can be confirmed as attached, so neither source is stored; the
+    // meeting is reported INCOMPLETE and a later run retries it.
+    gcalendar:Attachment[]|error? attachments =
+        calendar:getCalendarEventAttachments(candidate.googleEventId, candidate.organizer);
+    if attachments is error {
+        log:printError(string `Parts backfill: could not read the event of meeting ${candidate.meetingId}.`,
+                attachments);
+        item.unreadSources.push("calendar");
+        item.status = INCOMPLETE;
+        return item;
+    }
+    gcalendar:Attachment[] eventAttachments = attachments ?: [];
+    string[] eventFiles = from gcalendar:Attachment attachment in eventAttachments
+        let string? fileId = attachment?.fileId
+        where fileId is string
+        select fileId;
+
+    // Parts already reported, as kind and file, so a part both sources list is reported once,
+    // while a transcript and smart notes sharing one Google Doc are still two parts.
+    string[] reported = [];
+
+    int transcriptsAdded = backfillFromMeet(item, candidate, dryRun, eventFiles, reported);
+    transcriptsAdded += backfillFromEvent(item, eventAttachments, dryRun, reported);
     if item.unreadSources.length() > 0 {
         item.status = INCOMPLETE;
     }
@@ -616,10 +639,11 @@ isolated function backfillMeetingParts(database:PartsBackfillCandidate candidate
 # + item - The meeting's result, updated in place
 # + candidate - The meeting
 # + dryRun - When true, only report
-# + reportedFiles - Files reported missing so far, updated in place
+# + eventFiles - Drive file ids attached to the calendar event
+# + reported - Parts reported so far, updated in place
 # + return - How many missing transcripts were stored
 isolated function backfillFromMeet(PartsBackfillItem item, database:PartsBackfillCandidate candidate, boolean dryRun,
-        string[] reportedFiles) returns int {
+        string[] eventFiles, string[] reported) returns int {
     time:Utc|error scheduledStart = time:utcFromString(toRfc3339(candidate.startTime));
     if scheduledStart is error {
         log:printError(string `Parts backfill: meeting ${candidate.meetingId} has an unreadable start time.`,
@@ -643,38 +667,55 @@ isolated function backfillFromMeet(PartsBackfillItem item, database:PartsBackfil
     item.callsFound = calls.length();
     int transcriptsAdded = 0;
     foreach driveservice:CallArtifacts call in calls {
-        _ = backfillParts(item, database:RECORDING_PART, call, call.recordings, dryRun, reportedFiles);
+        _ = backfillParts(item, database:RECORDING_PART, call, call.recordings, dryRun, eventFiles, reported);
         transcriptsAdded += backfillParts(item, database:TRANSCRIPT_PART, call, call.transcripts, dryRun,
-                reportedFiles);
-        _ = backfillParts(item, database:SMART_NOTE_PART, call, call.smartNotes, dryRun, reportedFiles);
+                eventFiles, reported);
+        _ = backfillParts(item, database:SMART_NOTE_PART, call, call.smartNotes, dryRun, eventFiles, reported);
     }
     return transcriptsAdded;
 }
 
-# Stores each part Meet listed that the meeting has no record of. A part the meeting already
-# has is rewritten with what Meet reports, which only gives a part with a placeholder name its
-# real name, call and times.
+# Stores each part Meet listed that the meeting has no record of, when the calendar event has
+# its file. A part the meeting already has attached is rewritten with what Meet reports, which
+# only gives a part with a placeholder name its real name, call and times.
+#
+# Left alone, and reported in unattachedParts: a part not on the event (never attached, e.g.
+# it arrived before its meeting was registered) and a part whose own row is not ATTACHED (its
+# notification is still being retried). Storing either as ATTACHED would make the notification
+# skip the attach and the sharing it still has to do.
 #
 # + item - The meeting's result, updated in place
 # + kind - Which kind of part
 # + call - The call the parts belong to
 # + artifacts - The parts Meet listed
 # + dryRun - When true, only report
-# + reportedFiles - Files reported missing so far, updated in place
+# + eventFiles - Drive file ids attached to the calendar event
+# + reported - Parts reported so far, updated in place
 # + return - How many missing parts were stored
 isolated function backfillParts(PartsBackfillItem item, database:PartKind kind, driveservice:CallArtifacts call,
-        driveservice:Artifact[] artifacts, boolean dryRun, string[] reportedFiles) returns int {
+        driveservice:Artifact[] artifacts, boolean dryRun, string[] eventFiles, string[] reported) returns int {
     int added = 0;
     foreach driveservice:Artifact artifact in artifacts {
-        boolean|error known = isKnownPart(kind, item.meetingId, artifact);
-        if known is error {
-            log:printError(string `Parts backfill: could not check ${artifact.name}.`, known);
+        database:MeetingPart|error? own = database:getMeetingPartByName(kind, artifact.name);
+        boolean|error attachedByFile = database:hasAttachedPartWithFile(kind, item.meetingId, artifact.fileId);
+        if own is error || attachedByFile is error {
+            log:printError(string `Parts backfill: could not check ${artifact.name}.`,
+                    own is error ? own : <error>attachedByFile);
             item.failedParts.push(artifact.name);
             continue;
         }
+        boolean known = (own is database:MeetingPart && own.state == database:ATTACHED
+                && own.driveFileId == artifact.fileId) || attachedByFile;
+        if !known && (own is database:MeetingPart || eventFiles.indexOf(artifact.fileId) == ()) {
+            item.unattachedParts.push(artifact.name);
+            reported.push(partKey(kind, artifact.fileId));
+            continue;
+        }
         if !known {
-            item.missingParts.push(artifact.name);
-            reportedFiles.push(artifact.fileId);
+            reported.push(partKey(kind, artifact.fileId));
+            if dryRun {
+                item.missingParts.push(artifact.name);
+            }
         }
         if dryRun {
             continue;
@@ -694,35 +735,35 @@ isolated function backfillParts(PartsBackfillItem item, database:PartKind kind, 
             continue;
         }
         if !known {
+            item.missingParts.push(artifact.name);
             added += 1;
         }
     }
     return added;
 }
 
+# How a part is told apart when reporting: its kind and file, since a transcript and smart
+# notes can be one Google Doc.
+#
+# + kind - Which kind of part
+# + fileId - Its Drive file
+# + return - The key
+isolated function partKey(database:PartKind kind, string fileId) returns string => string `${kind}|${fileId}`;
+
 # Source 2: every file the pipeline attached to the calendar event. Stores the ones the
 # meeting has no record of, and records each file's place among the attachments so parts
 # without Meet times still come out in the order they arrived.
 #
 # + item - The meeting's result, updated in place
-# + candidate - The meeting
+# + attachments - The calendar event's attachments
 # + dryRun - When true, only report
-# + reportedFiles - Files reported missing so far, updated in place
+# + reported - Parts reported so far, updated in place
 # + return - How many missing transcripts were stored
-isolated function backfillFromEvent(PartsBackfillItem item, database:PartsBackfillCandidate candidate, boolean dryRun,
-        string[] reportedFiles) returns int {
-    gcalendar:Attachment[]|error? attachments =
-        calendar:getCalendarEventAttachments(candidate.googleEventId, candidate.organizer);
-    if attachments is error {
-        log:printError(string `Parts backfill: could not read the event of meeting ${candidate.meetingId}.`,
-                attachments);
-        item.unreadSources.push("calendar");
-        return 0;
-    }
-
+isolated function backfillFromEvent(PartsBackfillItem item, gcalendar:Attachment[] attachments, boolean dryRun,
+        string[] reported) returns int {
     int transcriptsAdded = 0;
     int position = 0;
-    foreach gcalendar:Attachment attachment in attachments ?: [] {
+    foreach gcalendar:Attachment attachment in attachments {
         string? fileId = attachment?.fileId;
         database:PartKind? kind = attachmentKind(attachment);
         if fileId is () || kind is () {
@@ -741,9 +782,16 @@ isolated function backfillFromEvent(PartsBackfillItem item, database:PartsBackfi
             item.failedParts.push(name);
             continue;
         }
-        if !known && reportedFiles.indexOf(fileId) == () {
-            item.missingParts.push(name);
-            reportedFiles.push(fileId);
+        // Already reported by the Meet source -- stored or left for its notification -- so not
+        // stored a second time under a placeholder.
+        if !known && reported.indexOf(partKey(kind, fileId)) != () {
+            continue;
+        }
+        if !known {
+            reported.push(partKey(kind, fileId));
+            if dryRun {
+                item.missingParts.push(name);
+            }
         }
         if dryRun {
             continue;
@@ -756,6 +804,7 @@ isolated function backfillFromEvent(PartsBackfillItem item, database:PartsBackfi
                 item.failedParts.push(name);
                 continue;
             }
+            item.missingParts.push(name);
             if kind == database:TRANSCRIPT_PART {
                 transcriptsAdded += 1;
             }
@@ -792,18 +841,6 @@ isolated function attachmentKind(gcalendar:Attachment attachment) returns databa
     }
     return;
 }
-
-# Whether the meeting already has this part attached, under its real name or -- for a file
-# the V6 migration copied in -- under a placeholder with the same file.
-#
-# + kind - Which kind of part
-# + meetingId - The meeting
-# + artifact - The part Meet listed
-# + return - True if already attached, or Error
-isolated function isKnownPart(database:PartKind kind, int meetingId, driveservice:Artifact artifact)
-        returns boolean|error =>
-    check isPartAttached(kind, artifact.name, artifact.fileId)
-        || check database:hasAttachedPartWithFile(kind, meetingId, artifact.fileId);
 
 # Whether this exact part is already recorded as ATTACHED with this file -- the redelivery
 # check, per part rather than per meeting.

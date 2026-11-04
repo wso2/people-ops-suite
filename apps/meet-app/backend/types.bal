@@ -249,6 +249,9 @@ public type PartsBackfillItem record {|
     # Parts the meeting had no record of: stored, or in a dry run, would be stored. Named by
     # Meet's resource name, or `legacy:file:<Drive file id>` when only the event knows them
     string[] missingParts;
+    # Parts Meet lists that were left alone: not attached to the calendar event, or still being
+    # processed by their own notification. Their notification attaches and shares them.
+    string[] unattachedParts;
     # Parts that could not be checked or stored; a later run retries them
     string[] failedParts;
     # Sources that could not be read: "meet" and/or "calendar"
