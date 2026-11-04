@@ -879,6 +879,22 @@ isolated function setPartAttachmentOrderQuery(PartKind kind, int meetingId, stri
         WHERE meeting_id = ${meetingId} AND drive_file_id = ${driveFileId}`);
 }
 
+# Build query to fetch a meeting's part of one kind that uses the given file, in any state,
+# preferring an ATTACHED one.
+#
+# + kind - Which kind of part
+# + meetingId - The meeting
+# + driveFileId - The file
+# + return - sql:ParameterizedQuery - Select query for the kind's table
+isolated function getMeetingPartByFileQuery(PartKind kind, int meetingId, string driveFileId)
+        returns sql:ParameterizedQuery {
+    [sql:ParameterizedQuery, sql:ParameterizedQuery] [partTableName, nameColumn] = partTable(kind);
+    return sql:queryConcat(partSelect(nameColumn), ` FROM `, partTableName, ` WHERE meeting_id = ${meetingId}
+        AND drive_file_id = ${driveFileId}
+        ORDER BY state = ${ATTACHED} DESC, id
+        LIMIT 1`);
+}
+
 # Build query counting a meeting's ATTACHED parts of one kind that use the given file -- how a
 # transcript and smart notes sharing one Google Doc are told apart from two separate files.
 #

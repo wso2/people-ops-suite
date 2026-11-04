@@ -777,10 +777,22 @@ isolated function backfillFromEvent(PartsBackfillItem item, gcalendar:Attachment
         // file, replaces it instead of adding the file a second time. Carries the meeting id
         // too, so the same file on two meetings' events can never share -- and overwrite -- a row.
         string name = string `${database:LEGACY_PART_PREFIX}file:${item.meetingId}:${fileId}`;
-        boolean|error known = database:hasAttachedPartWithFile(kind, item.meetingId, fileId);
-        if known is error {
-            log:printError(string `Parts backfill: could not check ${name}.`, known);
+        database:MeetingPart|error? existing = database:getMeetingPartByFile(kind, item.meetingId, fileId);
+        if existing is error {
+            log:printError(string `Parts backfill: could not check ${name}.`, existing);
             item.failedParts.push(name);
+            continue;
+        }
+        boolean known = existing is database:MeetingPart && existing.state == database:ATTACHED;
+        // A row for this file that is not ATTACHED and carries Meet's own name came from its
+        // notification, which may still be retrying the attach and the sharing: left to it, and
+        // never shadowed by a second, placeholder row. One the V6 migration copied in is updated
+        // in place below -- the event having the file shows it was attached.
+        if existing is database:MeetingPart && !known && !existing.name.startsWith(database:LEGACY_PART_PREFIX) {
+            if reported.indexOf(partKey(kind, fileId)) == () {
+                item.unattachedParts.push(existing.name);
+                reported.push(partKey(kind, fileId));
+            }
             continue;
         }
         // Already reported by the Meet source -- stored or left for its notification -- so not

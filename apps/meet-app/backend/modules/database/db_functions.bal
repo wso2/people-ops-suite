@@ -364,6 +364,22 @@ public isolated function getMeetingParts(PartKind kind, int meetingId) returns M
         select part;
 }
 
+# Fetches a meeting's part of one kind that uses the file, in any state, preferring an
+# ATTACHED one.
+#
+# + kind - Which kind of part
+# + meetingId - The meeting
+# + driveFileId - The file
+# + return - The part, () if none uses the file, or Error
+public isolated function getMeetingPartByFile(PartKind kind, int meetingId, string driveFileId)
+        returns MeetingPart|error? {
+    MeetingPart|sql:Error part = databaseClient->queryRow(getMeetingPartByFileQuery(kind, meetingId, driveFileId));
+    if part is sql:NoRowsError {
+        return;
+    }
+    return part;
+}
+
 # Whether one of the meeting's ATTACHED parts of this kind already uses the file. With
 # Gemini notes on, a transcript and smart notes are one Google Doc, which is shared once.
 #
