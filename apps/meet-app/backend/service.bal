@@ -734,12 +734,13 @@ service http:InterceptableService / on new http:Listener(9090) {
             return <http:NotFound>{body: {message: "Playback is not enabled on this deployment."}};
         }
         string? driveFileId = meeting.driveFileId;
-        if recordingId is int {
-            database:MeetingPart|http:InternalServerError|http:NotFound part =
-                attachedPart(database:RECORDING_PART, meetingId, recordingId);
-            if part !is database:MeetingPart {
-                return part;
-            }
+        database:MeetingPart|http:InternalServerError|http:NotFound? part = recordingId is int
+            ? attachedPart(database:RECORDING_PART, meetingId, recordingId)
+            : firstAttachedPart(database:RECORDING_PART, meetingId);
+        if part is http:InternalServerError|http:NotFound {
+            return part;
+        }
+        if part is database:MeetingPart {
             driveFileId = part.driveFileId;
         }
         if driveFileId is () {
@@ -782,14 +783,16 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         string? transcriptName = meeting.transcriptName;
-        if transcriptId is int {
-            database:MeetingPart|http:InternalServerError|http:NotFound part =
-                attachedPart(database:TRANSCRIPT_PART, meetingId, transcriptId);
-            if part !is database:MeetingPart {
-                return part;
-            }
-            // A transcript copied in by the V6 migration without its Meet name has only the
-            // Drive document, the same as a meeting from before the name was stored.
+        // Without an id, the first transcript that has its Meet name: only those have timed lines.
+        database:MeetingPart|http:InternalServerError|http:NotFound? part = transcriptId is int
+            ? attachedPart(database:TRANSCRIPT_PART, meetingId, transcriptId)
+            : firstAttachedPart(database:TRANSCRIPT_PART, meetingId, needsMeetName = true);
+        if part is http:InternalServerError|http:NotFound {
+            return part;
+        }
+        if part is database:MeetingPart {
+            // A transcript copied in without its Meet name has only the Drive document, the
+            // same as a meeting from before the name was stored.
             transcriptName = part.name.startsWith(database:LEGACY_PART_PREFIX) ? () : part.name;
         }
         if transcriptName is () {
@@ -825,12 +828,13 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         string? smartNotesFileId = meeting.smartNotesFileId;
-        if smartNoteId is int {
-            database:MeetingPart|http:InternalServerError|http:NotFound part =
-                attachedPart(database:SMART_NOTE_PART, meetingId, smartNoteId);
-            if part !is database:MeetingPart {
-                return part;
-            }
+        database:MeetingPart|http:InternalServerError|http:NotFound? part = smartNoteId is int
+            ? attachedPart(database:SMART_NOTE_PART, meetingId, smartNoteId)
+            : firstAttachedPart(database:SMART_NOTE_PART, meetingId);
+        if part is http:InternalServerError|http:NotFound {
+            return part;
+        }
+        if part is database:MeetingPart {
             smartNotesFileId = part.driveFileId;
         }
         if smartNotesFileId is () {
@@ -1296,6 +1300,33 @@ isolated function attachedPart(database:PartKind kind, int meetingId, int partId
         return <http:NotFound>{body: {message: string `This meeting has no attached ${kind} with that id.`}};
     }
     return part;
+}
+
+# The first ATTACHED part of one kind, in the order they happened -- what the playback,
+# transcript and smart-notes routes serve when no part is named. Not the meeting's own column:
+# before parts were kept separately each part overwrote it, so on older meetings it holds the
+# last part, and the default would disagree with the start of the parts list.
+#
+# + kind - Which kind of part
+# + meetingId - The meeting
+# + needsMeetName - Skip parts that only carry a placeholder name
+# + return - The part; () when the meeting has none, so the caller falls back to its column; or
+# the response to return instead
+isolated function firstAttachedPart(database:PartKind kind, int meetingId, boolean needsMeetName = false)
+        returns database:MeetingPart|http:InternalServerError? {
+    database:MeetingPart[]|error parts = database:getMeetingParts(kind, meetingId);
+    if parts is error {
+        string customError = string `Error occurred while fetching the meeting's ${kind} parts!`;
+        log:printError(customError, parts);
+        return <http:InternalServerError>{body: {message: customError}};
+    }
+    foreach database:MeetingPart part in parts {
+        if part.state == database:ATTACHED && part.driveFileId is string
+            && (!needsMeetName || !part.name.startsWith(database:LEGACY_PART_PREFIX)) {
+            return part;
+        }
+    }
+    return;
 }
 
 # Fetches a meeting for the routes that show one (details, playback, transcript, smart notes).
