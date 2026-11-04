@@ -831,9 +831,10 @@ isolated function backfillFromEvent(PartsBackfillItem item, gcalendar:Attachment
     return transcriptsAdded;
 }
 
-# Which kind of part a calendar attachment is, by the title the pipeline gave it. An MP4
-# with another title is a recording too: Meet attaches its own when recording starts on time.
-# Anything else is not a part.
+# Which kind of part a calendar attachment is, by the title the pipeline gave it. Anything
+# else is not a part -- including an MP4 under another title, which could be any video someone
+# attached to the event. Meet's own copy of a recording is the same file the pipeline attached
+# under its title, so nothing is lost by ignoring it.
 #
 # + attachment - The event's attachment
 # + return - The kind, or () when it is not a part
@@ -848,9 +849,6 @@ isolated function attachmentKind(gcalendar:Attachment attachment) returns databa
         SMART_NOTES_ATTACHMENT_TITLE => {
             return database:SMART_NOTE_PART;
         }
-    }
-    if attachment?.mimeType == "video/mp4" {
-        return database:RECORDING_PART;
     }
     return;
 }
