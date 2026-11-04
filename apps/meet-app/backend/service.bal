@@ -1007,7 +1007,8 @@ service http:InterceptableService / on new http:Listener(9090) {
     # sources: Meet, through drive-service, for calls inside its 30 days (real names and exact
     # times), and the calendar event's attachments, which cover the rest of the window (the file
     # only, ordered by when it was attached). A part is stored as attached only when the event has
-    # its file; the others are reported in unattachedParts and left to their notification.
+    # its file; the others are reported in unattachedParts -- those still being processed are left
+    # to their notification, those not on the event at all need a manual look.
     # echo-backend is told when a meeting gains transcripts.
     #
     # Works in small batches so one call stays well under the Choreo gateway's 60-second cap:

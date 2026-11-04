@@ -571,9 +571,10 @@ const string SMART_NOTES_ATTACHMENT_TITLE = "Meeting Notes";
 # Stores only. The live pipeline attached a part to the calendar event, renamed and shared it
 # when its notification arrived; what was lost is the database record, because each part
 # overwrote the meeting's single file column. So nothing is attached, renamed or shared here --
-# and a part is stored as ATTACHED only when the event really has its file. A part that is not
-# on the event, or whose own processing has not finished, is left to its notification, which
-# attaches and shares it; it is reported in unattachedParts.
+# and a part is stored as ATTACHED only when the event really has its file. A part whose own
+# processing has not finished is left to its notification, which attaches and shares it. A part
+# not on the event at all is not attached by anything -- its notification was already answered
+# -- so it needs a manual look. Both are reported in unattachedParts.
 #
 # The event is read first, then two sources:
 # 1. Meet, for a call still inside its 30 days: every part with its real name and exact times.
@@ -679,10 +680,10 @@ isolated function backfillFromMeet(PartsBackfillItem item, database:PartsBackfil
 # its file. A part the meeting already has attached is rewritten with what Meet reports, which
 # only gives a part with a placeholder name its real name, call and times.
 #
-# Left alone, and reported in unattachedParts: a part not on the event (never attached, e.g.
-# it arrived before its meeting was registered) and a part whose own row is not ATTACHED (its
-# notification is still being retried). Storing either as ATTACHED would make the notification
-# skip the attach and the sharing it still has to do.
+# Left alone, and reported in unattachedParts: a part whose own row is not ATTACHED (its
+# notification is still being retried, and storing it as ATTACHED would make that retry skip the
+# attach and the sharing), and a part not on the event (never attached, e.g. it arrived before
+# its meeting was registered; its notification was already answered, so it needs a manual look).
 #
 # + item - The meeting's result, updated in place
 # + kind - Which kind of part
