@@ -124,6 +124,39 @@ You can get a token from the sample Asgardeo app or using the webapp-template it
     jwtKey = ""
 ```
 
+### Module tests
+
+`bal test` initialises every module, so each module whose tests you run needs its own git-ignored `Config.toml` beside them, holding that module's configurables only.
+
+- **`modules/driveservice/tests/Config.toml`**: the tests start a stand-in drive-service on port 19098. The client fetches an OAuth token when it starts, so `tokenUrl` must answer a POST with a token.
+
+```toml
+    [meet_app.driveservice]
+    driveServiceBaseUrl = "http://localhost:19098"
+    [meet_app.driveservice.oauthConfig]
+    tokenUrl = "<a token endpoint that answers>"
+    clientId = "x"
+    clientSecret = "x"
+    [meet_app.driveservice.retryConfig]
+    count = 0
+    interval = 1.0
+    backOffFactor = 1.0
+    maxWaitInterval = 1.0
+```
+
+- **`modules/database/tests/Config.toml`**: the database client connects when the module starts, so even the pure tests here need a reachable MySQL. Any empty database will do.
+
+```toml
+    [meet_app.database.dbConfig]
+    host = "localhost"
+    user = "<user>"
+    password = "<password>"
+    database = "<an empty test database>"
+    port = 3306
+```
+
+Run one module's tests with, for example, `bal test --tests "meet_app.driveservice:*"`.
+
 ## Important<sup style="color:red">\*</sup>
 
 ### Once you have updated the code,
