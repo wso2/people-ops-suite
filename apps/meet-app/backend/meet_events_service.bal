@@ -1010,9 +1010,9 @@ type CallFiles record {|
     string[] smartNotes;
 |};
 
-# Gathers every attached part's file for the comment. A kind whose parts cannot be read falls
-# back to the meeting's own column, which still holds its first part -- a shorter comment beats
-# none, since the call is logged only once.
+# Gathers every attached part's file for the comment: the meeting's own column first, then each
+# ATTACHED part not already listed. A kind whose parts cannot be read gets the column alone -- a
+# shorter comment beats none, since the call is logged only once.
 #
 # + tracked - The meeting row
 # + return - The files per kind
@@ -1032,7 +1032,12 @@ isolated function attachedFiles(database:PartKind kind, int meetingId, string? f
         }
         return [];
     }
+    // Starts from the meeting's own column: it is ATTACHED by the time the call is logged, and a
+    // file the old pipeline wrote there between the V6 migration and this release has no part row.
     string[] fileIds = [];
+    if fallbackFileId is string {
+        fileIds.push(fallbackFileId);
+    }
     foreach database:MeetingPart part in parts {
         string? fileId = part.driveFileId;
         if part.state == database:ATTACHED && fileId is string && fileIds.indexOf(fileId) == () {
