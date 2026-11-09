@@ -306,6 +306,123 @@ public isolated function fetchLeadBackfillCandidates(string inboundMeetingType, 
         select candidate;
 }
 
+# Records one part of a call, keyed by its Meet name: inserts it the first time, updates it
+# on every later write (a redelivery, or FAILED becoming ATTACHED on a retry).
+#
+# A part the V6 migration copied in carries a placeholder name, not its Meet name, so the
+# first time the real name arrives for that same file it would otherwise land as a second row
+# for one file. This adopts the placeholder row instead: same file, now with its real name.
+#
+# + kind - Which kind of part
+# + payload - Details to write
+# + actor - User performing the write
+# + return - Error if the write fails
+public isolated function upsertMeetingPart(PartKind kind, MeetingPartPayload payload, string actor) returns error? {
+    string? startTime = toDbDateTime(payload.startTime);
+    string? endTime = toDbDateTime(payload.endTime);
+    // Renames the placeholder when there is one; a no-op otherwise. Either way the upsert then
+    // finds or creates the row by the real name and writes the state.
+    _ = check databaseClient->execute(adoptLegacyPartQuery(kind, payload, startTime, endTime, actor));
+    _ = check databaseClient->execute(upsertMeetingPartQuery(kind, payload, startTime, endTime, actor));
+}
+
+# Fetches one part by its Meet name.
+#
+# + kind - Which kind of part
+# + name - Meet's resource name
+# + return - The part, () if not recorded yet, or Error
+public isolated function getMeetingPartByName(PartKind kind, string name) returns MeetingPart|error? {
+    MeetingPart|sql:Error part = databaseClient->queryRow(getMeetingPartByNameQuery(kind, name));
+    if part is sql:NoRowsError {
+        return;
+    }
+    return part;
+}
+
+# Fetches one part of a meeting by its id.
+#
+# + kind - Which kind of part
+# + meetingId - Meeting the part must belong to
+# + partId - The part's id
+# + return - The part, () if the meeting has no such part, or Error
+public isolated function getMeetingPart(PartKind kind, int meetingId, int partId) returns MeetingPart|error? {
+    MeetingPart|sql:Error part = databaseClient->queryRow(getMeetingPartQuery(kind, meetingId, partId));
+    if part is sql:NoRowsError {
+        return;
+    }
+    return part;
+}
+
+# Fetches every part of one kind for a meeting, in the order they happened.
+#
+# + kind - Which kind of part
+# + meetingId - The meeting
+# + return - The parts, or Error
+public isolated function getMeetingParts(PartKind kind, int meetingId) returns MeetingPart[]|error {
+    stream<MeetingPart, error?> resultStream = databaseClient->query(getMeetingPartsQuery(kind, meetingId));
+    return from MeetingPart part in resultStream
+        select part;
+}
+
+# Fetches a meeting's part of one kind that uses the file, in any state, preferring an
+# ATTACHED one.
+#
+# + kind - Which kind of part
+# + meetingId - The meeting
+# + driveFileId - The file
+# + return - The part, () if none uses the file, or Error
+public isolated function getMeetingPartByFile(PartKind kind, int meetingId, string driveFileId)
+        returns MeetingPart|error? {
+    MeetingPart|sql:Error part = databaseClient->queryRow(getMeetingPartByFileQuery(kind, meetingId, driveFileId));
+    if part is sql:NoRowsError {
+        return;
+    }
+    return part;
+}
+
+# Whether one of the meeting's ATTACHED parts of this kind already uses the file. With
+# Gemini notes on, a transcript and smart notes are one Google Doc, which is shared once.
+#
+# + kind - Which kind of part to look among
+# + meetingId - The meeting
+# + driveFileId - The file
+# + return - True if such a part exists, or Error
+public isolated function hasAttachedPartWithFile(PartKind kind, int meetingId, string driveFileId)
+        returns boolean|error {
+    record {int total;} row = check databaseClient->queryRow(
+            countAttachedPartsWithFileQuery(kind, meetingId, driveFileId));
+    return row.total > 0;
+}
+
+# Records where a meeting's file sits among the calendar event's attachments, which orders
+# parts that have no Meet times.
+#
+# + kind - Which kind of part
+# + meetingId - The meeting
+# + driveFileId - The file
+# + attachmentOrder - Its position among the event's attachments, from 0
+# + actor - User performing the write
+# + return - Error if the write fails
+public isolated function setPartAttachmentOrder(PartKind kind, int meetingId, string driveFileId, int attachmentOrder,
+        string actor) returns error? {
+    _ = check databaseClient->execute(setPartAttachmentOrderQuery(kind, meetingId, driveFileId, attachmentOrder,
+            actor));
+}
+
+# Finds recent add-on meetings for the parts backfill.
+#
+# + days - How far back to look, by start time
+# + afterMeetingId - Only meetings with a larger id (the cursor)
+# + 'limit - Most rows to return
+# + return - Candidates, oldest id first, or Error
+public isolated function fetchPartsBackfillCandidates(int days, int afterMeetingId, int 'limit)
+        returns PartsBackfillCandidate[]|error {
+    stream<PartsBackfillCandidate, error?> resultStream = databaseClient->query(
+            getPartsBackfillCandidatesQuery(days, afterMeetingId, 'limit));
+    return from PartsBackfillCandidate candidate in resultStream
+        select candidate;
+}
+
 # Stores a meeting's lead link, if it has none yet.
 #
 # + meetingId - Meeting to update

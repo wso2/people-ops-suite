@@ -27,6 +27,7 @@ import ballerina/lang.'string as strings;
 import ballerina/lang.value;
 import ballerina/log;
 import ballerina/time;
+import ballerinax/googleapis.calendar as gcalendar;
 
 configurable int meetEventsListenerPort = 9091;
 
@@ -253,13 +254,24 @@ isolated function processRecordingReady(string recordingName) returns error? {
         return;
     }
 
-    if tracked.recordingState == database:ATTACHED && tracked.driveFileId == fileId {
-        log:printInfo(string `Recording for space ${spaceName} is already attached; skipping.`);
+    // A call can hold several recordings -- each stop and restart is its own resource -- so
+    // "already done" is decided per recording, not per meeting. The meeting's own columns
+    // count too: they hold the part the pipeline attached before parts were kept separately.
+    if check isPartAttached(database:RECORDING_PART, recordingName, fileId)
+        || (tracked.recordingState == database:ATTACHED && tracked.driveFileId == fileId) {
+        log:printInfo(string `Recording ${recordingName} is already attached; skipping.`);
+        // Recorded again so a part copied in by the V6 migration picks up its real name.
+        check database:upsertMeetingPart(database:RECORDING_PART,
+                partPayload(tracked.meetingId, recordingName, info, database:ATTACHED), SYSTEM_ACTOR);
         // Still checked, because the artifact being attached does NOT mean the call
-        // activity was logged. 
+        // activity was logged.
         logCallActivityIfComplete(spaceName);
         return;
     }
+
+    // The meeting's own columns keep holding the first part, for the readers that know only
+    // one recording per meeting. A later part never overwrites them.
+    boolean isFirstPart = tracked.recordingState != database:ATTACHED;
 
     // Google Meet names the recording file itself after the meeting code and a timestamp
     // Replace it with the actual event title + start time.
@@ -269,8 +281,13 @@ isolated function processRecordingReady(string recordingName) returns error? {
     }
 
     error? attachResult = calendar:attachRecording(tracked.organizer, tracked.googleEventId, fileId,
-            "Meeting Recording", "video/mp4");
+            RECORDING_ATTACHMENT_TITLE, "video/mp4");
     if attachResult is error {
+        check database:upsertMeetingPart(database:RECORDING_PART,
+                partPayload(tracked.meetingId, recordingName, info, database:FAILED), SYSTEM_ACTOR);
+        if !isFirstPart {
+            return attachResult;
+        }
         _ = check database:upsertMeetRecording({
             spaceName: tracked.spaceName,
             title: tracked.title,
@@ -314,20 +331,24 @@ isolated function processRecordingReady(string recordingName) returns error? {
     // sharing went. Sharing failures are logged above for manual follow-up; they deliberately
     // do NOT trigger a Pub/Sub retry. (A DB write failure below still surfaces as an error, so
     // a genuinely transient DB problem is retried.)
-    _ = check database:upsertMeetRecording({
-        spaceName: tracked.spaceName,
-        title: tracked.title,
-        googleEventId: tracked.googleEventId,
-        organizer: tracked.organizer,
-        startTime: tracked.startTime,
-        endTime: tracked.endTime,
-        internalParticipants: tracked.internalParticipants,
-        externalParticipants: tracked.externalParticipants,
-        recordingState: database:ATTACHED,
-        driveFileId: fileId,
-        opportunityId: tracked.opportunityId,
-        opportunityDetails: tracked.opportunityDetails
-    }, SYSTEM_ACTOR);
+    check database:upsertMeetingPart(database:RECORDING_PART,
+            partPayload(tracked.meetingId, recordingName, info, database:ATTACHED), SYSTEM_ACTOR);
+    if isFirstPart {
+        _ = check database:upsertMeetRecording({
+            spaceName: tracked.spaceName,
+            title: tracked.title,
+            googleEventId: tracked.googleEventId,
+            organizer: tracked.organizer,
+            startTime: tracked.startTime,
+            endTime: tracked.endTime,
+            internalParticipants: tracked.internalParticipants,
+            externalParticipants: tracked.externalParticipants,
+            recordingState: database:ATTACHED,
+            driveFileId: fileId,
+            opportunityId: tracked.opportunityId,
+            opportunityDetails: tracked.opportunityDetails
+        }, SYSTEM_ACTOR);
+    }
 
     // Started, not awaited -- see shareWithDepartments for why this must not hold up the
     // webhook's response. Started only AFTER the ATTACHED write: if that write fails, the
@@ -356,9 +377,13 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
 
     // Pub/Sub redelivers whenever it does not get a 200 in time, and without this the
     // handler starts from the top every time: re-attaching the file, renaming it again,
-    // and re-running the participant grant.
-    if tracked.transcriptState == database:ATTACHED && tracked.transcriptFileId == fileId {
-        log:printInfo(string `Transcript for space ${spaceName} is already attached; skipping.`);
+    // and re-running the participant grant. Decided per transcript, since a call can hold
+    // several -- see processRecordingReady.
+    if check isPartAttached(database:TRANSCRIPT_PART, transcriptName, fileId)
+        || (tracked.transcriptState == database:ATTACHED && tracked.transcriptFileId == fileId) {
+        log:printInfo(string `Transcript ${transcriptName} is already attached; skipping.`);
+        check database:upsertMeetingPart(database:TRANSCRIPT_PART,
+                partPayload(tracked.meetingId, transcriptName, info, database:ATTACHED), SYSTEM_ACTOR);
         // Notified again, because the transcript being attached does NOT mean echo-backend heard
         // about it: the first attempt may have failed. echo-backend ignores a meeting it already has.
         _ = start echobackend:notifyTranscriptReady(tracked.meetingId);
@@ -368,10 +393,17 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
         return;
     }
 
+    // The meeting's own columns keep holding the first transcript -- see processRecordingReady.
+    boolean isFirstPart = tracked.transcriptState != database:ATTACHED;
+
     error? attachResult = calendar:attachRecording(tracked.organizer, tracked.googleEventId, fileId,
-            "Meeting Transcript", "application/vnd.google-apps.document");
+            TRANSCRIPT_ATTACHMENT_TITLE, "application/vnd.google-apps.document");
     if attachResult is error {
-        check database:updateMeetTranscript(spaceName, database:FAILED, fileId, SYSTEM_ACTOR);
+        check database:upsertMeetingPart(database:TRANSCRIPT_PART,
+                partPayload(tracked.meetingId, transcriptName, info, database:FAILED), SYSTEM_ACTOR);
+        if isFirstPart {
+            check database:updateMeetTranscript(spaceName, database:FAILED, fileId, SYSTEM_ACTOR);
+        }
         return attachResult;
     }
 
@@ -396,7 +428,11 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
     // transcriptName is stored alongside the file id: the Drive document is the transcript
     // as prose, while this resource name is what reaches Meet's timed entries — the only
     // form a transcript synchronised to the recording can be built from.
-    check database:updateMeetTranscript(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR, transcriptName);
+    check database:upsertMeetingPart(database:TRANSCRIPT_PART,
+            partPayload(tracked.meetingId, transcriptName, info, database:ATTACHED), SYSTEM_ACTOR);
+    if isFirstPart {
+        check database:updateMeetTranscript(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR, transcriptName);
+    }
 
     // Tell echo-backend now so it starts extracting the MEDDPICC answers immediately instead of
     // at its next poll. Started, not awaited, and only after the ATTACHED write it reads; it
@@ -405,8 +441,10 @@ isolated function processTranscriptReady(string transcriptName) returns error? {
 
     // Started, not awaited, and only after the ATTACHED write -- see processRecordingReady.
     // Skipped when the transcript IS the smart-notes document: with Gemini note-taking on, Meet
-    // writes the transcript into the notes doc, so both artifacts resolve to one file
-    if tracked.smartNotesState == database:ATTACHED && tracked.smartNotesFileId == fileId {
+    // writes the transcript into the notes doc, so both artifacts resolve to one file. Checked
+    // across every smart-notes part, since a call can hold several.
+    if (tracked.smartNotesState == database:ATTACHED && tracked.smartNotesFileId == fileId)
+        || isSharedDocument(database:SMART_NOTE_PART, tracked.meetingId, fileId) {
         log:printInfo(string `Transcript for space ${spaceName} is the smart-notes document; ` +
                 "its department share is not repeated.");
     } else {
@@ -437,17 +475,28 @@ isolated function processSmartNotesReady(string smartNotesName) returns error? {
     // Pub/Sub redelivers whenever it does not get a 200 in time, and without this the
     // handler starts from the top every time: re-attaching the file, renaming it again,
     // and re-running the participant grant.
-    if tracked.smartNotesState == database:ATTACHED && tracked.smartNotesFileId == fileId {
-        log:printInfo(string `Smart notes for space ${spaceName} is already attached; skipping.`);
+    // Decided per smart-notes session, since a call can hold several -- see processRecordingReady.
+    if check isPartAttached(database:SMART_NOTE_PART, smartNotesName, fileId)
+        || (tracked.smartNotesState == database:ATTACHED && tracked.smartNotesFileId == fileId) {
+        log:printInfo(string `Smart notes ${smartNotesName} are already attached; skipping.`);
+        check database:upsertMeetingPart(database:SMART_NOTE_PART,
+                partPayload(tracked.meetingId, smartNotesName, info, database:ATTACHED), SYSTEM_ACTOR);
 
         logCallActivityIfComplete(spaceName);
         return;
     }
 
+    // The meeting's own columns keep holding the first smart notes -- see processRecordingReady.
+    boolean isFirstPart = tracked.smartNotesState != database:ATTACHED;
+
     error? attachResult = calendar:attachRecording(tracked.organizer, tracked.googleEventId, fileId,
-            "Meeting Notes", "application/vnd.google-apps.document");
+            SMART_NOTES_ATTACHMENT_TITLE, "application/vnd.google-apps.document");
     if attachResult is error {
-        check database:updateMeetSmartNotes(spaceName, database:FAILED, fileId, SYSTEM_ACTOR);
+        check database:upsertMeetingPart(database:SMART_NOTE_PART,
+                partPayload(tracked.meetingId, smartNotesName, info, database:FAILED), SYSTEM_ACTOR);
+        if isFirstPart {
+            check database:updateMeetSmartNotes(spaceName, database:FAILED, fileId, SYSTEM_ACTOR);
+        }
         return attachResult;
     }
 
@@ -471,12 +520,17 @@ isolated function processSmartNotesReady(string smartNotesName) returns error? {
                 "(best-effort, not retrying).", shareResult);
     }
 
-    check database:updateMeetSmartNotes(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR);
+    check database:upsertMeetingPart(database:SMART_NOTE_PART,
+            partPayload(tracked.meetingId, smartNotesName, info, database:ATTACHED), SYSTEM_ACTOR);
+    if isFirstPart {
+        check database:updateMeetSmartNotes(spaceName, database:ATTACHED, fileId, SYSTEM_ACTOR);
+    }
 
     // Started, not awaited, and only after the ATTACHED write -- see processRecordingReady.
-    // Skipped when the transcript already resolved to this same document -- see the matching
+    // Skipped when a transcript already resolved to this same document -- see the matching
     // check in processTranscriptReady.
-    if tracked.transcriptState == database:ATTACHED && tracked.transcriptFileId == fileId {
+    if (tracked.transcriptState == database:ATTACHED && tracked.transcriptFileId == fileId)
+        || isSharedDocument(database:TRANSCRIPT_PART, tracked.meetingId, fileId) {
         log:printInfo(string `Smart notes for space ${spaceName} are the transcript document; ` +
                 "its department share is not repeated.");
     } else {
@@ -496,6 +550,358 @@ const int MAX_CONTACT_LOOKUPS = 5;
 
 const string DRIVE_FILE_VIEW_URL_PREFIX = "https://drive.google.com/file/d/";
 const string GOOGLE_DOC_VIEW_URL_PREFIX = "https://docs.google.com/document/d/";
+
+// How long before its scheduled start a call may begin and still be that meeting's call, for
+// the parts backfill. People join early; a call that starts after the scheduled end is not
+// this meeting's.
+const decimal BACKFILL_EARLY_START_SECONDS = 1800;
+
+// Meet deletes a call's record 30 days after it ends. A meeting that started longer ago than
+// this has nothing left to ask Meet for, so only its calendar event is read.
+const decimal MEET_RETENTION_SECONDS = 31d * 24 * 3600;
+
+// The titles the pipeline gives the parts it attaches to the calendar event. The parts
+// backfill reads them back to tell the kinds apart, so both use these.
+const string RECORDING_ATTACHMENT_TITLE = "Meeting Recording";
+const string TRANSCRIPT_ATTACHMENT_TITLE = "Meeting Transcript";
+const string SMART_NOTES_ATTACHMENT_TITLE = "Meeting Notes";
+
+# Finds the parts one meeting has no record of and, unless this is a dry run, stores them.
+#
+# Stores only. The live pipeline attached a part to the calendar event, renamed and shared it
+# when its notification arrived; what was lost is the database record, because each part
+# overwrote the meeting's single file column. So nothing is attached, renamed or shared here --
+# and a part is stored as ATTACHED only when the event really has its file. A part whose own
+# processing has not finished is left to its notification, which attaches and shares it. A part
+# not on the event at all is not attached by anything -- its notification was already answered
+# -- so it needs a manual look. Both are reported in unattachedParts.
+#
+# The event is read first, then two sources:
+# 1. Meet, for a call still inside its 30 days: every part with its real name and exact times.
+# 2. The calendar event itself, for older meetings too: every file the pipeline attached. A
+#    part only the event knows gets a placeholder name and no times; its place among the
+#    event's attachments -- the order the parts arrived in -- orders it instead.
+#
+# + candidate - The meeting
+# + dryRun - When true, only report
+# + return - What was found and done
+isolated function backfillMeetingParts(database:PartsBackfillCandidate candidate, boolean dryRun)
+        returns PartsBackfillItem {
+    PartsBackfillItem item = {
+        meetingId: candidate.meetingId,
+        title: candidate.title,
+        startTime: candidate.startTime,
+        callsFound: 0,
+        eventAttachments: 0,
+        missingParts: [],
+        unattachedParts: [],
+        failedParts: [],
+        unreadSources: [],
+        status: CHECKED
+    };
+
+    // Without the event nothing can be confirmed as attached, so neither source is stored; the
+    // meeting is reported INCOMPLETE and a later run retries it.
+    gcalendar:Attachment[]|error? attachments =
+        calendar:getCalendarEventAttachments(candidate.googleEventId, candidate.organizer);
+    if attachments is error {
+        log:printError(string `Parts backfill: could not read the event of meeting ${candidate.meetingId}.`,
+                attachments);
+        item.unreadSources.push("calendar");
+        item.status = INCOMPLETE;
+        return item;
+    }
+    gcalendar:Attachment[] eventAttachments = attachments ?: [];
+    string[] eventFiles = from gcalendar:Attachment attachment in eventAttachments
+        let string? fileId = attachment?.fileId
+        where fileId is string
+        select fileId;
+
+    // Parts already reported, as kind and file, so a part both sources list is reported once,
+    // while a transcript and smart notes sharing one Google Doc are still two parts.
+    string[] reported = [];
+
+    int transcriptsAdded = backfillFromMeet(item, candidate, dryRun, eventFiles, reported);
+    transcriptsAdded += backfillFromEvent(item, eventAttachments, dryRun, reported);
+    if item.unreadSources.length() > 0 {
+        item.status = INCOMPLETE;
+    }
+
+    // echo-backend reads the stored transcripts, so it is told once the meeting has new ones to
+    // analyse. Started, not awaited; a missed call is caught by its own poll.
+    if transcriptsAdded > 0 {
+        _ = start echobackend:notifyTranscriptReady(candidate.meetingId);
+    }
+    return item;
+}
+
+# Source 1: Meet's own list of the meeting's calls and their parts, when still kept.
+#
+# + item - The meeting's result, updated in place
+# + candidate - The meeting
+# + dryRun - When true, only report
+# + eventFiles - Drive file ids attached to the calendar event
+# + reported - Parts reported so far, updated in place
+# + return - How many missing transcripts were stored
+isolated function backfillFromMeet(PartsBackfillItem item, database:PartsBackfillCandidate candidate, boolean dryRun,
+        string[] eventFiles, string[] reported) returns int {
+    time:Utc|error scheduledStart = time:utcFromString(toRfc3339(candidate.startTime));
+    if scheduledStart is error {
+        log:printError(string `Parts backfill: meeting ${candidate.meetingId} has an unreadable start time.`,
+                scheduledStart);
+        item.unreadSources.push("meet");
+        return 0;
+    }
+    if time:utcDiffSeconds(time:utcNow(), scheduledStart) > MEET_RETENTION_SECONDS {
+        return 0;
+    }
+
+    string earliest = time:utcToString(time:utcAddSeconds(scheduledStart, -BACKFILL_EARLY_START_SECONDS));
+    driveservice:CallArtifacts[]|error calls =
+        driveservice:listSpaceArtifacts(candidate.spaceName, earliest, toRfc3339(candidate.endTime));
+    if calls is error {
+        log:printError(string `Parts backfill: could not list the calls of meeting ${candidate.meetingId}.`, calls);
+        item.unreadSources.push("meet");
+        return 0;
+    }
+
+    item.callsFound = calls.length();
+    int transcriptsAdded = 0;
+    foreach driveservice:CallArtifacts call in calls {
+        _ = backfillParts(item, database:RECORDING_PART, call, call.recordings, dryRun, eventFiles, reported);
+        transcriptsAdded += backfillParts(item, database:TRANSCRIPT_PART, call, call.transcripts, dryRun,
+                eventFiles, reported);
+        _ = backfillParts(item, database:SMART_NOTE_PART, call, call.smartNotes, dryRun, eventFiles, reported);
+    }
+    return transcriptsAdded;
+}
+
+# Stores each part Meet listed that the meeting has no record of, when the calendar event has
+# its file. A part the meeting already has attached is rewritten with what Meet reports, which
+# only gives a part with a placeholder name its real name, call and times.
+#
+# Left alone, and reported in unattachedParts: a part whose own row is not ATTACHED (its
+# notification is still being retried, and storing it as ATTACHED would make that retry skip the
+# attach and the sharing), and a part not on the event (never attached, e.g. it arrived before
+# its meeting was registered; its notification was already answered, so it needs a manual look).
+#
+# + item - The meeting's result, updated in place
+# + kind - Which kind of part
+# + call - The call the parts belong to
+# + artifacts - The parts Meet listed
+# + dryRun - When true, only report
+# + eventFiles - Drive file ids attached to the calendar event
+# + reported - Parts reported so far, updated in place
+# + return - How many missing parts were stored
+isolated function backfillParts(PartsBackfillItem item, database:PartKind kind, driveservice:CallArtifacts call,
+        driveservice:Artifact[] artifacts, boolean dryRun, string[] eventFiles, string[] reported) returns int {
+    int added = 0;
+    foreach driveservice:Artifact artifact in artifacts {
+        database:MeetingPart|error? own = database:getMeetingPartByName(kind, artifact.name);
+        boolean|error attachedByFile = database:hasAttachedPartWithFile(kind, item.meetingId, artifact.fileId);
+        if own is error || attachedByFile is error {
+            log:printError(string `Parts backfill: could not check ${artifact.name}.`,
+                    own is error ? own : <error>attachedByFile);
+            item.failedParts.push(artifact.name);
+            continue;
+        }
+        boolean known = (own is database:MeetingPart && own.state == database:ATTACHED
+                && own.driveFileId == artifact.fileId) || attachedByFile;
+        if !known && (own is database:MeetingPart || eventFiles.indexOf(artifact.fileId) == ()) {
+            item.unattachedParts.push(artifact.name);
+            reported.push(partKey(kind, artifact.fileId));
+            continue;
+        }
+        if !known {
+            reported.push(partKey(kind, artifact.fileId));
+            if dryRun {
+                item.missingParts.push(artifact.name);
+            }
+        }
+        if dryRun {
+            continue;
+        }
+        error? stored = database:upsertMeetingPart(kind, {
+            meetingId: item.meetingId,
+            name: artifact.name,
+            conferenceRecord: call.conferenceRecordName,
+            driveFileId: artifact.fileId,
+            startTime: artifact.startTime,
+            endTime: artifact.endTime,
+            state: database:ATTACHED
+        }, SYSTEM_ACTOR);
+        if stored is error {
+            log:printError(string `Parts backfill: could not store ${artifact.name}.`, stored);
+            item.failedParts.push(artifact.name);
+            continue;
+        }
+        if !known {
+            item.missingParts.push(artifact.name);
+            added += 1;
+        }
+    }
+    return added;
+}
+
+# How a part is told apart when reporting: its kind and file, since a transcript and smart
+# notes can be one Google Doc.
+#
+# + kind - Which kind of part
+# + fileId - Its Drive file
+# + return - The key
+isolated function partKey(database:PartKind kind, string fileId) returns string => string `${kind}|${fileId}`;
+
+# Source 2: every file the pipeline attached to the calendar event. Stores the ones the
+# meeting has no record of, and records each file's place among the attachments so parts
+# without Meet times still come out in the order they arrived.
+#
+# + item - The meeting's result, updated in place
+# + attachments - The calendar event's attachments
+# + dryRun - When true, only report
+# + reported - Parts reported so far, updated in place
+# + return - How many missing transcripts were stored
+isolated function backfillFromEvent(PartsBackfillItem item, gcalendar:Attachment[] attachments, boolean dryRun,
+        string[] reported) returns int {
+    int transcriptsAdded = 0;
+    int position = 0;
+    foreach gcalendar:Attachment attachment in attachments {
+        string? fileId = attachment?.fileId;
+        database:PartKind? kind = attachmentKind(attachment);
+        if fileId is () || kind is () {
+            continue;
+        }
+        int attachmentOrder = position;
+        position += 1;
+        item.eventAttachments += 1;
+
+        // Prefixed like the V6 placeholders, so Meet's real name, if it ever arrives for this
+        // file, replaces it instead of adding the file a second time. Carries the meeting id
+        // too, so the same file on two meetings' events can never share -- and overwrite -- a row.
+        string name = string `${database:LEGACY_PART_PREFIX}file:${item.meetingId}:${fileId}`;
+        database:MeetingPart|error? existing = database:getMeetingPartByFile(kind, item.meetingId, fileId);
+        if existing is error {
+            log:printError(string `Parts backfill: could not check ${name}.`, existing);
+            item.failedParts.push(name);
+            continue;
+        }
+        boolean known = existing is database:MeetingPart && existing.state == database:ATTACHED;
+        // A row for this file that is not ATTACHED and carries Meet's own name came from its
+        // notification, which may still be retrying the attach and the sharing: left to it, and
+        // never shadowed by a second, placeholder row. One the V6 migration copied in is updated
+        // in place below -- the event having the file shows it was attached.
+        if existing is database:MeetingPart && !known && !existing.name.startsWith(database:LEGACY_PART_PREFIX) {
+            if reported.indexOf(partKey(kind, fileId)) == () {
+                item.unattachedParts.push(existing.name);
+                reported.push(partKey(kind, fileId));
+            }
+            continue;
+        }
+        // Already reported by the Meet source -- stored or left for its notification -- so not
+        // stored a second time under a placeholder.
+        if !known && reported.indexOf(partKey(kind, fileId)) != () {
+            continue;
+        }
+        if !known {
+            reported.push(partKey(kind, fileId));
+            if dryRun {
+                item.missingParts.push(name);
+            }
+        }
+        if dryRun {
+            continue;
+        }
+        if !known {
+            error? stored = database:upsertMeetingPart(kind,
+                    {meetingId: item.meetingId, name, driveFileId: fileId, state: database:ATTACHED}, SYSTEM_ACTOR);
+            if stored is error {
+                log:printError(string `Parts backfill: could not store ${name}.`, stored);
+                item.failedParts.push(name);
+                continue;
+            }
+            item.missingParts.push(name);
+            if kind == database:TRANSCRIPT_PART {
+                transcriptsAdded += 1;
+            }
+        }
+        // Not fatal: without it the part is still stored, only possibly out of order.
+        error? ordered = database:setPartAttachmentOrder(kind, item.meetingId, fileId, attachmentOrder, SYSTEM_ACTOR);
+        if ordered is error {
+            log:printError(string `Parts backfill: could not record the order of ${name}.`, ordered);
+        }
+    }
+    return transcriptsAdded;
+}
+
+# Which kind of part a calendar attachment is, by the title the pipeline gave it. Anything
+# else is not a part -- including an MP4 under another title, which could be any video someone
+# attached to the event. Meet's own copy of a recording is the same file the pipeline attached
+# under its title, so nothing is lost by ignoring it.
+#
+# + attachment - The event's attachment
+# + return - The kind, or () when it is not a part
+isolated function attachmentKind(gcalendar:Attachment attachment) returns database:PartKind? {
+    match attachment?.title {
+        RECORDING_ATTACHMENT_TITLE => {
+            return database:RECORDING_PART;
+        }
+        TRANSCRIPT_ATTACHMENT_TITLE => {
+            return database:TRANSCRIPT_PART;
+        }
+        SMART_NOTES_ATTACHMENT_TITLE => {
+            return database:SMART_NOTE_PART;
+        }
+    }
+    return;
+}
+
+# Whether this exact part is already recorded as ATTACHED with this file -- the redelivery
+# check, per part rather than per meeting.
+#
+# + kind - Which kind of part
+# + name - Meet's resource name for the part
+# + fileId - The Drive file the notification resolved to
+# + return - True if already attached, or Error
+isolated function isPartAttached(database:PartKind kind, string name, string fileId) returns boolean|error {
+    database:MeetingPart? part = check database:getMeetingPartByName(kind, name);
+    return part is database:MeetingPart && part.state == database:ATTACHED && part.driveFileId == fileId;
+}
+
+# Whether the meeting already has an ATTACHED part of the other document kind in this file --
+# a transcript and smart notes that are one Google Doc, which is shared with the departments
+# once. A failed lookup answers false: sharing a file twice costs repeated grants, while
+# skipping a share could leave the departments without it.
+#
+# + otherKind - The other document kind to look among
+# + meetingId - The meeting
+# + fileId - The document
+# + return - True if the document is already one of those parts
+isolated function isSharedDocument(database:PartKind otherKind, int meetingId, string fileId) returns boolean {
+    boolean|error shared = database:hasAttachedPartWithFile(otherKind, meetingId, fileId);
+    if shared is error {
+        log:printError("Could not check whether the document is already shared as another part; " +
+                "sharing it anyway.", shared);
+        return false;
+    }
+    return shared;
+}
+
+# The part row for a resolved artifact.
+#
+# + meetingId - Meeting the part belongs to
+# + name - Meet's resource name for the part
+# + info - What drive-service resolved it to
+# + state - Processing state to record
+# + return - The payload
+isolated function partPayload(int meetingId, string name, driveservice:ArtifactInfoResponse info,
+        database:RecordingState state) returns database:MeetingPartPayload => {
+    meetingId,
+    name,
+    conferenceRecord: info?.conferenceRecordName,
+    driveFileId: info.fileId,
+    startTime: info?.startTime,
+    endTime: info?.endTime,
+    state
+};
 
 # The name the recording's Drive file carries, which is also what the Salesforce activity
 # uses as its subject. Google names the file after the raw meeting code and a timestamp;
@@ -556,33 +962,90 @@ isolated function callDate(string startTime) returns string? {
     return startTime.substring(0, 10);
 }
 
-# The activity's `comment`, carrying the view links for whichever artifacts resolved.
+# The activity's `comment`, carrying the view links for every attached part.
 #
 # This is the field the whole feature exists to deliver: it is what a rep opening the
 # opportunity in Salesforce actually sees. Salesforce allows 32,000 characters here, so
 # links comfortably fit -- but a transcript's contents would not, which is why only links go
 # in.
 #
+# The call is logged once, when the first recording, transcript and smart notes are all in, so
+# it links every part attached by then; a part that arrives later is not listed.
+#
 # + tracked - The meeting row, after all three artifacts attached
+# + files - Drive file ids of the attached parts, per kind, in the order they happened
 # + return - Comment body for the call activity
-isolated function buildCallActivityComment(database:MeetRecordingRow tracked) returns string {
+isolated function buildCallActivityComment(database:MeetRecordingRow tracked, CallFiles files) returns string {
     string[] lines = [
         string `Auto-logged from the WSO2 Meet recording pipeline for "${tracked.title}".`,
         ""
     ];
-    string? recordingFileId = tracked.driveFileId;
-    if recordingFileId is string {
-        lines.push(string `Recording: ${DRIVE_FILE_VIEW_URL_PREFIX}${recordingFileId}/view`);
-    }
-    string? transcriptFileId = tracked.transcriptFileId;
-    if transcriptFileId is string {
-        lines.push(string `Transcript: ${GOOGLE_DOC_VIEW_URL_PREFIX}${transcriptFileId}/edit`);
-    }
-    string? smartNotesFileId = tracked.smartNotesFileId;
-    if smartNotesFileId is string {
-        lines.push(string `Smart notes: ${GOOGLE_DOC_VIEW_URL_PREFIX}${smartNotesFileId}/edit`);
-    }
+    addFileLines(lines, "Recording", files.recordings, DRIVE_FILE_VIEW_URL_PREFIX, "/view");
+    addFileLines(lines, "Transcript", files.transcripts, GOOGLE_DOC_VIEW_URL_PREFIX, "/edit");
+    addFileLines(lines, "Smart notes", files.smartNotes, GOOGLE_DOC_VIEW_URL_PREFIX, "/edit");
     return string:'join("\n", ...lines);
+}
+
+# Appends one link per file, numbered only when there is more than one.
+#
+# + lines - The comment lines so far
+# + label - What the files are, e.g. "Recording"
+# + fileIds - The files, in order
+# + urlPrefix - View URL up to the file id
+# + urlSuffix - View URL after the file id
+isolated function addFileLines(string[] lines, string label, string[] fileIds, string urlPrefix, string urlSuffix) {
+    foreach int i in 0 ..< fileIds.length() {
+        string numbered = fileIds.length() > 1 ? string `${label} ${i + 1}` : label;
+        lines.push(string `${numbered}: ${urlPrefix}${fileIds[i]}${urlSuffix}`);
+    }
+}
+
+# The attached files of each kind, for the call activity's comment.
+#
+# + recordings - Recording file ids, in order
+# + transcripts - Transcript file ids, in order
+# + smartNotes - Smart notes file ids, in order
+type CallFiles record {|
+    string[] recordings;
+    string[] transcripts;
+    string[] smartNotes;
+|};
+
+# Gathers every attached part's file for the comment: the meeting's own column first, then each
+# ATTACHED part not already listed. A kind whose parts cannot be read gets the column alone -- a
+# shorter comment beats none, since the call is logged only once.
+#
+# + tracked - The meeting row
+# + return - The files per kind
+isolated function attachedCallFiles(database:MeetRecordingRow tracked) returns CallFiles => {
+    recordings: attachedFiles(database:RECORDING_PART, tracked.meetingId, tracked.driveFileId),
+    transcripts: attachedFiles(database:TRANSCRIPT_PART, tracked.meetingId, tracked.transcriptFileId),
+    smartNotes: attachedFiles(database:SMART_NOTE_PART, tracked.meetingId, tracked.smartNotesFileId)
+};
+
+isolated function attachedFiles(database:PartKind kind, int meetingId, string? fallbackFileId) returns string[] {
+    database:MeetingPart[]|error parts = database:getMeetingParts(kind, meetingId);
+    if parts is error {
+        log:printError(string `Could not read the meeting's ${kind} parts; the call activity lists only the first.`,
+                parts);
+        if fallbackFileId is string {
+            return [fallbackFileId];
+        }
+        return [];
+    }
+    // Starts from the meeting's own column: it is ATTACHED by the time the call is logged, and a
+    // file the old pipeline wrote there between the V6 migration and this release has no part row.
+    string[] fileIds = [];
+    if fallbackFileId is string {
+        fileIds.push(fallbackFileId);
+    }
+    foreach database:MeetingPart part in parts {
+        string? fileId = part.driveFileId;
+        if part.state == database:ATTACHED && fileId is string && fileIds.indexOf(fileId) == () {
+            fileIds.push(fileId);
+        }
+    }
+    return fileIds;
 }
 
 # Finds the Salesforce Contact for the call by looking up the external attendees.
@@ -706,7 +1169,7 @@ isolated function logCallActivityIfComplete(string spaceName) {
         // by a restricted picklist. Omitted and null are treated identically by the service.
         callType: tracked.meetingType == INTERNAL_MEETING_TYPE ? SF_CALL_TYPE_INTERNAL : (),
         occurredOn: callDate(tracked.startTime),
-        comment: buildCallActivityComment(tracked),
+        comment: buildCallActivityComment(tracked, attachedCallFiles(tracked)),
         // Exactly one target, picked above in the order deal, account, lead. The add-on writes
         // the deal's own account onto a deal-linked event as well, so a row can genuinely hold
         // both ids -- and the two share one Salesforce field, so sending both is a 400.

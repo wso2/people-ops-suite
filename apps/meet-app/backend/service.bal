@@ -663,7 +663,23 @@ service http:InterceptableService / on new http:Listener(9090) {
             return meeting;
         }
 
+        // Every part, not just the first: a call holds a recording, transcript and smart notes
+        // for each time someone started them. A failed read is a 500 rather than a page with
+        // parts quietly missing.
+        MeetingPartView[]|error recordings = partViews(database:RECORDING_PART, meetingId);
+        MeetingPartView[]|error transcripts = partViews(database:TRANSCRIPT_PART, meetingId);
+        MeetingPartView[]|error smartNotes = partViews(database:SMART_NOTE_PART, meetingId);
+        if recordings is error || transcripts is error || smartNotes is error {
+            string customError = "Error occurred while fetching the meeting's recordings, transcripts and notes!";
+            log:printError(customError, recordings is error ? recordings
+                : transcripts is error ? transcripts : <error>smartNotes);
+            return <http:InternalServerError>{body: {message: customError}};
+        }
+
         return {
+            recordings,
+            transcripts,
+            smartNotes,
             meetingId: meeting.meetingId,
             title: meeting.title,
             googleEventId: meeting.googleEventId,
@@ -693,8 +709,10 @@ service http:InterceptableService / on new http:Listener(9090) {
     # HMAC token bound to one file, one viewer and an expiry.
     #
     # + meetingId - meetingId whose recording to stream
+    # + recordingId - Which recording of the call, from the meeting's `recordings`; the first
+    # recording when omitted
     # + return - PlaybackResponse|InternalServerError|Forbidden|NotFound
-    resource function get meetings/[int meetingId]/playback(http:RequestContext ctx)
+    resource function get meetings/[int meetingId]/playback(http:RequestContext ctx, int? recordingId = ())
         returns PlaybackResponse|http:InternalServerError|http:Forbidden|http:NotFound {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
@@ -716,6 +734,15 @@ service http:InterceptableService / on new http:Listener(9090) {
             return <http:NotFound>{body: {message: "Playback is not enabled on this deployment."}};
         }
         string? driveFileId = meeting.driveFileId;
+        database:MeetingPart|http:InternalServerError|http:NotFound? part = recordingId is int
+            ? attachedPart(database:RECORDING_PART, meetingId, recordingId)
+            : firstAttachedPart(database:RECORDING_PART, meetingId);
+        if part is http:InternalServerError|http:NotFound {
+            return part;
+        }
+        if part is database:MeetingPart {
+            driveFileId = part.driveFileId;
+        }
         if driveFileId is () {
             return <http:NotFound>{body: {message: "No recording is attached to this meeting."}};
         }
@@ -739,9 +766,14 @@ service http:InterceptableService / on new http:Listener(9090) {
     # 404 when the meeting predates `transcript_name` being stored, in which case only the
     # Drive document exists and there is nothing to synchronise against the recording.
     #
+    # Each line carries its absolute start and end, so a caller showing one recording of a call
+    # can place the lines on that recording by its own `startTime`.
+    #
     # + meetingId - meetingId whose transcript to read
+    # + transcriptId - Which transcript of the call, from the meeting's `transcripts`; the first
+    # transcript when omitted
     # + return - TranscriptResponse|InternalServerError|Forbidden|NotFound
-    resource function get meetings/[int meetingId]/transcript(http:RequestContext ctx)
+    resource function get meetings/[int meetingId]/transcript(http:RequestContext ctx, int? transcriptId = ())
         returns TranscriptResponse|http:InternalServerError|http:Forbidden|http:NotFound {
 
         database:Meeting|http:InternalServerError|http:Forbidden|http:NotFound meeting =
@@ -751,6 +783,18 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         string? transcriptName = meeting.transcriptName;
+        // Without an id, the first transcript that has its Meet name: only those have timed lines.
+        database:MeetingPart|http:InternalServerError|http:NotFound? part = transcriptId is int
+            ? attachedPart(database:TRANSCRIPT_PART, meetingId, transcriptId)
+            : firstAttachedPart(database:TRANSCRIPT_PART, meetingId, needsMeetName = true);
+        if part is http:InternalServerError|http:NotFound {
+            return part;
+        }
+        if part is database:MeetingPart {
+            // A transcript copied in without its Meet name has only the Drive document, the
+            // same as a meeting from before the name was stored.
+            transcriptName = part.name.startsWith(database:LEGACY_PART_PREFIX) ? () : part.name;
+        }
         if transcriptName is () {
             return <http:NotFound>{body: {message: "No timed transcript is stored for this meeting."}};
         }
@@ -771,8 +815,10 @@ service http:InterceptableService / on new http:Listener(9090) {
     # transcript and Google's own chrome out of it -- see notesWithoutTranscript.
     #
     # + meetingId - meetingId whose notes to read
+    # + smartNoteId - Which smart notes of the call, from the meeting's `smartNotes`; the first
+    # when omitted
     # + return - SmartNotesResponse|InternalServerError|Forbidden|NotFound
-    resource function get meetings/[int meetingId]/smart\-notes(http:RequestContext ctx)
+    resource function get meetings/[int meetingId]/smart\-notes(http:RequestContext ctx, int? smartNoteId = ())
         returns SmartNotesResponse|http:InternalServerError|http:Forbidden|http:NotFound {
 
         database:Meeting|http:InternalServerError|http:Forbidden|http:NotFound meeting =
@@ -782,6 +828,15 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         string? smartNotesFileId = meeting.smartNotesFileId;
+        database:MeetingPart|http:InternalServerError|http:NotFound? part = smartNoteId is int
+            ? attachedPart(database:SMART_NOTE_PART, meetingId, smartNoteId)
+            : firstAttachedPart(database:SMART_NOTE_PART, meetingId);
+        if part is http:InternalServerError|http:NotFound {
+            return part;
+        }
+        if part is database:MeetingPart {
+            smartNotesFileId = part.driveFileId;
+        }
         if smartNotesFileId is () {
             return <http:NotFound>{body: {message: "No smart notes are attached to this meeting."}};
         }
@@ -934,6 +989,69 @@ service http:InterceptableService / on new http:Listener(9090) {
         }
 
         log:printInfo(string `Lead backfill by ${userInfo.email}: ${items.length()} meeting(s), dryRun=${dryRun}.`);
+        return {
+            dryRun,
+            meetings: items,
+            nextAfterMeetingId: candidates.length() == 'limit ? candidates[candidates.length() - 1].meetingId : ()
+        };
+    }
+
+    # One-off backfill of the recordings, transcripts and smart notes each recent meeting is
+    # missing, for any member of the Sales team or Sales admins.
+    #
+    # Until parts were kept separately, a second recording, transcript or smart notes in the
+    # same call overwrote the first in the database, so the app kept one of each. The files
+    # themselves were attached to the event and shared when they arrived; only their record
+    # was lost. This stores each part a meeting has no record of -- nothing is attached or shared
+    # -- for the meetings that started in the last `days` days, at most one year back, from two
+    # sources: Meet, through drive-service, for calls inside its 30 days (real names and exact
+    # times), and the calendar event's attachments, which cover the rest of the window (the file
+    # only, ordered by when it was attached). A part is stored as attached only when the event has
+    # its file; the others are reported in unattachedParts -- those still being processed are left
+    # to their notification, those not on the event at all need a manual look.
+    # echo-backend is told when a meeting gains transcripts.
+    #
+    # Works in small batches so one call stays well under the Choreo gateway's 60-second cap:
+    # repeat with `afterMeetingId = nextAfterMeetingId` until it is absent. A DRY RUN by
+    # default; pass `dryRun=false` to write.
+    #
+    # + dryRun - When true (the default), only report what is missing
+    # + days - How far back to look, by start time (1-365)
+    # + 'limit - Most meetings per batch (1-25)
+    # + afterMeetingId - Cursor from the previous batch
+    # + return - PartsBackfillResponse|Forbidden|BadRequest|InternalServerError
+    resource function post meetings/parts\-backfill(http:RequestContext ctx, boolean dryRun = true, int days = 30,
+            int 'limit = 5, int afterMeetingId = 0)
+        returns PartsBackfillResponse|http:Forbidden|http:BadRequest|http:InternalServerError {
+
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            log:printError("User information header not found!", userInfo);
+            return <http:InternalServerError>{body: {message: "User information header not found!"}};
+        }
+        // Open to the whole Sales team, not only admins: it only stores records of files the
+        // pipeline already attached and shared, never attaches or shares anything itself, and
+        // skips what is already stored, so running it again is harmless.
+        if !authorization:checkPermissions([authorization:authorizedRoles.SALES_TEAM], userInfo.groups)
+            && !authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups) {
+            return <http:Forbidden>{body: {message: "Only the Sales team can run the parts backfill."}};
+        }
+        if days < 1 || days > 365 || 'limit < 1 || 'limit > 25 || afterMeetingId < 0 {
+            return <http:BadRequest>{body: {message: "days must be 1-365, limit 1-25 and afterMeetingId >= 0."}};
+        }
+
+        database:PartsBackfillCandidate[]|error candidates =
+            database:fetchPartsBackfillCandidates(days, afterMeetingId, 'limit);
+        if candidates is error {
+            string customError = "Error occurred while finding meetings to backfill!";
+            log:printError(customError, candidates);
+            return <http:InternalServerError>{body: {message: customError}};
+        }
+
+        PartsBackfillItem[] items = from database:PartsBackfillCandidate candidate in candidates
+            select backfillMeetingParts(candidate, dryRun);
+
+        log:printInfo(string `Parts backfill by ${userInfo.email}: ${items.length()} meeting(s), dryRun=${dryRun}.`);
         return {
             dryRun,
             meetings: items,
@@ -1139,6 +1257,77 @@ service http:InterceptableService / on new http:Listener(9090) {
             "toStats": toStats
         };
     }
+}
+
+# Every part of one kind for a meeting, shaped for the meeting page.
+#
+# + kind - Which kind of part
+# + meetingId - The meeting
+# + return - The parts in order, or Error
+isolated function partViews(database:PartKind kind, int meetingId) returns MeetingPartView[]|error {
+    database:MeetingPart[] parts = check database:getMeetingParts(kind, meetingId);
+    return from database:MeetingPart part in parts
+        select {
+            id: part.id,
+            startTime: dbTimeToRfc3339(part.startTime),
+            endTime: dbTimeToRfc3339(part.endTime),
+            state: part.state
+        };
+}
+
+# The DB's `yyyy-MM-dd HH:mm:ss` UTC as RFC 3339, the form transcript lines carry, so the page
+# can compare the two directly.
+#
+# + dbTime - Time as stored, or ()
+# + return - RFC 3339, or ()
+isolated function dbTimeToRfc3339(string? dbTime) returns string? => dbTime is string ? toRfc3339(dbTime) : ();
+
+# Fetches one ATTACHED part of a meeting for the routes that open a part.
+#
+# + kind - Which kind of part
+# + meetingId - The meeting
+# + partId - The part asked for
+# + return - The part, or the response to return instead: 404 when the meeting has no such
+# part or it has no file yet
+isolated function attachedPart(database:PartKind kind, int meetingId, int partId)
+        returns database:MeetingPart|http:InternalServerError|http:NotFound {
+    database:MeetingPart|error? part = database:getMeetingPart(kind, meetingId, partId);
+    if part is error {
+        string customError = string `Error occurred while fetching the ${kind}!`;
+        log:printError(customError, part);
+        return <http:InternalServerError>{body: {message: customError}};
+    }
+    if part is () || part.state != database:ATTACHED || part.driveFileId is () {
+        return <http:NotFound>{body: {message: string `This meeting has no attached ${kind} with that id.`}};
+    }
+    return part;
+}
+
+# The first ATTACHED part of one kind, in the order they happened -- what the playback,
+# transcript and smart-notes routes serve when no part is named. Not the meeting's own column:
+# before parts were kept separately each part overwrote it, so on older meetings it holds the
+# last part, and the default would disagree with the start of the parts list.
+#
+# + kind - Which kind of part
+# + meetingId - The meeting
+# + needsMeetName - Skip parts that only carry a placeholder name
+# + return - The part; () when the meeting has none, so the caller falls back to its column; or
+# the response to return instead
+isolated function firstAttachedPart(database:PartKind kind, int meetingId, boolean needsMeetName = false)
+        returns database:MeetingPart|http:InternalServerError? {
+    database:MeetingPart[]|error parts = database:getMeetingParts(kind, meetingId);
+    if parts is error {
+        string customError = string `Error occurred while fetching the meeting's ${kind} parts!`;
+        log:printError(customError, parts);
+        return <http:InternalServerError>{body: {message: customError}};
+    }
+    foreach database:MeetingPart part in parts {
+        if part.state == database:ATTACHED && part.driveFileId is string
+            && (!needsMeetName || !part.name.startsWith(database:LEGACY_PART_PREFIX)) {
+            return part;
+        }
+    }
+    return;
 }
 
 # Fetches a meeting for the routes that show one (details, playback, transcript, smart notes).

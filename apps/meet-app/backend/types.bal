@@ -57,6 +57,26 @@ public type Meeting record {|
     string? leadId;
     # The lead's company, shown where an account name would be.
     string? leadCompany;
+    # Every recording of the call, in the order they happened -- each stop and restart is a
+    # new part. Only on the single-meeting route; the list leaves it out.
+    MeetingPartView[] recordings?;
+    # Every transcript of the call, in order. Only on the single-meeting route.
+    MeetingPartView[] transcripts?;
+    # Every smart notes of the call, in order. Only on the single-meeting route.
+    MeetingPartView[] smartNotes?;
+|};
+
+# One recording, transcript or smart notes of a call, as the meeting page lists it. Pass its
+# id to the playback, transcript or smart-notes route to open that part.
+public type MeetingPartView record {|
+    # Part id
+    int id;
+    # When the part started, RFC 3339 UTC; () for a part stored before times were kept
+    string? startTime;
+    # When the part ended, RFC 3339 UTC; () when unknown
+    string? endTime;
+    # PENDING, ATTACHED or FAILED; only ATTACHED parts can be opened
+    database:RecordingState state;
 |};
 
 # Represents the response structure for retrieving user information.
@@ -201,6 +221,54 @@ public type LeadBackfillResponse record {|
     boolean dryRun;
     # The meetings looked at in this batch
     LeadBackfillItem[] meetings;
+    # Pass as afterMeetingId to get the next batch; () when this was the last one
+    int? nextAfterMeetingId;
+|};
+
+# What the parts backfill did, or would do, for one meeting.
+public enum PartsBackfillStatus {
+    # Both sources were read and every part they listed was looked at
+    CHECKED,
+    # A source could not be read (see unreadSources); a later run retries it
+    INCOMPLETE
+}
+
+# One meeting in a parts backfill response. Parts are named by Meet's resource name.
+public type PartsBackfillItem record {|
+    # Meeting ID
+    int meetingId;
+    # Title of the meeting
+    string title;
+    # Scheduled start of the meeting
+    string startTime;
+    # Calls Meet found on the meeting's space inside its window; 0 for a meeting older than
+    # Meet's 30 days, whose parts come from the calendar event alone
+    int callsFound;
+    # Files attached to the calendar event as a recording, transcript or notes
+    int eventAttachments;
+    # Parts the meeting had no record of: stored, or in a dry run, would be stored. Named by
+    # Meet's resource name, or `legacy:file:<meeting id>:<Drive file id>` when only the event
+    # knows them
+    string[] missingParts;
+    # Parts left alone, of two kinds. One still being processed by its own notification: that
+    # notification attaches and shares it. One Meet lists that is not on the calendar event at
+    # all (e.g. it arrived before its meeting was registered): its notification was already
+    # answered and will not come again, so nothing attaches or shares it -- it needs a manual look.
+    string[] unattachedParts;
+    # Parts that could not be checked or stored; a later run retries them
+    string[] failedParts;
+    # Sources that could not be read: "meet" and/or "calendar"
+    string[] unreadSources;
+    # What happened
+    PartsBackfillStatus status;
+|};
+
+# One batch of the parts backfill.
+public type PartsBackfillResponse record {|
+    # Whether this was a dry run (nothing written)
+    boolean dryRun;
+    # The meetings looked at in this batch
+    PartsBackfillItem[] meetings;
     # Pass as afterMeetingId to get the next batch; () when this was the last one
     int? nextAfterMeetingId;
 |};
